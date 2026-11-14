@@ -11,6 +11,8 @@ export const STAGES = [
   'Juegos',
   'Red y niveles',
   'Mundos extraños',
+  // Optional (ROADMAP.md): a local profile, for single-player games that want more physics.
+  'Potencia para un jugador',
 ] as const;
 
 /** The stage the engine is in now. */

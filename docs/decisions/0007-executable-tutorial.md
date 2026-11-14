@@ -1,6 +1,6 @@
 # 0007. The executable tutorial and the Bitácora
 
-- **Status:** accepted (it modifies the shape of the "chapters" of 0002 and 0005)
+- **Status:** accepted (it modifies the shape of the "chapters" of 0002 and 0005); refined by [0013](0013-a-deeper-tutorial.md): the same short lessons, with more depth around their main path, more lessons, and their pace
 - **Date:** 2026-11-11
 
 ## Context

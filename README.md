@@ -4,7 +4,7 @@
 
 🌐 **Site:** https://rodrigomartinvg.github.io/Manifold_Gaming/ (in Spanish for now)
 
-> Status: **phase 1** (physics and a character). The Dojo has physics (Rapier, its deterministic build): cubes that fall, balls dropped from its console, a gravity that can be changed.
+> Status: **phase 2** (capabilities). In the Dojo, a character runs, jumps, climbs, glides and double-jumps (each capability turned on and off live) in a level written as text; its replay gives the same hash in Chromium, Firefox, WebKit and Node. Next: moving platforms.
 
 ## How it is organized
 
@@ -12,6 +12,7 @@
 packages/common         seeded randomness and math on plain data
 packages/commands       the registry and interpreter behind the console (no screen)
 packages/core           the simulation: the world, its fixed step, its events (no screen)
+packages/net            the match: the server that orders the inputs, and the clients that check their copy (no screen, no transport)
 packages/presentation   what is seen: Three.js, and the console
 games/dojo              the first game (the lab), with its saved rooms in recipes/
 site                    the website: home, the project, play, the tutorial and the Bitácora (Astro + Starlight)

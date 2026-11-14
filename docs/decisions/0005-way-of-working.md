@@ -1,6 +1,6 @@
 # 0005. How we work: branches, PRs, commits, tags, language
 
-- **Status:** accepted; branches and PRs, replaced by [0009](0009-straight-to-main.md) (we work straight on `main`); the language (and with it, the commit messages and the tag names), replaced by [0011](0011-languages.md)
+- **Status:** accepted; branches and PRs, replaced by [0009](0009-straight-to-main.md) (we work straight on `main`); the language (and with it, the commit messages and the tag names), replaced by [0011](0011-languages.md); the pace of the lessons ("with each step"), replaced by [0013](0013-a-deeper-tutorial.md) (per phase, at its close)
 - **Date:** 2026-11-11
 
 ## Context
