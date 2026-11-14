@@ -43,6 +43,22 @@ export default defineConfig({
       ],
       // The whole site's sidebar; each page shows only its section's part (src/route-data.ts).
       sidebar: [
+        // Jugar: the games first (each one with its page), then what every game shares: the
+        // character's controls and the console, which is the engine's, not one game's.
+        {
+          label: 'Jugar',
+          items: [
+            { label: 'Los juegos', link: '/jugar/' },
+            { label: 'Juegos', items: [{ label: 'El Dojo', link: '/jugar/dojo/' }] },
+            {
+              label: 'Para todos los juegos',
+              items: [
+                { label: 'Cómo se juega', link: '/jugar/como-se-juega/' },
+                { label: 'La consola', link: '/jugar/consola/' },
+              ],
+            },
+          ],
+        },
         {
           label: 'Tutorial',
           items: [

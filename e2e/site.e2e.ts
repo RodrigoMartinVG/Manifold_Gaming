@@ -43,7 +43,9 @@ test("the home page's showcase lights up and its simulation advances", async ({ 
 });
 
 for (const [address, cubes] of [
-  ['jugar/dojo/', 1],
+  ['jugar/dojo/empty/', 1],
+  ['jugar/dojo/empty/#recipe=dojo.cubes+20;seed+3', 21],
+  // An old link (before 2026-11-14 the empty Dojo was `/jugar/dojo/`): it goes to the empty room, recipe and all.
   ['jugar/dojo/#recipe=dojo.cubes+20;seed+3', 21],
 ] as const) {
   test(`the Dojo draws without errors, one mesh per cube (${address})`, async ({ page }) => {
@@ -72,9 +74,34 @@ async function typeInConsole(page: Page, ...lines: string[]) {
   }
 }
 
+// The console is the engine's: its page names every command and variable the engine declares, and the
+// Dojo's page the Dojo's own. Read from the console itself (`help`, `vars`), so a new declaration that
+// the site does not mention fails here.
+test('the console page and the Dojo page name every command and variable the Dojo declares', async ({ page }) => {
+  await page.goto('jugar/dojo/empty/');
+  await expect.poll(() => meshes(page), { timeout: 15_000 }).toBe(1);
+  await page.keyboard.press('Backquote');
+  await typeInConsole(page, 'help', 'vars');
+  const log = await consoleLog(page).innerText();
+  const commands = log
+    .match(/^Commands: (.*)$/m)![1]!
+    .trim()
+    .split(/\s+/);
+  const variables = [...log.matchAll(/^ {2}([a-z][\w.]*) {2,}/gm)].map((m) => m[1]!);
+  expect(commands.length).toBeGreaterThan(20);
+  expect(variables.length).toBeGreaterThan(15);
+  const textOf = async (address: string) => {
+    await page.goto(address);
+    return page.locator('main').innerText();
+  };
+  const engine = await textOf('jugar/consola/');
+  const dojo = await textOf('jugar/dojo/');
+  for (const name of [...commands, ...variables]) expect(name.startsWith('dojo.') ? dojo : engine, name).toContain(name);
+});
+
 test("the Dojo's console opens with the º key and changes the world", async ({ page }) => {
   const list = errors(page);
-  await page.goto('jugar/dojo/');
+  await page.goto('jugar/dojo/empty/');
   await expect.poll(() => meshes(page), { timeout: 15_000 }).toBe(1);
   await page.keyboard.press('Backquote');
   await expect(page.locator('.mg-console')).toHaveAttribute('data-open', 'true');
@@ -91,7 +118,7 @@ test("the Dojo's console opens with the º key and changes the world", async ({ 
   await expect(consoleLog(page)).toContainText('Did you mean dojo.cubes 3?');
   // Export builds the link with the recipe of what changed.
   await typeInConsole(page, 'export');
-  await expect(consoleLog(page)).toContainText('/jugar/dojo/#recipe=dojo.cubes+20');
+  await expect(consoleLog(page)).toContainText('/jugar/dojo/empty/#recipe=dojo.cubes+20');
   // Esc closes.
   await page.locator('.mg-console input').press('Escape');
   await expect(page.locator('.mg-console')).toHaveAttribute('data-open', 'false');
@@ -130,7 +157,7 @@ test('a link with the recipe inside: it applies what it understands, reports the
   page,
 }) => {
   const list = errors(page);
-  await page.goto('jugar/dojo/#recipe=dojo.cubes+5;startup+save;made.up+3');
+  await page.goto('jugar/dojo/empty/#recipe=dojo.cubes+5;startup+save;made.up+3');
   await expect.poll(() => meshes(page), { timeout: 15_000 }).toBe(6);
   await page.keyboard.press('Backquote');
   await expect(consoleLog(page)).toContainText("the link's recipe: 2 lines were not understood");
@@ -140,7 +167,7 @@ test('a link with the recipe inside: it applies what it understands, reports the
 });
 
 test('the startup recipe and the key bindings are saved, and hold the next time', async ({ page }) => {
-  await page.goto('jugar/dojo/');
+  await page.goto('jugar/dojo/empty/');
   await page.keyboard.press('Backquote');
   await typeInConsole(page, 'dojo.cubes 4', 'startup save', 'bind t toggle show.wireframe');
   await page.reload();
@@ -158,7 +185,7 @@ test('the startup recipe and the key bindings are saved, and hold the next time'
 // ---------------------------------------------------------------- the console, friendlier (before stage 1b)
 
 test("help's examples are buttons: a click puts one in the line, and Enter runs it", async ({ page }) => {
-  await page.goto('jugar/dojo/');
+  await page.goto('jugar/dojo/empty/');
   await expect.poll(() => meshes(page), { timeout: 15_000 }).toBe(1);
   await page.keyboard.press('Backquote');
   await typeInConsole(page, 'help');
@@ -175,7 +202,7 @@ test("help's examples are buttons: a click puts one in the line, and Enter runs 
 
 test('the free camera turns with a drag, camera.reset brings it back, and a click on an object inspects it', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
-  await page.goto('jugar/dojo/');
+  await page.goto('jugar/dojo/empty/');
   const game = page.locator('#game');
   await expect.poll(() => game.getAttribute('data-camera'), { timeout: 15_000 }).toBe('3.20 2.40 4.20');
   // Dragging turns the camera around the scene (the world does not change: only the view).
@@ -201,7 +228,7 @@ test('the free camera turns with a drag, camera.reset brings it back, and a clic
 });
 
 test('reset puts everything back to its default value, and vars shows it by scope', async ({ page }) => {
-  await page.goto('jugar/dojo/');
+  await page.goto('jugar/dojo/empty/');
   await expect.poll(() => meshes(page), { timeout: 15_000 }).toBe(1);
   await page.keyboard.press('Backquote');
   await typeInConsole(page, 'dojo.cubes 5', 'show.axes on', 'vars');

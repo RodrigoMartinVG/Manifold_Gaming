@@ -22,3 +22,6 @@ site/.vendor-entries/
 
 # Local drafts and idea banks (not part of the project)
 borradores_ideas/
+
+# Reference books, kept locally (not part of the project)
+books/

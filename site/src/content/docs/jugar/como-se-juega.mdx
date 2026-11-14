@@ -1,0 +1,78 @@
+---
+title: Cómo se juega
+description: Los controles del personaje, comunes a todos los juegos de Manifold, las maneras de manejarlo y las cámaras.
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+Los juegos de Manifold comparten personaje, y con él, los controles: lo que sigue vale para todos los que tienen un personaje para manejar (hoy, la sala **The course** del [Dojo](../dojo/)). Cada juego puede sumar sus propias acciones, como tirar una pelota en el Dojo; para ver todas las de un juego y qué tecla las aprieta, escribí `inputs` en [la consola](../consola/).
+
+## Los controles
+
+<Tabs syncKey="dispositivo">
+  <TabItem label="Teclado y mouse">
+
+| Para…                      | Con el teclado y el mouse                                      |
+| -------------------------- | -------------------------------------------------------------- |
+| caminar                    | **W A S D** o las flechas                                      |
+| saltar                     | **Espacio**                                                    |
+| correr                     | **Shift**                                                      |
+| girar la cámara            | arrastrar el mouse                                             |
+| acercar y alejar           | la rueda                                                       |
+| ver de qué está hecho algo | un clic sobre él (lo muestra en la consola)                    |
+| abrir la consola           | **º**, la tecla a la izquierda del 1, o el botón de abajo `›_` |
+
+  </TabItem>
+  <TabItem label="Mando">
+
+| Para…           | Con un mando              |
+| --------------- | ------------------------- |
+| caminar         | el stick izquierdo        |
+| saltar          | **A**                     |
+| correr          | **B**, o apretar el stick |
+| girar la cámara | el stick derecho          |
+
+  </TabItem>
+  <TabItem label="Pantalla táctil">
+
+| Para…                      | Con el dedo   |
+| -------------------------- | ------------- |
+| girar la cámara            | arrastrar     |
+| acercar y alejar           | pellizcar     |
+| ver de qué está hecho algo | tocarlo       |
+| abrir la consola           | el botón `›_` |
+
+El personaje todavía no se maneja con el dedo: hace falta un teclado o un mando. Los juegos son para teclado y mando por lo menos hasta la fase 6.
+
+  </TabItem>
+</Tabs>
+
+El salto perdona un poco, como en los buenos juegos de plataformas: si lo apretás un instante después de dejar un borde, salta igual, y si lo apretás un instante antes de tocar el suelo, salta apenas lo toca.
+
+## Las teclas, de dos maneras
+
+Se elige con `controls.scheme` en la consola:
+
+| Opción                      | "Adelante" es…                | A y D…                                                                                    |
+| --------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------- |
+| `camera` (la de siempre)    | hacia donde mira la cámara    | van a sus costados; el personaje mira hacia donde camina, como en un juego de plataformas |
+| `tank`, controles de tanque | hacia donde mira el personaje | lo giran sobre su eje; **Q** y **E** (o A y D con **Alt**) lo llevan de costado sin girar |
+
+Con `tank`, mientras se mantiene apretada una tecla, lo que el jugador pide no cambia aunque gire la cámara: las repeticiones quedan más cortas.
+
+## Las cámaras
+
+Se elige con `view.camera`:
+
+| Opción                   | Qué hace                                                                                                                     |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| `follow` (la de siempre) | lo sigue como atada con una correa: mantiene la distancia, y gira de a poco cuando el personaje va hacia un costado          |
+| `chase`                  | vuelve sola detrás del personaje; arrastrar mira alrededor, y al soltar vuelve. Va bien con `tank`                           |
+| `aim`                    | un clic toma el mouse: el mouse gira la cámara, y el personaje mira hacia donde mira ella, como en un shooter. Esc lo suelta |
+| `free`                   | se queda quieta                                                                                                              |
+
+`camera.reset` la vuelve a poner detrás del personaje.
+
+## Lo que el personaje sabe hacer
+
+Además de caminar, correr y saltar, el personaje del motor sabe **trepar** paredes, **planear** y dar un **doble salto**. Cada juego decide cuáles prende y cuándo: en un plataformas se ganan de a una; en el Dojo, que es un laboratorio, [se prenden y se apagan en vivo](../dojo/#lo-que-el-personaje-puede-en-el-dojo).

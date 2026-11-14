@@ -19,10 +19,10 @@ const latest = (await reports())[0]!;
 
 <div class="mg-doors not-content">
   <section class="card mg-door">
-    <h2 class="title"><Icon name="rocket" class="icon" size="1.333em" /><span>El Dojo</span></h2>
+    <h2 class="title"><Icon name="rocket" class="icon" size="1.333em" /><span>Jugar</span></h2>
     <p>
-      El laboratorio del motor: un mundo que corre en tu navegador, con una consola para cambiar todo lo que se
-      puede tocar. Sus salas ya vienen preparadas:
+      Los juegos del motor. Hoy, el Dojo: el laboratorio, un mundo que corre en tu navegador con una consola para cambiar
+      todo lo que se puede tocar. Sus salas ya vienen preparadas:
     </p>
     <ul class="mg-rooms">
       {
@@ -33,7 +33,7 @@ const latest = (await reports())[0]!;
         ))
       }
     </ul>
-    <a class="mg-door-link" href={`${BASE}jugar/`}>Las salas y la consola →</a>
+    <a class="mg-door-link" href={`${BASE}jugar/`}>Los juegos →</a>
   </section>
 
   <section class="card mg-door">
@@ -193,5 +193,33 @@ const latest = (await reports())[0]!;
   }
   .mg-stages > a:hover {
     color: var(--sl-color-white);
+  }
+
+  /* The entrance (Hero.astro turns it on): the doors come up one after the other, after the hero,
+     and then the strip. */
+  @media (prefers-reduced-motion: no-preference) {
+    :global(html[data-mg-intro]) .mg-door {
+      animation: mg-door-rise 0.8s 1.1s both cubic-bezier(0.2, 0.7, 0.2, 1);
+    }
+    :global(html[data-mg-intro]) .mg-door:nth-child(2) {
+      animation-delay: 1.2s;
+    }
+    :global(html[data-mg-intro]) .mg-door:nth-child(3) {
+      animation-delay: 1.3s;
+    }
+    :global(html[data-mg-intro]) .mg-stages {
+      animation: mg-door-fade 0.8s 1.5s both;
+    }
+  }
+  @keyframes mg-door-rise {
+    from {
+      opacity: 0;
+      transform: translateY(1.1rem);
+    }
+  }
+  @keyframes mg-door-fade {
+    from {
+      opacity: 0;
+    }
   }
 </style>

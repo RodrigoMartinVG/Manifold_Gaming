@@ -49,7 +49,7 @@ async function exportReplay(page: Page) {
 
 test('the same world in the browser and in Node gives the same hash after the same steps', async ({ page }) => {
   // Forty cubes falling on the floor and on the spinning cube: collisions, bounces, piles.
-  await page.goto('jugar/dojo/#recipe=seed+7;dojo.cubes+40');
+  await page.goto('jugar/dojo/empty/#recipe=seed+7;dojo.cubes+40');
   await expect.poll(() => page.locator('#game').getAttribute('data-step').then(Number), { timeout: 20_000 }).toBeGreaterThan(180);
   await page.keyboard.press('Backquote');
   await typeInConsole(page, 'pause', 'hash');
@@ -70,7 +70,7 @@ test('the same world in the browser and in Node gives the same hash after the sa
 test('show.physics draws what the physics sees, without breaking anything', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  await page.goto('jugar/dojo/#recipe=dojo.cubes+5;show.physics+on');
+  await page.goto('jugar/dojo/empty/#recipe=dojo.cubes+5;show.physics+on');
   await expect
     .poll(() => page.locator('#game').getAttribute('data-frames').then(Number), { timeout: 20_000 })
     .toBeGreaterThan(30);

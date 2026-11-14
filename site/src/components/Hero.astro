@@ -19,6 +19,18 @@ const [first, ...rest] = title.split(' ');
 ---
 
 <div class="hero">
+  <script is:inline>
+    // THE ENTRANCE: a moment long, and it never covers the page nor waits for a click. It plays when
+    // the home page is opened or reloaded, not when coming back to it from another page of the site,
+    // and never for someone who asked for less motion. It runs here, before the hero is parsed, so
+    // nothing shows up first and then hides. Without JavaScript, everything is simply there.
+    try {
+      const nav = performance.getEntriesByType('navigation')[0];
+      const fromSite = document.referrer.startsWith(location.origin) && (!nav || nav.type !== 'reload');
+      if (!fromSite && !matchMedia('(prefers-reduced-motion: reduce)').matches)
+        document.documentElement.setAttribute('data-mg-intro', '');
+    } catch {}
+  </script>
   <div class="hero-text">
     <p class="hero-kicker">Laboratorio de mundos físicos en 3D</p>
     <h1 id="_top" data-page-title>
@@ -26,10 +38,10 @@ const [first, ...rest] = title.split(' ');
       {rest.length > 0 && <span class="hero-title-2">{rest.join(' ')}</span>}
     </h1>
     <svg class="hero-ornament" viewBox="0 0 260 18" aria-hidden="true">
-      <path d="M0 9H104M156 9H260M112 9h-4M152 9h-4M120 9h-3M143 9h-3" />
-      <circle cx="130" cy="9" r="7" />
-      <circle cx="130" cy="9" r="2.2" />
-      <path d="M130 0v4M130 14v4" />
+      <path class="ornament-line" d="M0 9H104M156 9H260M112 9h-4M152 9h-4M120 9h-3M143 9h-3" />
+      <circle class="ornament-ring" cx="130" cy="9" r="7" pathLength="1" />
+      <circle class="ornament-ring ornament-ring-inner" cx="130" cy="9" r="2.2" pathLength="1" />
+      <path class="ornament-tick" d="M130 0v4M130 14v4" />
     </svg>
     {tagline && <div class="hero-tagline" set:html={tagline} />}
     {
@@ -167,5 +179,127 @@ const [first, ...rest] = title.split(' ');
   .hero-actions :global(.sl-link-button.minimal:hover) {
     background: color-mix(in srgb, var(--sl-color-accent) 20%, transparent);
     color: var(--sl-color-white);
+  }
+
+  /* ---------- The entrance (the script above turns it on) ----------
+     In order, in about two seconds: the kicker is uncovered from left to right; MANIFOLD comes out of
+     the blur and a gleam crosses the metal; GAMING opens its letters; the compass draws its circles
+     and the rule grows from its center; then the text, the buttons, the showcase and the doors
+     (HomeDoors.astro). The keyframes say only where each one starts: it ends as it is anyway. (The
+     kicker is uncovered and not spaced out: spaced out, it took two lines and pushed the title down.) */
+  @media (prefers-reduced-motion: no-preference) {
+    :global(html[data-mg-intro]) .hero-kicker {
+      /* `backwards`: once uncovered, no clip is left on it. */
+      animation: mg-uncover 0.9s 0.05s backwards cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    :global(html[data-mg-intro]) .hero-title-1 {
+      /* A gleam over the metal: one more layer, a light band that crosses the letters once. */
+      background:
+        linear-gradient(100deg, transparent 38%, rgb(255 236 200 / 0.75) 50%, transparent 62%) 85% 0 / 300% 100% no-repeat,
+        var(--mg-rust),
+        var(--mg-metal-text);
+      -webkit-background-clip: text;
+      background-clip: text;
+      animation:
+        mg-emerge 1s 0.1s both cubic-bezier(0.16, 0.8, 0.24, 1),
+        mg-gleam 1.2s 0.6s both ease-in-out;
+    }
+    :global(html[data-mg-intro]) .hero-title-2 {
+      animation: mg-unfold 1.2s 0.35s both cubic-bezier(0.16, 0.8, 0.24, 1);
+    }
+    :global(html[data-mg-intro]) .ornament-ring {
+      stroke-dasharray: 1;
+      animation: mg-draw 0.8s 0.45s both ease-out;
+    }
+    :global(html[data-mg-intro]) .ornament-ring-inner {
+      animation-delay: 0.65s;
+    }
+    :global(html[data-mg-intro]) .ornament-line {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: mg-grow 0.9s 0.7s both cubic-bezier(0.2, 0.7, 0.2, 1);
+    }
+    :global(html[data-mg-intro]) .ornament-tick {
+      animation: mg-fade 0.5s 0.95s both;
+    }
+    :global(html[data-mg-intro]) .hero-tagline {
+      animation: mg-rise 0.8s 0.8s both cubic-bezier(0.2, 0.7, 0.2, 1);
+    }
+    :global(html[data-mg-intro]) .hero-actions {
+      animation: mg-rise 0.8s 0.95s both cubic-bezier(0.2, 0.7, 0.2, 1);
+    }
+    :global(html[data-mg-intro]) .hero :global(.showcase) {
+      animation: mg-frame 1.2s 0.25s both cubic-bezier(0.16, 0.8, 0.24, 1);
+    }
+  }
+
+  @keyframes mg-rise {
+    from {
+      opacity: 0;
+      transform: translateY(0.9rem);
+    }
+  }
+  @keyframes mg-fade {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes mg-uncover {
+    from {
+      clip-path: inset(0 100% 0 0);
+    }
+    to {
+      clip-path: inset(0 0 0 0);
+    }
+  }
+  @keyframes mg-emerge {
+    from {
+      opacity: 0;
+      transform: translateY(0.18em) scale(0.97);
+      filter: blur(8px);
+    }
+  }
+  /* The band goes from the left of the letters (85%) to past their right (15%): its image is three
+     times as wide as the word. The other two layers stay where they are. */
+  @keyframes mg-gleam {
+    from {
+      background-position:
+        85% 0,
+        0 0,
+        0 0;
+    }
+    to {
+      background-position:
+        15% 0,
+        0 0,
+        0 0;
+    }
+  }
+  @keyframes mg-unfold {
+    from {
+      opacity: 0;
+      letter-spacing: 0.3em;
+      margin-inline-end: -0.3em;
+    }
+  }
+  @keyframes mg-draw {
+    from {
+      stroke-dashoffset: 1;
+    }
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+  @keyframes mg-grow {
+    from {
+      transform: scaleX(0);
+      opacity: 0;
+    }
+  }
+  @keyframes mg-frame {
+    from {
+      opacity: 0;
+      transform: translateY(1rem) scale(0.985);
+    }
   }
 </style>

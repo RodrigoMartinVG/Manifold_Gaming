@@ -1,0 +1,64 @@
+---
+title: El Dojo
+description: El primer juego, el laboratorio del motor. Sus salas, lo que su personaje puede hacer y su parte de la consola.
+---
+
+import { LinkButton } from '@astrojs/starlight/components';
+import RoomCards from '../../../components/RoomCards.astro';
+import LegacyDojoLinks from '../../../components/LegacyDojoLinks.astro';
+
+<LegacyDojoLinks />
+
+El **Dojo** es el primer juego de Manifold, y es distinto de los que vienen: no tiene historia ni final, porque es **el laboratorio del motor**. Todo lo que el motor sabe hacer está ahí para probarlo y romperlo, y su consola deja tocarlo todo. Cada pieza nueva pasa primero por el Dojo, con el mismo contrato que cualquier otro juego: no tiene puertas traseras, y si algo le falta, le falta al motor.
+
+<LinkButton href="course/" icon="right-arrow">
+  Manejar el personaje
+</LinkButton>
+<LinkButton href="empty/" variant="secondary">
+  Entrar al Dojo vacío
+</LinkButton>
+
+## Qué hay adentro
+
+Un piso, un cubo grande que gira y empuja lo que toca, cubos que caen del azar del mundo, y la consola. En la sala **The course** hay además un personaje para manejar, en un nivel chico escrito como texto: escalones, una rampa, plataformas, una torre de 6 m, una isla en el vacío y tres estrellas. Hay un **punto de control** en la primera plataforma y la **meta** en la más alta; si te caés del piso, volvés al último punto de control, y al llegar te dice el tiempo y cuántas veces te caíste.
+
+Cómo se maneja el personaje es igual en todos los juegos: está en [Cómo se juega](../como-se-juega/). Lo propio del Dojo es una acción más, **tirar una pelota** hacia donde mira el personaje: con la **F**, o con la **X** del mando.
+
+## Sus salas
+
+Cada sala es una **receta** (_recipe_) guardada: unas líneas de la consola con las que el Dojo arranca ya preparado. Cada tarjeta muestra esas líneas y lleva a la sala; desde la consola, `load` la carga. Una sala nueva es un archivo nuevo en `games/dojo/recipes/`: su tarjeta y su página aparecen solas.
+
+<RoomCards />
+
+## Lo que el personaje puede, en el Dojo
+
+Cada juego decide qué sabe hacer su personaje. En el Dojo, cada capacidad se prende y se apaga en vivo, para todos los personajes a la vez:
+
+| Escribí              | Y el personaje…                                                                                                                                                                |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `dojo.climb on`      | **trepa**: empujando contra una pared, la sube; saltando desde ella, se despega hacia afuera                                                                                   |
+| `dojo.glide on`      | **planea**: manteniendo el salto mientras cae, cae despacio y se dirige mejor                                                                                                  |
+| `dojo.doublejump on` | da **un salto más** en el aire                                                                                                                                                 |
+| `dojo.air 0`         | ya no corrige el salto en el aire, como en la física real: una vez en el aire no hay contra qué empujar. Con 14, el de siempre, corrige un poco; con 50, tanto como en el piso |
+
+La sala **Capabilities** es el recorrido con las tres capacidades prendidas, y tres estrellas para buscar: una arriba de la torre, a la que solo se llega trepando; una en la isla, a la que solo se llega planeando; y una muy alta sobre la última plataforma, para el doble salto. Apagá una (`dojo.climb off`) y probá de nuevo.
+
+## Su parte de la consola
+
+El Dojo monta [la consola](../consola/) y deja tocar todo: los comandos y las variables del motor, y además los suyos, que empiezan con `dojo.`:
+
+| Nombre                                        | Qué es                                                                                                        | Valores (por defecto)          | Clase    |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------ | -------- |
+| `dojo.level`                                  | Qué hay en el piso: `empty`, o un nivel de `games/dojo/levels/`, como `course`, con un personaje para manejar | `empty` o `course` (`empty`)   | arranque |
+| `dojo.cubes`                                  | Cubos chicos al empezar, en lugares que salen del azar del mundo: con la misma semilla, siempre los mismos    | de 0 a 200 (0)                 | arranque |
+| `dojo.climb`, `dojo.glide`, `dojo.doublejump` | Las capacidades del personaje (arriba)                                                                        | `on` u `off` (`off`)           | mundo    |
+| `dojo.air`                                    | Cuánto se puede corregir un salto en el aire, en m/s²                                                         | de 0 a 60 (14)                 | mundo    |
+| `dojo.spin`                                   | Cómo gira el cubo grande: radianes por segundo alrededor de cada eje (x y z)                                  | tres números (`0.35 0.9 0.15`) | mundo    |
+| `dojo.spawn x y z`                            | Deja caer una pelota desde ese punto, con un tamaño y un color que salen del azar del mundo                   | un comando                     | mundo    |
+| `dojo.goto x y z`                             | Pone quieto en ese punto al personaje del jugador 1: para explorar un nivel                                   | un comando                     | mundo    |
+
+Qué significan las clases (arranque, mundo, vista) está en [la consola](../consola/#tres-clases-de-opciones).
+
+## Por qué es un juego
+
+Podría haber sido una página de pruebas, pero el Dojo es un juego a propósito ([decisión 0010](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/docs/decisions/0010-the-console-and-recipes.md)): usa el motor exactamente como lo va a usar cualquier otro, con su cartucho, sus niveles y su consola. Lo que resulta incómodo en el Dojo avisa de algo que el motor todavía no resuelve bien, y eso se descubre antes de que un juego de verdad lo necesite.

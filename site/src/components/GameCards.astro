@@ -1,0 +1,150 @@
+---
+/**
+ * THE GAMES, AS CARDS (the play section's first page). The Dojo is the first game, not the section:
+ * each game gets its card, its state and, once it can be played, its page and its way in. The ones
+ * to come say in which phase they arrive (ROADMAP.md, decision 0012).
+ * (The texts are the site's, in Spanish.)
+ */
+import { BASE } from '../sections';
+
+interface Game {
+  title: string;
+  text: string;
+  /** What state it is in: what can be played today, or when it comes. */
+  state: string;
+  ready: boolean;
+  /** Its page in the site, and its way straight into playing. */
+  page?: string;
+  play?: { href: string; label: string };
+}
+
+const games: Game[] = [
+  {
+    title: 'El Dojo',
+    text: 'El laboratorio del motor: un mundo para probar y romper todo lo que el motor sabe hacer, con una consola que lo cambia todo y salas ya preparadas.',
+    state: 'Se juega hoy',
+    ready: true,
+    page: `${BASE}jugar/dojo/`,
+    play: { href: `${BASE}jugar/dojo/course/`, label: 'Manejar el personaje' },
+  },
+  {
+    title: 'Un plataformas',
+    text: 'En tercera persona: el personaje, su cámara, plataformas que se mueven, y lo que sabe hacer (trepar, planear, un doble salto).',
+    state: 'En camino · se completa en la fase 5',
+    ready: false,
+  },
+  {
+    title: 'Una aventura de acción',
+    text: 'El mismo personaje en un mundo que responde: mecanismos, cosas que se rompen, luz y sonido, y enemigos que usan el mundo.',
+    state: 'En camino · se completa en la fase 5',
+    ready: false,
+  },
+  {
+    title: 'Un shooter',
+    text: 'En primera persona, contra bots; al final, en red contra otras personas.',
+    state: 'En camino · fase 5 (en red, la 6)',
+    ready: false,
+  },
+  {
+    title: 'La segunda tanda',
+    text: 'Dos juegos de mundos extraños: gravedades que cambian de lugar en lugar, paredes y techos que se caminan, espacios pegados consigo mismos.',
+    state: 'Más adelante · fase 7',
+    ready: false,
+  },
+];
+---
+
+<ul class="mg-games not-content">
+  {
+    games.map((g) => (
+      <li class:list={['card', 'mg-game', { 'mg-game-ready': g.ready }]}>
+        <span class="mg-game-state">{g.state}</span>
+        <h2 class="mg-game-title">{g.page ? <a href={g.page}>{g.title}</a> : g.title}</h2>
+        <p>{g.text}</p>
+        {(g.page || g.play) && (
+          <span class="mg-game-links">
+            {g.play && (
+              <a class="mg-game-play" href={g.play.href}>
+                {g.play.label} →
+              </a>
+            )}
+            {g.page && <a href={g.page}>Sus salas y su consola</a>}
+          </span>
+        )}
+      </li>
+    ))
+  }
+</ul>
+
+<style>
+  .mg-games {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+    gap: 1rem;
+    margin: 1.5rem 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .mg-game {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin: 0;
+    padding: 1.2rem 1.3rem;
+  }
+  /* The ones to come: quieter, so the one that can be played stands out. */
+  .mg-game:not(.mg-game-ready) {
+    opacity: 0.78;
+  }
+  .mg-game-ready {
+    grid-column: 1 / -1;
+    border-color: var(--sl-color-accent);
+  }
+  .mg-game-state {
+    font-family: var(--mg-font-title);
+    font-size: var(--sl-text-xs);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--sl-color-gray-3);
+  }
+  .mg-game-ready .mg-game-state {
+    color: var(--sl-color-accent-high);
+  }
+  .mg-game-title {
+    margin: 0;
+    font-size: var(--sl-text-h4);
+  }
+  .mg-game-title a {
+    color: inherit;
+    text-decoration: none;
+  }
+  .mg-game-title a:hover {
+    color: var(--sl-color-white);
+  }
+  .mg-game p {
+    margin: 0;
+    color: var(--sl-color-gray-2);
+    line-height: 1.6;
+  }
+  .mg-game-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.4rem;
+    align-items: baseline;
+    margin-top: 0.3rem;
+  }
+  .mg-game-links a {
+    color: var(--sl-color-accent-high);
+  }
+  .mg-game-links .mg-game-play {
+    color: var(--mg-title);
+    font-family: var(--mg-font-title);
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-decoration: none;
+  }
+  .mg-game-links .mg-game-play:hover {
+    color: var(--sl-color-white);
+  }
+</style>

@@ -28,6 +28,8 @@ function reports() {
 const pagesBySection: [string, string | null][] = [
   ['', null],
   ['jugar/', 'jugar'],
+  ['jugar/dojo/', 'jugar'],
+  ['jugar/consola/', 'jugar'],
   ['tutorial/', 'tutorial'],
   ['tutorial/etapa-0/01-primer-cubo/', 'tutorial'],
   ['tutorial/glosario/', 'tutorial'],
@@ -89,8 +91,18 @@ test('each section has its own sidebar, and previous/next never leave it', async
   await page.goto('bitacora/etapa-0/');
   await expect(page.locator('.pagination-links a[rel="prev"]')).toHaveAttribute('href', /\/bitacora\/$/);
 
+  // Jugar: the games first, then what they all share (the controls, the console).
+  await page.goto('jugar/');
+  const paths = await sidebarLinks('jugar').evaluateAll((as) => as.map((a) => (a as HTMLAnchorElement).pathname));
+  for (const p of ['jugar/', 'jugar/dojo/', 'jugar/como-se-juega/', 'jugar/consola/'])
+    expect(
+      paths.some((x) => x.endsWith(`/${p}`)),
+      p,
+    ).toBe(true);
+  await expect(sidebarLinks('tutorial')).toHaveCount(0);
+
   // A section with a single page shows no sidebar, and reads at the usual width.
-  for (const address of ['jugar/', 'proyecto/']) {
+  for (const address of ['proyecto/']) {
     await page.goto(address);
     await expect(page.locator('html')).not.toHaveAttribute('data-has-sidebar');
     await expect(page.locator('.pagination-links a')).toHaveCount(0);
@@ -103,7 +115,7 @@ test("the home page's doors lead to pages that exist, with what is new in each s
   // The Dojo goes first (the main action), then the tutorial.
   const actions = page.locator('.hero-actions a');
   await expect(actions.nth(0)).toHaveText(/Entrar al Dojo/);
-  await expect(actions.nth(0)).toHaveAttribute('href', /jugar\/dojo\/$/);
+  await expect(actions.nth(0)).toHaveAttribute('href', /jugar\/dojo\/course\/$/);
   await expect(actions.nth(1)).toHaveText(/Empezar el tutorial/);
 
   const doors = page.locator('.mg-doors .mg-door');
@@ -133,7 +145,7 @@ test("the Bitácora's index lists every report, newest first", async ({ page }) 
 });
 
 test('the Dojo says how to start the first time, and only the first time', async ({ page }) => {
-  await page.goto('jugar/dojo/');
+  await page.goto('jugar/dojo/empty/');
   const hint = page.locator('#hint');
   await expect(hint).toBeVisible();
   await expect(hint).toContainText('help');
@@ -145,7 +157,7 @@ test('the Dojo says how to start the first time, and only the first time', async
   await expect(page.locator('#game canvas')).toBeVisible();
   await expect(hint).toBeHidden();
   // Leaving goes to the Dojo's page in the site.
-  await expect(page.locator('#back')).toHaveAttribute('href', /\/jugar\/$/);
+  await expect(page.locator('#back')).toHaveAttribute('href', /\/jugar\/dojo\/$/);
 });
 
 test('a room with a character has its own hint, which says how to drive it', async ({ page }) => {
@@ -157,8 +169,14 @@ test('a room with a character has its own hint, which says how to drive it', asy
   await expect(page.locator('#hint')).toContainText('para caminar');
 });
 
-test('the play page: the rooms as cards with their lines, the one with a character first', async ({ page }) => {
+test("the play section: the games as cards, the Dojo first, and the Dojo's page with its rooms as cards", async ({ page }) => {
   await page.goto('jugar/');
+  const games = page.locator('.mg-games li');
+  await expect(games.first()).toContainText('El Dojo');
+  await expect(games.first().getByRole('link', { name: 'El Dojo' })).toHaveAttribute('href', /jugar\/dojo\/$/);
+  expect(await games.count()).toBeGreaterThan(1);
+
+  await page.goto('jugar/dojo/');
   const cards = page.locator('.mg-room-cards li');
   // The rooms with a character (the course's) go first, all of them before any other.
   const tagged = await cards.evaluateAll((li) => li.map((x) => x.textContent!.includes('con personaje')));
@@ -172,7 +190,7 @@ test("the Dojo's hint can be closed by hand, too", async ({ page }) => {
   await page.goto('jugar/dojo/rain/');
   await page.locator('#hint button').click();
   await expect(page.locator('#hint')).toBeHidden();
-  await page.goto('jugar/dojo/');
+  await page.goto('jugar/dojo/empty/');
   await expect(page.locator('#game canvas')).toBeVisible();
   await expect(page.locator('#hint')).toBeHidden();
 });

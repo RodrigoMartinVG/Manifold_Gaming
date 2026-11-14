@@ -1,0 +1,20 @@
+---
+/**
+ * THE DOJO'S OLD LINKS. Until 2026-11-14, `/jugar/dojo/` was the empty Dojo itself, and its links
+ * carried a recipe, a replay or a ghost in the fragment (`…/jugar/dojo/#replay=…`). Now that address
+ * is the Dojo's page in the site, and the empty Dojo is one more room (`empty`, from its recipe): a
+ * link like that is sent there, fragment and all, so it keeps working. It runs where it is placed,
+ * before the rest of the page is drawn.
+ */
+---
+
+<script is:inline>
+  {
+    const forward = () => {
+      if (/^#(recipe|replay|ghost)=/.test(location.hash)) location.replace('empty/' + location.hash);
+    };
+    forward();
+    // A link with another fragment, from this same page, does not load it again: only the fragment changes.
+    addEventListener('hashchange', forward);
+  }
+</script>

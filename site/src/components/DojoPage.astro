@@ -7,7 +7,7 @@
  *
  * The first time, a hint says how to start: the console is the Dojo's whole interface, and without
  * the hint all one sees is a cube. It goes away when the console opens (or with its ✕), and it is
- * not shown again in this browser. Leaving goes to "Jugar", the Dojo's page in the site.
+ * not shown again in this browser. Leaving goes to the Dojo's page in the site (`/jugar/dojo/`).
  * (The texts are the site's, in Spanish.)
  */
 import '@fontsource-variable/cinzel';
@@ -22,7 +22,7 @@ interface Props {
   character?: boolean;
 }
 const { room, title, character = false } = Astro.props;
-const play = `${import.meta.env.BASE_URL.replace(/\/?$/, '/')}jugar/`;
+const play = `${import.meta.env.BASE_URL.replace(/\/?$/, '/')}jugar/dojo/`;
 ---
 
 <html lang="es">

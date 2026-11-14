@@ -33,9 +33,11 @@ const rooms = Object.entries(ROOMS).sort(
             {withCharacter(room.text) && <span class="mg-room-tag">con personaje</span>}
           </span>
           <span class="mg-room-lines">
-            {linesOf(room.text).map((line) => (
-              <code>{line}</code>
-            ))}
+            {linesOf(room.text).length > 0 ? (
+              linesOf(room.text).map((line) => <code>{line}</code>)
+            ) : (
+              <span class="mg-room-none">Ninguna línea: el Dojo como viene.</span>
+            )}
           </span>
           <span class="mg-room-load">
             <code>load {name}</code>
@@ -107,5 +109,11 @@ const rooms = Object.entries(ROOMS).sort(
   .mg-room-load code {
     color: var(--sl-color-accent-high);
     font-size: var(--sl-text-sm);
+  }
+  /* A room without lines (the empty Dojo): it says so, instead of an empty box. */
+  .mg-room-none {
+    color: var(--sl-color-gray-3);
+    font-size: var(--sl-text-sm);
+    font-style: italic;
   }
 </style>
