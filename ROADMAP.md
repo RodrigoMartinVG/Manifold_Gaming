@@ -4,40 +4,53 @@ Where Manifold Gaming is going, how far it got, and what is left. It is updated 
 
 **Legend:** ✅ done · 🔨 in progress · ⬜ to do · 🔒 a decision is needed first
 
-**Now:** phase 2. Done: 2a (levels as data, zones, a level's loop), 2b (the ways of moving as modes) and 2c (capabilities: climbing, gliding, a double jump, on and off live — the phase's demonstration works). Next: step 2d, moving platforms.
+**Now:** phase 2. Done: 2a (levels as data, zones, a level's loop), 2b (the ways of moving as modes) and 2c (capabilities: climbing, gliding, a double jump, on and off live — the phase's demonstration works). In progress: step 2d, moving platforms. Then 2.5, the seams the next phases lean on, before 2e.
 
 ## The plan in one table
 
-| Phase                      | What it brings                                                                                             | How it is shown                                                                   | Status          |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | --------------- |
-| 0. Foundations             | The repository and its tools, the site, the executable tutorial, the console, a minimal core               | A cube spinning in the Dojo, computed by the simulation                           | ✅              |
-| 1. Physics and a character | Physics, a character and its camera, replays, the world's state that travels, an early networking skeleton | A character runs and jumps in a classic level, and its replay gives the same hash | ✅              |
-| 2. Capabilities            | Levels as data; climbing, grabbing…, composed; models and animations                                       | Turning capabilities on and off live, in a real level                             | 🔨 (2a–2c done) |
-| 3. A world that responds   | Mechanisms, signals, breakables, light, sound; the game's interface; saving                                | Breaking a lamp changes what a guard sees                                         | ⬜              |
-| 4. Combat and bots         | Weapons, enemies that use the world, navigation, the story                                                 | A guard who calls the elevator                                                    | ⬜              |
-| 5. Games                   | Three classic games, complete: story, levels, graphics, sound                                              | A platformer, an action adventure and a shooter, on the site                      | ⬜              |
-| 6. Networking and levels   | Networked matches, a level editor                                                                          | The shooter, online                                                               | ⬜              |
-| 7. Strange worlds          | Gravity that changes from place to place, walking on walls, spaces glued to themselves                     | Two games of the second wave                                                      | ⬜              |
+| Phase                      | What it brings                                                                                                | How it is shown                                                                   | Status                          |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ------------------------------- |
+| 0. Foundations             | The repository and its tools, the site, the executable tutorial, the console, a minimal core                  | A cube spinning in the Dojo, computed by the simulation                           | ✅                              |
+| 1. Physics and a character | Physics, a character and its camera, replays, the world's state that travels, an early networking skeleton    | A character runs and jumps in a classic level, and its replay gives the same hash | ✅                              |
+| 2. Capabilities            | Levels as data; climbing, grabbing…, composed; the seams the next phases lean on (2.5); models and animations | Turning capabilities on and off live, in a real level                             | 🔨 (2a–2c done, 2d in progress) |
+| 3. A world that responds   | Mechanisms, signals, breakables, light, sound; the game's interface; saving                                   | Breaking a lamp changes what a guard sees                                         | ⬜                              |
+| 4. Combat and bots         | Weapons, enemies that use the world, navigation, the story                                                    | A guard who calls the elevator                                                    | ⬜                              |
+| 5. Games                   | Three classic games, complete: story, levels, graphics, sound                                                 | A platformer, an action adventure and a shooter, on the site                      | ⬜                              |
+| 6. Networking and levels   | Networked matches, a level editor                                                                             | The shooter, online                                                               | ⬜                              |
+| 7. Strange worlds          | Gravity that changes from place to place, walking on walls, spaces glued to themselves                        | Two games of the second wave                                                      | ⬜                              |
 
 The games (decision [0012](docs/decisions/0012-the-games.md)): first three classics that share one character, growing with the phases — the platformer with phases 1–2, the action adventure with 3–4, the shooter with 4–6 — and complete in phase 5. The strange ones come after, in phase 7.
 
+Between the phases, two stages of consolidation: **2.5**, before 2e, changes the seams phases 3 and 4 will lean on while there is one game and nothing saved to protect; **4.5**, before the games, checks the base and gets the production ready. They come from a review of the idea drafts on 2026-11-14 (kept outside the repository, like decision 0012's idea bank), which also placed each of their ideas in the phase that first needs it, below.
+
 ## What each phase leaves for the next
 
-The question for the start of every step: does it have what it needs, and does it leave what the next ones will need? Reviewed on 2026-11-12, after 1c2. That review moved levels and sensors to phase 2, put snapshots and an extensible input before the network, and added what no phase built (the game's interface, the inventory, dungeons from a seed, where the server runs).
+The question for the start of every step: does it have what it needs, and does it leave what the next ones will need? Reviewed on 2026-11-12, after 1c2. That review moved levels and sensors to phase 2, put snapshots and an extensible input before the network, and added what no phase built (the game's interface, the inventory, dungeons from a seed, where the server runs). Reviewed again on 2026-11-14, with the idea drafts: it added the turning platforms' carry, the stage 2.5 seams, named entities, logical light and sound, the camera against walls, collision poses as data and the networking model.
 
-| Piece                                                                        | Built in               | Needed by                                                                                       |
-| ---------------------------------------------------------------------------- | ---------------------- | ----------------------------------------------------------------------------------------------- |
-| Determinism across browsers, measured; no trigonometry in the step           | 1a, 1c2; guarded in 1f | Replays and ghosts, networking, bots                                                            |
-| Inputs with their player, at concrete steps                                  | 1b                     | Ghosts (1c), bots (4), networking (1e, 6)                                                       |
-| An input each game extends: movement axes plus named buttons                 | 1d                     | Grabbing (2), using (3), firing and reloading (4), without a new replay version for each action |
-| Snapshots: the components, Rapier's snapshot and the randomness (0004)       | 1d                     | Joining a match already started (1e), branching a replay, debugging                             |
-| Everything through the network's path, even playing alone                    | 1e                     | The shooter online (6): it adds latency handling, without being rebuilt                         |
-| Levels as data, in a versioned format                                        | 2                      | The platformer's levels (2), dungeons (3), navigation (4), the editor (6)                       |
-| Sensors: volumes that notice who enters                                      | 2                      | Checkpoints and goals (2), buttons and traps (3), bots that hear (4)                            |
-| Capabilities, composed                                                       | 2                      | Navigation edges that need a capability (4); the three games                                    |
-| The game's interface: menus, pause, HUD, dialogue, inventory                 | 3                      | The action adventure (3), the story (4), the games (5)                                          |
-| A pose history for hit tests                                                 | 4                      | Lag compensation (6)                                                                            |
-| "Up" as data; where it looks and the camera, carried along when "up" changes | 1b; finished in 7      | The strange worlds (7)                                                                          |
+And four questions before writing a step's code: does it run the same in Node, without a screen and without the browsers' trigonometry? Is it a rule that composes, or a special case wired in? Does this phase's demonstration need it (if not, it goes to the idea bank)? Can it be checked in five seconds from the Dojo's console?
+
+| Piece                                                                                                                      | Built in               | Needed by                                                                                                           |
+| -------------------------------------------------------------------------------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Determinism across browsers, measured; no trigonometry in the step                                                         | 1a, 1c2; guarded in 1f | Replays and ghosts, networking, bots                                                                                |
+| Inputs with their player, at concrete steps                                                                                | 1b                     | Ghosts (1c), bots (4), networking (1e, 6)                                                                           |
+| An input each game extends: movement axes plus named buttons                                                               | 1d                     | Grabbing (2), using (3), firing and reloading (4), without a new replay version for each action                     |
+| Snapshots: the components, Rapier's snapshot and the randomness (0004)                                                     | 1d                     | Joining a match already started (1e), branching a replay, debugging                                                 |
+| Everything through the network's path, even playing alone                                                                  | 1e                     | The shooter online (6): it adds latency handling, without being rebuilt                                             |
+| Levels as data, in a versioned format                                                                                      | 2                      | The platformer's levels (2), dungeons (3), navigation (4), the editor (6)                                           |
+| Sensors: volumes that notice who enters                                                                                    | 2                      | Checkpoints and goals (2), buttons and traps (3), bots that hear (4)                                                |
+| Capabilities, composed                                                                                                     | 2                      | Navigation edges that need a capability (4); the three games                                                        |
+| Platform carry with its turn: the position, where the character looks, and the camera's azimuth                            | 2d                     | Turning mechanisms and bridges (3), prediction on moving surfaces (6)                                               |
+| A presentation made of pieces each game puts together (scene, camera, input, console, views, the match)                    | 2.5                    | Animations (2e), the game's interface and sound (3), first person (4), the three games (5)                          |
+| Components of each game, with its namespace, as nested plain data                                                          | 2.5                    | The inventory and saving (3), health and the guards' state (4)                                                      |
+| The step's phases, explicit, and where a game hooks in                                                                     | 2.5                    | Signals, mechanisms, breakables, light and sound (3), weapons and bots (4)                                          |
+| Spatial queries through the world (`castRay`, `shapeCast`, `shortestDelta`), with collision groups and a material per body | 2.5                    | Logical light and vision (3), the camera against walls (3), breakables in layers (3), hitscan (4), glued spaces (7) |
+| The networking model, written down                                                                                         | 2.5                    | The pose history (4), prediction and reconciliation (6)                                                             |
+| Named entities in the level format                                                                                         | 3                      | Signals (3), the console (`inspect door_north`), the editor (6)                                                     |
+| Logical light and sound, in the simulation                                                                                 | 3                      | What the guard sees and hears (3, 4)                                                                                |
+| A camera that avoids walls                                                                                                 | 3                      | Dungeons (3), combat near walls (4, 5)                                                                              |
+| The game's interface: menus, pause, HUD, dialogue, inventory                                                               | 3                      | The action adventure (3), the story (4), the games (5)                                                              |
+| A pose history for hit tests: plain tuples, with two or three primitives per mode as data (no models)                      | 2e (its shape), 4      | Lag compensation in Node (6)                                                                                        |
+| "Up" as data; where it looks and the camera, carried along when "up" changes                                               | 1b; finished in 7      | The strange worlds (7)                                                                                              |
 
 ## Phase 0 — Foundations ✅
 
@@ -64,58 +77,88 @@ The question for the start of every step: does it have what it needs, and does i
 
 - ✅ **2a — Levels as data, zones, a level's loop:** a level format of our own (text, versioned, errors with their line; an importer from Blender or an editor will write this same text later), the course moved out of the code into `games/dojo/levels/course.level`; zones that notice who comes in and leaves (in their own axes, without Rapier); the Dojo's loop: a checkpoint, the void that brings you back, the goal with its time and falls, kept as the character's `game` data; notices on screen; `show.sensors`; and our own sine and cosine in degrees, the same bits everywhere.
 - ✅ **2b — The composition protocol:** one mode of moving at each step (walking, in the air), chosen in one place (where 2c's capabilities will come in), each one steering the velocity along the ground its own way; contributions that add up whatever the mode (gravity, and what the game makes the character carry: a wind, a belt, 2d's platforms). The movement's numbers are data of each game (`movement`: walk, air control, jump with coyote time and buffer, turn); `dojo.air` changes the air control live (0: real physics, the jump's arc cannot be steered).
-- 🔒 **Where the art and the sound come from** (made in Blender, generated with code, or free-licensed packs; never copied) — at the start of the phase, together with the level format: if levels are made in Blender, they can come out of it too.
+- 🔒 **Where the art and the sound come from** (made in Blender, generated with code, or free-licensed packs; never copied) — it was for the start of the phase; now written in 2.5c, before 2e needs it. Proposal: level pieces and mechanisms generated with code (Blender run from the command line, or parametric geometry); characters and animations from free-licensed (CC0) packs, normalized by a script; sound synthesized by code. If levels are made in Blender, they can come out of it too.
 - ✅ **2c — Capabilities:** climbing (a wall noticed with a ray from the feet; a hop at the top; a jump off it), gliding (a slow fall, more steering) and a double jump, each with its numbers as data and turned on and off per character (`can`), live; they come in where the mode is chosen. The course gained a 6 m tower, an island in the void and three stars, each reachable only with its capability (tested); the room `capabilities` has them all on. Seen in the Dojo: `dojo.climb`, `dojo.glide`, `dojo.doublejump`.
-- ⬜ **2d — Moving platforms:** moving and turning platforms that carry the character, through its `carry` (in V1, the character controller got stuck on kinematic bodies).
-- ⬜ **2e — Models and animations** (glTF), within what a modest integrated GPU can draw; the animations follow the character's mode.
+- 🔨 **2d — Moving platforms:** moving and turning platforms that carry the character, through its `carry` (in V1, the character controller got stuck on kinematic bodies). The platform's place is a function of the step, so it never drifts and can be re-simulated (6); a turning one carries the character's position and where it looks. Also: the `follow` and `chase` cameras turn with the platform; console helpers to debug it: `me` (one's own character), `it` (the last thing inspected, clicked or created), `watch` (values pinned on screen while playing), `step N`.
+- ⬜ **2.5 — The seams the next phases lean on** (before 2e). What phases 3 and 4 will build on, changed now, while there is one game and nothing saved to protect. The foundations stay; the refactors keep every reference replay's hash.
+  - **2.5a — The safety net and the presentation:** reference replays, one per phase, with their final hashes as tests; performance budgets as tests (the step, the hash, a snapshot's size and time), with a stress scene in the Dojo; Firefox and WebKit in continuous integration; `mount()` (one function of about a thousand lines: camera, input, console, network, replays, ghosts, drawing) split into pieces each game puts together, as decision 0010 promised for the views.
+  - **2.5b — The core's seams:** components of each game, with its namespace, as nested plain data (today `game` only takes loose values: no inventory fits); the step's phases explicit, and where a game hooks in (what is the engine's and what the game's: mechanism and policy, 0000); general spatial queries through the world (`castRay`, `shapeCast`, `shortestDelta`) instead of one query per need, with a collision group and a material per body.
+  - **2.5c — A format and three decisions:** a new replay version with where to look as quantized whole angles (today a vector in hundredths, most of a replay link's length). Written down: where the art and the sound come from, the networking model of phase 6, and phase 5's scope. The project's page brought up to date (the network layer, the demonstration's wording).
+- ⬜ **2e — Models and animations** (glTF), within what a modest integrated GPU can draw; the animations follow the character's mode. The view is passive: the clip comes from `character.mode`, nothing of a model enters the simulation, and a lint rule keeps model loaders out of it. Free (CC0) characters through a normalizing script (the capsule's scale, no root motion, clips named after the modes, sockets for the hands and the head); `gltf-transform` and a test of the GPU budget (triangles, bones, textures, the clips the modes ask for); vertex colors or one palette; a shadow straight under the character, to read where it lands; a vertical dead zone for the camera. The shape of the collision poses per mode is set here, as data, for phase 4.
+- ⬜ **Closing the phase:** a real level of the platformer, with 2e's art, to check the character, the camera and the pipeline before phase 3 builds on them. If grabbing stays in phase 2, it comes as a 2f (the object stays dynamic, pulled by a PD controller, and lets go if it gets too far); if not, in phase 3.
 
 ## Phase 3 — A world that responds ⬜
 
-- ⬜ Mechanisms and signals: doors (kinematic, decision 0000), elevators, buttons, on top of phase 2's sensors.
-- ⬜ Things that break; light that can be turned off.
-- ⬜ Sound: what the simulation's events make heard (steps, hits, doors).
-- ⬜ The game's interface: menus, pause, HUD, dialogue boxes, inventory.
-- ⬜ A tool to make levels (the phase 6 editor may have to come earlier).
+- ⬜ Mechanisms and signals: doors (kinematic, decision 0000), elevators, buttons, on top of phase 2's sensors. Signals are declared in the level, between named entities; the level also gives each surface its collision group and material (stone, wood, metal, glass, ice), which decide traction, breaking and sound.
+- ⬜ Things that break; light that can be turned off. **The light is the simulation's:** each lamp is data (where, radius, intensity, on or off), and how lit a point is comes from the lamps that see it (rays, the same in Node); the drawing reads the same data. Breakables in layers from the first lamp: in the core, its state, a threshold by the impact's energy and a few large pieces (in the hash); the break as an event with a seed from the world's randomness; and a few fragments in the presentation, made from that seed, that no gameplay ray sees.
+- ⬜ Sound: what the simulation's events make heard (steps, hits, doors). Each sound also has a hearing radius in the simulation, for the bots; the presentation synthesizes it from the event (surface, speed, energy), without recorded files.
+- ⬜ Pushing by mass (a light box goes easily, a stone block slowly), and traction by the surface's material (ice, oil); grabbing, if it did not come in phase 2. Rapier's joints when a mechanism asks for one.
+- ⬜ The camera avoids walls (a sphere cast from the head: in at once, out damped); zones can suggest where to look.
+- ⬜ The game's interface: menus, pause, HUD, dialogue boxes, inventory, in HTML and SVG generated by code.
+- ⬜ A tool to make levels, without waiting for phase 6's editor: building in the Dojo from the console (`spawn`, `clone`, `delete`, `set`) and exporting the level's text (`level diff`, `level export`); levels drawn as text grids for the dungeons; a script from Blender if a level needs free geometry. Props generated by scripts (doors with their pivot on the hinge; lamps whole and broken in one model).
+- ⬜ The console grows: `set <id> component.field value` (and a clickable `inspect` that writes it), relative values (`+2`, `*0.5`), `signal` and `show.signals`, and for recipes, `wait` and `assert` (tests and lessons in a link).
 - ⬜ Saving the game: **the game's progress as versioned data** (where you are, what you carry, what you already did), not a raw snapshot of the world. A snapshot, like a replay, belongs to the engine version that made it: the next update would erase every saved game. (Decision 0012 said "on top of the world's snapshots"; refined here.)
 - ⬜ The action adventure starts: its inventory, and dungeons made from a seed.
 
 ## Phase 4 — Combat and bots ⬜
 
-- ⬜ Weapons: hitscan and projectiles. Hits are tested against a history of poses, so that phase 6 can look back in time (lag compensation).
-- ⬜ Aiming with pitch: where the character aims (with its tilt) apart from where its body faces (flat), as one more input; what is thrown or shot leaves that way.
-- ⬜ A first-person camera, for the shooter.
-- ⬜ Bots that patrol, see, hear, chase, and use the world (the guard who calls the elevator); their inputs enter like a player's.
-- ⬜ Navigation, with edges that need a capability (decision 0000).
+- ⬜ Weapons: hitscan and projectiles (a segment of ray per step, so nothing is crossed between steps). Hits are tested against a history of poses, so that phase 6 can look back in time (lag compensation): each pose is plain data (where, where it looks, its tilt, its "up", its mode), and each mode gives two or three primitives, so it is computed in Node without the models. The spread comes from a seed (the step and the player), the same on both sides.
+- ⬜ Aiming with pitch: where the character aims (with its tilt) apart from where its body faces (flat), as one more input; what is thrown or shot leaves that way. The mouse steers where it looks; the keys only move it.
+- ⬜ A first-person camera, for the shooter: `aim` and first person as one camera with a local offset (shoulder, eyes, distance); the weapon drawn with its own field of view, so it neither goes through walls nor stretches; shots leave the camera's center, tracers the muzzle.
+- ⬜ Moving for combat: air strafing, the push of an explosion (rocket and grenade jumps), the character's modes growing with attacking and blocking; a lock-on for the adventure that circles the target without drifting away from it.
+- ⬜ Bots that patrol, see, hear, chase, and use the world (the guard who calls the elevator); their inputs enter like a player's. A small brain (patrol, look into a light or a sound, chase, use a mechanism if the path asks for it, attack) in a full body.
+- ⬜ Navigation, with edges that need a capability (decision 0000) or a mechanism's state (the elevator is not there: the edge points at its button); objects that say what they can be used for (thrown, kicked, a cover, a weak point).
+- ⬜ If a break leaves rubble that must stop shots or steps: one simple collider for the pile, the same for everybody.
+- ⬜ The console: `show.vision`, `show.nav`, `possess <id>` (driving a guard with the keys, to see what it sees), `step back` (with a ring of snapshots).
 - ⬜ The story: dialogue, scenes, objectives that chain.
 - ⬜ The shooter starts.
 
+## Stage 4.5 — Getting ready to produce ⬜
+
+Between phase 4's demonstration and the games: no new features; the base checked and the production ready.
+
+- ⬜ The reference replays of the four phases, and measured baselines (the course, a dungeon with bots, an arena with many bodies: the step, the hash, a snapshot, a 30 s link), in a decision.
+- ⬜ An audit of what assumes that "up" is +Y (the character, the bots, the cameras), without building phase 7.
+- ⬜ The camera polished before the levels: `follow` that does not turn when the character walks towards it, `chase` that comes back behind the velocity, not behind where the character looks.
+- ⬜ Ghosts as strips of quantized poses (see the open question), and the modular kit (about 20 pieces made by script) the three games share.
+- ⬜ This page's table reviewed for phases 5–7, and the debts the Bitácora noted in phases 3 and 4 paid.
+
 ## Phase 5 — Games ⬜
 
-- ⬜ The platformer, complete.
+- ⬜ Each game, a compact piece of 10 to 15 minutes (its scope written in 2.5c): a beginning, a climax and an end, a menu, a HUD, saving and credits; three to five dense levels; the same world, character and kit. Levels designed from a metrics gym (the jump's heights and distances, the slopes and the corridors, frozen in grey boxes) and a mechanic introduced in four beats: shown safely, demanded, twisted, mastered.
+- ⬜ The platformer, complete: the jump defined by its height and its time to the top, with a stronger gravity when the button is released and when falling (a contribution of the character's, not the world's gravity) and a top falling speed; corner correction; grabbing ledges; several ghosts at once.
 - ⬜ The action adventure, complete.
 - ⬜ The shooter, complete (single player, with bots).
+- ⬜ Each game with its own control scheme and camera by default (or an `auto` scheme: free, lock-on, aiming), cameras suggested by zones, one distinctive extra mechanic, at most one natural multiplayer mode (0012), and `view.quality` for stronger machines.
 
 ## Phase 6 — Networking and levels ⬜
 
-- ⬜ Networked matches: the shooter online, on top of 1e's path: prediction, reconciliation (re-simulating only one's own, decision 0000), lag compensation.
-- 🔒 Where the server runs (decision 0002: Pages only serves files): a hosted server, or one of the browsers as the host.
-- 🔒 Who can change the world in a networked match (the permissions left open by decision 0010; 1e leaves a first rule).
-- ⬜ A level editor, on top of phase 2's level format.
+- ⬜ Networked matches: the shooter online, on top of 1e's path: prediction, reconciliation (re-simulating only one's own, decision 0000), lag compensation — following the model written in 2.5c; the case of the cubes a character pushes; lag compensation capped (200–250 ms).
+- 🔒 Where the server runs (decision 0002: Pages only serves files): a hosted server, or one of the browsers as the host. Proposal: one player's tab as the server through WebRTC (free from Pages), and the same package in Node where nobody should have the host's advantage.
+- 🔒 Who can change the world in a networked match (the permissions left open by decision 0010; 1e leaves a first rule). Proposal: in competitive games the console does not touch the world; each command's permissions shown in `help`.
+- ⬜ A networking lab in the Dojo: `show.net` (packets, the steps between client and server), `net.loss`, `net.jitter`. A quick hash of the entities every few steps, besides the full one every second. Binary encoding only if something needs it (joining a started match).
+- ⬜ A level editor, on top of phase 2's level format and phase 3's console commands (dragging an object emits `set`; saving is `level export`).
 
 ## Phase 7 — Strange worlds ⬜
 
-- ⬜ Gravity fields that change from place to place (planets, tori), walking on walls and ceilings. Where the character looks and the camera are carried along when "up" changes (decision 0000: also standing still, and with an opposite "up").
-- ⬜ A gluing system: spaces that wrap around, or come back mirrored (physics, drawing and networking across the seams).
+- ⬜ Gravity fields that change from place to place (planets, tori), from attractors (a sphere, a cylinder or a curve, any mesh). **Walking on walls and ceilings is adhesion, not gravity:** gravity is the space's (everything falls that way), adhesion the contact's (only the character sticks; a cube or a thrown ball still falls to the real floor, and the other players are not pulled). So the character gets its own "up", apart from the gravity's, and adhesion is one more contribution (grip along the wall, hold on ceilings, suction); `wallwalk` is a mode, unlike `climb` (which keeps the world's "up"), and it turns concave and convex corners. Where the character looks and the camera are carried along when "up" changes, without trigonometry (decision 0000: also standing still, and with an opposite "up").
+- ⬜ A gluing system: spaces that wrap around, or come back mirrored (physics, drawing and networking across the seams). The spatial queries routed through the world since 2.5 learn to cross the seams; a mirrored seam flips each character's handedness (so right stays right on screen), and the camera's leash continues across a seam.
 - ⬜ Two games of the second wave, chosen from the idea bank when the base is firm.
+
+## Not planned: the idea bank
+
+Ideas reviewed and kept, outside the repository, for when a game asks for them: a "phase 8" with thousands of real bodies locally (an execution profile without the hash and the network, where the fragments of phase 3's breakables become real bodies); chemistry, heat and electricity between materials; Voronoi fractures and structural graphs; a joints solver of our own; buoyancy; planners (GOAP, utility AI) and dynamic navigation meshes; flow fields; sub-tick shots; voxel smoke; a grappling hook; running on walls; feet placed with inverse kinematics; climbing creatures that move; the rest of the eleven-game catalog.
 
 ## Open questions
 
-- 🔒 **Where the art and the sound come from** — at the start of phase 2.
-- 🔒 **Where the server runs** — before phase 6. 1e keeps it open by running in Node and in a browser.
-- ⬜ **Replays and ghosts across versions** — a replay only plays on the engine version that recorded it, and the site keeps only the latest one. Before the platformer shares ghosts (phase 5): keep each version published, or ghosts as recorded positions (they survive the changes, but are not checked), with replays by inputs for what must be exact.
-- ⬜ **Touch controls** — the site works on phones; the games do not, yet. Before phase 5: touch controls, or keyboard and gamepad only.
+- 🔒 **Where the art and the sound come from** — in 2.5c (it was for the start of phase 2). A proposal is in phase 2.
+- 🔒 **The networking model, written down** — in 2.5c, before phase 4's pose history. What 1e and decision 0000 imply: the server orders the inputs and every client simulates; in phase 6 each one predicts only its own character, so the others are seen at the last confirmed step, in the past — which is why lag compensation needs a pose history.
+- 🔒 **Phase 5's scope** — in 2.5c. Proposal: each game a compact piece of 10 to 15 minutes.
+- 🔒 **Where the server runs** — before phase 6. 1e keeps it open by running in Node and in a browser. A proposal is in phase 6.
+- ⬜ **Replays and ghosts across versions** — a replay only plays on the engine version that recorded it, and the site keeps only the latest one. Before the platformer shares ghosts (phase 5): keep each version published, or ghosts as recorded positions (they survive the changes, but are not checked), with replays by inputs for what must be exact. Proposal (4.5): ghosts as strips of quantized poses (`x y z yaw mode` every 3 or 4 steps, under 2 KB a minute).
+- ⬜ **Touch controls** — the site works on phones; the games do not, yet. Before phase 5: touch controls, or keyboard and gamepad only. Proposal: keyboard and gamepad only until phase 6.
 - ⬜ **Lessons per step or per phase** — decision 0005 asks for them with each step; phase 1 paid them at its end (1f). For phase 2: either they come with each step, or the rule is changed on purpose.
-- ⬜ **Firefox and WebKit in continuous integration** — the physics determinism tests run in them locally; in GitHub, only Chromium until their WebGL is checked on Linux.
-- ⬜ **The hash on every step** — 1.8 ms with 200 bodies, three times a physics step. It matters in 1e: the desync check will compare it every few steps, not on every one.
+- ⬜ **Firefox and WebKit in continuous integration** — the physics determinism tests run in them locally; in GitHub, only Chromium until their WebGL is checked on Linux. Planned in 2.5a.
+- ⬜ **The hash on every step** — 1.8 ms with 200 bodies, three times a physics step. The server compares it every second (1e); phase 6 may add a quick hash of the entities every few steps.
 - ⬜ **Rapier's usual build** — whether it would also be deterministic across browsers was not measured; the deterministic one was chosen so as not to depend on it.
-- ⬜ **Shorter replay links** — 30 s in the course with the camera turning is about 5,900 characters (every little turn changes the direction asked for); some chat apps cut links that long. The direction could be kept coarser, or in binary.
+- ⬜ **Shorter replay links** — 30 s in the course with the camera turning is about 5,900 characters, already compressed (deflate, since 1c): every little turn changes the direction asked for, and some chat apps cut links that long. 2.5c: where to look as quantized whole angles, written only when it changes past a threshold.
