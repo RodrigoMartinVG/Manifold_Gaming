@@ -131,10 +131,13 @@ export const DOJO_ZONES: ZoneKinds = {
 };
 
 /**
- * CURRENTS (stage 3b): a character whose center is in a `current` zone is carried along its flow, on
- * every step it is there. One more contribution to its movement, the one the wind or a conveyor belt
- * would be (stage 2b's `carry`), whatever its mode: walking against it, it advances less; across it,
- * it drifts. (What the physics moves is not carried yet: that is the fluids', in the idea bank.)
+ * CURRENTS (stage 3b): a character in a `current` zone, standing in it, is carried along its flow, on
+ * every step it is there. One more contribution to its movement (stage 2b's `carry`): walking against
+ * it, it advances less; across it, it drifts. It takes hold through the feet, as water at the ankles
+ * does: in the air, jumping over it, nothing holds on to it (at first it carried a jump too, from a
+ * zone 5 m tall, and the author found it strange: over the water, without touching it, it pushed). A
+ * wind, which would push in the air, would be another kind of zone. (What the physics moves is not
+ * carried yet: that is the fluids', in the idea bank.)
  */
 function currents(world: World) {
   for (const zone of world.entities.values()) {
@@ -142,7 +145,7 @@ function currents(world: World) {
     const flow = zone.sensor.params.flow as Vec3;
     for (const id of zone.sensor.inside) {
       const c = world.entities.get(id)?.character;
-      if (c) c.carry = vec3.add(c.carry, flow);
+      if (c?.grounded) c.carry = vec3.add(c.carry, flow);
     }
   }
 }

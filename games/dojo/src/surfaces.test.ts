@@ -104,6 +104,31 @@ describe('surfaces (stage 3b): what a floor is made of, and a zone that carries'
     expect(Math.abs(upstream.drift)).toBeLessThan(0.25);
   });
 
+  test('jumping over it, or up from it, it is not carried in the air: the current takes hold through the feet', () => {
+    // Before, the stream's zone was 5 m tall, and a jump over the water drifted as much as walking
+    // through it: the author found it strange.
+    const over = surfaces();
+    over.put(0, 1, -9);
+    over.step(walk(0, -1), 6);
+    const x = over.at()[0]!;
+    over.step({ ...walk(0, -1), jump: true });
+    for (let i = 0; i < 120 && !(over.c().grounded && over.at()[2]! < -14.5); i++) over.step(walk(0, -1));
+    expect(over.at()[2]!, 'over the stream, on the far side').toBeLessThan(-14.5);
+    expect(Math.abs(over.at()[0]! - x), 'not carried').toBeLessThan(0.01);
+    // Up from the water and down into it again: carried on the step it leaves (it stood), not after.
+    const up = surfaces();
+    up.put(-2, 1, -12);
+    const from = up.at()[0]!;
+    up.step({ ...NO_INPUT, jump: true });
+    let steps = 1;
+    while (!up.c().grounded && steps < 200) {
+      up.step();
+      steps++;
+    }
+    expect(steps, 'a whole jump').toBeGreaterThan(60);
+    expect(up.at()[0]! - from).toBeCloseTo(3 / 60, 3);
+  });
+
   test("the Dojo's levels are read with its zones: one it does not have, or a current without its flow, says its line", () => {
     const level = (line: string) => () => levelFromText(`# Manifold level 2\n${line}\n`, { zones: DOJO_ZONES });
     expect(level('sensor chekpoint 0 0 0  1 1 1')).toThrow(/line 2: "chekpoint" is not a zone of this game/);

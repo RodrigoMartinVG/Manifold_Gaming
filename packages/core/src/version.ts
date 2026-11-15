@@ -25,5 +25,7 @@
  *  15  stage 3b: the world's materials (in the hash and snapshots), a body's friction from its own; a
  *      character's feet push as much as the floor's friction lets them (on ice, it slides); entities
  *      with names, zones with parameters; and in the Dojo, a level brings its whole ground
+ *  16  stage 3b, after it: in the Dojo, a current carries a character standing in it, not one jumping
+ *      over it (it takes hold through the feet)
  */
-export const SIMULATION_VERSION = 15;
+export const SIMULATION_VERSION = 16;
