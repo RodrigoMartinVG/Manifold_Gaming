@@ -1,6 +1,6 @@
 import RAPIER from '@dimforge/rapier3d-deterministic-compat';
 import type { Quat, Vec3 } from '@manifold/common';
-import type { Body, BodySpec, Transform } from './types';
+import type { Body, BodySpec, CollisionGroups, Shape, Transform } from './types';
 
 /**
  * THE BOUNDARY WITH THE PHYSICS ENGINE (decision 0000: "Rapier behind a small boundary"). This is
@@ -25,6 +25,34 @@ const v = (x: Vec3) => ({ x: x[0], y: x[1], z: x[2] });
 const q = (r: Quat) => ({ x: r[0], y: r[1], z: r[2], w: r[3] });
 const toVec = (x: { x: number; y: number; z: number }): Vec3 => [x.x, x.y, x.z];
 const toQuat = (r: { x: number; y: number; z: number; w: number }): Quat => [r.x, r.y, r.z, r.w];
+/** Rapier's groups: the 16 bits a body is a member of, and the 16 it meets, in one number. */
+const groupsOf = (g: CollisionGroups) => ((g.member & 0xffff) << 16) | (g.filter & 0xffff);
+/** A shape of ours, as Rapier's. */
+const shapeOf = (shape: Shape) =>
+  shape.kind === 'ball'
+    ? new RAPIER.Ball(shape.radius)
+    : shape.kind === 'capsule'
+      ? new RAPIER.Capsule(shape.halfHeight, shape.radius)
+      : new RAPIER.Cuboid(...shape.halfExtents);
+
+/** What a query of the physics hit (by handle: the world turns it into an entity). */
+export interface PhysicsHit {
+  handle: number;
+  distance: number;
+  point: Vec3;
+  /** The surface's normal there, pointing out of what was hit. */
+  normal: Vec3;
+}
+
+/** What a query leaves out, or counts. */
+export interface QueryOptions {
+  /** A body left out (the one asking), by handle. */
+  skip?: number;
+  /** Whether the bodies the physics moves (dynamic) count: yes, unless false. */
+  dynamic?: boolean;
+  /** Only the bodies these groups meet (like a body's). */
+  groups?: CollisionGroups;
+}
 
 /** How characters move (stage 1b): what they climb, what they snap to, what they push. */
 const CHARACTER = {
@@ -73,6 +101,8 @@ export class Physics {
       angularDamping: spec.angularDamping ?? 0,
       linearVelocity: [...(spec.linearVelocity ?? [0, 0, 0])],
       angularVelocity: [...(spec.angularVelocity ?? [0, 0, 0])],
+      ...(spec.groups ? { groups: { ...spec.groups } } : {}),
+      ...(spec.material !== undefined ? { material: spec.material } : {}),
       handle: 0,
     };
     // Kinematic bodies are moved by VELOCITY: the physics integrates them (with its deterministic
@@ -98,6 +128,7 @@ export class Physics {
           ? RAPIER.ColliderDesc.capsule(shape.halfHeight, shape.radius)
           : RAPIER.ColliderDesc.cuboid(...shape.halfExtents);
     collider.setRestitution(body.restitution).setFriction(body.friction);
+    if (body.groups) collider.setCollisionGroups(groupsOf(body.groups)).setSolverGroups(groupsOf(body.groups));
     this.world.createCollider(collider, rigid);
     body.handle = rigid.handle;
     return body;
@@ -170,56 +201,65 @@ export class Physics {
   }
 
   /**
-   * WHAT IS UNDER A CHARACTER (stage 2d): a ray from `from` down (against `up`), as far as `reach`.
-   *   - It hits a body the program moves (a kinematic one: a moving or turning platform): which one
-   *     (its handle) and how it moves in the next step: its velocity, how it turns (axis times
-   *     rad/s) and the point it turns around (the physics turns a body around its center of mass);
-   *   - it hits something that does not move (the floor, a wall's top): 'still';
-   *   - it hits nothing: null. A character can still be standing then: on an edge, with its center
-   *     already beyond it and the round bottom of its capsule still on it.
+   * A RAY (stage 2.5b: the general query, instead of one per need): the first body it hits from
+   * `from` along `direction` (length 1), as far as `reach`: its handle, how far, where, and the
+   * normal of the surface there (pointing out of it). Bodies the physics moves (dynamic) count
+   * unless `dynamic` is false; `skip` is left out (the one asking); `groups` filters like a body's.
    */
-  groundUnder(
-    handle: number,
-    from: Vec3,
-    up: Vec3,
-    reach: number,
-  ): { handle: number; linear: Vec3; angular: Vec3; center: Vec3 } | 'still' | null {
-    const rigid = this.world.getRigidBody(handle);
-    const ray = new RAPIER.Ray(v(from), { x: -up[0], y: -up[1], z: -up[2] });
-    const hit = this.world.castRay(ray, reach, true, RAPIER.QueryFilterFlags.EXCLUDE_DYNAMIC, undefined, undefined, rigid);
+  castRay(from: Vec3, direction: Vec3, reach: number, o: QueryOptions = {}): PhysicsHit | null {
+    const ray = new RAPIER.Ray(v(from), v(direction));
+    const hit = this.world.castRayAndGetNormal(ray, reach, true, ...this.filter(o));
     const body = hit?.collider.parent();
-    if (!body) return null;
-    if (!body.isKinematic()) return 'still';
-    return { handle: body.handle, linear: toVec(body.linvel()), angular: toVec(body.angvel()), center: toVec(body.worldCom()) };
+    if (!hit || !body) return null;
+    const at = ray.pointAt(hit.timeOfImpact);
+    return { handle: body.handle, distance: hit.timeOfImpact, point: toVec(at), normal: toVec(hit.normal) };
   }
 
   /**
-   * A WALL in that direction (stage 2c): a ray from `from` along `direction` (of length 1), as far as
-   * `reach`; if it hits something fixed (or kinematic) that stands almost upright, the direction
-   * towards it, along the ground and of length 1; if not, zero. Not with the character controller's
-   * collisions: those only exist while it pushes against the wall, and pushing against a wall that
-   * is steeper than what it climbs, the controller does not let it rise along it.
+   * A SHAPE MOVED along `direction` (length 1) from `position` turned by `rotation`, as far as
+   * `reach`: the first body it would touch, how far it got, where it touches, and the normal of that
+   * body's surface there (pointing out of it). What it already overlaps when it starts counts, at
+   * distance 0. The same options as a ray.
    */
-  wallAhead(handle: number, from: Vec3, direction: Vec3, reach: number, up: Vec3): Vec3 {
-    const rigid = this.world.getRigidBody(handle);
-    const ray = new RAPIER.Ray(v(from), v(direction));
-    const hit = this.world.castRayAndGetNormal(
-      ray,
-      reach,
-      true,
-      RAPIER.QueryFilterFlags.EXCLUDE_DYNAMIC,
+  castShape(
+    shape: Shape,
+    position: Vec3,
+    rotation: Quat,
+    direction: Vec3,
+    reach: number,
+    o: QueryOptions = {},
+  ): PhysicsHit | null {
+    const hit = this.world.castShape(v(position), q(rotation), v(direction), shapeOf(shape), 0, reach, true, ...this.filter(o));
+    const body = hit?.collider.parent();
+    if (!hit || !body) return null;
+    return { handle: body.handle, distance: hit.time_of_impact, point: toVec(hit.witness1), normal: toVec(hit.normal1) };
+  }
+
+  /**
+   * How a body moves now: whether the program moves it (kinematic: a platform), its velocities (the
+   * turn as its axis times rad/s) and the point it turns around (the physics turns a body around its
+   * center of mass).
+   */
+  motionOf(handle: number): { kinematic: boolean; linear: Vec3; angular: Vec3; center: Vec3 } | null {
+    const body = this.world.getRigidBody(handle);
+    if (!body) return null;
+    return {
+      kinematic: body.isKinematic(),
+      linear: toVec(body.linvel()),
+      angular: toVec(body.angvel()),
+      center: toVec(body.worldCom()),
+    };
+  }
+
+  /** Rapier's filter arguments, from our options. */
+  private filter(o: QueryOptions) {
+    const skip = o.skip === undefined ? undefined : this.world.getRigidBody(o.skip);
+    return [
+      o.dynamic === false ? RAPIER.QueryFilterFlags.EXCLUDE_DYNAMIC : undefined,
+      o.groups ? groupsOf(o.groups) : undefined,
       undefined,
-      undefined,
-      rigid,
-    );
-    if (!hit) return [0, 0, 0];
-    const n = hit.normal;
-    const along = n.x * up[0] + n.y * up[1] + n.z * up[2];
-    if (along < -0.35 || along > 0.35) return [0, 0, 0]; // a floor, a ceiling, a slope: not a wall
-    // The surface's normal points out of it, towards the character: the wall is the other way.
-    const flat: Vec3 = [up[0] * along - n.x, up[1] * along - n.y, up[2] * along - n.z];
-    const length = Math.sqrt(flat[0] * flat[0] + flat[1] * flat[1] + flat[2] * flat[2]);
-    return length > 1e-6 ? [flat[0] / length, flat[1] / length, flat[2] / length] : [0, 0, 0];
+      skip,
+    ] as const;
   }
 
   /**

@@ -1,9 +1,28 @@
-import { Random, quat, vec3, type Vec3 } from '@manifold/common';
+import { Random, quat, vec3, type Quat, type Vec3 } from '@manifold/common';
 import { moveCharacter, newCharacter } from './character';
 import { EARTH, gravityAt } from './gravity';
-import { Physics } from './physics';
-import type { Components, Entity, Event, EntityId, GravityField, PlayerInput } from './types';
+import { Physics, type PhysicsHit } from './physics';
+import type { CollisionGroups, Components, Entity, Event, EntityId, GravityField, PlayerInput, Shape } from './types';
 import { SIMULATION_VERSION } from './version';
+
+/** What a query through the world hit (stage 2.5b): which entity, how far, where, and the surface's normal there. */
+export interface Hit {
+  entity: EntityId;
+  distance: number;
+  point: Vec3;
+  /** The normal of the surface hit, pointing out of it. */
+  normal: Vec3;
+}
+
+/** What a query through the world leaves out, or counts. */
+export interface Query {
+  /** An entity left out (the one asking). */
+  skip?: EntityId;
+  /** Whether the bodies the physics moves (dynamic) count: yes, unless false. */
+  dynamic?: boolean;
+  /** Only the bodies these groups meet. */
+  groups?: CollisionGroups;
+}
 
 /** The fixed step: the simulation always advances 1/60 of a second, whatever the frame rate. */
 export const STEP = 1 / 60;
@@ -218,6 +237,50 @@ export class World {
     if (entity.body) this.physics.removeBody(entity.body.handle);
     this.entities.delete(id);
     this.emit({ type: 'entityRemoved', id });
+  }
+
+  // ---------- Spatial queries (stage 2.5b) ----------
+  //
+  // WHAT IS THERE, asked to the world and answered by entity (not by the physics' handles): a ray
+  // (what is seen from a point, a bot's eyes, a hitscan shot), a shape moved along a line (what a
+  // character stands on, the camera against a wall) and the shortest way between two points. Every
+  // system and every game asks here, not to Rapier: phase 7's glued spaces will make these cross
+  // their seams, in one place. (A body created during a step is in them from the next step on: Rapier
+  // updates what its queries see when it steps, and has nothing to do it in between.)
+
+  /** The first entity a ray from `from` along `direction` (length 1) hits, as far as `reach`. */
+  castRay(from: Vec3, direction: Vec3, reach: number, o: Query = {}): Hit | null {
+    return this.hitOf(this.physics.castRay(from, direction, reach, this.physicsQuery(o)));
+  }
+
+  /** The first entity a shape moved along `direction` (length 1) from `position`, turned by `rotation`, would touch, as far as `reach`. */
+  castShape(shape: Shape, position: Vec3, rotation: Quat, direction: Vec3, reach: number, o: Query = {}): Hit | null {
+    return this.hitOf(this.physics.castShape(shape, position, rotation, direction, reach, this.physicsQuery(o)));
+  }
+
+  /**
+   * The shortest way from one point to another: today, straight (`to − from`); in phase 7, across the
+   * seams of a glued space, where the nearest copy of `to` may be on the other side.
+   */
+  shortestDelta(from: Vec3, to: Vec3): Vec3 {
+    return vec3.sub(to, from);
+  }
+
+  private physicsQuery(o: Query) {
+    const skip = o.skip === undefined ? undefined : this.entities.get(o.skip)?.body?.handle;
+    return {
+      ...(skip === undefined ? {} : { skip }),
+      ...(o.dynamic === undefined ? {} : { dynamic: o.dynamic }),
+      ...(o.groups ? { groups: o.groups } : {}),
+    };
+  }
+
+  /** A physics hit as an entity's (the entity whose body it is). */
+  private hitOf(hit: PhysicsHit | null): Hit | null {
+    if (!hit) return null;
+    for (const e of this.entities.values())
+      if (e.body?.handle === hit.handle) return { entity: e.id, distance: hit.distance, point: hit.point, normal: hit.normal };
+    return null;
   }
 
   /**

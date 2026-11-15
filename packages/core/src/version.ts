@@ -12,5 +12,7 @@
  *   6  stage 2b: a character's movement as data, its mode, and what it carries
  *   7  stage 2c: capabilities (double jump, glide, climb), the wall it touches, its jumps in the air
  *   8  stage 2d: moving platforms (`mover`), what a character stands on (`ground`) and the turn they gave it (`carriedTurn`)
+ *   9  stage 2.5b: what a character stands on, found with its whole capsule (not a ray from its center);
+ *      stepping down from a moving platform keeps its velocity; a body's collision groups
  */
-export const SIMULATION_VERSION = 8;
+export const SIMULATION_VERSION = 9;

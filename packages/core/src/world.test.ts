@@ -76,3 +76,91 @@ describe('World', () => {
     expect(w.takeEvents()).toHaveLength(0);
   });
 });
+
+describe('spatial queries through the world (stage 2.5b)', () => {
+  /** A floor, a box on it, a ball above, and a wall of group 2. */
+  function scene() {
+    const world = new World({ seed: 1 });
+    const floor = world.createEntity({
+      transform: { position: [0, -0.5, 0], rotation: quat.identity() },
+      body: { type: 'fixed', shape: { kind: 'box', halfExtents: [10, 0.5, 10] }, material: 'stone' },
+    });
+    const box = world.createEntity({
+      transform: { position: [3, 0.5, 0], rotation: quat.identity() },
+      body: { type: 'fixed', shape: { kind: 'box', halfExtents: [0.5, 0.5, 0.5] } },
+    });
+    const ball = world.createEntity({
+      transform: { position: [0, 2, 0], rotation: quat.identity() },
+      body: { type: 'dynamic', shape: { kind: 'ball', radius: 0.5 } },
+    });
+    const wall = world.createEntity({
+      transform: { position: [-3, 1, 0], rotation: quat.identity() },
+      body: { type: 'fixed', shape: { kind: 'box', halfExtents: [0.2, 1, 2] }, groups: { member: 0b10, filter: 0xffff } },
+    });
+    // Rapier's queries see a body from the step after it was created.
+    world.step();
+    return { world, floor, box, ball, wall };
+  }
+
+  test('a ray: the first entity it hits, how far, where, and the normal of its surface', () => {
+    const { world, floor, box, ball } = scene();
+    const hit = world.castRay([0, 5, 0], [0, -1, 0], 10)!;
+    expect(hit.entity).toBe(ball.id); // the ball is first, above the floor
+    expect(hit.normal[1]).toBeCloseTo(1, 3);
+    // Leaving it out, or leaving out what the physics moves: the floor.
+    expect(world.castRay([0, 5, 0], [0, -1, 0], 10, { skip: ball.id })!.entity).toBe(floor.id);
+    const ground = world.castRay([0, 5, 0], [0, -1, 0], 10, { dynamic: false })!;
+    expect(ground.entity).toBe(floor.id);
+    expect(ground.distance).toBeCloseTo(5, 5);
+    expect(ground.point[1]).toBeCloseTo(0, 5);
+    // Along the floor towards +X, the box: its side, facing −X.
+    const side = world.castRay([0, 0.5, 0], [1, 0, 0], 10)!;
+    expect(side.entity).toBe(box.id);
+    expect(side.distance).toBeCloseTo(2.5, 5);
+    expect(side.normal[0]).toBeCloseTo(-1, 3);
+    // Too short: nothing.
+    expect(world.castRay([0, 0.5, 0], [1, 0, 0], 2)).toBeNull();
+    world.dispose();
+  });
+
+  test('groups: a query sees only what its groups meet', () => {
+    const { world, wall } = scene();
+    expect(world.castRay([0, 1, 0], [-1, 0, 0], 10)!.entity).toBe(wall.id);
+    // A query of a group that does not meet group 2 goes through the wall.
+    expect(world.castRay([0, 1, 0], [-1, 0, 0], 10, { groups: { member: 0xffff, filter: 0b01 } })).toBeNull();
+    world.dispose();
+  });
+
+  test('a shape moved along a line: the first entity it would touch, and how far it got', () => {
+    const { world, box } = scene();
+    // A ball of 0.25 m rolled along the floor towards the box: it touches it 0.25 m before its side.
+    const hit = world.castShape({ kind: 'ball', radius: 0.25 }, [0, 0.5, 0], quat.identity(), [1, 0, 0], 10)!;
+    expect(hit.entity).toBe(box.id);
+    expect(hit.distance).toBeCloseTo(2.25, 3);
+    world.dispose();
+  });
+
+  test("a body created during a step is in the queries from the next step on (Rapier's limit)", () => {
+    const { world } = scene();
+    const post = world.createEntity({
+      transform: { position: [0, 0.5, 3], rotation: quat.identity() },
+      body: { type: 'fixed', shape: { kind: 'box', halfExtents: [0.5, 0.5, 0.5] } },
+    });
+    expect(world.castRay([0, 0.5, 0], [0, 0, 1], 10)).toBeNull();
+    world.step();
+    expect(world.castRay([0, 0.5, 0], [0, 0, 1], 10)!.entity).toBe(post.id);
+    world.dispose();
+  });
+
+  test('the shortest way between two points: straight, until phase 7 glues spaces', () => {
+    const world = new World({ seed: 1 });
+    expect(world.shortestDelta([1, 2, 3], [4, 6, 3])).toEqual([3, 4, 0]);
+    world.dispose();
+  });
+
+  test("a body's material is kept with it (the game's: the engine does not read it)", () => {
+    const { world, floor } = scene();
+    expect(floor.body!.material).toBe('stone');
+    world.dispose();
+  });
+});

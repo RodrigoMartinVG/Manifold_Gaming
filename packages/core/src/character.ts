@@ -167,6 +167,59 @@ export function turned(facing: Vec3, up: Vec3, turn: number, turnSpeed: number, 
 }
 
 /**
+ * A WALL in that direction (stage 2c; with the world's ray since 2.5b): a ray from `from` along
+ * `direction` (of length 1), as far as `reach`; if it hits something the physics does not move that
+ * stands almost upright, the direction towards it, along the ground and of length 1; if not, zero.
+ * Not with the character controller's collisions: those only exist while it pushes against the wall,
+ * and pushing against a wall steeper than what it climbs, the controller does not let it rise along it.
+ */
+function wallAhead(world: World, e: Entity, from: Vec3, direction: Vec3, reach: number, up: Vec3): Vec3 {
+  const hit = world.castRay(from, direction, reach, { skip: e.id, dynamic: false });
+  if (!hit) return [0, 0, 0];
+  const n = hit.normal;
+  const along = vec3.dot(n, up);
+  if (along < -0.35 || along > 0.35) return [0, 0, 0]; // a floor, a ceiling, a slope: not a wall
+  // The surface's normal points out of it, towards the character: the wall is the other way.
+  const flat = vec3.sub(vec3.scale(up, along), n);
+  const length = vec3.length(flat);
+  return length > 1e-6 ? vec3.scale(flat, 1 / length) : [0, 0, 0];
+}
+
+/**
+ * WHAT A CHARACTER STANDS ON (stage 2.5b): its own capsule, a little thinner (90% of its radius,
+ * with its bottom where it is, so a wall brushing its sides does not count), moved down from where
+ * it is, as far as the controller keeps it on the ground: the first thing it would touch whose
+ * surface faces up. The entity, and, if the program moves it (a platform), how it moves. Bodies the
+ * physics moves (a cube) are not platforms: standing on one, it stands on nothing that carries it.
+ *
+ * Before, a ray from its center: on a platform's edge, with its center already beyond it and the round
+ * bottom of its capsule still on it, the ray found nothing (stage 2d left the platform's last velocity
+ * there, without carrying it: a fix halfway).
+ */
+function standingOn(
+  world: World,
+  e: Entity,
+  up: Vec3,
+): { entity: number; moves: { linear: Vec3; angular: Vec3; center: Vec3 } | null } | null {
+  const shape = e.body!.shape;
+  if (shape.kind !== 'capsule') return null;
+  const radius = shape.radius * 0.9;
+  const thinner = { kind: 'capsule' as const, halfHeight: shape.halfHeight + (shape.radius - radius), radius };
+  const down = vec3.scale(up, -1);
+  const hit = world.castShape(thinner, e.transform!.position, e.transform!.rotation, down, GROUND_REACH, {
+    skip: e.id,
+    dynamic: false,
+  });
+  if (!hit || vec3.dot(hit.normal, up) < 0.5) return null;
+  const body = world.entities.get(hit.entity)?.body;
+  const motion = body ? world.physics.motionOf(body.handle) : null;
+  return { entity: hit.entity, moves: motion?.kinematic ? motion : null };
+}
+
+/** How far under its capsule a character looks for what it stands on: what the controller snaps it down (0.3 m), and a little. */
+const GROUND_REACH = 0.35;
+
+/**
  * THE CHARACTER SYSTEM, one step of one character (stage 1b; in modes since 2b). All its math is
  * additions, multiplications and square roots (no trigonometry): the same bits in every browser.
  * Everything is resolved here, in this order:
@@ -215,7 +268,7 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
   if (c.can.climb) {
     const towards = isZero(c.wall) ? (vec3.length(move) > 0.1 ? vec3.normalize(move) : null) : c.wall;
     const feet = vec3.add(e.transform!.position, vec3.scale(up, -0.5));
-    c.wall = towards ? world.physics.wallAhead(body.handle, feet, towards, 0.55, up) : [0, 0, 0];
+    c.wall = towards ? wallAhead(world, e, feet, towards, 0.55, up) : [0, 0, 0];
   } else c.wall = [0, 0, 0];
   const before = c.mode;
   c.mode = modeFor(c, move, jumping, vUp);
@@ -224,18 +277,20 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
   // The top of a wall: it was climbing and the wall ended. A hop up, so it gets onto it.
   if (before === 'climb' && c.mode !== 'climb' && isZero(c.wall)) vUp = Math.max(vUp, c.movement.climb.top);
 
-  // What it stands on, if it moves (stage 2d): standing, a ray down finds it, and how it moves in this
-  // step. It carries it (after the controller, below), it turns it with it, and a jump keeps its velocity.
-  // On a platform's edge the ray finds nothing (its center is already beyond the edge, the round bottom
-  // of its capsule still on it): it is not carried those steps, but it still knows the platform's
-  // velocity, to leave with it. On something still (the floor), nothing to keep.
+  // What it stands on (stage 2d; with its whole capsule since 2.5b), if it stands: if it moves, how it
+  // moves in this step. It carries it (after the controller, below), it turns it with it, and a jump
+  // keeps its velocity. Stepping from something that moves onto something still, standing all the
+  // time (down the 30 cm of the course's ferry), it keeps that velocity, as walking off an edge does:
+  // the walk steers it from there (before, it stopped dead).
   const here = e.transform!.position;
   const wasGrounded = c.grounded;
-  const found = c.grounded ? world.physics.groundUnder(body.handle, here, up, 1.1) : null;
-  const under = found === 'still' ? null : found;
-  const ride = under ? carriedBy(under, here, dt) : null;
-  if (under && ride) c.ground = { velocity: ride.velocity, spin: vec3.dot(under.angular, up) };
-  else if (!(c.grounded && found === null)) c.ground = { velocity: [0, 0, 0], spin: 0 };
+  const under = c.grounded ? standingOn(world, e, up) : null;
+  const ride = under?.moves ? carriedBy(under.moves, here, dt) : null;
+  if (under?.moves && ride) c.ground = { velocity: ride.velocity, spin: vec3.dot(under.moves.angular, up) };
+  else {
+    if (c.grounded && !isZero(c.ground.velocity)) vH = vec3.add(vH, vec3.onPlane(c.ground.velocity, up));
+    c.ground = { velocity: [0, 0, 0], spin: 0 };
+  }
   if (ride) {
     const looking = vec3.onPlane(quat.rotate(ride.turn, c.facing), up);
     if (vec3.length(looking) > 1e-6) c.facing = vec3.normalize(looking);
@@ -285,7 +340,8 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
 
   // 5: what it can really do.
   const desired = vec3.scale(vec3.add(vec3.add(vH, vec3.scale(up, vUp)), carried), dt);
-  const { movement, grounded, ceiling } = world.physics.moveCharacter(body.handle, desired, up, under?.handle);
+  const platform = under?.moves ? world.entities.get(under.entity)?.body?.handle : undefined;
+  const { movement, grounded, ceiling } = world.physics.moveCharacter(body.handle, desired, up, platform);
 
   // 6: what it learned. (A ceiling is what the controller says hit its head: rising a little less
   // than asked is not one; that happens brushing a wall, and it used to cut jumps short.)

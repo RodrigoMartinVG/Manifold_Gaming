@@ -1,4 +1,4 @@
-export { copyData, World, STEP, type WorldOptions, type WorldSnapshot, PHASES, type Phase } from './world';
+export { copyData, World, STEP, type WorldOptions, type WorldSnapshot, PHASES, type Phase, type Hit, type Query } from './world';
 export {
   Session,
   declareCore,
@@ -63,4 +63,5 @@ export type {
   Shape,
   Spin,
   Transform,
+  CollisionGroups,
 } from './types';

@@ -553,6 +553,49 @@ describe('the character (stage 1b)', () => {
     world.dispose();
   });
 
+  test('stepping down from a moving platform, standing all the way, it keeps its velocity (stage 2.5b)', () => {
+    // The course's ferry: 30 cm high, here at 2 m/s along x. The character walks towards +Z, off its
+    // edge, and steps down to the floor without leaving the ground. Before, it stopped dead there.
+    const { world, hero } = onPlatform({ mover: { from: [0, 0.15, 0], to: [8, 0.15, 0], seconds: 4 } }, [0, 1.1, 0], 0.15);
+    landed(world);
+    let down = 0;
+    let air = false;
+    const xs: number[] = [];
+    const vx: number[] = [];
+    run(world, 90, (step) => {
+      air ||= !hero.character!.grounded;
+      if (!down && hero.character!.grounded && hero.transform!.position[1] < 0.9) down = step;
+      if (down) {
+        xs.push(hero.transform!.position[0]);
+        vx.push(hero.character!.velocity[0]);
+      }
+      return input(down ? [0, 0, 0] : [0, 0, 1]);
+    });
+    expect(down).toBeGreaterThan(0);
+    expect(air).toBe(false); // standing all the way: down as a curb, never in the air
+    // On the platform its velocity is its own (the platform carries it apart); on the floor, the next
+    // step, it has the platform's 2 m/s, and walking (asked nothing) slows it down from there.
+    expect(vx[1]).toBeCloseTo(2, 1);
+    expect(xs[6]! - xs[0]!).toBeGreaterThan(0.04); // it went on along x (before: 0, it stopped dead)
+    world.dispose();
+  });
+
+  test("on a platform's edge, its center beyond it and its capsule still on it, the platform carries it (stage 2.5b)", () => {
+    // The platform, 6 m wide (its edge at x = 3), going along z at 2 m/s; the character with its
+    // center 0.1 m beyond the edge (its capsule, 0.3 m in radius, still 0.2 m over it). A ray from its
+    // center finds nothing there; its capsule does.
+    const { world, board, hero } = onPlatform({ mover: { from: [0, 0.3, 0], to: [0, 0.3, 8], seconds: 4 } }, [3.1, 1.25, 0]);
+    landed(world);
+    expect(hero.character!.grounded).toBe(true);
+    expect(hero.transform!.position[0]).toBeGreaterThan(3.05); // still beyond the edge
+    const offset = hero.transform!.position[2] - board.transform!.position[2];
+    run(world, 60);
+    // Carried, to the centimeter: where it stood on the platform along z.
+    expect(Math.abs(hero.transform!.position[2] - board.transform!.position[2] - offset)).toBeLessThan(0.01);
+    expect(hero.character!.ground.velocity[2]).toBeCloseTo(2, 2);
+    world.dispose();
+  });
+
   test('a jump from a moving platform keeps its velocity (stage 2d)', () => {
     const { world, hero } = onPlatform({ mover: { from: [0, 0.3, 0], to: [6, 0.3, 0], seconds: 2 } });
     run(world, 30);

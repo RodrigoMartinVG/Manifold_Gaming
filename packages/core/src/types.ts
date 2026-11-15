@@ -100,13 +100,42 @@ export interface Body {
   angularDamping: number;
   linearVelocity: Vec3;
   angularVelocity: Vec3;
+  /** Which bodies it meets (stage 2.5b); without it, all of them. */
+  groups?: CollisionGroups;
+  /**
+   * What it is made of (stage 2.5b): `wood`, `metal`, `glass`… A name the game gives and reads (the
+   * sound of steps and hits, what breaks how, phase 3); the engine does not read it.
+   */
+  material?: string;
   /** Given by the world when the entity is created. */
   handle: number;
 }
 
+/**
+ * WHICH BODIES MEET (stage 2.5b): a body is a member of some groups (`member`: 16 bits, one per
+ * group) and meets the groups of `filter`. Two bodies collide when each one's member is in the
+ * other's filter; a query sees what its own groups meet. Without groups: a member of all, meeting all.
+ */
+export interface CollisionGroups {
+  member: number;
+  filter: number;
+}
+
 /** A body as it is asked for: the shape and the type; the rest has defaults. */
 export type BodySpec = Pick<Body, 'type' | 'shape'> &
-  Partial<Pick<Body, 'restitution' | 'friction' | 'linearDamping' | 'angularDamping' | 'linearVelocity' | 'angularVelocity'>>;
+  Partial<
+    Pick<
+      Body,
+      | 'restitution'
+      | 'friction'
+      | 'linearDamping'
+      | 'angularDamping'
+      | 'linearVelocity'
+      | 'angularVelocity'
+      | 'groups'
+      | 'material'
+    >
+  >;
 
 /**
  * HOW A CHARACTER MOVES (stage 2b): the numbers of each of its MODES, as data. A game decides them
