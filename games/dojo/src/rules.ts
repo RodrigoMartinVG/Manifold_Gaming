@@ -137,7 +137,8 @@ export const DOJO_ZONES: ZoneKinds = {
  * does: in the air, jumping over it, nothing holds on to it (at first it carried a jump too, from a
  * zone 5 m tall, and the author found it strange: over the water, without touching it, it pushed). A
  * wind, which would push in the air, would be another kind of zone. (What the physics moves is not
- * carried yet: that is the fluids', in the idea bank.)
+ * carried yet: a game cannot push a dynamic body until 3g, which brings that by mass; then a current
+ * carries a ball by its material's drag, and a stone cube resting on the bottom stays.)
  */
 function currents(world: World) {
   for (const zone of world.entities.values()) {
