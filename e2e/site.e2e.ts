@@ -601,21 +601,31 @@ test("the course's loop: falling off the floor brings the character back, with a
   await expect.poll(async () => (await position(page, 'player')).length, { timeout: 15_000 }).toBe(3);
   await afterSteps(page, 90);
   const [x0, , z0] = await position(page, 'player');
+  // Where it is in the very frame the notice comes. (Read after a poll, it could be a second later
+  // with S still held: in continuous integration it had walked 4 m back towards the edge, and the
+  // test failed once in two. The notice and the position are written in the same frame: notices.ts
+  // when it reads the world's events, probe.ts after drawing.)
+  // (A name of its own on the window: `back` was taken, an element with that id answers to it.)
+  await page.locator('#game').evaluate((el) => {
+    const w = window as unknown as { fellBackAt?: string };
+    new MutationObserver(() => {
+      if (w.fellBackAt === undefined && el.dataset.notice === 'you fell: back to the checkpoint')
+        w.fellBackAt = el.dataset.player;
+    }).observe(el, { attributes: true, attributeFilter: ['data-notice', 'data-player'] });
+  });
   // S: towards the camera, off the floor's edge (4 m behind), into the void.
   await page.keyboard.down('KeyS');
-  await expect
-    .poll(() => page.locator('#game').getAttribute('data-notice'), { timeout: 30_000 })
-    .toBe('you fell: back to the checkpoint');
+  const back = () => page.evaluate(() => (window as unknown as { fellBackAt?: string }).fellBackAt);
+  await expect.poll(back, { timeout: 30_000 }).toBeDefined();
   await page.keyboard.up('KeyS');
   await expect(page.locator('.mg-notice')).toBeVisible();
-  // Back on the floor, where it started (its first checkpoint is where it was born). (It may have
-  // walked a little since: the page tells the position every few frames.)
-  await expect.poll(async () => (await position(page, 'player'))[1], { timeout: 10_000 }).toBeGreaterThan(0.5);
-  const [x1, y1, z1] = await position(page, 'player');
+  // Back on the floor, where it started (its first checkpoint is where it was born): in that frame it
+  // can only have walked what the steps of one frame take it (at most 5 steps: 37.5 cm).
+  const [x1, y1, z1] = (await back())!.split(' ').map(Number);
+  expect(y1).toBeGreaterThan(0.5);
   expect(y1).toBeLessThan(1.2);
-  expect(z1).toBeLessThan(10);
-  expect(Math.abs(x1! - x0!)).toBeLessThan(1);
-  expect(z0).toBeLessThan(z1! + 0.5);
+  expect(Math.abs(x1! - x0!)).toBeLessThan(0.5);
+  expect(Math.abs(z1! - z0!)).toBeLessThan(0.5);
   expect(list).toEqual([]);
 });
 
