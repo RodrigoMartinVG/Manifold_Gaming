@@ -27,5 +27,7 @@
  *      with names, zones with parameters; and in the Dojo, a level brings its whole ground
  *  16  stage 3b, after it: in the Dojo, a current carries a character standing in it, not one jumping
  *      over it (it takes hold through the feet)
+ *  17  stage 3c: the world's signals (in the hash and snapshots) and their phase at the end of every
+ *      step; mechanisms, doors and lifts, that follow them; the character's `use`
  */
-export const SIMULATION_VERSION = 16;
+export const SIMULATION_VERSION = 17;

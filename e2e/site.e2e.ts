@@ -273,6 +273,28 @@ test('a level names its things, and the console finds them by name (stage 3b)', 
   expect(list).toEqual([]);
 });
 
+test("E presses a button (stage 3c): in the machines room, it flips the door's signal, and `signals` says so", async ({
+  page,
+}) => {
+  const list = errors(page);
+  await page.goto('jugar/dojo/machines/');
+  await expect.poll(() => page.locator('#game').getAttribute('data-player'), { timeout: 20_000 }).toBeTruthy();
+  // In front of the button, in the middle of its zone, standing.
+  await page.keyboard.press('Backquote');
+  await typeInConsole(page, 'dojo.goto 4.4 1 2.7');
+  await page.keyboard.press('Escape');
+  await afterSteps(page, 60);
+  await page.keyboard.press('KeyE');
+  await afterSteps(page, 10);
+  await page.keyboard.press('Backquote');
+  await typeInConsole(page, 'signals');
+  await expect(consoleLog(page)).toContainText('gate = 1  (toggle pressed) → door door');
+  // A computed signal is not set from the console: it says what it is made of.
+  await typeInConsole(page, 'signal gate 0');
+  await expect(consoleLog(page)).toContainText('"gate" is computed (toggle pressed): set what it reads');
+  expect(list).toEqual([]);
+});
+
 test('the wheel gets the camera closer, and the right button moves it sideways', async ({ page }) => {
   const list = errors(page);
   await page.setViewportSize({ width: 1280, height: 800 });
@@ -309,6 +331,7 @@ const VIEW_VALUES: Record<string, string> = {
   'show.contacts': 'on',
   'show.sensors': 'on',
   'show.gravity': 'on',
+  'show.signals': 'on',
   'show.stats': 'on',
   'view.timescale': '0.5',
   'view.paused': 'on',

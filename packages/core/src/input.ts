@@ -31,6 +31,7 @@ export const CHARACTER_ACTIONS: readonly InputAction[] = [
   },
   { name: 'jump', kind: 'button', description: 'jumping' },
   { name: 'run', kind: 'button', description: 'running' },
+  { name: 'use', kind: 'button', description: 'using what it stands in: a button (stage 3c)' },
 ];
 
 /** The actions of a game: the core's, then its own. Its own need a namespace, and cannot repeat a name. */

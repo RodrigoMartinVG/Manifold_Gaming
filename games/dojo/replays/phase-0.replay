@@ -1,4 +1,4 @@
-# Manifold replay 16
+# Manifold replay 17
 # Phase 0: the empty Dojo, its cube spun from the console.
 # A reference replay (stage 2.5a): playing it must end with the hash on its last line. A refactor
 # keeps it bit for bit. Recorded by games/dojo/src/reference.test.ts; recorded again (npm run
@@ -8,4 +8,4 @@ profile rapier-deterministic server 60
 change 61 dojo.spin 0 2 0
 change 181 dojo.spin 1.5 0 -0.5
 change 301 dojo.spin 0 0 0
-end 360 b91883ef
+end 360 4b36b4af

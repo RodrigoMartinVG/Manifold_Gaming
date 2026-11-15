@@ -9,7 +9,7 @@ import type { InputValue, PlayerInput } from '@manifold/core';
  * perpendicular to the character's "up", by where the camera looks. That direction is what enters the
  * world, through the session (and what a replay keeps).
  *
- * - Keyboard: WASD or the arrows to move, Space to jump, Shift to run. By physical key (`code`), so
+ * - Keyboard: WASD or the arrows to move, Space to jump, Shift to run, E to use (a button, stage 3c). By physical key (`code`), so
  *   WASD is in the same place on any layout.
  * - Gamepad (the first one connected): the left stick moves (as far as it is pushed: walking slower is
  *   possible), A jumps, B or pressing the stick runs. The right stick turns the camera (`cameraStick`).
@@ -52,6 +52,7 @@ export const CHARACTER_KEYS: Record<string, string> = {
   face: 'the mouse, in `view.camera aim`',
   jump: 'Space (or A)',
   run: 'Shift (or B, or pressing the left stick)',
+  use: 'E, or R in `controls.scheme tank`, where E goes to the side (or Y)',
 };
 
 export interface PlayerControls {
@@ -77,7 +78,7 @@ const MOVE_KEYS: Record<string, [forward: number, right: number]> = {
 };
 /** To the sides without turning, in the `tank` scheme. */
 const SIDE_KEYS: Record<string, number> = { KeyQ: -1, KeyE: 1 };
-const OTHER_KEYS = new Set(['Space', 'ShiftLeft', 'ShiftRight', 'AltLeft', 'AltRight']);
+const OTHER_KEYS = new Set(['Space', 'ShiftLeft', 'ShiftRight', 'AltLeft', 'AltRight', 'KeyE', 'KeyR']);
 /** Below this, a gamepad's stick is resting (sticks never return exactly to zero). */
 const DEAD_ZONE = 0.2;
 const axis = (pad: Gamepad, i: number) => (Math.abs(pad.axes[i] ?? 0) > DEAD_ZONE ? pad.axes[i]! : 0);
@@ -129,6 +130,8 @@ export function mountPlayerControls(o: { blocked(): boolean; buttons?: readonly 
       }
       let jump = keys.has('Space');
       let run = keys.has('ShiftLeft') || keys.has('ShiftRight');
+      // Using what it stands in (stage 3c: a button): E, which in the tank scheme goes to the side; there, R.
+      let use = keys.has(scheme === 'tank' ? 'KeyR' : 'KeyE');
       const alt = keys.has('AltLeft') || keys.has('AltRight');
 
       const pad = navigator.getGamepads?.()[0];
@@ -138,6 +141,7 @@ export function mountPlayerControls(o: { blocked(): boolean; buttons?: readonly 
         sideways += (pad.buttons[5]?.pressed ? 1 : 0) - (pad.buttons[4]?.pressed ? 1 : 0);
         jump ||= pad.buttons[0]?.pressed ?? false;
         run ||= (pad.buttons[1]?.pressed ?? false) || (pad.buttons[10]?.pressed ?? false);
+        use ||= pad.buttons[3]?.pressed ?? false;
       }
 
       // The game's buttons, by their keys (or the gamepad's).
@@ -154,6 +158,7 @@ export function mountPlayerControls(o: { blocked(): boolean; buttons?: readonly 
           turn: alt ? 0 : clamp(right),
           jump,
           run,
+          use,
           ...own,
         };
 
@@ -163,7 +168,7 @@ export function mountPlayerControls(o: { blocked(): boolean; buttons?: readonly 
       let move = vec3.add(vec3.scale(ahead, forward), vec3.scale(side, right));
       const length = vec3.length(move);
       if (length > 1) move = vec3.scale(move, 1 / length);
-      return { move, jump, run, ...own };
+      return { move, jump, run, use, ...own };
     },
     cameraStick() {
       const pad = navigator.getGamepads?.()[0];

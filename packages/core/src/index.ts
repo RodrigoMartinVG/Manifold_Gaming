@@ -9,6 +9,8 @@ export {
   type Phase,
   type Hit,
   type Query,
+  mechanismAt,
+  progressOf,
 } from './world';
 export { FULL_GRIP, MATERIAL_NAME, MATERIALS, materialProblem, tractionOf, type Material } from './materials';
 export {
@@ -77,8 +79,11 @@ export type {
   Mover,
   Movement,
   PlayerInput,
+  Mechanism,
   Sensor,
   Shape,
+  Signal,
+  SignalOp,
   Spin,
   Transform,
   CollisionGroups,

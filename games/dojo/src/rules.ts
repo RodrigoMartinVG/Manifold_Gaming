@@ -128,6 +128,10 @@ export const DOJO_ZONES: ZoneKinds = {
   goal: {},
   /** It carries whoever is in it along its `flow` (m/s, x y z, in the world's axes). */
   current: { flow: 3 },
+  /** Where a character presses `use` (stage 3c): what it means is in the level's signals. */
+  button: {},
+  /** A pressure plate (stage 3c): who is on it, in the level's signals. */
+  plate: {},
 };
 
 /**

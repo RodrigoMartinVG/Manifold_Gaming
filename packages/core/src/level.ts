@@ -1,6 +1,6 @@
 import { quat, vec3, type Quat, type Vec3 } from '@manifold/common';
 import { MATERIAL_NAME, MATERIALS, materialProblem, type Material } from './materials';
-import type { CollisionGroups, Components } from './types';
+import type { CollisionGroups, Components, SignalOp } from './types';
 import { ENTITY_NAME, type World } from './world';
 
 /**
@@ -34,11 +34,25 @@ import { ENTITY_NAME, type World } from './world';
  *                                             (what they mean is the game's, which may say which ones
  *                                             each of its zones takes: `levelFromText`'s `zones`)
  *
+ * Format 3 (stage 3c, decision 0018) adds signals, and mechanisms that follow them:
+ *
+ *   signal plate_on  zone plate               a signal: how many are in the zone named plate
+ *   signal pressed   used button              1 at the step a character pressed `use` in it
+ *   signal gate      toggle pressed           flips each time `pressed` turns on (any, all, not,
+ *                                             toggle, latch; nothing: an input, set by the game)
+ *   box 3 1.1 -4  0.6 1.1 0.06  door -0.6 0 0 y 90 1 gate
+ *                                             a door: its hinge (from the box's center), the axis
+ *                                             and the degrees it turns, the seconds it takes, its signal
+ *   box 0 0.15 -8  1.5 0.15 1.5  lift 0 4 0 3 lift_up    a lift: its way, its seconds, its signal
+ *   box 3 1.1 -4  0.6 1.1 0.06  model dojo.door    drawn with a model the game has, instead of a box
+ *
+ * A signal reads only zones (anywhere in the level) and signals declared above it.
+ *
  * The turns are written in degrees, as a person thinks them, and become quaternions with our own sine
  * and cosine (`quat.fromDegrees`): the browser's would give other bits in another browser, and the
  * world must be born the same everywhere.
  */
-export const LEVEL_FORMAT = 2;
+export const LEVEL_FORMAT = 3;
 const HEADER = '# Manifold level';
 
 /** A turn around one of the axes, as it is written. */
@@ -59,6 +73,8 @@ export interface LevelBox {
   color: number;
   /** How it is drawn (format 2). */
   look: Look;
+  /** A model the game has, drawn instead of the box, at its size (format 3: `dojo.door`). */
+  model: string | null;
   /** What it is made of (format 2), if it is said: the engine's materials or the level's. */
   material: string | null;
   /** Which collision groups it is in and meets (format 2), if it is said: if not, all. */
@@ -67,6 +83,17 @@ export interface LevelBox {
   move: { by: Vec3; seconds: number } | null;
   /** If it turns (stage 2d): around which axis, and how many degrees per second. */
   spin: Turn | null;
+  /** A door (format 3): its hinge, from the box's center, the turn it opens, how long, and its signal. */
+  door: { hinge: Vec3; turn: Turn; seconds: number; signal: string } | null;
+  /** A lift (format 3): its way, how long, and its signal. */
+  lift: { by: Vec3; seconds: number; signal: string } | null;
+}
+
+/** A signal (format 3): its name, what it is, and what it reads. */
+export interface LevelSignal {
+  name: string;
+  op: SignalOp;
+  reads: string[];
 }
 
 export interface LevelSensor {
@@ -88,6 +115,8 @@ export interface Level {
   materials: Record<string, Material>;
   boxes: LevelBox[];
   sensors: LevelSensor[];
+  /** Its signals (format 3), in the order they are computed. */
+  signals: LevelSignal[];
 }
 
 /**
@@ -116,12 +145,25 @@ export const turnOf = (turn: Turn | null): Quat => (turn ? quat.fromDegrees(AXES
 const NUMBER = /^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/;
 /** A word a zone's parameter is named by. */
 const PARAMETER = /^[a-z][a-z0-9_]*$/;
-/** What a format-2 level may say that a format-1 one may not. */
-const SINCE_2 = new Set(['material', 'name', 'group', 'meets', 'grid', 'hidden']);
+/** The words each format brought: a level that says an older one may not use them. */
+const SINCE: Record<string, number> = {
+  material: 2,
+  name: 2,
+  group: 2,
+  meets: 2,
+  grid: 2,
+  hidden: 2,
+  signal: 3,
+  door: 3,
+  lift: 3,
+  model: 3,
+};
+/** How many signals or zones each kind of signal reads (−1: one or more), as the world says. */
+const READS: Record<SignalOp, number> = { input: 0, zone: 1, used: 1, any: -1, all: -1, not: 1, toggle: 1, latch: 2 };
 
 /** A level from its text. A line that is not understood is an error, with its number. */
 export function levelFromText(text: string, o: LevelOptions = {}): Level {
-  const level: Level = { title: '', spawn: [0, 1, 0], facing: [0, 0, -1], materials: {}, boxes: [], sensors: [] };
+  const level: Level = { title: '', spawn: [0, 1, 0], facing: [0, 0, -1], materials: {}, boxes: [], sensors: [], signals: [] };
   const rows = text.split(/\r?\n/);
   const fail = (n: number, why: string): never => {
     throw new Error(`level, line ${n + 1}: ${why}`);
@@ -137,6 +179,11 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
   const declared = new Map<string, number>();
   /** The materials boxes are made of, and their lines: checked at the end (a material may be declared below). */
   const madeOf: { material: string; line: number }[] = [];
+  /** The zones signals read and the signals mechanisms follow, with their lines: checked at the end too. */
+  const zonesRead: { zone: string; line: number }[] = [];
+  const followed: { signal: string; line: number }[] = [];
+  /** Where each signal was declared. */
+  const signalLines = new Map<string, number>();
   rows.forEach((row, n) => {
     // A comment is a whole line that starts with # (a color, like #6f6a62, is not one).
     const line = row.trim();
@@ -144,9 +191,17 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
     const words = line.split(/\s+/);
     const kind = words[0]!;
     let at = 1;
-    /** A word only format 2 knows, in a level of format 1. */
-    const since2 = (word: string) => {
-      if (format < 2 && SINCE_2.has(word)) fail(n, `"${word}" is format 2: this level says format ${format} (its first line)`);
+    /** A word only a newer format knows, in a level of an older one. */
+    const since = (word: string) => {
+      const from = SINCE[word];
+      if (from !== undefined && format < from)
+        fail(n, `"${word}" is format ${from}: this level says format ${format} (its first line)`);
+    };
+    /** A signal's name, as a mechanism or a signal names it. */
+    const signalName = (): string => {
+      const name = words[at++] ?? '';
+      if (!ENTITY_NAME.test(name)) fail(n, `"${name}" is not a signal's name: one word, lowercase, digits and _`);
+      return name;
     };
     // Not hexadecimal, not Infinity: closing phase 2 found that `Number` took them.
     const number = () => {
@@ -207,11 +262,22 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
         spin: null as Turn | null,
         member: null as number | null,
         filter: null as number | null,
+        door: null as LevelBox['door'],
+        lift: null as LevelBox['lift'],
+        model: null as string | null,
+      };
+      /** How long a mechanism takes, more than 0, and the signal it follows. */
+      const timeAndSignal = () => {
+        const seconds = number();
+        if (seconds <= 0) fail(n, 'a mechanism takes some time: its seconds must be more than 0');
+        const signal = signalName();
+        followed.push({ signal, line: n });
+        return { seconds, signal };
       };
       const seen = new Set<string>();
       while (at < words.length) {
         const word = words[at++]!;
-        since2(word);
+        since(word);
         // Each one once: twice, the first was silently lost.
         if (seen.has(word)) fail(n, `"${word}" twice on one line`);
         seen.add(word);
@@ -235,11 +301,27 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
         else if (word === 'group') box.member = groupBits(word);
         else if (word === 'meets') box.filter = groupBits(word);
         else if (word === 'grid' || word === 'hidden') box.look = word;
-        else fail(n, `"${word}" is not understood here`);
+        else if (word === 'door') {
+          const hinge = vector();
+          const turn = axisAndDegrees();
+          box.door = { hinge, turn, ...timeAndSignal() };
+        } else if (word === 'lift') {
+          const by = vector();
+          box.lift = { by, ...timeAndSignal() };
+        } else if (word === 'model') {
+          const model = words[at++] ?? '';
+          if (!/^[a-z][a-z0-9_.-]*$/.test(model)) fail(n, `"${model}" is not a model's name (like dojo.door)`);
+          box.model = model;
+        } else fail(n, `"${word}" is not understood here`);
       }
+      // What the program moves, one way at a time: a platform that comes and goes, one that turns, or a
+      // mechanism that follows its signal.
+      const ways = ['move', 'spin', 'door', 'lift'].filter((w) => seen.has(w));
+      if (ways.length > 1) fail(n, `a box moves one way: ${ways.join(' and ')} together`);
       // A grid's or a hidden box's color would not be seen: saying one is a mistake.
       if (seen.has('grid') && seen.has('hidden')) fail(n, 'a box is drawn as a grid or not at all, not both');
       if (box.look !== 'solid' && seen.has('color')) fail(n, `a ${box.look} box has no color of its own`);
+      if (box.look !== 'solid' && box.model) fail(n, `a ${box.look} box is not drawn with a model`);
       return box;
     };
     if (kind === 'title' || kind === 'spawn' || kind === 'facing') {
@@ -260,7 +342,7 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
         if (level.facing.every((v) => v === 0)) fail(n, 'facing needs a direction, not 0 0 0');
         break;
       case 'material': {
-        since2(kind);
+        since(kind);
         const name = words[at++] ?? '';
         if (!MATERIAL_NAME.test(name)) fail(n, `"${name}" is not a material's name: one word in lowercase, like oil`);
         if (MATERIALS[name]) fail(n, `"${name}" is the engine's: a level's material needs a name of its own`);
@@ -295,11 +377,46 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
           turn: b.turn,
           color: b.color,
           look: b.look,
+          model: b.model,
           material: b.material,
           groups,
           move: b.move,
           spin: b.spin,
+          door: b.door,
+          lift: b.lift,
         });
+        break;
+      }
+      case 'signal': {
+        since(kind);
+        const name = signalName();
+        const first = signalLines.get(name);
+        if (first !== undefined) fail(n, `the signal "${name}" twice (the first, on line ${first + 1})`);
+        const op = (words[at++] ?? 'input') as SignalOp;
+        const count = READS[op];
+        if (count === undefined) fail(n, `"${op}" is not what a signal can be (${Object.keys(READS).join(', ')})`);
+        const reads: string[] = [];
+        while (at < words.length) {
+          const read = words[at++]!;
+          if (!ENTITY_NAME.test(read)) fail(n, `"${read}" is not a name`);
+          reads.push(read);
+        }
+        if (count >= 0 ? reads.length !== count : reads.length < 1)
+          fail(
+            n,
+            `a ${op} reads ${count < 0 ? 'one signal or more' : count === 0 ? 'nothing' : count === 1 ? 'one' : `${count}`}`,
+          );
+        for (const read of reads) {
+          if (op === 'zone' || op === 'used') zonesRead.push({ zone: read, line: n });
+          // Only signals declared above: so a cycle cannot be written.
+          else if (!signalLines.has(read))
+            fail(
+              n,
+              `"${read}" is not a signal declared above (a signal reads only those above it: so it cannot read itself, even through others)`,
+            );
+        }
+        signalLines.set(name, n);
+        level.signals.push({ name, op, reads });
         break;
       }
       case 'sensor': {
@@ -317,13 +434,13 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
           seen.add(word);
           if (word === 'rotate') turn = axisAndDegrees();
           else if (word === 'name') {
-            since2(word);
+            since(word);
             name = aName();
           } else {
             // Anything else is what the zone carries: a word and its numbers (format 2).
             if (!PARAMETER.test(word)) fail(n, `"${word}" is not understood here`);
             if (format < 2) fail(n, `"${word}": a zone carries what it says from format 2 on (this level says format ${format})`);
-            if (SINCE_2.has(word)) fail(n, `"${word}" is not something a zone carries`);
+            if (SINCE[word] !== undefined) fail(n, `"${word}" is not something a zone carries`);
             const values = numbers();
             if (values.length === 0) fail(n, `"${word}" needs its numbers`);
             params[word] = values;
@@ -347,13 +464,16 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
         break;
       }
       default:
-        fail(n, `"${kind}" is not understood (title, spawn, facing, material, box, sensor)`);
+        fail(n, `"${kind}" is not understood (title, spawn, facing, material, box, sensor, signal)`);
     }
     if (at < words.length) fail(n, `"${words[at]}" is extra`);
   });
   for (const { material, line } of madeOf)
     if (!MATERIALS[material] && !level.materials[material])
       fail(line, `no material "${material}" (the engine's: ${Object.keys(MATERIALS).join(', ')}; or one the level declares)`);
+  const zoneNames = new Set(level.sensors.flatMap((s) => (s.name ? [s.name] : [])));
+  for (const { zone, line } of zonesRead) if (!zoneNames.has(zone)) fail(line, `no zone named "${zone}" in the level`);
+  for (const { signal, line } of followed) if (!signalLines.has(signal)) fail(line, `no signal "${signal}" in the level`);
   return level;
 }
 
@@ -371,10 +491,15 @@ export function levelToText(level: Level): string {
     `box ${numbersText(b.center)}  ${numbersText(b.half)}${turnText(b.turn)}` +
     (b.move ? `  move ${numbersText(b.move.by)} ${b.move.seconds}` : '') +
     (b.spin ? `  spin ${b.spin.axis} ${b.spin.degrees}` : '') +
+    (b.door
+      ? `  door ${numbersText(b.door.hinge)} ${b.door.turn.axis} ${b.door.turn.degrees} ${b.door.seconds} ${b.door.signal}`
+      : '') +
+    (b.lift ? `  lift ${numbersText(b.lift.by)} ${b.lift.seconds} ${b.lift.signal}` : '') +
     (b.material ? `  material ${b.material}` : '') +
     (b.groups && b.groups.member !== ALL_GROUPS ? `  group ${groupList(b.groups.member)}` : '') +
     (b.groups && b.groups.filter !== ALL_GROUPS ? `  meets ${groupList(b.groups.filter)}` : '') +
     (b.look === 'solid' ? `  color #${b.color.toString(16).padStart(6, '0')}` : `  ${b.look}`) +
+    (b.model ? `  model ${b.model}` : '') +
     (b.name ? `  name ${b.name}` : '');
   const sensorText = (s: LevelSensor) =>
     `sensor ${s.kind}  ${numbersText(s.center)}  ${numbersText(s.half)}${turnText(s.turn)}` +
@@ -393,20 +518,22 @@ export function levelToText(level: Level): string {
       ),
       ...level.boxes.map(boxText),
       ...level.sensors.map(sensorText),
+      ...level.signals.map((g) => ['signal', g.name, ...(g.op === 'input' ? [] : [g.op, ...g.reads])].join(' ')),
     ].join('\n') + '\n'
   );
 }
 
 /**
  * Puts a level into a world: its materials, its boxes, as bodies (fixed; or, if they move or turn,
- * kinematic: the program moves them, and they push what they touch), drawn as their look says, and
- * its zones, as sensors that are not (`show.sensors` draws them). Where the players start is the
- * game's to use (`level.spawn`).
+ * or are mechanisms, kinematic: the program moves them, and they push what they touch), drawn as
+ * their look says, its zones, as sensors that are not (`show.sensors` draws them), and its signals,
+ * in their order, once the zones they read are there. Where the players start is the game's to use
+ * (`level.spawn`).
  */
 export function buildLevel(world: World, level: Level) {
   for (const [name, m] of Object.entries(level.materials)) world.addMaterial(name, m);
   for (const b of level.boxes) {
-    const moves = b.move !== null || b.spin !== null;
+    const moves = b.move !== null || b.spin !== null || b.door !== null || b.lift !== null;
     // Degrees per second to radians per second: a constant product, the same everywhere.
     const spin = b.spin ? vec3.scale(AXES[b.spin.axis], (b.spin.degrees * Math.PI) / 180) : null;
     const size: Vec3 = [b.half[0] * 2, b.half[1] * 2, b.half[2] * 2];
@@ -415,7 +542,7 @@ export function buildLevel(world: World, level: Level) {
         ? undefined
         : b.look === 'grid'
           ? { shape: 'grid', size, color: GRID_COLOR }
-          : { shape: 'box', size, color: b.color };
+          : { shape: 'box', size, color: b.color, ...(b.model ? { model: b.model } : {}) };
     world.createEntity({
       ...(b.name ? { name: b.name } : {}),
       transform: { position: [...b.center], rotation: turnOf(b.turn) },
@@ -428,6 +555,16 @@ export function buildLevel(world: World, level: Level) {
       ...(appearance ? { appearance } : {}),
       ...(spin ? { spin: { angularVelocity: spin } } : {}),
       ...(b.move ? { mover: { from: [...b.center], to: vec3.add(b.center, b.move.by), seconds: b.move.seconds } } : {}),
+      ...(b.door
+        ? {
+            mechanism: {
+              signal: b.door.signal,
+              seconds: b.door.seconds,
+              door: { hinge: vec3.add(b.center, b.door.hinge), axis: AXES[b.door.turn.axis], degrees: b.door.turn.degrees },
+            },
+          }
+        : {}),
+      ...(b.lift ? { mechanism: { signal: b.lift.signal, seconds: b.lift.seconds, lift: { by: [...b.lift.by] } } } : {}),
     });
   }
   for (const s of level.sensors)
@@ -436,4 +573,5 @@ export function buildLevel(world: World, level: Level) {
       transform: { position: [...s.center], rotation: turnOf(s.turn) },
       sensor: { kind: s.kind, half: [...s.half], params: s.params },
     });
+  for (const g of level.signals) world.addSignal(g.name, g.op, g.reads);
 }

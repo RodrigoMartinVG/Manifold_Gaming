@@ -232,8 +232,8 @@ function topAhead(world: World, e: Entity, feet: Vec3, wall: Vec3, up: Vec3): bo
  * WHAT A CHARACTER STANDS ON (stage 2.5b): its own capsule, a little thinner (90% of its radius,
  * with its bottom where it is, so a wall brushing its sides does not count), moved down from where
  * it is, as far as the controller keeps it on the ground: the first thing it would touch whose
- * surface faces up. The entity, the surface's normal there (stage 3b), and, if the program moves it
- * (a platform), how it moves. Bodies the
+ * surface faces up. The entity, the surface's normal there (stage 3b), how far below its bottom it is
+ * (stage 3c), and, if the program moves it (a platform), how it moves. Bodies the
  * physics moves (a cube) are not platforms: standing on one, it stands on nothing that carries it.
  *
  * Before, a ray from its center: on a platform's edge, with its center already beyond it and the round
@@ -244,7 +244,7 @@ function standingOn(
   world: World,
   e: Entity,
   up: Vec3,
-): { entity: number; normal: Vec3; moves: { linear: Vec3; angular: Vec3; center: Vec3 } | null } | null {
+): { entity: number; normal: Vec3; distance: number; moves: { linear: Vec3; angular: Vec3; center: Vec3 } | null } | null {
   const shape = e.body!.shape;
   if (shape.kind !== 'capsule') return null;
   const radius = shape.radius * 0.9;
@@ -256,7 +256,7 @@ function standingOn(
     if (!hit || vec3.dot(hit.normal, up) < 0.5) return null;
     const body = world.entities.get(hit.entity)?.body;
     const motion = body ? world.physics.motionOf(body.handle) : null;
-    return { entity: hit.entity, normal: hit.normal, moves: motion?.kinematic ? motion : null };
+    return { entity: hit.entity, normal: hit.normal, distance: hit.distance, moves: motion?.kinematic ? motion : null };
   };
   const thin = found(cast(thinner));
   if (thin?.moves) return thin;
@@ -427,10 +427,16 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
   // sank into the thin gap the controller keeps (CHARACTER_GAP); from there, a move along the floor met
   // the floor at once, and it did not move at all for a step or two: 2 to 6 steps in a hundred,
   // walking on a flat floor. On a steeper slope, or a round bottom on an edge, gravity goes on
-  // pulling: it is what makes it slide off them.
+  // pulling: it is what makes it slide off them. And held so, if it is inside that gap all the same, it
+  // comes out of it in this step (`rise`): from a lift at the top onto its ledge, as high to 32 bits
+  // but 0.00000004 m higher, it stood a hair inside the ledge's gap, and stuck on the seam for good
+  // (stage 3c). Moving out of the gap, the controller does not meet the floor at once.
+  let rise = 0;
   if (mode.holds) vUp = mode.holds(c, move);
-  else if (c.grounded && !leapt && vUp <= 0 && under && vec3.dot(under.normal, up) >= STANDS_ON) vUp = 0;
-  else {
+  else if (c.grounded && !leapt && vUp <= 0 && under && vec3.dot(under.normal, up) >= STANDS_ON) {
+    vUp = 0;
+    rise = Math.max(0, CHARACTER_GAP - under.distance);
+  } else {
     vUp -= gravity * dt;
     const fall = mode.fall?.(c);
     if (fall !== undefined) vUp = Math.max(vUp, -fall);
@@ -439,7 +445,7 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
   c.carry = [0, 0, 0];
 
   // 5: what it can really do.
-  const desired = vec3.scale(vec3.add(vec3.add(vH, vec3.scale(up, vUp)), carried), dt);
+  const desired = vec3.add(vec3.scale(vec3.add(vec3.add(vH, vec3.scale(up, vUp)), carried), dt), vec3.scale(up, rise));
   const platform = under?.moves ? world.entities.get(under.entity)?.body?.handle : undefined;
   const { movement, grounded, ceiling } = world.physics.moveCharacter(body.handle, desired, up, platform);
 

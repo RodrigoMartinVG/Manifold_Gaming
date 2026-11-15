@@ -33,7 +33,7 @@ export function dojoDeclarations(): { variables: DeclaredVariable[]; commands: D
       return { ...info, written: formatValue(info.default) };
     }),
     commands: registry.commands().map((c) => {
-      const { run: _, onWorld, ...info } = c;
+      const { run: _, onWorld, check: __, ...info } = c;
       return { ...info, usage: registry.usage(c), scope: onWorld ? 'world' : null };
     }),
   };

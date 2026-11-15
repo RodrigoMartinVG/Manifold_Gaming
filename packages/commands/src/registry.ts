@@ -36,6 +36,8 @@ export class Registry<W = unknown> {
   private readonly cmds = new Map<string, Command<W>>();
   /** Set by the session: how to schedule a world change for the next step. */
   scheduler: Scheduler<W> | null = null;
+  /** Set by the session too (stage 3c): the world as it is now, for a world action to check itself against when typed. */
+  world: (() => W) | null = null;
   /** Set by whoever mounts the game: what to do when a startup value changes (restart). */
   onStartupChange: (() => void) | null = null;
   /** Whether there is a view to apply view values to (`applyToView`): until then, they are only stored. */
@@ -231,6 +233,9 @@ export class Registry<W = unknown> {
       if (!args) return false;
       if (command.onWorld) {
         const onWorld = command.onWorld;
+        // Whether it can be done in the world as it is (stage 3c: setting a signal that is computed is
+        // refused when it is typed, with why, not ignored at the next step).
+        if (command.check && this.world && !command.check(this.world(), args, out)) return false;
         const canonical = [name, ...args.map(formatValue)].join(' ');
         if (this.scheduler) this.scheduler(canonical, (world) => onWorld(world, args));
         else out.write(`${name}: there is no world to do it in yet`, 'error');

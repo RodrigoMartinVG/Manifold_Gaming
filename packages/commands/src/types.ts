@@ -67,6 +67,12 @@ export interface Command<W = unknown> {
   inRecipes?: boolean;
   /** If it is a world action: it is applied at a step, like world variables. */
   onWorld?(world: W, args: Value[]): void;
+  /**
+   * If it is a world action (stage 3c): whether it can be done in the world as it is when it is typed;
+   * if not, it says why, and it is not scheduled. (At its step the world may have changed: `onWorld`
+   * must still cope.)
+   */
+  check?(world: W, args: Value[], out: Output): boolean;
   /** If it is not a world action: it is done right away, and it can write to the console. */
   run?(args: Value[], out: Output): void;
 }
@@ -77,7 +83,7 @@ export interface Command<W = unknown> {
  * do; the site's console reference is generated from the same data, without mounting anything.
  */
 export type VariableInfo = Omit<Variable, 'onChange' | 'onWorld'>;
-export type CommandInfo = Omit<Command, 'run' | 'onWorld'>;
+export type CommandInfo = Omit<Command, 'run' | 'onWorld' | 'check'>;
 
 export type Level = 'info' | 'warn' | 'error';
 

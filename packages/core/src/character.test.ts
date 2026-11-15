@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, test } from 'vitest';
 import { quat, vec3, type Vec3 } from '@manifold/common';
 import type { Cartridge } from './cartridge';
 import { DEFAULT_MOVEMENT, faceFor, poseOf, turned } from './character';
+import { buildLevel, levelFromText } from './level';
 import { NO_INPUT } from './input';
 import { stateHash } from './hash';
 import { initPhysics } from './physics';
@@ -1103,5 +1104,31 @@ describe('standing, held by its floor (stage 3b)', () => {
     // Slowly (14 cm in two seconds, as before this stage): one step of gravity at a time, since it keeps
     // no speed while it touches the ground. Written down for later.
     expect(slid(40)).toBeGreaterThan(0.1);
+  });
+});
+
+describe('across a seam (stage 3c)', () => {
+  test('walking from a lift that came up onto a ledge as high (to 32 bits: 0.00000004 m apart), it does not stick on the seam', () => {
+    // The machines room's lift at the top and its ledge: 4.15 + 0.15 and 2.15 + 2.15, both 4.3 m, one a
+    // hair higher. Standing on the lower one, its thin gap was a hair short over the other, and from
+    // there a move along it met it at once: it stuck on the seam for good.
+    const world = new World({ seed: 1 });
+    buildLevel(
+      world,
+      levelFromText('# Manifold level 3\nbox 7 0.15 -4  1 0.15 1  lift 0 4 0 3 up\nbox 7 2.15 -6  1.5 2.15 1\nsignal up\n'),
+    );
+    const hero = world.createEntity({
+      transform: { position: [7, 1.2, -4], rotation: quat.identity() },
+      body: { type: 'character', shape: { kind: 'capsule', halfHeight: 0.5, radius: 0.3 } },
+      character: { player: 1 },
+    });
+    run(world, 20);
+    world.setSignal('up', 1);
+    run(world, 200);
+    expect(hero.transform!.position[1]).toBeCloseTo(5.12, 2);
+    run(world, 40, () => input([0, 0, -1]));
+    expect(hero.transform!.position[2], 'well onto the ledge').toBeLessThan(-5.5);
+    expect(hero.character!.grounded).toBe(true);
+    world.dispose();
   });
 });

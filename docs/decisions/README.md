@@ -24,3 +24,4 @@ Each one has: **context** (what problem there was), **decision**, **consequences
 | [0015](0015-art-and-sound.md)           | Where the art and the sound come from: code, scripts, free packs | Accepted (refined in 2e)                                                     |
 | [0016](0016-the-networking-model.md)    | The networking model: each predicts only its own character       | Accepted                                                                     |
 | [0017](0017-phase-5-scope.md)           | Phase 5's scope: three compact games, of 10 to 15 minutes        | Accepted                                                                     |
+| [0018](0018-signals.md)                 | Signals: named values, once per step, in the order written       | Accepted                                                                     |

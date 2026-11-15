@@ -153,4 +153,25 @@ describe("the Dojo's art (stage 2e)", () => {
       expect(parentOf(socket), `${socket} follows ${bone}`).toBe(bone);
     }
   });
+
+  test('the door (stage 3c) is the size of the box a level gives a door, its origin at its center, its hinges on its left edge', () => {
+    const { size, json } = gltf(files['../assets/door.glb']!);
+    const triangles = json.meshes.flatMap((m) => m.primitives).reduce((n, p) => n + json.accessors[p.indices]!.count / 3, 0);
+    expect(triangles).toBeLessThan(800);
+    expect(json.materials?.length ?? 0).toBe(3); // the wood, the panels, the metal
+    expect(json.textures?.length ?? 0).toBe(0);
+    expect(json.animations ?? []).toEqual([]);
+    expect(size).toBeLessThan(40_000);
+    // Where it reaches, over all its pieces (in the engine's frame: x across, y up, z through it).
+    const positions = json.meshes.flatMap((m) => m.primitives).map((p) => json.accessors[p.attributes.POSITION!]!);
+    const min = [0, 1, 2].map((k) => Math.min(...positions.map((a) => a.min![k]!)));
+    const max = [0, 1, 2].map((k) => Math.max(...positions.map((a) => a.max![k]!)));
+    // Inside its box (1.2 × 2.2, centered) but for what sticks out of a door: the hinges, past its left
+    // edge, and the handles, out of its faces.
+    expect(max[1]!).toBeLessThanOrEqual(1.1);
+    expect(min[1]!).toBeGreaterThanOrEqual(-1.1);
+    expect(max[0]!).toBeLessThanOrEqual(0.6);
+    expect(min[0]!, 'the hinges, on the left edge').toBeLessThan(-0.6);
+    expect(Math.max(-min[2]!, max[2]!), 'the handles').toBeLessThan(0.12);
+  });
 });

@@ -29,6 +29,76 @@ function machines() {
   return { session, notices, at, c, step, machine, put };
 }
 
+describe('the machines: a button and a door, plates and a lift (stage 3c)', () => {
+  const press = (m: ReturnType<typeof machines>) => {
+    m.step({ ...NO_INPUT, use: true });
+    m.step();
+  };
+
+  test('the door is shut until the button is pressed; pressed (E, in front of it), it opens in a second, and the way is free', () => {
+    const m = machines();
+    const door = m.session.world.named('door')!;
+    // Walking at the shut door: it stops the character.
+    m.put(3, 1, 3.5);
+    for (let i = 0; i < 90; i++) m.step({ move: [0, 0, -1] });
+    expect(m.at()[2]!, 'stopped by the door').toBeGreaterThan(2.3);
+    // The button: one press flips the door's signal; one step later it starts turning, 90° in a second.
+    m.put(4.4, 1, 2.7);
+    press(m);
+    expect(m.session.world.signal('gate')).toBe(1);
+    m.step(undefined);
+    for (let i = 0; i < 60; i++) m.step();
+    const q = door.transform!.rotation;
+    expect(2 * Math.asin(Math.hypot(q[0], q[1], q[2]))).toBeCloseTo(Math.PI / 2, 4);
+    // Through the doorway.
+    m.put(3, 1, 3.5);
+    for (let i = 0; i < 90; i++) m.step({ move: [0, 0, -1] });
+    expect(m.at()[2]!, 'through').toBeLessThan(1);
+    // Pressed again, it shuts.
+    m.put(4.4, 1, 2.7);
+    press(m);
+    for (let i = 0; i < 62; i++) m.step();
+    expect(door.transform!.rotation.map((v) => +v.toFixed(5))).toEqual([0, 0, 0, 1]);
+  });
+
+  test('standing on the lift calls it up: it takes the character 4 m up, to the ledge and its star', () => {
+    const m = machines();
+    const lift = m.session.world.named('lift')!;
+    m.put(7, 1.2, -4);
+    let off = 0;
+    for (let i = 0; i < 200; i++) {
+      m.step();
+      if (!m.c().grounded) off++;
+    }
+    expect(lift.transform!.position[1]).toBeCloseTo(4.15, 4);
+    expect(m.at()[1]!).toBeCloseTo(5.12, 1);
+    expect(off, 'steps it did not stand').toBe(0);
+    // Onto the ledge, and the star.
+    for (let i = 0; i < 30; i++) m.step({ move: [0.25, 0, -1] });
+    expect(m.notices.some((n) => n.startsWith('a star'))).toBe(true);
+  });
+
+  test('the plate beside it calls it down; while someone stands where it comes down, it does not (the call up wins)', () => {
+    const m = machines();
+    const lift = m.session.world.named('lift')!;
+    const y = () => lift.transform!.position[1]!;
+    // Up, with nobody on it: the plate on the ledge calls it.
+    m.put(6.2, 5, -6.3);
+    for (let i = 0; i < 200; i++) m.step();
+    expect(y()).toBeCloseTo(4.15, 4);
+    // Someone under it, in the shaft, and the plate on the ground pressed by a ball: it stays up.
+    m.put(7, 1, -4);
+    m.session.registry.run('dojo.spawn 4.6 0.6 -4', 'console');
+    for (let i = 0; i < 120; i++) m.step();
+    expect(m.session.world.signal('sent')).toBe(1);
+    expect(y(), 'it waits').toBeCloseTo(4.15, 4);
+    // Out of the shaft: it comes down, and stays down when the plate is left.
+    m.put(3, 1, -4);
+    for (let i = 0; i < 200; i++) m.step();
+    expect(y()).toBeCloseTo(0.15, 4);
+  });
+});
+
 describe('the machines (stage 3a)', () => {
   /** The ferry, and whether the character stands on it. */
   const theFerry = (m: ReturnType<typeof machines>) => {

@@ -90,6 +90,36 @@ export function declareCore(registry: Registry<World>) {
     args: [{ name: 'player', type: { kind: 'integer', min: 1, max: 64 } }],
     onWorld: (world, [player]) => void world.players.delete(Number(player)),
   });
+  registry.declareCommand({
+    name: 'signal',
+    description:
+      'Sets a signal of the level that is an input (stage 3c): `signal lights 1`. At a step, and the replay has it. The ones that are computed say what they read (`signals` lists them all).',
+    args: [
+      { name: 'name', type: { kind: 'text' } },
+      { name: 'value', type: { kind: 'number' } },
+    ],
+    check(world, [name, value], out) {
+      const w = world.signals.find((x) => x.name === name);
+      if (!w) {
+        const names = world.signals.map((x) => x.name);
+        out.write(
+          `no signal "${String(name)}" here${names.length ? ` (${names.join(', ')})` : ': this world has none'}`,
+          'error',
+        );
+        return false;
+      }
+      if (w.op !== 'input') {
+        out.write(`"${w.name}" is computed (${w.op} ${w.reads.join(' ')}): set what it reads`, 'error');
+        return false;
+      }
+      if (!Number.isFinite(Number(value))) return false;
+      return true;
+    },
+    onWorld(world, [name, value]) {
+      const w = world.signals.find((x) => x.name === name);
+      if (w?.op === 'input') world.setSignal(w.name, Number(value));
+    },
+  });
   registry.declareVariable({
     name: 'physics.gravity',
     description: "The gravity, in m/s² along each axis (x y z): the Earth's is 0 -9.81 0. Try 0 -1.6 0, the Moon's.",
@@ -149,6 +179,7 @@ export class Session {
     this.registry.applyToWorld(this.world);
     // From now on, world changes go through here (if another session had this registry, it stops getting them).
     this.registry.scheduler = (line, apply) => this.scheduled.push({ line, apply });
+    this.registry.world = () => this.world;
   }
 
   /** Its world (another one, after `load`). */

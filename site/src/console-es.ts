@@ -18,6 +18,8 @@ export const CONSOLE_ES: Readonly<Record<string, string>> = {
   'show.vectors': 'velocidades, y hacia dónde mira cada personaje',
   'show.contacts': 'los puntos de contacto, con su normal',
   'show.gravity': 'el campo de gravedad, como flechas',
+  'show.signals':
+    'las señales: una línea desde cada mecanismo hasta las zonas de donde sale su señal, verde mientras está prendida',
   'view.timescale': 'mostrar el mundo más lento (0.2) o más rápido (2), sin cambiar la física',
   'view.paused': 'el mundo frenado (con `step` avanza de a un paso)',
   'controls.scheme': 'cómo manejan las teclas al personaje ([las dos maneras](../como-se-juega/#las-teclas-de-dos-maneras))',
@@ -27,13 +29,15 @@ export const CONSOLE_ES: Readonly<Record<string, string>> = {
   'players.join':
     'un jugador entra a la partida. Lo dice el servidor, en un paso: el juego decide qué significa (en el recorrido del Dojo, un personaje para cada uno)',
   'players.leave': 'un jugador deja la partida (en el recorrido del Dojo, su personaje se va)',
+  signal: 'pone una señal del nivel que es una entrada, en un paso (las que se calculan dicen de qué)',
+  signals: 'las señales del nivel, en el orden en que se calculan: su valor, de qué están hechas y qué mecanismos las siguen',
   help: 'cómo se usa la consola, o la ayuda de un nombre',
   find: 'busca en los nombres y en las descripciones',
   vars: 'las variables y sus valores, por clase (todas, o las que empiezan con un prefijo: `vars show.`)',
   changed: 'solo las variables que no están en su valor de siempre',
   toggle: 'da vuelta una variable de prendido y apagado',
   reset: 'vuelve una variable a su valor de siempre (sin nombre, todas); las de arranque hacen empezar de nuevo el mundo',
-  inspect: 'de qué está hecha una entidad: por su número, `me` o `it` (sin nada: cuántas hay)',
+  inspect: 'de qué está hecha una entidad: por su número, su nombre, `me` o `it` (sin nada: cuántas hay, y sus nombres)',
   watch:
     'deja una entidad fija en la pantalla, con sus valores al día mientras jugás; `watch clear` las saca, y `watch` solo dice cuáles mirás',
   inputs: 'qué puede pedir un jugador en este juego, y qué tecla lo aprieta',
@@ -54,13 +58,14 @@ export const CONSOLE_ES: Readonly<Record<string, string>> = {
   ghost: 'correr contra lo que acabás de hacer',
 
   // ---------- The Dojo's own ----------
-  'dojo.level': 'qué hay en el piso: `empty`, o un nivel de `games/dojo/levels/`, como `course`, con un personaje para manejar',
+  'dojo.level':
+    'qué es la sala: `empty` (un piso y el cubo grande), o un nivel de `games/dojo/levels/`, que trae todo su suelo, como `course`, con un personaje para manejar',
   'dojo.cubes': 'cubos chicos al empezar, en lugares que salen del azar del mundo: con la misma semilla, siempre los mismos',
   'dojo.climb': 'trepar: empujando contra una pared, el personaje la sube',
   'dojo.glide': 'planear: manteniendo el salto mientras cae, cae despacio y se dirige mejor',
   'dojo.doublejump': 'un salto más en el aire',
   'dojo.air': 'cuánto se puede corregir un salto en el aire, en m/s²',
-  'dojo.spin': 'cómo gira el cubo grande: radianes por segundo alrededor de cada eje (x y z)',
+  'dojo.spin': 'cómo gira el cubo grande (en el Dojo sin nivel): radianes por segundo alrededor de cada eje (x y z)',
   'dojo.goto': 'pone quieto en ese punto al personaje del jugador 1: para explorar un nivel',
   'dojo.spawn': 'deja caer una pelota desde ese punto, con un tamaño y un color que salen del azar del mundo',
 };

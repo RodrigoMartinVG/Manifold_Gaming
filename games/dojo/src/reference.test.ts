@@ -177,11 +177,36 @@ describe('the reference replays (stage 2.5a), recorded from their scripts', () =
     ).toMatchFileSnapshot('../replays/phase-2.replay');
     session.world.dispose();
   });
+
+  test('phase 3, a world that responds: a button opens a door, plates call a lift, and the lift takes the character up', async () => {
+    // (The room `machines`, written here: editing the room's recipe does not change the reference.)
+    const signal = (s: Session, name: string) => s.world.signal(name);
+    const { session, seen } = run('seed 5\ndojo.level machines', [
+      { steps: 30 },
+      // The shut door stops the walk; the button (E in front of it) opens it, and the way is free.
+      { lines: ['dojo.goto 3 1 3.5'], steps: 60, drive: () => ({ move: [0, 0, -1] }) },
+      { lines: ['dojo.goto 4.4 1 2.7'], steps: 80, drive: (s) => ({ use: s === 10 }) },
+      { lines: ['dojo.goto 3 1 3.5'], steps: 90, drive: () => ({ move: [0, 0, -1] }) },
+      // Onto the lift: it goes up; off it, onto the ledge, to the star.
+      { lines: ['dojo.goto 7 1.2 -4'], steps: 200 },
+      { steps: 40, drive: (s) => (s < 30 ? { move: [0.25, 0, -1] } : NO_INPUT) },
+      // Down to the plate beside the lift: it comes down.
+      { lines: ['dojo.goto 4.6 1 -4'], steps: 220 },
+    ]);
+    expect(signal(session, 'gate')).toBe(1);
+    expect(seen.notices.filter((n) => n.startsWith('a star'))).toHaveLength(1);
+    expect(session.world.named('lift')!.transform!.position[1]).toBeCloseTo(0.15, 4);
+    expect(seen.carried).toBeGreaterThan(150);
+    await expect(
+      referenceText(session, 'Phase 3: the machines: a button that opens a door, plates that call a lift, a ride up to a star.'),
+    ).toMatchFileSnapshot('../replays/phase-3.replay');
+    session.world.dispose();
+  });
 });
 
 describe('the reference replays, as they are in their files', () => {
   test('there is one per phase, of this simulation version', () => {
-    expect(Object.keys(REFERENCE_REPLAYS)).toEqual(['phase-0', 'phase-1', 'phase-2']);
+    expect(Object.keys(REFERENCE_REPLAYS)).toEqual(['phase-0', 'phase-1', 'phase-2', 'phase-3']);
     for (const text of Object.values(REFERENCE_REPLAYS))
       expect(text.split('\n')[0]).toBe(`# Manifold replay ${SIMULATION_VERSION}`);
   });

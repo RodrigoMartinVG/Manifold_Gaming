@@ -1,11 +1,24 @@
 import { Random, quat, vec3, type Quat, type Vec3 } from '@manifold/common';
 import { moveCharacter, newCharacter } from './character';
+import { pressed } from './input';
 import { COMPONENT_NAME } from './components';
 import { EARTH, gravityAt } from './gravity';
 import { MATERIAL_NAME, MATERIALS, materialProblem, type Material } from './materials';
 import { PHYSICS, type PhysicsBackend, type PhysicsHit } from './physics';
 import { VERIFIED, type Profile } from './profile';
-import type { CollisionGroups, Components, Entity, Event, EntityId, GravityField, PlayerInput, Shape } from './types';
+import type {
+  CollisionGroups,
+  Components,
+  Entity,
+  Event,
+  EntityId,
+  GravityField,
+  Mechanism,
+  PlayerInput,
+  Shape,
+  Signal,
+  SignalOp,
+} from './types';
 import { SIMULATION_VERSION } from './version';
 
 /** What a query through the world hit (stage 2.5b): which entity, how far, where, and the surface's normal there. */
@@ -27,6 +40,29 @@ export interface Query {
   dynamic?: boolean;
   /** Only the bodies these groups meet. */
   groups?: CollisionGroups;
+}
+
+/** How many signals each kind of signal reads (−1: one or more). */
+const SIGNAL_READS: Record<SignalOp, number> = { input: 0, zone: 1, used: 1, any: -1, all: -1, not: 1, toggle: 1, latch: 2 };
+
+/** How far a mechanism is from closed (0) to open (1) at a step: from where it last turned, at its speed. */
+export function progressOf(m: Mechanism, tick: number): number {
+  const moved = ((tick - m.since) * STEP) / m.seconds;
+  return Math.max(0, Math.min(1, m.toward ? m.from + moved : m.from - moved));
+}
+
+/**
+ * Where a mechanism is when it is so far open: a lift, along its way; a door, turned around its hinge
+ * (its center goes round it, and it turns as much), with our own sine and cosine (`quat.fromDegrees`).
+ */
+export function mechanismAt(m: Mechanism, progress: number): { position: Vec3; rotation: Quat } {
+  if (m.lift) return { position: vec3.add(m.closed.position, vec3.scale(m.lift.by, progress)), rotation: [...m.closed.rotation] };
+  const door = m.door!;
+  const turn = quat.fromDegrees(door.axis, door.degrees * progress);
+  return {
+    position: vec3.add(door.hinge, quat.rotate(turn, vec3.sub(m.closed.position, door.hinge))),
+    rotation: quat.normalize(quat.multiply(turn, m.closed.rotation)),
+  };
 }
 
 /** An entity's name (stage 3b): one word, lowercase, digits and _ (`door_north`, `cube`). */
@@ -51,7 +87,7 @@ export interface WorldOptions {
 /**
  * A SNAPSHOT OF A WORLD (stage 1d, as decision 0004 defined it): everything it is, at the end of a
  * step. Its clock and its id counter, its randomness's state, its gravity, its materials (stage 3b),
- * its players' inputs (and
+ * its signals (stage 3c), its players' inputs (and
  * the previous step's), its entities (plain data: copied as they are), and Rapier's own snapshot of
  * its physics, which also keeps what is not in the entities: the contacts, and what the solver
  * carries from one step to the next. Restored, it goes on exactly as the original would have
@@ -67,6 +103,7 @@ export interface WorldSnapshot {
   readonly random: readonly [number, number, number, number];
   readonly gravity: GravityField;
   readonly materials: Readonly<Record<string, Material>>;
+  readonly signals: readonly Signal[];
   readonly inputs: readonly [number, PlayerInput][];
   readonly lastInputs: readonly [number, PlayerInput][];
   readonly players: readonly number[];
@@ -110,13 +147,15 @@ export function copyData<T>(x: T): T {
  *   3. characters: each one decides where it can go, with what its player asks for (character.ts);
  *   4. physics: Rapier advances one step (gravity, collisions, bounces; the characters move);
  *   5. readBack: every moving body's pose and velocities go to its components;
- *   6. zones: who came into each zone, and who left (stage 2a).
+ *   6. zones: who came into each zone, and who left (stage 2a);
+ *   7. signals: every signal, from what the zones noticed, in the order declared (stage 3c, decision
+ *      0018); mechanisms read them at the next step's kinematics.
  *
  * A game hooks in around them, never inside (mechanism and policy, decision 0000): before
  * (`Cartridge.beforeStep`: what these phases will use at this step: a bot's inputs, a mechanism's
  * target, what a character carries) and after (`Cartridge.onStep`: its rules, on the step's events).
  */
-export const PHASES = ['spin', 'kinematics', 'characters', 'physics', 'readBack', 'zones'] as const;
+export const PHASES = ['spin', 'kinematics', 'characters', 'physics', 'readBack', 'zones', 'signals'] as const;
 export type Phase = (typeof PHASES)[number];
 
 export class World {
@@ -157,6 +196,11 @@ export class World {
    * (`body.material`) and takes its friction and bounce when it is created.
    */
   private readonly table: Record<string, Material>;
+  /**
+   * ITS SIGNALS (stage 3c, decision 0018), in the order they are computed: the order declared. Data,
+   * like the rest: hashed, and in snapshots, values and what each keeps.
+   */
+  private readonly wires: Signal[] = [];
   /** How it runs (stage 2.5b, decision 0014): its physics, and who verifies it. */
   readonly profile: Profile;
   /**
@@ -199,6 +243,7 @@ export class World {
       random: [...this.random.state],
       gravity: copyData(this.field),
       materials: copyData(this.table),
+      signals: copyData(this.wires),
       inputs: copyData([...this.inputs]),
       lastInputs: copyData([...this.lastInputs]),
       players: [...this.players],
@@ -223,6 +268,7 @@ export class World {
     });
     world.tick = s.tick;
     world.lastId = s.lastId;
+    for (const signal of copyData(s.signals)) world.wires.push(signal);
     world.random.restore(s.random);
     for (const [player, input] of copyData(s.inputs)) world.inputs.set(player, input);
     for (const [player, input] of copyData(s.lastInputs)) world.lastInputs.set(player, input);
@@ -259,6 +305,54 @@ export class World {
     this.table[name] = { friction: m.friction, bounce: m.bounce, density: m.density, drag: m.drag };
   }
 
+  /** Its signals, in the order they are computed (read only: `addSignal` and `setSignal` change them). */
+  get signals(): readonly Readonly<Signal>[] {
+    return this.wires;
+  }
+
+  /**
+   * A signal more (stage 3c), computed after those already there: it reads only zones (by their
+   * names, already in the world) and signals added before it, so a cycle cannot be made. Its value
+   * starts at 0.
+   */
+  addSignal(name: string, op: SignalOp, reads: readonly string[]) {
+    const fail = (why: string): never => {
+      throw new Error(`the signal "${name}": ${why}`);
+    };
+    if (!ENTITY_NAME.test(name)) fail('its name is one word, lowercase, digits and _');
+    if (this.wires.some((w) => w.name === name)) fail('there is one already');
+    const count = SIGNAL_READS[op];
+    if (count === undefined) fail(`"${op}" is not what a signal can be (${Object.keys(SIGNAL_READS).join(', ')})`);
+    if (count >= 0 ? reads.length !== count : reads.length < 1)
+      fail(`a ${op} reads ${count < 0 ? 'one signal or more' : count === 0 ? 'nothing' : count === 1 ? 'one' : `${count}`}`);
+    for (const r of reads) {
+      if (op === 'zone' || op === 'used') {
+        if (!this.named(r)?.sensor) fail(`no zone named "${r}"`);
+      } else if (!this.wires.some((w) => w.name === r)) fail(`it reads "${r}", which is not a signal added before it`);
+    }
+    this.wires.push({ name, op, reads: [...reads], value: 0, memory: 0 });
+  }
+
+  /** A signal's value: what it was at the end of the last step. */
+  signal(name: string): number {
+    const w = this.wires.find((x) => x.name === name);
+    if (!w) throw new Error(`no signal "${name}" in this world`);
+    return w.value;
+  }
+
+  /**
+   * Sets an input signal (stage 3c): the game, in its hooks, or the console. It takes the value at the
+   * end of this step (if set before the engine's phases), and mechanisms see it at the next. A signal
+   * that is computed cannot be set: it would be computed again, and the setting silently lost.
+   */
+  setSignal(name: string, value: number) {
+    const w = this.wires.find((x) => x.name === name);
+    if (!w) throw new Error(`no signal "${name}" in this world`);
+    if (w.op !== 'input') throw new Error(`the signal "${name}" is computed (${w.op} ${w.reads.join(' ')}): set what it reads`);
+    if (!Number.isFinite(value)) throw new Error(`a signal's value is a number, not ${value}`);
+    w.memory = value;
+  }
+
   /** The entity with this name, if there is one (stage 3b). */
   named(name: string): Entity | undefined {
     for (const e of this.entities.values()) if (e.name === name) return e;
@@ -271,7 +365,7 @@ export class World {
   }
 
   createEntity(components: Components): Entity {
-    const { body, character, sensor, mover, ...rest } = components;
+    const { body, character, sensor, mover, mechanism, ...rest } = components;
     for (const name of Object.keys(rest.game ?? {}))
       if (!COMPONENT_NAME.test(name))
         throw new Error(
@@ -289,6 +383,23 @@ export class World {
       throw new Error(`no material "${body.material}" in this world (${Object.keys(this.table).join(', ')})`);
     const entity: Entity = { id: ++this.lastId, ...rest };
     if (mover) entity.mover = { from: [...mover.from], to: [...mover.to], seconds: mover.seconds };
+    if (mechanism) {
+      if (!entity.transform) throw new Error('A mechanism needs a transform: where is it, closed?');
+      if (!(mechanism.seconds > 0)) throw new Error('A mechanism takes some time: its seconds must be more than 0');
+      if (!mechanism.door === !mechanism.lift) throw new Error('A mechanism is a door or a lift');
+      entity.mechanism = {
+        signal: mechanism.signal,
+        seconds: mechanism.seconds,
+        closed: { position: [...entity.transform.position], rotation: [...entity.transform.rotation] },
+        ...(mechanism.door
+          ? { door: { hinge: [...mechanism.door.hinge], axis: [...mechanism.door.axis], degrees: mechanism.door.degrees } }
+          : {}),
+        ...(mechanism.lift ? { lift: { by: [...mechanism.lift.by] } } : {}),
+        toward: 0,
+        since: this.tick,
+        from: 0,
+      };
+    }
     if (sensor) {
       if (!entity.transform) throw new Error('A zone needs a transform: where is it?');
       const params = Object.fromEntries(Object.entries(sensor.params ?? {}).map(([k, v]) => [k, [...v]]));
@@ -388,6 +499,7 @@ export class World {
         if (e.body && e.transform && e.body.type !== 'fixed') this.physics.read(e.body.handle, e.transform, e.body);
     },
     zones: () => this.sense(),
+    signals: () => this.compute(),
   };
 
   /**
@@ -408,7 +520,83 @@ export class World {
         e.body.linearVelocity = vec3.scale(vec3.sub(target, e.transform.position), 1 / STEP);
       }
       if (e.spin) e.body.angularVelocity = [...e.spin.angularVelocity];
+      if (e.mechanism) this.drive(e, e.mechanism);
       this.physics.setKinematicVelocity(e.body.handle, e.body.linearVelocity, e.body.angularVelocity);
+    }
+  }
+
+  /**
+   * A MECHANISM (stage 3c): it reads its signal, as it was at the end of the last step, and turns
+   * back from where it is if the signal changed which way it goes; then it gets the velocity that
+   * takes it where it has to be at the end of this step. Its place is a function of its state and the
+   * step (`mechanismAt`); its velocity, of where it really is: so it never drifts. Turning, from the
+   * turn between where it is and where it has to be: twice its vector part, over the step (for the
+   * small turn of one step, the angle; a little less, and the next step makes it up). No sine, no
+   * cosine: the same bits everywhere.
+   */
+  private drive(e: Entity, m: Mechanism) {
+    const want = this.signal(m.signal) !== 0 ? 1 : 0;
+    if (want !== m.toward) {
+      m.from = progressOf(m, this.tick - 1);
+      m.since = this.tick - 1;
+      m.toward = want;
+    }
+    const target = mechanismAt(m, progressOf(m, this.tick));
+    const body = e.body!;
+    body.linearVelocity = vec3.scale(vec3.sub(target.position, e.transform!.position), 1 / STEP);
+    let turn = quat.multiply(target.rotation, quat.conjugate(e.transform!.rotation));
+    if (turn[3] < 0) turn = [-turn[0], -turn[1], -turn[2], -turn[3]];
+    body.angularVelocity = [(2 * turn[0]) / STEP, (2 * turn[1]) / STEP, (2 * turn[2]) / STEP];
+  }
+
+  /**
+   * SIGNALS SYSTEM (stage 3c, decision 0018): every signal, in the order declared, from what the
+   * zones noticed in this step and the signals above it. A change is an event (`signalChanged`).
+   */
+  private compute() {
+    if (this.wires.length === 0) return;
+    const value = new Map<string, number>();
+    const zone = (name: string) => this.named(name)?.sensor;
+    for (const w of this.wires) {
+      const was = w.value;
+      const on = (name: string) => (value.get(name) ?? 0) !== 0;
+      switch (w.op) {
+        case 'input':
+          w.value = w.memory;
+          break;
+        case 'zone':
+          w.value = (zone(w.reads[0]!)?.inside ?? []).filter((id) => {
+            const e = this.entities.get(id);
+            return e?.character !== undefined || e?.body?.type === 'dynamic';
+          }).length;
+          break;
+        case 'used':
+          w.value = (zone(w.reads[0]!)?.inside ?? []).filter((id) => {
+            const c = this.entities.get(id)?.character;
+            return c !== undefined && pressed(this, c.player, 'use');
+          }).length;
+          break;
+        case 'any':
+          w.value = w.reads.some(on) ? 1 : 0;
+          break;
+        case 'all':
+          w.value = w.reads.every(on) ? 1 : 0;
+          break;
+        case 'not':
+          w.value = on(w.reads[0]!) ? 0 : 1;
+          break;
+        case 'toggle': {
+          const now = on(w.reads[0]!) ? 1 : 0;
+          if (now && !w.memory) w.value = w.value ? 0 : 1;
+          w.memory = now;
+          break;
+        }
+        case 'latch':
+          w.value = on(w.reads[0]!) ? 1 : on(w.reads[1]!) ? 0 : w.value;
+          break;
+      }
+      value.set(w.name, w.value);
+      if (w.value !== was) this.emit({ type: 'signalChanged', signal: w.name, value: w.value, was });
     }
   }
 

@@ -286,7 +286,7 @@ sensor fog  0 2 -20  4 2 4  rotate y 30  opacity 0.2  color 0.8 0.8 0.9
     expect(v1('box 0 0 0  1 1 1  grid')).toThrow(/line 3: "grid" is format 2/);
     expect(v1('material oil friction 0 bounce 0 density 1 drag 0')).toThrow(/line 3: "material" is format 2/);
     expect(v1('sensor current 0 0 0  1 1 1  flow 1 0 0')).toThrow(/line 3: "flow": a zone carries what it says from format 2 on/);
-    expect(() => levelFromText('# Manifold level 3\n')).toThrow(/line 1: a level of format 3: this engine reads formats 1 to 2/);
+    expect(() => levelFromText('# Manifold level 4\n')).toThrow(/line 1: a level of format 4: this engine reads formats 1 to 3/);
   });
 
   test('what format 2 does not allow says which line, and why', () => {
@@ -347,6 +347,93 @@ sensor fog  0 2 -20  4 2 4  rotate y 30  opacity 0.2  color 0.8 0.8 0.9
     expect([slick.body!.friction, slick.appearance]).toEqual([0.02, undefined]);
     expect([...world.entities.values()].find((e) => e.body?.groups)!.body!.groups).toEqual({ member: 0b110, filter: 0b1 });
     expect(world.named('stream')!.sensor!.params).toEqual({ flow: [3, 0, 0] });
+    world.dispose();
+  });
+});
+
+describe('the level format, version 3: signals and mechanisms (stage 3c)', () => {
+  const V3 = `# Manifold level 3
+title Signals
+box 0 -0.5 0  10 0.5 10
+box 3 1.1 -4  0.6 1.1 0.06  door -0.6 0 0 y 90 1 gate  color #8a6a42  name the_door
+box -3 0.15 -4  1 0.15 1  lift 0 4 0 3 lift_up  name the_lift
+sensor plate   -3 0.5 -1  1 0.5 1  name plate
+sensor top     -3 4.5 -4  1 0.5 1  name top
+sensor button  2 1 -2  0.5 1 0.5  name button
+signal pressed  used button
+signal gate     toggle pressed
+signal called   zone plate
+signal sent     zone top
+signal lift_up  latch called sent
+signal lights
+signal dark     not lights
+signal both     all gate lights
+signal either   any gate lights
+`;
+
+  test('signals and the mechanisms that follow them: read, and written back the same', () => {
+    const level = levelFromText(V3);
+    expect(level.signals.map((g) => [g.name, g.op, g.reads.join(' ')])).toEqual([
+      ['pressed', 'used', 'button'],
+      ['gate', 'toggle', 'pressed'],
+      ['called', 'zone', 'plate'],
+      ['sent', 'zone', 'top'],
+      ['lift_up', 'latch', 'called sent'],
+      ['lights', 'input', ''],
+      ['dark', 'not', 'lights'],
+      ['both', 'all', 'gate lights'],
+      ['either', 'any', 'gate lights'],
+    ]);
+    expect(level.boxes[1]!.door).toEqual({ hinge: [-0.6, 0, 0], turn: { axis: 'y', degrees: 90 }, seconds: 1, signal: 'gate' });
+    expect(level.boxes[2]!.lift).toEqual({ by: [0, 4, 0], seconds: 3, signal: 'lift_up' });
+    expect(levelFromText(levelToText(level))).toEqual(level);
+  });
+
+  test('what format 3 does not allow says which line, and why: a cycle cannot even be written', () => {
+    const bad = (lines: string) => () =>
+      levelFromText(`# Manifold level 3\nsensor plate 0 0 0  1 1 1  name plate\nsignal on zone plate\n${lines}\n`);
+    // A signal reads only those declared above it: itself, or one below, is refused.
+    expect(bad('signal a not a')).toThrow(/line 4: "a" is not a signal declared above/);
+    expect(bad('signal a not b\nsignal b not a')).toThrow(/line 4: "b" is not a signal declared above/);
+    expect(bad('signal a zone nowhere')).toThrow(/line 4: no zone named "nowhere"/);
+    expect(bad('signal a latch on')).toThrow(/line 4: a latch reads 2/);
+    expect(bad('signal a sometimes on')).toThrow(/line 4: "sometimes" is not what a signal can be/);
+    expect(bad('signal on not on')).toThrow(/line 4: the signal "on" twice \(the first, on line 3\)/);
+    // A mechanism follows a signal the level has, and moves one way only.
+    expect(bad('box 0 0 0  1 1 1  lift 0 2 0 2 nothing')).toThrow(/line 4: no signal "nothing" in the level/);
+    expect(bad('box 0 0 0  1 1 1  lift 0 2 0 0 on')).toThrow(/line 4: a mechanism takes some time/);
+    expect(bad('box 0 0 0  1 1 1  lift 0 2 0 2 on  move 1 0 0 2')).toThrow(/line 4: a box moves one way: move and lift together/);
+    // A level of format 2 does not know them.
+    expect(() => levelFromText('# Manifold level 2\nsignal a\n')).toThrow(
+      /line 2: "signal" is format 3: this level says format 2/,
+    );
+    expect(() => levelFromText('# Manifold level 2\nbox 0 0 0  1 1 1  door 0 0 0 y 90 1 a\n')).toThrow(
+      /line 2: "door" is format 3/,
+    );
+  });
+
+  test('built into a world: its signals in their order, its mechanisms kinematic, a door around its hinge in the world', () => {
+    const world = new World({ seed: 1 });
+    buildLevel(world, levelFromText(V3));
+    expect(world.signals.map((g) => g.name)).toEqual([
+      'pressed',
+      'gate',
+      'called',
+      'sent',
+      'lift_up',
+      'lights',
+      'dark',
+      'both',
+      'either',
+    ]);
+    const door = world.named('the_door')!;
+    expect(door.body!.type).toBe('kinematic');
+    expect(door.mechanism).toMatchObject({
+      signal: 'gate',
+      seconds: 1,
+      door: { hinge: [2.4, 1.1, -4], axis: [0, 1, 0], degrees: 90 },
+    });
+    expect(world.named('the_lift')!.mechanism).toMatchObject({ signal: 'lift_up', lift: { by: [0, 4, 0] }, toward: 0, from: 0 });
     world.dispose();
   });
 });

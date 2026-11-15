@@ -1,0 +1,23 @@
+# Manifold replay 17
+# Phase 3: the machines: a button that opens a door, plates that call a lift, a ride up to a star.
+# A reference replay (stage 2.5a): playing it must end with the hash on its last line. A refactor
+# keeps it bit for bit. Recorded by games/dojo/src/reference.test.ts; recorded again (npm run
+# references) only when the simulation changes on purpose, with SIMULATION_VERSION.
+game dojo
+profile rapier-deterministic server 60
+birth seed 5
+birth dojo.level machines
+change 31 dojo.goto 3 1 3.5
+input 31 1 move @0
+change 91 dojo.goto 4.4 1 2.7
+input 91 1
+input 100 1 use
+input 101 1
+change 171 dojo.goto 3 1 3.5
+input 171 1 move @0
+change 261 dojo.goto 7 1.2 -4
+input 261 1
+input 461 1 move @14
+input 490 1
+change 501 dojo.goto 4.6 1 -4
+end 720 6cd173ed

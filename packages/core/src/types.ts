@@ -26,6 +26,48 @@ export interface Entity {
   sensor?: Sensor;
   game?: GameComponents;
   mover?: Mover;
+  mechanism?: Mechanism;
+}
+
+/**
+ * A SIGNAL (stage 3c, decision 0018): a named number in the world, 0 off and anything else on,
+ * computed once per step, at its end, in the order the level declares them, from what it reads:
+ * - `input`: nothing; the game or the console sets it (`World.setSignal`);
+ * - `zone`: how many characters and bodies the physics moves are in the zone named in `reads`;
+ * - `used`: how many characters pressed `use` in that zone, at this step;
+ * - `any`, `all`, `not`: on while one, every one, or none of the signals it reads is on;
+ * - `toggle`: flips each time the signal it reads turns on;
+ * - `latch`: on when the first it reads is on, off when the second is (the first wins), and as it
+ *   was otherwise.
+ * `memory` is what it keeps from one step to the next besides its value: a toggle's, whether what it
+ * reads was on; an input's, the value it was set to, which it takes at the step's end.
+ */
+export type SignalOp = 'input' | 'zone' | 'used' | 'any' | 'all' | 'not' | 'toggle' | 'latch';
+export interface Signal {
+  name: string;
+  op: SignalOp;
+  reads: string[];
+  value: number;
+  memory: number;
+}
+
+/**
+ * A MECHANISM (stage 3c, decision 0018): a kinematic body that goes between two places, closed (0)
+ * and open (1), in `seconds`, while its signal says: open while it is on. A door turns `degrees`
+ * around an axis through its hinge; a lift moves `by`. Where it is, at any step, is a function of
+ * which way it goes (`toward`), since which step (`since`) and from where (`from`, 0 to 1): it does
+ * not drift, and it rewinds, as a moving platform (stage 2d).
+ */
+export interface Mechanism {
+  signal: string;
+  seconds: number;
+  /** Where it is, closed (as it was created). */
+  closed: Transform;
+  door?: { hinge: Vec3; axis: Vec3; degrees: number };
+  lift?: { by: Vec3 };
+  toward: 0 | 1;
+  since: number;
+  from: number;
 }
 
 /**
@@ -334,7 +376,9 @@ export interface Appearance {
 }
 
 /** The components an entity is created with (everything but the id, which the world gives; a body and a character as they are asked for). */
-export type Components = Omit<Entity, 'id' | 'body' | 'character' | 'sensor'> & {
+export type Components = Omit<Entity, 'id' | 'body' | 'character' | 'sensor' | 'mechanism'> & {
+  /** A mechanism: its signal, its time, and a door's hinge or a lift's way (closed: where it is created). */
+  mechanism?: Pick<Mechanism, 'signal' | 'seconds' | 'door' | 'lift'>;
   body?: BodySpec;
   character?: CharacterSpec;
   /** A zone: what it is for, half its size, and what it carries (who is inside starts empty). */
@@ -359,4 +403,6 @@ export type Event =
    * Something the game wants the players to know ("checkpoint", "the goal in 23.4 s"): the
    * presentation shows it. For one player, or (without `player`) for everybody.
    */
-  | { type: 'notice'; text: string; player?: number };
+  | { type: 'notice'; text: string; player?: number }
+  /** A signal changed its value (stage 3c), at the end of the step: what it is now, and what it was. */
+  | { type: 'signalChanged'; signal: string; value: number; was: number };
