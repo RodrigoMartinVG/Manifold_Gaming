@@ -26,6 +26,13 @@ box 8 3 2   1 3 1.2  color #5a4a38
 # jump falls about 12 m away).
 box -19 0.75 -7  1.5 0.75 1.5  color #8a6a42
 
+# Platforms that move (stage 2d). A carousel by the start, turning 40° a second: whoever stands on it
+# goes round with it, and turns with it. And a ferry at the floor's east edge, in line with the start:
+# out 9 m over the void and back, 5 s each way; whoever stands on it goes along, and keeps its speed
+# when jumping or walking off. Both low enough (30 cm) to step onto, and neither a shortcut to a star.
+box -6 0.15 7    1.5 0.15 1.5  spin y 40     color #7a5a3a
+box 11.5 0.15 6  1.5 0.15 1.5  move 9 0 0 5  color #7a5a3a
+
 # Zones. What happens in each is the game's: a checkpoint on the first platform, the goal on the
 # highest one, and the void under the floor (falling into it brings the character back).
 sensor checkpoint  0 2 -4     1 0.8 1

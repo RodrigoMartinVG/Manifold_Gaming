@@ -10,6 +10,11 @@ const BASE = 'http://localhost:4321/Manifold_Gaming/';
 export default defineConfig({
   testDir: 'e2e',
   testMatch: '**/*.e2e.ts',
+  // Each test's time: 90 s. Without a GPU (here and in continuous integration) WebGL draws on the CPU,
+  // a page takes seconds to light up, and with another test running alongside, its frames come slower
+  // still. The usual 30 s cut short waits the tests themselves allow (40 s for the home page's
+  // showcase). The tests that play a match and replay it in Node ask for more.
+  timeout: 90_000,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? 'github' : 'list',

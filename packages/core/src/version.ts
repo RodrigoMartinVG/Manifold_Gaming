@@ -11,5 +11,6 @@
  *   5  stage 2a: zones (`sensor`) and a game's data on its entities (`game`)
  *   6  stage 2b: a character's movement as data, its mode, and what it carries
  *   7  stage 2c: capabilities (double jump, glide, climb), the wall it touches, its jumps in the air
+ *   8  stage 2d: moving platforms (`mover`), what a character stands on (`ground`) and the turn they gave it (`carriedTurn`)
  */
-export const SIMULATION_VERSION = 7;
+export const SIMULATION_VERSION = 8;

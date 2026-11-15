@@ -21,7 +21,11 @@ export const CHARACTER_ACTIONS: readonly InputAction[] = [
   { name: 'ahead', kind: 'axis', description: 'forward (+) or back (−), where the character looks' },
   { name: 'side', kind: 'axis', description: 'to its right (+) or left (−), without turning' },
   { name: 'turn', kind: 'axis', description: 'turning on its own axis: to the right (+) or the left (−)' },
-  { name: 'face', kind: 'vector', description: 'where to look, if it is given' },
+  {
+    name: 'face',
+    kind: 'vector',
+    description: 'where to look, if it is given (inside the turn the platforms gave the character: faceFor)',
+  },
   { name: 'jump', kind: 'button', description: 'jumping' },
   { name: 'run', kind: 'button', description: 'running' },
 ];

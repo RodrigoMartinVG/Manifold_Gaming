@@ -304,6 +304,23 @@ describe('capabilities in the course (stage 2c): each star needs its own', () =>
   // On the highest platform, a jump, and another one at the top of the first.
   const high = (step: number): PlayerInput => ({ jump: step === 2 || step === 42 });
 
+  test("the course's platforms (stage 2d): the ferry takes a character over the void and back; the carousel, round", () => {
+    // The ferry is where it has to be at each step (out 9 m in 5 s, from x = 11.5): at step 30, at 12.4.
+    const ferry = attempt('', [12.4, 1.2, 6], () => NO_INPUT, 270);
+    const out = [...ferry.session.world.entities.values()].find((e) => e.character?.player === 1)!;
+    expect(out.transform!.position[0]).toBeGreaterThan(19.5); // at step 300, near its far end (20.5)
+    for (let i = 0; i < 300; i++) ferry.session.step();
+    expect(out.transform!.position[0]).toBeLessThan(12.5); // and back, at 11.5
+    expect(ferry.falls).toBe(0);
+    expect(out.game!.falls).toBe(0);
+    // The carousel turns 40° a second: in 4.5 s, half a turn, from 1.2 m east of its center to 1.2 m west.
+    const carousel = attempt('', [-4.8, 0.9, 7], () => NO_INPUT, 270);
+    const round = [...carousel.session.world.entities.values()].find((e) => e.character?.player === 1)!;
+    expect(round.transform!.position[0]).toBeLessThan(-6.9);
+    expect(Math.abs(round.transform!.position[2] - 7)).toBeLessThan(0.3);
+    expect(carousel.falls).toBe(0);
+  });
+
   test('the course has three stars, seen (a small gold cube) and spinning', () => {
     const session = new Session(DojoCartridge, { registry: registryWith('dojo.level course') });
     const stars = [...session.world.entities.values()].filter((e) => e.sensor?.kind === 'star');

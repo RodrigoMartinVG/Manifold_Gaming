@@ -1,12 +1,12 @@
 import { beforeAll, describe, expect, test } from 'vitest';
 import { quat, vec3, type Vec3 } from '@manifold/common';
 import type { Cartridge } from './cartridge';
-import { DEFAULT_MOVEMENT, turned } from './character';
+import { DEFAULT_MOVEMENT, faceFor, turned } from './character';
 import { NO_INPUT } from './input';
 import { stateHash } from './hash';
 import { initPhysics } from './physics';
 import { Session } from './session';
-import type { Entity, GravityField, PlayerInput } from './types';
+import type { Entity, GravityField, Mover, PlayerInput } from './types';
 import { STEP, World } from './world';
 
 beforeAll(initPhysics);
@@ -441,6 +441,147 @@ describe('the character (stage 1b)', () => {
     // And letting go, it goes away from it.
     run(world, 10, () => input());
     expect(hero.transform!.position[0]).toBeLessThan(x! - 0.2);
+    world.dispose();
+  });
+
+  /**
+   * A character on a platform that moves (`mover`) or spins (`spin`), and nothing asked. It is born 5 cm
+   * above it, and lands on it in its first steps (`landed`): born touching it, it would sink into it at
+   * the first step, because the physics only sees a new body in its queries after its first step.
+   */
+  function onPlatform(platform: { mover?: Mover; spin?: Vec3 }, at: Vec3 = [0, 1.25, 0], height = 0.3) {
+    const world = new World({ seed: 1 });
+    world.createEntity({
+      transform: { position: [0, -0.5, 0], rotation: quat.identity() },
+      body: { type: 'fixed', shape: { kind: 'box', halfExtents: [30, 0.5, 30] } },
+    });
+    const board = world.createEntity({
+      transform: { position: [0, height, 0], rotation: quat.identity() },
+      body: { type: 'kinematic', shape: { kind: 'box', halfExtents: [3, 0.1, 3] } },
+      ...(platform.mover ? { mover: platform.mover } : {}),
+      ...(platform.spin ? { spin: { angularVelocity: platform.spin } } : {}),
+    });
+    const hero = world.createEntity({
+      transform: { position: at, rotation: quat.identity() },
+      body: { type: 'character', shape: { kind: 'capsule', halfHeight: 0.5, radius: 0.3 } },
+      character: { player: 1 },
+    });
+    return { world, board, hero };
+  }
+  /** Ten steps: enough to land on the platform (5 cm fall, about 6 steps). */
+  const landed = (world: World) => run(world, 10);
+
+  test('a moving platform carries it (stage 2d): it goes along with it, without being asked anything', () => {
+    const { world, board, hero } = onPlatform({ mover: { from: [0, 0.3, 0], to: [4, 0.3, 0], seconds: 2 } });
+    landed(world);
+    const offset = hero.transform!.position[0] - board.transform!.position[0];
+    run(world, 110);
+    expect(board.transform!.position[0]).toBeCloseTo(4, 2);
+    // Where it stood on the platform, to the centimeter.
+    expect(Math.abs(hero.transform!.position[0] - board.transform!.position[0] - offset)).toBeLessThan(0.01);
+    expect(hero.character!.grounded).toBe(true);
+    world.dispose();
+  });
+
+  test('a turning platform carries it around, and turns it with it (stage 2d)', () => {
+    // 45° per second around y, the character 2 m from the center, looking at −Z.
+    const { world, hero } = onPlatform({ spin: [0, Math.PI / 4, 0] }, [2, 1.25, 0]);
+    run(world, 120); // 2 s: a quarter turn (but the first steps, landing)
+    const [x, , z] = hero.transform!.position;
+    expect(Math.hypot(x, z)).toBeCloseTo(2, 1); // still 2 m from the center
+    expect(z).toBeLessThan(-1.7); // a quarter turn counterclockwise, seen from above: from +X to −Z
+    expect(hero.character!.facing[0]).toBeLessThan(-0.9); // and it looks where −Z turned: to −X
+    // Round and round, it does not drift: two whole turns later (16 s), the same place, to the millimeter.
+    const before: Vec3 = [...hero.transform!.position];
+    run(world, 960);
+    expect(vec3.length(vec3.sub(hero.transform!.position, before))).toBeLessThan(0.001);
+    world.dispose();
+  });
+
+  test('a platform that moves and turns at once: it goes with it and around it, once each (stage 2d)', () => {
+    // Along x, 4 m in 2 s and back, turning 45° per second; the character 2 m from the center.
+    const { world, board, hero } = onPlatform(
+      { mover: { from: [0, 0.3, 0], to: [4, 0.3, 0], seconds: 2 }, spin: [0, Math.PI / 4, 0] },
+      [2, 1.25, 0],
+    );
+    const arm = () => vec3.sub(hero.transform!.position, board.transform!.position);
+    landed(world); // meanwhile, the platform goes on without it
+    const start = arm();
+    // A quarter turn is 120 steps (2 s at 45° per second): its arm from the center turns with it, once.
+    // Turning 90° counterclockwise seen from above, (x, z) becomes (z, −x): a quarter turn, not two.
+    run(world, 120);
+    expect(vec3.length(vec3.sub(arm(), [start[2], start[1], -start[0]]))).toBeLessThan(0.005);
+    run(world, 120); // half a turn, while the platform comes back along x
+    expect(vec3.length(vec3.sub(arm(), [-start[0], start[1], -start[2]]))).toBeLessThan(0.005);
+    world.dispose();
+  });
+
+  test('a platform that goes up and down (a lift) takes it up and down, standing on it all the way (stage 2d)', () => {
+    // 3 m up in 1.5 s and down again, faster down than it would fall in the first steps.
+    const { world, board, hero } = onPlatform({ mover: { from: [0, 0.3, 0], to: [0, 3.3, 0], seconds: 1.5 } });
+    landed(world);
+    const height = hero.transform!.position[1] - board.transform!.position[1];
+    let highest = 0;
+    let always = true;
+    run(world, 180, () => {
+      highest = Math.max(highest, board.transform!.position[1]);
+      always &&= hero.character!.grounded && Math.abs(hero.transform!.position[1] - board.transform!.position[1] - height) < 0.01;
+      return input();
+    });
+    expect(highest).toBeGreaterThan(3.2);
+    expect(always).toBe(true);
+    world.dispose();
+  });
+
+  test('walking off a moving platform, it keeps its velocity, as jumping (stage 2d)', () => {
+    // The platform at 2 m/s along x, its top 1.4 m above the floor; the character walks towards +Z,
+    // off its edge (3 m away). (With its top at 0.4 m, it would step down to the floor as down a curb,
+    // without ever leaving the ground: there would be no velocity to keep.)
+    const { world, hero } = onPlatform({ mover: { from: [0, 1.3, 0], to: [8, 1.3, 0], seconds: 4 } }, [0, 2.25, 0], 1.3);
+    landed(world);
+    let off = 0;
+    let leaving = 0;
+    run(world, 90, (step) => {
+      if (!off && !hero.character!.grounded) {
+        off = step;
+        leaving = hero.character!.velocity[0];
+      }
+      return input(off ? [0, 0, 0] : [0, 0, 1]);
+    });
+    expect(off).toBeGreaterThan(0);
+    expect(leaving).toBeCloseTo(2, 1); // as it leaves, with the platform's 2 m/s
+    world.dispose();
+  });
+
+  test('a jump from a moving platform keeps its velocity (stage 2d)', () => {
+    const { world, hero } = onPlatform({ mover: { from: [0, 0.3, 0], to: [6, 0.3, 0], seconds: 2 } });
+    run(world, 30);
+    run(world, 1, () => input([0, 0, 0], true));
+    expect(hero.character!.grounded).toBe(false);
+    expect(hero.character!.velocity[0]).toBeCloseTo(3, 1); // the platform's 3 m/s, as it leaves it
+    world.dispose();
+  });
+
+  test('told where to look, the same thing all the way, a turning platform still turns it (stage 2d)', () => {
+    // As an aiming camera that does not move: `face` is −Z on every step. 45° per second around y.
+    const { world, hero } = onPlatform({ spin: [0, Math.PI / 4, 0] }, [2, 1.25, 0]);
+    const aiming = () => input([0, 0, 0], false, false, [0, 0, -1]);
+    run(world, 10, aiming); // it lands, looking at −Z (the platform turned it a little meanwhile)
+    const start: Vec3 = [...hero.character!.facing];
+    run(world, 120, aiming); // a quarter turn
+    // Turning 90° counterclockwise seen from above, (x, z) becomes (z, −x): it looks a quarter turn later.
+    expect(vec3.length(vec3.sub(hero.character!.facing, [start[2], 0, -start[0]]))).toBeLessThan(0.01);
+    world.dispose();
+  });
+
+  test('faceFor: asked to look along a direction of the world, after a platform turned it, it looks there (stage 2d)', () => {
+    const { world, hero } = onPlatform({ spin: [0, Math.PI / 4, 0] }, [2, 1.25, 0]);
+    run(world, 130); // carried a quarter turn and more: its carried turn is not nothing any more
+    expect(Math.abs(hero.character!.carriedTurn[1])).toBeGreaterThan(0.3);
+    const east: Vec3 = [1, 0, 0];
+    // One step to ask for it, one to read it (each step the platform turns it 0.75° more, on top).
+    run(world, 1, () => input([0, 0, 0], false, false, faceFor(hero.character!, east)));
+    expect(vec3.dot(hero.character!.facing, east)).toBeGreaterThan(0.999);
     world.dispose();
   });
 

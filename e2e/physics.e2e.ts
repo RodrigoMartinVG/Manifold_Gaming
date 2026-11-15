@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { afterSteps, position } from './helpers';
 import { initPhysics, levelFromText, playReplay, registryFor, replayFromText, Session, stateHash } from '@manifold/core';
 import { replayFromFragment } from '@manifold/presentation';
 import { createDojo } from '@manifold/dojo/rules';
@@ -86,17 +87,17 @@ test('a run driven with the keys, as a replay link: Node plays it to the same ha
   page,
 }) => {
   test.setTimeout(120_000);
-  const at = async () => ((await page.locator('#game').getAttribute('data-player')) ?? '').split(' ').map(Number);
+  const at = () => position(page, 'player');
   await page.goto('jugar/dojo/course/');
   await expect.poll(async () => (await at()).length, { timeout: 20_000 }).toBe(3);
-  await page.waitForTimeout(1500);
+  await afterSteps(page, 90);
   const [, , z0] = await at();
   // Walk, jump, turn: inputs at steps that depend on this machine's frames, recorded as they came.
   await page.keyboard.down('KeyW');
   await expect.poll(async () => (await at())[2], { timeout: 30_000 }).toBeLessThan(z0! - 1.5);
   await page.keyboard.press('Space');
   await page.keyboard.down('KeyD');
-  await page.waitForTimeout(600);
+  await afterSteps(page, 36);
   await page.keyboard.up('KeyD');
   await page.keyboard.up('KeyW');
   const { link, text } = await exportReplay(page);
@@ -115,14 +116,82 @@ test('a run driven with the keys, as a replay link: Node plays it to the same ha
   await expect(page.locator('#game')).toHaveAttribute('data-replay', 'same', { timeout: 90_000 });
 });
 
+// Stage 2d: standing on a platform takes another way through the physics (while the controller
+// computes, the platform is fixed for it; then it is kinematic again, with its velocities). That way,
+// too, must give the same bits in every browser.
+test('riding the carousel (stage 2d): carried round, walking and jumping on it, gives the same hash in Node', async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  const at = () => position(page, 'player');
+  await page.goto('jugar/dojo/course/');
+  await expect.poll(async () => (await at()).length, { timeout: 20_000 }).toBe(3);
+  await page.keyboard.press('Backquote');
+  await typeInConsole(page, 'dojo.goto -4.8 1 7');
+  await page.locator('.mg-console input').press('Escape');
+  // On the carousel (centered at -6 0 7), without touching anything, it goes round: away from where it was put.
+  await expect
+    .poll(
+      async () => {
+        const [x, , z] = await at();
+        return Math.hypot(x! + 4.8, z! - 7);
+      },
+      { timeout: 30_000 },
+    )
+    .toBeGreaterThan(0.5);
+  // Walking on it, and a jump from it (it leaves with the carousel's velocity).
+  await page.keyboard.down('KeyW');
+  await afterSteps(page, 18);
+  await page.keyboard.up('KeyW');
+  await page.keyboard.press('Space');
+  await afterSteps(page, 48);
+  const { text } = await exportReplay(page);
+  expect(text).toContain('dojo.goto');
+  await initPhysics();
+  const { session, same } = playReplay(DojoCartridge, replayFromText(text));
+  expect(same).toBe(true);
+  session.world.dispose();
+});
+
+// Aiming, the character looks where the camera looks: the platform turns it inside the turn it
+// carries (`carriedTurn`), and the camera turns with that turn, read from the world. With the mouse
+// still, what it asks for does not change: the replay does not grow while it is carried round.
+test('aiming on the carousel (stage 2d): it turns with it, without asking anything new, and the same hash in Node', async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  const at = (name: 'player' | 'facing') => position(page, name);
+  const angle = (v: number[]) => (Math.atan2(v[2]!, v[0]!) * 180) / Math.PI;
+  await page.goto('jugar/dojo/course/#recipe=view.camera+aim');
+  await expect.poll(async () => (await at('player')).length, { timeout: 20_000 }).toBe(3);
+  await page.keyboard.press('Backquote');
+  await typeInConsole(page, 'dojo.goto -4.8 1 7');
+  await page.locator('.mg-console input').press('Escape');
+  await afterSteps(page, 30); // it lands
+  const facing0 = angle(await at('facing'));
+  // A while on the carousel, the mouse still: where it looks turns (40° a second).
+  await afterSteps(page, 91);
+  const turned = Math.abs(((angle(await at('facing')) - facing0 + 540) % 360) - 180);
+  expect(turned).toBeGreaterThan(45);
+  const { text } = await exportReplay(page);
+  // What it asked for while carried: next to nothing (it does not ask for a new direction on every step).
+  const goto = Number(/^change (\d+) dojo\.goto/m.exec(text)?.[1] ?? 0);
+  const asked = text.split('\n').filter((l) => /^input \d+ 1 /.test(l) && Number(l.split(' ')[1]) > goto + 30);
+  expect(asked.length).toBeLessThan(5);
+  await initPhysics();
+  const { session, same } = playReplay(DojoCartridge, replayFromText(text));
+  expect(same).toBe(true);
+  session.world.dispose();
+});
+
 test('tank controls turn without trigonometry: a run that turns, recorded in the browser, gives the same hash in Node', async ({
   page,
 }) => {
   test.setTimeout(120_000);
-  const facing = async () => ((await page.locator('#game').getAttribute('data-facing')) ?? '').split(' ').map(Number);
+  const facing = () => position(page, 'facing');
   await page.goto('jugar/dojo/course/#recipe=controls.scheme+tank');
   await expect.poll(async () => (await facing()).length, { timeout: 20_000 }).toBe(3);
-  await page.waitForTimeout(1500);
+  await afterSteps(page, 90);
   // Forward while turning left (a curve), then to the right side with Alt held (as in the old shooters).
   await page.keyboard.down('KeyW');
   await page.keyboard.down('KeyA');
@@ -130,7 +199,7 @@ test('tank controls turn without trigonometry: a run that turns, recorded in the
   await page.keyboard.up('KeyA');
   await page.keyboard.down('Alt');
   await page.keyboard.down('KeyD');
-  await page.waitForTimeout(600);
+  await afterSteps(page, 36);
   await page.keyboard.up('KeyD');
   await page.keyboard.up('Alt');
   await page.keyboard.up('KeyW');
@@ -148,10 +217,10 @@ test('a snapshot restored in this browser goes on like the original: the replay 
   page,
 }) => {
   test.setTimeout(120_000);
-  const at = async () => ((await page.locator('#game').getAttribute('data-player')) ?? '').split(' ').map(Number);
+  const at = () => position(page, 'player');
   await page.goto('jugar/dojo/course/#recipe=dojo.cubes+12');
   await expect.poll(async () => (await at()).length, { timeout: 20_000 }).toBe(3);
-  await page.waitForTimeout(1500);
+  await afterSteps(page, 90);
   const [, , z0] = await at();
   // Forward, a snapshot, more forward and a throw, back to the snapshot, and to the side.
   await page.keyboard.down('KeyW');
@@ -161,16 +230,16 @@ test('a snapshot restored in this browser goes on like the original: the replay 
   await typeInConsole(page, 'snapshot');
   await page.keyboard.press('Escape');
   await page.keyboard.down('KeyW');
-  await page.waitForTimeout(600);
+  await afterSteps(page, 36);
   await page.keyboard.up('KeyW');
   await page.keyboard.press('KeyF');
-  await page.waitForTimeout(400);
+  await afterSteps(page, 24);
   await page.keyboard.press('Backquote');
   await typeInConsole(page, 'snapshot load');
   await expect(page.locator('.mg-console-log')).toContainText('back at step');
   await page.keyboard.press('Escape');
   await page.keyboard.down('KeyD');
-  await page.waitForTimeout(600);
+  await afterSteps(page, 36);
   await page.keyboard.up('KeyD');
   const { text } = await exportReplay(page);
   // The replay goes from the birth: what happened between the snapshot and going back is not in it.

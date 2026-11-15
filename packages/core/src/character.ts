@@ -1,4 +1,4 @@
-import { quat, vec3, type Vec3 } from '@manifold/common';
+import { quat, vec3, type Quat, type Vec3 } from '@manifold/common';
 import { gravityAt } from './gravity';
 import { axisOf, isDown, NO_INPUT, vectorOf } from './input';
 import type { Character, CharacterSpec, Entity, ModeName, Movement } from './types';
@@ -43,6 +43,8 @@ export function newCharacter(spec: CharacterSpec): Character {
     jumpHeld: false,
     facing: [...(spec.facing ?? [0, 0, -1])],
     carry: [0, 0, 0],
+    ground: { velocity: [0, 0, 0], spin: 0 },
+    carriedTurn: quat.identity(),
   };
 }
 
@@ -113,6 +115,40 @@ export function upAt(world: World, position: Vec3): Vec3 {
 }
 
 /**
+ * HOW A PLATFORM CARRIES A POINT in one step (stage 2d). The physics moves a kinematic body by its
+ * velocity times the step, and turns it around its center by its angular velocity times the step;
+ * a point on it goes where that takes it: its arm (from the center) turned, plus the platform's
+ * movement. The turn, with `quat.fromDegrees` (no browser trigonometry), is the physics' own one:
+ * the whole angle, not an approximation, so a character on a carousel goes round with it, step
+ * after step, without drifting out or falling behind. Also: the platform's velocity at that point.
+ */
+export function carriedBy(
+  platform: { linear: Vec3; angular: Vec3; center: Vec3 },
+  point: Vec3,
+  dt: number,
+): { movement: Vec3; velocity: Vec3; turn: Quat } {
+  const speed = vec3.length(platform.angular);
+  const turn =
+    speed > 0 ? quat.fromDegrees(vec3.scale(platform.angular, 1 / speed), (speed * dt * 180) / Math.PI) : quat.identity();
+  const arm = vec3.sub(point, platform.center);
+  return {
+    movement: vec3.add(vec3.scale(platform.linear, dt), vec3.sub(quat.rotate(turn, arm), arm)),
+    velocity: vec3.add(platform.linear, vec3.cross(platform.angular, arm)),
+    turn,
+  };
+}
+
+/**
+ * WHAT TO ASK FOR, TO LOOK SOMEWHERE (stage 2d): the `face` input that makes a character look along
+ * `direction`, a direction in the world. `face` is read inside the turn the platforms gave the
+ * character (`carriedTurn`), so whoever knows where it wants it to look in the world (an aiming
+ * camera, a bot) asks for this, not for the direction itself. On no platform yet, it is the same.
+ */
+export function faceFor(c: Pick<Character, 'carriedTurn'>, direction: Vec3): Vec3 {
+  return quat.rotate(quat.conjugate(c.carriedTurn), direction);
+}
+
+/**
  * Where it looks after turning `turn` (from −1 to 1, + to the right) during one step, WITHOUT
  * TRIGONOMETRY (stage 1c2). Turning an angle takes a sine and a cosine, and the standard lets every
  * JavaScript engine compute them its own way: the last bits can differ, and a replay would end
@@ -141,7 +177,8 @@ export function turned(facing: Vec3, up: Vec3, turn: number, turnSpeed: number, 
  *   3. a jump: asked for (pressed, not held), kept a few steps if it was too early, allowed a few
  *      steps after leaving an edge; or from a wall, or one more in the air, if it can (stage 2c);
  *   4. THE CONTRIBUTIONS, whatever the mode: gravity (unless the mode holds itself, as climbing; a mode
- *      may slow the fall, as gliding) and what the game makes it carry (it moves it, this step only);
+ *      may slow the fall, as gliding), what the game makes it carry, and what it stands on, if it
+ *      moves (stage 2d): they move it, this step only;
  *   5. the character controller says how much of the desired movement it can really do: it slides
  *      along walls, climbs steps, stays on slopes and on the ground, and pushes what can be pushed;
  *   6. what it learned: whether it stands on something, whether it hit a ceiling, where it looks.
@@ -187,6 +224,26 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
   // The top of a wall: it was climbing and the wall ended. A hop up, so it gets onto it.
   if (before === 'climb' && c.mode !== 'climb' && isZero(c.wall)) vUp = Math.max(vUp, c.movement.climb.top);
 
+  // What it stands on, if it moves (stage 2d): standing, a ray down finds it, and how it moves in this
+  // step. It carries it (after the controller, below), it turns it with it, and a jump keeps its velocity.
+  // On a platform's edge the ray finds nothing (its center is already beyond the edge, the round bottom
+  // of its capsule still on it): it is not carried those steps, but it still knows the platform's
+  // velocity, to leave with it. On something still (the floor), nothing to keep.
+  const here = e.transform!.position;
+  const wasGrounded = c.grounded;
+  const found = c.grounded ? world.physics.groundUnder(body.handle, here, up, 1.1) : null;
+  const under = found === 'still' ? null : found;
+  const ride = under ? carriedBy(under, here, dt) : null;
+  if (under && ride) c.ground = { velocity: ride.velocity, spin: vec3.dot(under.angular, up) };
+  else if (!(c.grounded && found === null)) c.ground = { velocity: [0, 0, 0], spin: 0 };
+  if (ride) {
+    const looking = vec3.onPlane(quat.rotate(ride.turn, c.facing), up);
+    if (vec3.length(looking) > 1e-6) c.facing = vec3.normalize(looking);
+    // The turn it carries: where it is told to look turns with it too (`carriedTurn`, and step 6).
+    c.carriedTurn = quat.normalize(quat.multiply(ride.turn, c.carriedTurn));
+  }
+  let leapt = false;
+
   // 3: the jump: from the ground (or just after leaving it), from a wall, or one more in the air.
   const { jump } = c.movement;
   if (jumping && !c.jumpHeld) c.jumpPending = jump.buffer;
@@ -202,7 +259,10 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
       c.jumpPending = 0;
       c.stepsInAir = jump.coyote + 1;
     } else if (c.grounded || c.stepsInAir <= jump.coyote) {
-      vUp = jump.speed;
+      // (From a moving platform, it keeps the platform's velocity: it leaves with it.)
+      vH = vec3.add(vH, vec3.onPlane(c.ground.velocity, up));
+      vUp = jump.speed + Math.max(0, vec3.dot(c.ground.velocity, up));
+      leapt = true;
       c.jumpPending = 0;
       c.stepsInAir = jump.coyote + 1; // the coyote time is over: from now on, only a jump in the air
     } else if (c.can.doubleJump && c.airJumps > 0) {
@@ -225,7 +285,7 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
 
   // 5: what it can really do.
   const desired = vec3.scale(vec3.add(vec3.add(vH, vec3.scale(up, vUp)), carried), dt);
-  const { movement, grounded, ceiling } = world.physics.moveCharacter(body.handle, desired, up);
+  const { movement, grounded, ceiling } = world.physics.moveCharacter(body.handle, desired, up, under?.handle);
 
   // 6: what it learned. (A ceiling is what the controller says hit its head: rising a little less
   // than asked is not one; that happens brushing a wall, and it used to cut jumps short.)
@@ -233,13 +293,26 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
   if (grounded && vUp < 0) vUp = 0;
   c.grounded = grounded;
   c.stepsInAir = grounded ? 0 : c.stepsInAir + 1;
+  // A platform that moves or turns carries it (stage 2d), if it stood on it and did not jump off it:
+  // exactly as far as the platform takes the point where it is. After the controller, not through
+  // it: the controller saw the platform fixed (physics.ts), and a platform going down would have
+  // stopped it from going down with it. If it walked off the edge (it stood, and now it does not,
+  // without jumping), it keeps the platform's velocity along the ground, as it would jumping; and
+  // from then on, it stands on nothing that moves.
+  const riding: Vec3 = ride && !leapt ? ride.movement : [0, 0, 0];
+  if (wasGrounded && !grounded && !leapt) {
+    vH = vec3.add(vH, vec3.onPlane(c.ground.velocity, up));
+    c.ground = { velocity: [0, 0, 0], spin: 0 };
+  }
   c.velocity = vec3.add(vH, vec3.scale(up, vUp));
   // Where it looks: where it is told to, if it is told; if not, where it moves in the world. (Moving
   // by where it looks does not change it: walking back would turn it around, and back again.)
-  // Climbing, it looks at its wall.
-  if (told) c.facing = vec3.normalize(face);
+  // Climbing, it looks at its wall. What it is told is read inside the turn the platforms gave it
+  // (`carriedTurn`): told the same thing step after step, a turning platform still turns it.
+  const toldLooking = told ? vec3.onPlane(quat.rotate(c.carriedTurn, vectorOf(input, 'face')), up) : null;
+  if (toldLooking && vec3.length(toldLooking) > 1e-6) c.facing = vec3.normalize(toldLooking);
   else if (c.mode === 'climb' && !isZero(c.wall)) c.facing = [...c.wall];
   else if (vec3.length(inWorld) > 0.1) c.facing = vec3.normalize(inWorld);
-  const position = vec3.add(world.physics.position(body.handle), movement);
+  const position = vec3.add(vec3.add(world.physics.position(body.handle), movement), riding);
   world.physics.setNextPose(body.handle, position, quat.look(c.facing, up));
 }

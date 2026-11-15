@@ -1,4 +1,4 @@
-import { quat, type Quat, type Vec3 } from '@manifold/common';
+import { quat, vec3, type Quat, type Vec3 } from '@manifold/common';
 import type { World } from './world';
 
 /**
@@ -14,6 +14,8 @@ import type { World } from './world';
  *                                             a fixed box: its center, half its sizes, a turn
  *                                             (around x, y or z, in degrees) and its color
  *   sensor goal  -3 4.4 -7  1 0.8 1           a zone: what it is for (the game's word), center, half sizes
+ *   box 11.5 0.15 6  1.5 0.15 1.5  move 9 0 0 5    a platform that goes 9 m along x in 5 s, and back
+ *   box -6 0.2 7  1.5 0.2 1.5  spin y 40           a platform that turns 40° per second around y
  *
  * The turns are written in degrees, as a person thinks them, and become quaternions with our own sine
  * and cosine (`quat.fromDegrees`): the browser's would give other bits in another browser, and the
@@ -33,6 +35,10 @@ export interface LevelBox {
   half: Vec3;
   turn: Turn | null;
   color: number;
+  /** If it goes back and forth (stage 2d): how far, and how long one way takes. */
+  move: { by: Vec3; seconds: number } | null;
+  /** If it turns (stage 2d): around which axis, and how many degrees per second. */
+  spin: Turn | null;
 }
 
 export interface LevelSensor {
@@ -77,23 +83,34 @@ export function levelFromText(text: string): Level {
       return t !== undefined && t !== '' && Number.isFinite(x) ? x : fail(n, `"${t ?? ''}" is not a number`);
     };
     const vector = (): Vec3 => [number(), number(), number()];
-    /** What may come at the end of a box or a zone: a turn, and (a box) a color. */
-    const extras = (color: boolean) => {
+    /** An axis and a number of degrees, as in `rotate x 18` or `spin y 40`. */
+    const axisAndDegrees = (): Turn => {
+      const axis = words[at++];
+      if (axis !== 'x' && axis !== 'y' && axis !== 'z') fail(n, `"${axis ?? ''}" is not an axis (x, y or z)`);
+      return { axis: axis as Turn['axis'], degrees: number() };
+    };
+    /** What may come at the end of a box or a zone: a turn, and (a box) a color, a movement and a spin. */
+    const extras = (box: boolean) => {
       let turn: Turn | null = null;
       let paint = 0x6f6a62;
+      let move: LevelBox['move'] = null;
+      let spin: Turn | null = null;
       while (at < words.length) {
         const word = words[at++];
-        if (word === 'rotate') {
-          const axis = words[at++];
-          if (axis !== 'x' && axis !== 'y' && axis !== 'z') fail(n, `"${axis ?? ''}" is not an axis (x, y or z)`);
-          turn = { axis: axis as Turn['axis'], degrees: number() };
-        } else if (word === 'color' && color) {
+        if (word === 'rotate') turn = axisAndDegrees();
+        else if (word === 'move' && box) {
+          const by = vector();
+          const seconds = number();
+          if (seconds <= 0) fail(n, 'a movement takes some time: its seconds must be more than 0');
+          move = { by, seconds };
+        } else if (word === 'spin' && box) spin = axisAndDegrees();
+        else if (word === 'color' && box) {
           const hex = words[at++] ?? '';
           if (!/^#[0-9a-f]{6}$/i.test(hex)) fail(n, `"${hex}" is not a color (#rrggbb)`);
           paint = parseInt(hex.slice(1), 16);
         } else fail(n, `"${word}" is not understood here`);
       }
-      return { turn, color: paint };
+      return { turn, color: paint, move, spin };
     };
     switch (kind) {
       case 'title':
@@ -109,8 +126,8 @@ export function levelFromText(text: string): Level {
       case 'box': {
         const center = vector();
         const half = vector();
-        const { turn, color } = extras(true);
-        level.boxes.push({ center, half, turn, color });
+        const { turn, color, move, spin } = extras(true);
+        level.boxes.push({ center, half, turn, color, move, spin });
         break;
       }
       case 'sensor': {
@@ -142,7 +159,11 @@ export function levelToText(level: Level): string {
       `spawn ${numbers(level.spawn)}`,
       `facing ${numbers(level.facing)}`,
       ...level.boxes.map(
-        (b) => `box ${numbers(b.center)}  ${numbers(b.half)}${turnText(b.turn)}  color #${b.color.toString(16).padStart(6, '0')}`,
+        (b) =>
+          `box ${numbers(b.center)}  ${numbers(b.half)}${turnText(b.turn)}` +
+          (b.move ? `  move ${numbers(b.move.by)} ${b.move.seconds}` : '') +
+          (b.spin ? `  spin ${b.spin.axis} ${b.spin.degrees}` : '') +
+          `  color #${b.color.toString(16).padStart(6, '0')}`,
       ),
       ...level.sensors.map((s) => `sensor ${s.kind}  ${numbers(s.center)}  ${numbers(s.half)}${turnText(s.turn)}`),
     ].join('\n') + '\n'
@@ -150,16 +171,23 @@ export function levelToText(level: Level): string {
 }
 
 /**
- * Puts a level into a world: its boxes, as fixed bodies that are seen, and its zones, as sensors that
+ * Puts a level into a world: its boxes, as bodies that are seen (fixed; or, if they move or turn,
+ * kinematic: the program moves them, and they push what they touch), and its zones, as sensors that
  * are not (`show.sensors` draws them). Where the players start is the game's to use (`level.spawn`).
  */
 export function buildLevel(world: World, level: Level) {
-  for (const b of level.boxes)
+  for (const b of level.boxes) {
+    const moves = b.move !== null || b.spin !== null;
+    // Degrees per second to radians per second: a constant product, the same everywhere.
+    const spin = b.spin ? vec3.scale(AXES[b.spin.axis], (b.spin.degrees * Math.PI) / 180) : null;
     world.createEntity({
       transform: { position: [...b.center], rotation: turnOf(b.turn) },
-      body: { type: 'fixed', shape: { kind: 'box', halfExtents: [...b.half] } },
+      body: { type: moves ? 'kinematic' : 'fixed', shape: { kind: 'box', halfExtents: [...b.half] } },
       appearance: { shape: 'box', size: [b.half[0] * 2, b.half[1] * 2, b.half[2] * 2], color: b.color },
+      ...(spin ? { spin: { angularVelocity: spin } } : {}),
+      ...(b.move ? { mover: { from: [...b.center], to: vec3.add(b.center, b.move.by), seconds: b.move.seconds } } : {}),
     });
+  }
   for (const s of level.sensors)
     world.createEntity({
       transform: { position: [...s.center], rotation: turnOf(s.turn) },

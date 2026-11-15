@@ -20,6 +20,19 @@ export interface Entity {
   appearance?: Appearance;
   sensor?: Sensor;
   game?: GameData;
+  mover?: Mover;
+}
+
+/**
+ * A BODY THAT GOES BACK AND FORTH (stage 2d): a moving platform. Its place is a function of the time
+ * (the step), not of where it was: from `from` to `to` in `seconds`, and back, again and again. On
+ * every step its kinematic body gets exactly the velocity that takes it there, so it never drifts.
+ */
+export interface Mover {
+  from: Vec3;
+  to: Vec3;
+  /** How long one way takes. */
+  seconds: number;
 }
 
 /**
@@ -177,11 +190,26 @@ export interface Character {
   /** Where it looks: a unit vector perpendicular to its "up". */
   facing: Vec3;
   /**
-   * What the game makes it carry at the next step, m/s (stage 2b): the wind, a conveyor belt, and in
-   * stage 2d the platform it stands on. It moves it, whatever its mode, and it is emptied after the
-   * step: the game says it again on every step it applies.
+   * What the game makes it carry at the next step, m/s (stage 2b): the wind, a conveyor belt… It moves
+   * it, whatever its mode, and it is emptied after the step: the game says it again on every step it
+   * applies.
    */
   carry: Vec3;
+  /**
+   * What it stands on, if it moves (stage 2d): its velocity under the character (m/s), and how fast it
+   * turns around the character's up (rad/s). The engine finds it on every step; it carries the
+   * character, and a jump keeps it.
+   */
+  ground: { velocity: Vec3; spin: number };
+  /**
+   * How much the platforms it stood on have turned it, all of it put together (stage 2d), as a
+   * rotation. Where it is told to look (the `face` input) is read INSIDE this turn: so a character
+   * told to look somewhere goes on being turned by the platform under it, step by step, exactly as
+   * one told nothing, even if what it is told does not change (Quake III does the same with its
+   * "delta angles"). Whoever knows where it wants it to look, in the world (an aiming camera, a
+   * bot), asks for `faceFor(character, direction)`.
+   */
+  carriedTurn: Quat;
 }
 
 /** A character as it is asked for: its player; the rest has defaults (any of its movement's numbers too). */

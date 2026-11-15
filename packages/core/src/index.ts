@@ -9,7 +9,7 @@ export {
   type SessionState,
   type WorldChange,
 } from './session';
-export { DEFAULT_MOVEMENT, turned, upAt } from './character';
+export { DEFAULT_MOVEMENT, faceFor, turned, upAt } from './character';
 export {
   actionsFor,
   axisOf,
@@ -56,6 +56,7 @@ export type {
   Capabilities,
   InputValue,
   ModeName,
+  Mover,
   Movement,
   PlayerInput,
   Sensor,

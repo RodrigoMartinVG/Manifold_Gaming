@@ -13,6 +13,7 @@ import {
   stateHash,
   upAt,
   gravityAt,
+  faceFor,
   type Appearance,
   type Replay,
   type Cartridge,
@@ -193,6 +194,42 @@ export function mount(cartridge: Cartridge, container: HTMLElement, o: MountOpti
   });
   container.append(stats);
 
+  // ---------- What is watched (`watch`, stage 2d): entities pinned on the screen, their values updated ----------
+  const watchBox = document.createElement('div');
+  watchBox.className = 'mg-watch';
+  watchBox.hidden = true;
+  Object.assign(watchBox.style, {
+    position: 'absolute',
+    bottom: '56px',
+    right: '12px',
+    maxWidth: '46ch',
+    padding: '6px 10px',
+    borderRadius: '6px',
+    background: 'rgb(18 16 13 / 0.82)',
+    color: '#e6dccb',
+    font: '12px/1.5 ui-monospace, Menlo, monospace',
+    pointerEvents: 'none',
+    whiteSpace: 'pre-wrap',
+  });
+  container.append(watchBox);
+  /** The watched entities, and what of each (`character.mode`…); nothing: a few useful things. */
+  const watched: { id: number; paths: string[] }[] = [];
+  /** The last entity inspected, clicked or watched: what `it` names. */
+  let it: number | null = null;
+  /** An entity by what is typed: its id, `me` (this page's player's character) or `it`; or why not. */
+  const entityNamed = (word: string): number | string => {
+    if (word === 'me') {
+      const mine = [...session.world.entities.values()].find((e) => e.character?.player === me);
+      return mine ? mine.id : 'you have no character here (`me` is your character: try a room with one, like `load course`)';
+    }
+    if (word === 'it') return it ?? 'nothing inspected yet: click an object, or `inspect` an id (`it` is the last one)';
+    const id = Number(word);
+    if (!Number.isInteger(id) || id < 1) return `"${word}" is not an entity: an id (a whole number), \`me\` or \`it\``;
+    return session.world.entities.has(id)
+      ? id
+      : `no entity ${id} (there are ${session.world.entities.size}: \`inspect\` counts them)`;
+  };
+
   // ---------- The game's notices (stage 2a): "checkpoint", "the goal in 23.4 s"… ----------
   const noticeBox = document.createElement('div');
   noticeBox.className = 'mg-notice';
@@ -231,6 +268,10 @@ export function mount(cartridge: Cartridge, container: HTMLElement, o: MountOpti
   // The world and its meshes (before anything else: a recipe can ask for show.wireframe, which walks them).
   const meshes = new Map<EntityId, THREE.Mesh>();
   const previous = new Map<EntityId, Pose>();
+  /** Each character's carried turn at the previous step (stage 2d): the aiming camera turns with it, drawn between steps. */
+  const previousTurn = new Map<EntityId, Quat>();
+  /** The carried turn the aiming camera already turned by (null: none yet, it starts from the one there is). */
+  let cameraTurn: THREE.Quaternion | null = null;
   const geometries = { box: new THREE.BoxGeometry(1, 1, 1), sphere: new THREE.SphereGeometry(0.5, 24, 16) };
   /**
    * A mesh for an appearance. Boxes and spheres are one shared shape, scaled; a capsule is built at
@@ -429,9 +470,46 @@ export function mount(cartridge: Cartridge, container: HTMLElement, o: MountOpti
   registry.declareCommand({
     name: 'inspect',
     description:
-      'What an entity is made of: its components, with their numbers (a click on an object does it too). With no id: how many entities there are.',
-    args: [{ name: 'id', type: { kind: 'integer', min: 1 }, optional: true }],
-    run: ([id], out) => out.write(typeof id === 'number' ? inspectEntity(session.world, id) : countEntities(session.world)),
+      'What an entity is made of: its components, with their numbers (a click on an object does it too). Its id, or `me` (your character) or `it` (the last one inspected or clicked). With nothing: how many entities there are.',
+    args: [{ name: 'id', type: { kind: 'text' }, optional: true }],
+    run: ([which], out) => {
+      if (which === undefined || which === '') return out.write(countEntities(session.world));
+      const id = entityNamed(String(which));
+      if (typeof id === 'string') return out.write(id, 'warn');
+      it = id;
+      out.write(inspectEntity(session.world, id));
+    },
+  });
+  registry.declareCommand({
+    name: 'watch',
+    description:
+      'Pins an entity on the screen, its values updated while you play (the console can be closed): `watch me`, or what to show, `watch me character.mode character.ground`. Its id, `me` or `it`. `watch clear` takes them all away; with nothing, what is watched.',
+    args: [
+      { name: 'entity', type: { kind: 'text' }, optional: true },
+      { name: 'what', type: { kind: 'rest' }, optional: true },
+    ],
+    run: ([which, what], out) => {
+      if (which === undefined || which === '') {
+        if (watched.length === 0) return out.write('nothing watched: `watch me`, or `watch 1 transform.position`');
+        return out.write(watched.map((w) => `watching ${w.id}${w.paths.length ? ` ${w.paths.join(' ')}` : ''}`).join('\n'));
+      }
+      if (which === 'clear') {
+        watched.length = 0;
+        watchBox.hidden = true;
+        return out.write('nothing watched any more');
+      }
+      const id = entityNamed(String(which));
+      if (typeof id === 'string') return out.write(id, 'warn');
+      it = id;
+      const paths = String(what ?? '')
+        .split(/\s+/)
+        .filter(Boolean);
+      const known = watched.find((w) => w.id === id);
+      if (known) known.paths = paths;
+      else watched.push({ id, paths });
+      watchBox.hidden = false;
+      out.write(`watching entity ${id}${paths.length ? `: ${paths.join(', ')}` : ''} (\`watch clear\` takes it away)`);
+    },
   });
   registry.declareVariable({
     name: 'controls.scheme',
@@ -469,6 +547,7 @@ export function mount(cartridge: Cartridge, container: HTMLElement, o: MountOpti
       default: 'follow',
       onChange: (v) => {
         cameraMode = v as typeof cameraMode;
+        cameraTurn = null;
         // In aim mode, the mouse turns the camera without dragging: OrbitControls does not rotate.
         if (controls) controls.enableRotate = cameraMode !== 'aim';
         if (cameraMode !== 'aim' && document.pointerLockElement === renderer.domElement) document.exitPointerLock();
@@ -507,6 +586,7 @@ export function mount(cartridge: Cartridge, container: HTMLElement, o: MountOpti
       const hit = raycaster.intersectObjects([...meshes.values()], false)[0];
       const id = hit && [...meshes].find(([, mesh]) => mesh === hit.object)?.[0];
       if (id === undefined) return;
+      it = id;
       gameConsole.open();
       gameConsole.run(`inspect ${id}`);
     });
@@ -572,11 +652,13 @@ export function mount(cartridge: Cartridge, container: HTMLElement, o: MountOpti
     }
     meshes.delete(id);
     previous.delete(id);
+    previousTurn.delete(id);
   };
   const savePrevious = () => {
     for (const e of session.world.entities.values()) {
       if (!e.transform) continue;
       previous.set(e.id, { position: [...e.transform.position], rotation: [...e.transform.rotation] });
+      if (e.character) previousTurn.set(e.id, [...e.character.carriedTurn]);
     }
   };
 
@@ -793,6 +875,7 @@ export function mount(cartridge: Cartridge, container: HTMLElement, o: MountOpti
   function onWelcome(next: Session, match: Match) {
     const fresh = !match.session;
     session = next;
+    cameraTurn = null;
     me = link.player;
     if (joining) {
       joining = false;
@@ -939,7 +1022,12 @@ export function mount(cartridge: Cartridge, container: HTMLElement, o: MountOpti
       const keys = cameraMode === 'aim' ? 'camera' : scheme;
       const asked = playerControls.read([look.x, look.y, look.z], upAt(session.world, hero.transform.position), keys);
       // Aiming, the character looks where the camera looks (the core keeps only its horizontal part).
-      link.sendInput(cameraMode === 'aim' ? { ...asked, face: [look.x, look.y, look.z] } : asked);
+      // `face` is read inside the turn the platforms gave the character (stage 2d): asked inside the
+      // one the camera already turned by, the same as long as the mouse is still (`faceFor`, the core).
+      const turn: Quat = cameraTurn
+        ? [cameraTurn.x, cameraTurn.y, cameraTurn.z, cameraTurn.w]
+        : (hero.character?.carriedTurn ?? [0, 0, 0, 1]);
+      link.sendInput(cameraMode === 'aim' ? { ...asked, face: faceFor({ carriedTurn: turn }, [look.x, look.y, look.z]) } : asked);
     }
     // The match's clock is its host's: this page's server advances, and every copy takes those steps.
     if (server && !paused) server.advance(dt * timescale);
@@ -1034,11 +1122,38 @@ export function mount(cartridge: Cartridge, container: HTMLElement, o: MountOpti
         const moved = head.sub(controls.target);
         controls.target.add(moved);
         camera.position.add(moved);
+        // On a platform that turns (stage 2d), aiming, the camera IS where the character looks, and the
+        // character reads where to look inside the turn the platforms gave it (`carriedTurn`, the
+        // core): the platform turns it, exactly, step by step, in the simulation. The camera turns as
+        // much as that turn changed since the last frame, read from the world and drawn between the
+        // previous step's and this one's (by `alpha`, like everything else); and it asks for `face`
+        // inside it (above), so with the mouse still it asks for the same thing all the time.
+        const now = hero.character.carriedTurn;
+        const before = previousTurn.get(hero.id) ?? now;
+        const drawn = new THREE.Quaternion().slerpQuaternions(qa.set(...before), qb.set(...now), alpha);
+        if (cameraTurn) {
+          const change = drawn.clone().multiply(cameraTurn.clone().invert());
+          const offset = camera.position.clone().sub(controls.target).applyQuaternion(change);
+          camera.position.copy(controls.target).add(offset);
+        }
+        cameraTurn = drawn;
       } else {
         // ON A LEASH (stage 1c2): the camera keeps its height and its distance (along the ground) to
         // the head, but it stays where it is as long as it can. Going away pulls it along, coming
         // closer pushes it back, and going to a side turns it, little by little (before, it only moved
         // as much as the head: it never turned by itself).
+        //
+        // On a platform that moves or turns (stage 2d), the camera first goes along as far as the
+        // platform carried the character this frame (`ground.velocity`, the platform's velocity under
+        // it), so the leash does not take that for walking sideways. But it does NOT turn with the
+        // platform: the world stays still on the screen, and what turns is the character, which the
+        // platform turns with it (its visor goes round: it looks around). A first version turned the
+        // camera with the platform: the character then stayed the same on the screen and the whole
+        // world went round it, and the leash, which saw it carried sideways, made the camera fall
+        // behind (16° in 3.5 s on the carousel). Chasing, the camera still comes back behind it.
+        const carried = new THREE.Vector3(...hero.character.ground.velocity).multiplyScalar(paused ? 0 : dt * timescale);
+        camera.position.add(carried);
+        controls.target.add(carried);
         const offset = camera.position.clone().sub(controls.target);
         const height = offset.dot(up);
         const reach = offset.addScaledVector(up, -height).length();
@@ -1078,13 +1193,17 @@ export function mount(cartridge: Cartridge, container: HTMLElement, o: MountOpti
       .toArray()
       .map((n) => n.toFixed(2))
       .join(' ');
+    // The match, also on every frame: a test that waits for "joined" should not wait ten frames, which
+    // without a GPU and with two tabs drawing can take more than 5 s.
+    container.dataset.net = net;
+    container.dataset.me = String(me);
+    // What is watched, on every frame: it is for seeing a value change while playing.
+    if (!watchBox.hidden) watchBox.textContent = watched.map((w) => describeWatched(world, w.id, w.paths)).join('\n');
     // The rest, every 10 frames: how many frames were drawn and how many meshes are really in the scene
-    // (not in the map: the bug above did not show there), and the match.
+    // (not in the map: the bug above did not show there), and the other players.
     if (++frames % 10 === 0) {
       container.dataset.frames = String(frames);
       container.dataset.meshes = String(scene.children.filter((x) => x instanceof THREE.Mesh).length);
-      container.dataset.net = net;
-      container.dataset.me = String(me);
       container.dataset.checks = String(link.checks);
       container.dataset.others = [...world.entities.values()]
         .filter((e) => e.character && e.character.player !== me && e.transform)
@@ -1160,6 +1279,33 @@ function inspectEntity(world: World, id: number): string {
   const lines = [`entity ${id}, at step ${world.tick}`];
   for (const [k, v] of Object.entries(e)) if (k !== 'id') lines.push(`  ${k.padEnd(11)}${describeValue(v)}`);
   return lines.join('\n');
+}
+
+/**
+ * A watched entity, for its box on the screen (`watch`): the values asked for, by their path in its
+ * components (`character.mode`); with none asked, where it is, and if it is a character, its mode,
+ * its velocity, whether it stands, and what it stands on.
+ */
+function describeWatched(world: World, id: number, paths: readonly string[]): string {
+  const e = world.entities.get(id);
+  if (!e) return `entity ${id}: gone`;
+  const shown = paths.length
+    ? paths
+    : [
+        'transform.position',
+        ...(e.character ? ['character.mode', 'character.velocity', 'character.grounded', 'character.ground'] : []),
+      ];
+  const valueAt = (path: string) =>
+    path
+      .split('.')
+      .reduce<unknown>((at, key) => (at && typeof at === 'object' ? (at as Record<string, unknown>)[key] : undefined), e);
+  return [
+    `entity ${id} · step ${world.tick}`,
+    ...shown.map((path) => {
+      const value = valueAt(path);
+      return `  ${path} ${value === undefined ? '(none)' : describeValue(value, path.split('.').pop())}`;
+    }),
+  ].join('\n');
 }
 
 /** How many entities there are, by the kind of body they have. */

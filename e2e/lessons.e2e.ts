@@ -22,7 +22,6 @@ const value = async (f: FrameLocator, name: string) => {
 const click = (f: FrameLocator, name: string) => f.locator('.lil-gui button', { hasText: name }).first().click();
 
 test('replays: the ghost gives the same hash on every step; one step late, another', async ({ page }) => {
-  test.setTimeout(90_000);
   const f = await open(page, 'tutorial/etapa-1/02-repeticiones/');
   await expect.poll(async () => Number(await value(f, 'steps')), { timeout: 30_000 }).toBeGreaterThan(120);
   await click(f, 'race your ghost');
@@ -37,7 +36,6 @@ test('replays: the ghost gives the same hash on every step; one step late, anoth
 });
 
 test('snapshots: the twin born from a snapshot is the same world, until it is nudged', async ({ page }) => {
-  test.setTimeout(90_000);
   const f = await open(page, 'tutorial/etapa-1/03-instantaneas/');
   await expect.poll(async () => Number(await value(f, 'step')), { timeout: 30_000 }).toBeGreaterThan(200);
   expect(await value(f, 'the twin is')).toBe('the same');
@@ -46,7 +44,6 @@ test('snapshots: the twin born from a snapshot is the same world, until it is nu
 });
 
 test('server and client: the hash checks agree; an input lost by the client is a desync', async ({ page }) => {
-  test.setTimeout(90_000);
   const f = await open(page, 'tutorial/etapa-1/04-servidor-y-cliente/');
   await expect.poll(async () => Number(await value(f, 'hash checks')), { timeout: 30_000 }).toBeGreaterThan(2);
   expect(await value(f, 'desyncs')).toBe('0');

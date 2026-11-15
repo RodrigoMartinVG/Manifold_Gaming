@@ -122,20 +122,75 @@ export class Physics {
    * bodies in its way. Returns the movement it can do, whether it ends standing on something, and
    * whether it hit something above: a collision whose normal, on the character's side, points "up"
    * (its head touched it). Brushing a wall while rising is not a ceiling.
+   *
+   * `standingOn` (stage 2d): the kinematic body it stands on, which, for the controller, is FIXED
+   * meanwhile: the engine carries the character with it, exactly (character.ts). Two things measured
+   * with Rapier alone, without anything of ours:
+   *   - on a kinematic body, the controller does not walk: it stands on it with no gap (the offset is
+   *     not kept) and every movement along it comes out zero, still or moving, by velocity or by
+   *     position (on the same board, fixed, it walks). It is V1's "the controller got stuck on
+   *     kinematic bodies", explained. Seen as fixed while it computes, it walks exactly as on a
+   *     fixed one;
+   *   - when a kinematic body moves under a character, the controller takes it along by itself, but
+   *     only part of the way and not on every step (on a turning platform, every other step; on one
+   *     going along a line, never): so it must not see it move either.
+   * The body goes back to being kinematic, with its velocities, before the physics takes its step:
+   * the world is the same as if nothing had happened. The other kinematic bodies it does see as they
+   * are: when one comes against the character (a spinning cube), it pushes it out of its way, and
+   * without that, the character, caught inside it, could not move.
    */
-  moveCharacter(handle: number, desired: Vec3, up: Vec3): { movement: Vec3; grounded: boolean; ceiling: boolean } {
+  moveCharacter(
+    handle: number,
+    desired: Vec3,
+    up: Vec3,
+    standingOn?: number,
+  ): { movement: Vec3; grounded: boolean; ceiling: boolean } {
     const rigid = this.world.getRigidBody(handle);
     const collider = rigid?.collider(0);
     if (!rigid || !collider) return { movement: [0, 0, 0], grounded: false, ceiling: false };
     const c = (this.controller ??= this.createController());
     c.setUp(v(up));
+    const ground = standingOn === undefined ? null : this.world.getRigidBody(standingOn);
+    const kind = ground?.bodyType();
+    const linear = ground?.linvel();
+    const angular = ground?.angvel();
+    ground?.setBodyType(RAPIER.RigidBodyType.Fixed, false);
     c.computeColliderMovement(collider, v(desired));
+    if (ground && kind !== undefined && linear && angular) {
+      ground.setBodyType(kind, false);
+      ground.setLinvel(linear, false);
+      ground.setAngvel(angular, false);
+    }
     let ceiling = false;
     for (let i = 0; i < c.numComputedCollisions(); i++) {
       const n = c.computedCollision(i)?.normal2;
       if (n && n.x * up[0] + n.y * up[1] + n.z * up[2] > 0.7) ceiling = true;
     }
     return { movement: toVec(c.computedMovement()), grounded: c.computedGrounded(), ceiling };
+  }
+
+  /**
+   * WHAT IS UNDER A CHARACTER (stage 2d): a ray from `from` down (against `up`), as far as `reach`.
+   *   - It hits a body the program moves (a kinematic one: a moving or turning platform): which one
+   *     (its handle) and how it moves in the next step: its velocity, how it turns (axis times
+   *     rad/s) and the point it turns around (the physics turns a body around its center of mass);
+   *   - it hits something that does not move (the floor, a wall's top): 'still';
+   *   - it hits nothing: null. A character can still be standing then: on an edge, with its center
+   *     already beyond it and the round bottom of its capsule still on it.
+   */
+  groundUnder(
+    handle: number,
+    from: Vec3,
+    up: Vec3,
+    reach: number,
+  ): { handle: number; linear: Vec3; angular: Vec3; center: Vec3 } | 'still' | null {
+    const rigid = this.world.getRigidBody(handle);
+    const ray = new RAPIER.Ray(v(from), { x: -up[0], y: -up[1], z: -up[2] });
+    const hit = this.world.castRay(ray, reach, true, RAPIER.QueryFilterFlags.EXCLUDE_DYNAMIC, undefined, undefined, rigid);
+    const body = hit?.collider.parent();
+    if (!body) return null;
+    if (!body.isKinematic()) return 'still';
+    return { handle: body.handle, linear: toVec(body.linvel()), angular: toVec(body.angvel()), center: toVec(body.worldCom()) };
   }
 
   /**
@@ -167,7 +222,14 @@ export class Physics {
     return length > 1e-6 ? [flat[0] / length, flat[1] / length, flat[2] / length] : [0, 0, 0];
   }
 
-  /** Puts a body somewhere at once, without moving through what is in between (stage 2a: back to a checkpoint). */
+  /**
+   * Puts a body somewhere at once, without moving through what is in between (stage 2a: back to a
+   * checkpoint; `dojo.goto`). Its colliders go there too, now: Rapier moves them only at the start
+   * and end of a step, and the character controller computes the next step from where its collider
+   * is. Without that, a character put just above the floor computed its first step from where it
+   * had been (in the air), and went one step of gravity into the floor (measured: 2.7 mm, and it took
+   * twenty steps to come out).
+   */
   place(handle: number, position: Vec3, rotation: Quat) {
     const rigid = this.world.getRigidBody(handle);
     if (!rigid) return;
@@ -179,6 +241,7 @@ export class Physics {
       rigid.setNextKinematicTranslation(v(position));
       rigid.setNextKinematicRotation(q(rotation));
     }
+    this.world.propagateModifiedBodyPositionsToColliders();
   }
 
   /** Where a character's body will be at the end of the next step (it moves there during the step). */

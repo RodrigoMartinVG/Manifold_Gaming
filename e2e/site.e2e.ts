@@ -1,4 +1,5 @@
 import { readdirSync, readFileSync } from 'node:fs';
+import { afterSteps, position, settled } from './helpers';
 import path from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
 
@@ -242,9 +243,6 @@ test('reset puts everything back to its default value, and vars shows it by scop
 
 // ---------------------------------------------------------------- the character (stage 1b)
 
-const position = async (page: Page, what: 'player' | 'camera' | 'ghost' | 'facing') =>
-  ((await page.locator('#game').getAttribute(`data-${what}`)) ?? '').split(' ').map(Number);
-
 test('in the course, the keys drive the character: it walks where the camera looks, jumps, and the camera follows', async ({
   page,
 }) => {
@@ -252,17 +250,7 @@ test('in the course, the keys drive the character: it walks where the camera loo
   await page.goto('jugar/dojo/course/');
   // It falls onto the floor and stands still (its position stops changing).
   await expect.poll(async () => (await position(page, 'player')).length, { timeout: 15_000 }).toBe(3);
-  await expect
-    .poll(
-      async () => {
-        const a = await position(page, 'player');
-        await page.waitForTimeout(300);
-        const b = await position(page, 'player');
-        return a[1] === b[1];
-      },
-      { timeout: 10_000 },
-    )
-    .toBe(true);
+  await settled(page, 'player');
   const [, y0, z0] = await position(page, 'player');
   const camera0 = await position(page, 'camera');
   // W held: the camera is behind it, looking at the course (−Z), so it walks towards −Z. (Held until it
@@ -285,7 +273,7 @@ test('a link can leave the camera free: the character walks, and the camera stay
   // (A recipe runs before the world exists: view.camera must not need anything that comes later.)
   await page.goto('jugar/dojo/course/#recipe=view.camera+free');
   await expect.poll(async () => (await position(page, 'player')).length, { timeout: 15_000 }).toBe(3);
-  await page.waitForTimeout(1500);
+  await afterSteps(page, 90);
   const [, , z0] = await position(page, 'player');
   const camera0 = await position(page, 'camera');
   await page.keyboard.down('KeyW');
@@ -298,10 +286,9 @@ test('a link can leave the camera free: the character walks, and the camera stay
 // ---------------------------------------------------------------- replays, ghosts and aiming (stage 1c)
 
 test('ghost: the world starts over and a ghost does what you did, next to you', async ({ page }) => {
-  test.setTimeout(90_000);
   await page.goto('jugar/dojo/course/');
   await expect.poll(async () => (await position(page, 'player')).length, { timeout: 15_000 }).toBe(3);
-  await page.waitForTimeout(1500);
+  await afterSteps(page, 90);
   const [, , z0] = await position(page, 'player');
   await page.keyboard.down('KeyW');
   await expect.poll(async () => (await position(page, 'player'))[2], { timeout: 30_000 }).toBeLessThan(z0! - 1.5);
@@ -317,10 +304,9 @@ test('ghost: the world starts over and a ghost does what you did, next to you', 
 });
 
 test('aim: the character looks where the camera looks, and walks sideways without turning', async ({ page }) => {
-  test.setTimeout(90_000);
   await page.goto('jugar/dojo/course/#recipe=view.camera+aim');
   await expect.poll(async () => (await position(page, 'player')).length, { timeout: 15_000 }).toBe(3);
-  await page.waitForTimeout(1500);
+  await afterSteps(page, 90);
   const [x0] = await position(page, 'player');
   // D: to the right of the camera (+X); the character keeps looking ahead (−Z).
   await page.keyboard.down('KeyD');
@@ -333,10 +319,9 @@ test('aim: the character looks where the camera looks, and walks sideways withou
 // ---------------------------------------------------------------- turning and the camera (stage 1c2)
 
 test('follow is a leash: going to a side turns the camera towards the character', async ({ page }) => {
-  test.setTimeout(90_000);
   await page.goto('jugar/dojo/course/');
   await expect.poll(async () => (await position(page, 'player')).length, { timeout: 15_000 }).toBe(3);
-  await page.waitForTimeout(1500);
+  await afterSteps(page, 90);
   const [x0] = await position(page, 'player');
   // D: to the camera's right (+X). Before, the camera moved as much as the character and never turned.
   await page.keyboard.down('KeyD');
@@ -351,32 +336,15 @@ test('follow is a leash: going to a side turns the camera towards the character'
 test('tank controls: A and D turn the character on its own axis, W goes where it looks, and chase puts the camera behind', async ({
   page,
 }) => {
-  test.setTimeout(90_000);
   const list = errors(page);
-  /**
-   * What the page says, once it stops changing. It writes it on every frame (with its step), and
-   * here there are few: two readings are compared only if the page wrote again in between.
-   */
-  const settled = async (what: 'player' | 'facing' | 'camera') => {
-    const step = () => page.locator('#game').getAttribute('data-step');
-    let [at, a] = [await step(), await position(page, what)];
-    for (;;) {
-      await page.waitForTimeout(200);
-      const now = await step();
-      if (now === at) continue;
-      const b = await position(page, what);
-      if (a.join() === b.join()) return b;
-      [at, a] = [now, b];
-    }
-  };
   await page.goto('jugar/dojo/course/#recipe=controls.scheme+tank;view.camera+chase');
   await expect.poll(async () => (await position(page, 'facing')).length, { timeout: 15_000 }).toBe(3);
-  const [x0, , z0] = await settled('player');
+  const [x0, , z0] = await settled(page, 'player');
   // D held: it turns right, from −Z towards +X, without going anywhere.
   await page.keyboard.down('KeyD');
   await expect.poll(async () => (await position(page, 'facing'))[0], { timeout: 30_000 }).toBeGreaterThan(0.5);
   await page.keyboard.up('KeyD');
-  const [fx, , fz] = await settled('facing');
+  const [fx, , fz] = await settled(page, 'facing');
   const [x1, , z1] = await position(page, 'player');
   expect(Math.hypot(x1! - x0!, z1! - z0!)).toBeLessThan(0.1);
   // W: forward, where it looks now.
@@ -387,11 +355,11 @@ test('tank controls: A and D turn the character on its own axis, W goes where it
     })
     .toBeGreaterThan(2);
   await page.keyboard.up('KeyW');
-  const [x2, , z2] = await settled('player');
+  const [x2, , z2] = await settled(page, 'player');
   const along = ((x2! - x1!) * fx! + (z2! - z1!) * fz!) / Math.hypot(x2! - x1!, z2! - z1!);
   expect(along).toBeGreaterThan(0.95);
   // The chasing camera came back behind it: on the side opposite to where it looks.
-  const [cx, , cz] = await settled('camera');
+  const [cx, , cz] = await settled(page, 'camera');
   expect(((cx! - x2!) * fx! + (cz! - z2!) * fz!) / Math.hypot(cx! - x2!, cz! - z2!)).toBeLessThan(-0.9);
   expect(list).toEqual([]);
 });
@@ -401,11 +369,10 @@ test('tank controls: A and D turn the character on its own axis, W goes where it
 test('snapshot: save, walk and throw, load: the character is back, the ball is gone, and the hash is the same', async ({
   page,
 }) => {
-  test.setTimeout(90_000);
   const list = errors(page);
   await page.goto('jugar/dojo/course/');
   await expect.poll(async () => (await position(page, 'player')).length, { timeout: 15_000 }).toBe(3);
-  await page.waitForTimeout(1500);
+  await afterSteps(page, 90);
   await page.keyboard.press('Backquote');
   await typeInConsole(page, 'pause', 'snapshot');
   await expect(consoleLog(page)).toContainText('a snapshot at step');
@@ -434,11 +401,10 @@ test('snapshot: save, walk and throw, load: the character is back, the ball is g
 test("the course's loop: falling off the floor brings the character back, with a notice; its zones can be seen", async ({
   page,
 }) => {
-  test.setTimeout(90_000);
   const list = errors(page);
   await page.goto('jugar/dojo/course/#recipe=show.sensors+on');
   await expect.poll(async () => (await position(page, 'player')).length, { timeout: 15_000 }).toBe(3);
-  await page.waitForTimeout(1500);
+  await afterSteps(page, 90);
   const [x0, , z0] = await position(page, 'player');
   // S: towards the camera, off the floor's edge (4 m behind), into the void.
   await page.keyboard.down('KeyS');
@@ -468,7 +434,7 @@ test('capabilities, live: in front of the tower, a character stays below; with d
   // (A still camera: with the one that follows, "forward" would turn with it.)
   await page.goto('jugar/dojo/course/#recipe=view.camera+free');
   await expect.poll(async () => (await position(page, 'player')).length, { timeout: 15_000 }).toBe(3);
-  await page.waitForTimeout(1500);
+  await afterSteps(page, 90);
   // In front of the tower (dojo.goto, a lab's command: the page tells where the character is every
   // few frames, too late to turn at an exact place).
   await page.keyboard.press('Backquote');
@@ -477,7 +443,7 @@ test('capabilities, live: in front of the tower, a character stays below; with d
   // Forward (−Z), against it: without climbing, it stays below.
   await page.keyboard.down('KeyW');
   await expect.poll(async () => (await position(page, 'player'))[2], { timeout: 30_000 }).toBeLessThan(4);
-  await page.waitForTimeout(1500);
+  await afterSteps(page, 90);
   expect((await position(page, 'player'))[1]).toBeLessThan(1);
   await page.keyboard.up('KeyW');
   // Climbing on, from the console: pushing on, it climbs, and over the top it takes the star.

@@ -174,8 +174,9 @@ export class World {
   }
 
   createEntity(components: Components): Entity {
-    const { body, character, sensor, ...rest } = components;
+    const { body, character, sensor, mover, ...rest } = components;
     const entity: Entity = { id: ++this.lastId, ...rest };
+    if (mover) entity.mover = { from: [...mover.from], to: [...mover.to], seconds: mover.seconds };
     if (sensor) {
       if (!entity.transform) throw new Error('A zone needs a transform: where is it?');
       entity.sensor = { kind: sensor.kind, half: [...sensor.half], inside: [] };
@@ -205,7 +206,8 @@ export class World {
    * One fixed step. The systems ALWAYS run in the same order, and entities are visited in
    * creation order (a `Map` keeps insertion order): the order is part of determinism.
    *
-   *   1. spin: what spins without a body turns here; a kinematic body gets its velocity;
+   *   1. spin: what spins without a body turns here; every kinematic body gets the velocity of this
+   *      step (a moving platform, the one that takes it where it has to be at its end, stage 2d);
    *   2. characters: each one decides where it can go, with what its player asks for (character.ts);
    *   3. physics: Rapier advances one step (gravity, collisions, bounces; the characters move);
    *   4. read back: every moving body's pose and velocities go to its components;
@@ -215,11 +217,34 @@ export class World {
     this.stepEvents = [];
     this.tick++;
     this.spin();
+    this.move();
     for (const e of this.entities.values()) if (e.character && e.body?.type === 'character') moveCharacter(this, e, STEP);
     this.physics.step();
     for (const e of this.entities.values())
       if (e.body && e.transform && e.body.type !== 'fixed') this.physics.read(e.body.handle, e.transform, e.body);
     this.sense();
+  }
+
+  /**
+   * KINEMATIC BODIES SYSTEM: each one gets the velocity of this step: the one it has, the one it
+   * spins with, and, if it is a MOVING PLATFORM (stage 2d), the one that takes it where it has to be
+   * at the end of this step. That place is a function of the time (back and forth, at a constant
+   * speed), not of where it was: so it never drifts, however many trips it makes.
+   */
+  private move() {
+    const t = this.tick * STEP;
+    for (const e of this.entities.values()) {
+      if (!e.transform || e.body?.type !== 'kinematic') continue;
+      const m = e.mover;
+      if (m) {
+        const phase = t % (2 * m.seconds);
+        const u = phase <= m.seconds ? phase / m.seconds : 2 - phase / m.seconds;
+        const target = vec3.add(m.from, vec3.scale(vec3.sub(m.to, m.from), u));
+        e.body.linearVelocity = vec3.scale(vec3.sub(target, e.transform.position), 1 / STEP);
+      }
+      if (e.spin) e.body.angularVelocity = [...e.spin.angularVelocity];
+      this.physics.setKinematicVelocity(e.body.handle, e.body.linearVelocity, e.body.angularVelocity);
+    }
   }
 
   /**
@@ -296,12 +321,9 @@ export class World {
     for (const e of this.entities.values()) {
       if (!e.spin || !e.transform) continue;
       const w = e.spin.angularVelocity;
-      // With a kinematic body, the physics turns it (with its deterministic math), and pushes what it touches.
-      if (e.body?.type === 'kinematic') {
-        this.physics.setKinematicVelocity(e.body.handle, e.body.linearVelocity, w);
-        continue;
-      }
-      if (e.body) continue; // a dynamic or fixed body is moved by the physics, or not at all
+      // A kinematic body is turned by the physics (with its deterministic math: see `move`); a
+      // dynamic or fixed one is moved by the physics, or not at all.
+      if (e.body) continue;
       if (w[0] === 0 && w[1] === 0 && w[2] === 0) continue;
       const h = STEP / 2;
       const delta = quat.normalize([w[0] * h, w[1] * h, w[2] * h, 1]);

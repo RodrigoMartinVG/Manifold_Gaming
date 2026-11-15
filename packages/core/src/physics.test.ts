@@ -61,7 +61,9 @@ describe('the physics (Rapier, behind physics.ts)', () => {
     }
     a.dispose();
     b.dispose();
-  });
+    // Its cost, measured: 1.1 s alone (two worlds, 600 steps, the whole hash on every one); with every
+    // test file running at once, up to five times that, past Vitest's usual 5 s.
+  }, 20_000);
 
   test('Rapier counts in 32-bit numbers: a billionth of a meter does not exist for it', () => {
     // Near 3 m, a 32-bit number cannot tell apart two positions closer than about 0.24 µm. The nudge

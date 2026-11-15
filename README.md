@@ -4,7 +4,7 @@
 
 🌐 **Site:** https://rodrigomartinvg.github.io/Manifold_Gaming/ (in Spanish for now)
 
-> Status: **phase 2** (capabilities). In the Dojo, a character runs, jumps, climbs, glides and double-jumps (each capability turned on and off live) in a level written as text; its replay gives the same hash in Chromium, Firefox, WebKit and Node. Next: moving platforms.
+> Status: **phase 2** (capabilities). In the Dojo, a character runs, jumps, climbs, glides and double-jumps (each capability turned on and off live) in a level written as text, and rides platforms that move and turn; its replay gives the same hash in Chromium, Firefox, WebKit and Node. Next: stage 2.5, the seams the next phases lean on.
 
 ## How it is organized
 

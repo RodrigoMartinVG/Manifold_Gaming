@@ -85,7 +85,7 @@ Lo que hace del motor un laboratorio: ver lo que normalmente no se ve. Las vista
 | `show.gravity on`   | el campo de gravedad, como flechas: su largo es la intensidad                                                                                    |
 | `show.sensors on`   | las zonas del nivel, como cajas de alambre: los puntos de control en verde, la meta en dorado, el vacío en rojo                                  |
 
-Y para preguntar: `inspect` dice de qué está hecha una entidad (sus componentes, con sus números), `vars` lista las variables con sus valores, `changed` solo las que no están en su valor de siempre, `find` busca en los nombres y en las descripciones, `inputs` dice qué puede pedir un jugador en ese juego y con qué tecla, y `hash` da el paso y la huella del mundo.
+Y para preguntar: `inspect` dice de qué está hecha una entidad (sus componentes, con sus números): por su número, o `me` (tu personaje) o `it` (la última que inspeccionaste o tocaste). `watch` la deja fija en una esquina de la pantalla, con sus valores al día mientras jugás y con la consola cerrada: `watch me` muestra dónde está tu personaje, cómo se mueve y sobre qué está parado, y `watch me character.mode` solo lo que pidas; `watch clear` la saca. `vars` lista las variables con sus valores, `changed` solo las que no están en su valor de siempre, `find` busca en los nombres y en las descripciones, `inputs` dice qué puede pedir un jugador en ese juego y con qué tecla, y `hash` da el paso y la huella del mundo.
 
 ## El tiempo
 
@@ -137,7 +137,8 @@ Lo que el motor declara para cualquier juego que monte la consola. Cada juego su
 | `find texto`                     | busca en los nombres y en las descripciones                                                                                                                      |
 | `vars [prefijo]`                 | las variables y sus valores, por clase (todas, o las que empiezan con un prefijo: `vars show.`)                                                                  |
 | `changed`                        | solo las variables que no están en su valor de siempre                                                                                                           |
-| `inspect [id]`                   | de qué está hecha una entidad (sin id: cuántas hay)                                                                                                              |
+| `inspect [id]`                   | de qué está hecha una entidad: por su número, `me` o `it` (sin nada: cuántas hay)                                                                                |
+| `watch [entidad] [qué]`          | deja una entidad fija en la pantalla, con sus valores al día mientras jugás; `watch clear` las saca, y `watch` solo dice cuáles mirás                            |
 | `inputs`                         | qué puede pedir un jugador en este juego, y qué tecla lo aprieta                                                                                                 |
 | `hash`                           | el paso del mundo y su huella: un número que resume todo su estado                                                                                               |
 | `toggle nombre`                  | da vuelta una variable de prendido y apagado                                                                                                                     |

@@ -119,4 +119,65 @@ describe('zones (stage 2a)', () => {
     expect(ball.transform!.position[1]).toBeGreaterThan(7.9);
     world.dispose();
   });
+
+  test('a character put just above the floor computes its next step from there, not from where it was: it does not sink', () => {
+    const world = new World({ seed: 1 });
+    world.createEntity({
+      transform: { position: [0, -0.5, 0], rotation: quat.identity() },
+      body: { type: 'fixed', shape: { kind: 'box', halfExtents: [30, 0.5, 30] } },
+    });
+    const hero = world.createEntity({
+      transform: { position: [0, 3, 0], rotation: quat.identity() },
+      body: { type: 'character', shape: { kind: 'capsule', halfHeight: 0.5, radius: 0.3 } },
+      character: { player: 1 },
+    });
+    for (let i = 0; i < 180; i++) world.step();
+    const resting = hero.transform!.position[1];
+    // High in the air, falling, and then put 1 mm above where it rests.
+    world.place(hero, [0, 10, 0]);
+    for (let i = 0; i < 20; i++) world.step();
+    world.place(hero, [5, resting + 0.001, 0]);
+    // Measured: computed from the air, the first step took it 2.7 mm down (one step of gravity, through
+    // the floor), and it came out 0.1 mm per step. Now it stays where it rests (±0.1 mm).
+    for (let i = 0; i < 10; i++) {
+      world.step();
+      expect(hero.transform!.position[1], `step ${i + 1}`).toBeGreaterThan(resting - 0.0001);
+    }
+    world.dispose();
+  });
+});
+
+describe('moving platforms (stage 2d)', () => {
+  test('a box that moves or spins: read, written back the same, built as a kinematic body', () => {
+    const text =
+      '# Manifold level 1\ntitle P\nbox 0 0.15 0  1.5 0.15 1.5  move 4 0 0 2  color #8a6a42\nbox 5 0.2 0  1 0.2 1  spin y 90\n';
+    const level = levelFromText(text);
+    expect(level.boxes[0]!.move).toEqual({ by: [4, 0, 0], seconds: 2 });
+    expect(level.boxes[1]!.spin).toEqual({ axis: 'y', degrees: 90 });
+    expect(levelFromText(levelToText(level))).toEqual(level);
+    expect(() => levelFromText('# Manifold level 1\nbox 0 0 0  1 1 1  move 1 0 0 0\n')).toThrow(
+      /line 2: a movement takes some time/,
+    );
+    const world = new World({ seed: 1 });
+    buildLevel(world, level);
+    const [moving, spinning] = [...world.entities.values()];
+    expect(moving!.body!.type).toBe('kinematic');
+    expect(moving!.mover).toEqual({ from: [0, 0.15, 0], to: [4, 0.15, 0], seconds: 2 });
+    expect(spinning!.spin!.angularVelocity[1]).toBeCloseTo(Math.PI / 2, 12);
+    world.dispose();
+  });
+
+  test('it goes and comes back where it should, trip after trip, without drifting', () => {
+    const world = new World({ seed: 1 });
+    buildLevel(world, levelFromText('# Manifold level 1\nbox 0 0.15 0  1.5 0.15 1.5  move 4 0 0 2\n'));
+    const platform = [...world.entities.values()][0]!;
+    const at = (steps: number) => {
+      for (let i = 0; i < steps; i++) world.step();
+      return platform.transform!.position[0];
+    };
+    expect(at(120)).toBeCloseTo(4, 3); // there, after 2 s
+    expect(at(120)).toBeCloseTo(0, 3); // and back, after 4 s
+    expect(at(60 * 40)).toBeCloseTo(0, 3); // ten more round trips later, in the same place
+    world.dispose();
+  });
 });
