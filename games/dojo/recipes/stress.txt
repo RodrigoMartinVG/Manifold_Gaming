@@ -1,0 +1,11 @@
+# Stress: the course, full
+# The course with as many cubes as the Dojo allows (200), falling all over the steps, the platforms
+# and the character, with the step's stats on. It is the scene the engine's performance budgets are
+# measured in (stage 2.5a): what a step, the hash and a snapshot cost, and what the second copy
+# that verifies costs when playing alone.
+seed 4
+dojo.level course
+dojo.cubes 200
+
+# What is seen
+show.stats on

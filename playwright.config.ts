@@ -18,6 +18,10 @@ export default defineConfig({
   // still. The usual 30 s cut short waits the tests themselves allow (40 s for the home page's
   // showcase). The tests that play a match and replay it in Node ask for more.
   timeout: 90_000,
+  // And each wait inside a test (`expect`, `expect.poll`): 15 s, not the usual 5. The page writes some of
+  // what the tests read every 10 frames (the meshes, the frames drawn), and 10 frames without a GPU,
+  // with another test drawing alongside, can take more than 5 s.
+  expect: { timeout: 15_000 },
   forbidOnly: !!process.env.CI,
   // In continuous integration a failed test runs once more, to tell a test that fails from one that
   // fails sometimes; but one that passes only the second time fails the run too: it is reported, not

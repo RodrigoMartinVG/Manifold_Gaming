@@ -1,0 +1,9 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    // The budgets run in Node, and measure the engine and a game's scene together (like e2e/).
+    "lib": ["ES2023", "DOM"],
+    "types": ["node", "vite/client"]
+  },
+  "include": ["."]
+}
