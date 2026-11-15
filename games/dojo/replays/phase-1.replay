@@ -4,6 +4,7 @@
 # keeps it bit for bit. Recorded by games/dojo/src/reference.test.ts; recorded again (npm run
 # references) only when the simulation changes on purpose, with SIMULATION_VERSION.
 game dojo
+profile rapier-deterministic server 60
 birth seed 7
 birth dojo.cubes 20
 birth dojo.level course

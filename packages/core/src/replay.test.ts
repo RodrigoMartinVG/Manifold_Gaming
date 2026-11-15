@@ -3,6 +3,7 @@ import { quat, type Vec3 } from '@manifold/common';
 import type { Cartridge } from './cartridge';
 import { NO_INPUT, pressed } from './input';
 import { initPhysics } from './physics';
+import { VERIFIED } from './profile';
 import { playReplay, replayFromText, replayOf, replayToText, sessionFor } from './replay';
 import { registryFor, Session } from './session';
 import type { PlayerInput } from './types';
@@ -159,6 +160,54 @@ describe('replays (stage 1c)', () => {
       session.step();
     }
     expect(playReplay(Level, replayFromText(replayToText(replayOf(session)))).same).toBe(true);
+    session.world.dispose();
+  });
+});
+
+describe('the execution profile (stage 2.5b, decision 0014)', () => {
+  test('a replay says its profile in a line, and comes back with it', () => {
+    const session = record(60);
+    const text = replayToText(replayOf(session));
+    expect(text.split('\n')[2]).toBe('profile rapier-deterministic server 60');
+    expect(replayFromText(text).profile).toEqual(VERIFIED);
+    session.world.dispose();
+  });
+
+  test('an older replay, without that line, is the verified one; a physics this engine does not have is refused', () => {
+    const session = record(60);
+    const text = replayToText(replayOf(session));
+    const older = text.replace(/^profile .*\n/m, '');
+    expect(replayFromText(older).profile).toEqual(VERIFIED);
+    expect(playReplay(Level, replayFromText(older)).same).toBe(true);
+    expect(() => replayFromText(text.replace('profile rapier-deterministic', 'profile havok'))).toThrow(
+      /replay, line 3: "havok" is not a physics this engine has/,
+    );
+    session.world.dispose();
+  });
+
+  test('another physics is another simulation: refused; who verified it is not: it plays the same', () => {
+    const session = record(120);
+    const replay = replayOf(session);
+    // Played with a server that checked every half a second: who verifies does not change a step.
+    const checkedMore = { ...replay, profile: { ...VERIFIED, verify: { by: 'server' as const, hashEvery: 30 } } };
+    expect(playReplay(Level, checkedMore).same).toBe(true);
+    // Recorded on another physics (one this engine will have some day): refused, with why.
+    const elsewhere = { ...replay, profile: { ...VERIFIED, physics: 'local' as 'rapier-deterministic' } };
+    expect(() => sessionFor(Level, elsewhere)).toThrow(
+      /a replay played on "local", and this game runs on "rapier-deterministic"/,
+    );
+    session.world.dispose();
+  });
+
+  test('a world runs on the physics its profile names, and a snapshot keeps the profile', () => {
+    const session = record(30);
+    expect(session.world.profile).toEqual(VERIFIED);
+    const snap = session.world.snapshot();
+    expect(snap.profile).toEqual(VERIFIED);
+    // A snapshot of a world on another physics: the session refuses it.
+    const save = session.save();
+    const elsewhere = { ...save, world: { ...save.world, profile: { ...VERIFIED, physics: 'local' as 'rapier-deterministic' } } };
+    expect(() => session.load(elsewhere)).toThrow(/a snapshot of a world on "local"/);
     session.world.dispose();
   });
 });

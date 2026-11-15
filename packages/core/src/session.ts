@@ -1,4 +1,5 @@
 import { formatValue, Registry, type Value } from '@manifold/commands';
+import { VERIFIED } from './profile';
 import type { Vec3 } from '@manifold/common';
 import type { Cartridge } from './cartridge';
 import { EARTH } from './gravity';
@@ -142,7 +143,7 @@ export class Session {
         .filter((v) => v.decl.scope !== 'view' && !(o.seed !== undefined && v.decl.name === 'seed'))
         .map((v) => `${v.decl.name} ${formatValue(v.value)}`),
     ].join('\n');
-    this.current = new World({ seed: o.seed ?? Number(this.registry.value('seed')) });
+    this.current = new World({ seed: o.seed ?? Number(this.registry.value('seed')), profile: cartridge.profile ?? VERIFIED });
     cartridge.onStart(this.world, this.registry);
     // World values that already came changed (from a recipe) are part of how it is born: step 0.
     this.registry.applyToWorld(this.world);
@@ -254,6 +255,11 @@ export class Session {
    * From there, the same inputs give the same hash as the first time.
    */
   load(save: SessionSave) {
+    // Another physics is another simulation (decision 0014): its snapshot would go on somewhere else.
+    if (save.world.profile.physics !== this.current.profile.physics)
+      throw new Error(
+        `a snapshot of a world on "${save.world.profile.physics}", and this game runs on "${this.current.profile.physics}"`,
+      );
     const old = this.current;
     this.current = World.restore(save.world);
     old.dispose();

@@ -9,6 +9,7 @@ import {
   replayOf,
   replayToText,
   stateHash,
+  VERIFIED,
   type Cartridge,
   type PlayerInput,
 } from '@manifold/core';
@@ -90,7 +91,8 @@ describe('the networking skeleton (stage 1e)', () => {
   });
 
   test('two players, with lag: every copy is the server world at every check', () => {
-    const server = new Server(Arena, { hashEvery: 30 });
+    // (Its profile checks every half a second: the game says it, decision 0014.)
+    const server = new Server({ ...Arena, profile: { ...VERIFIED, verify: { by: 'server', hashEvery: 30 } } });
     const a = join(server, Arena, { later: true });
     const b = join(server, Arena, { later: true });
     expect([a.client.player, b.client.player]).toEqual([1, 2]);

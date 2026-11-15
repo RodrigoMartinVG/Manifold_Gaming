@@ -20,3 +20,4 @@ Each one has: **context** (what problem there was), **decision**, **consequences
 | [0011](0011-languages.md)               | Languages: the site in Spanish, everything else in English    | Accepted                                                                     |
 | [0012](0012-the-games.md)               | The games: the classics first, the strange ones after         | Accepted                                                                     |
 | [0013](0013-a-deeper-tutorial.md)       | One tutorial, deeper: the short path stays                    | Accepted                                                                     |
+| [0014](0014-the-execution-profile.md)   | The execution profile: the physics, and who verifies it       | Accepted                                                                     |

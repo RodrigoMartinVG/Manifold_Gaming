@@ -2,7 +2,8 @@ import { Random, quat, vec3, type Quat, type Vec3 } from '@manifold/common';
 import { moveCharacter, newCharacter } from './character';
 import { COMPONENT_NAME } from './components';
 import { EARTH, gravityAt } from './gravity';
-import { Physics, type PhysicsHit } from './physics';
+import { PHYSICS, type PhysicsBackend, type PhysicsHit } from './physics';
+import { VERIFIED, type Profile } from './profile';
 import type { CollisionGroups, Components, Entity, Event, EntityId, GravityField, PlayerInput, Shape } from './types';
 import { SIMULATION_VERSION } from './version';
 
@@ -33,8 +34,10 @@ export interface WorldOptions {
   seed: number;
   /** Its gravity (the Earth's, if not said). */
   gravity?: GravityField;
-  /** A snapshot of Rapier's world to start from, instead of an empty one (`World.restore` uses it). */
+  /** A snapshot of its physics to start from, instead of an empty one (`World.restore` uses it). */
   physics?: Uint8Array;
+  /** How it runs (stage 2.5b): its physics, and who verifies it. Without it, `VERIFIED`. */
+  profile?: Profile;
 }
 
 /**
@@ -48,6 +51,8 @@ export interface WorldOptions {
 export interface WorldSnapshot {
   /** The simulation's version it was taken with: only that one restores it. */
   readonly version: number;
+  /** The profile it ran with (stage 2.5b): it is restored with the same one. */
+  readonly profile: Profile;
   readonly tick: number;
   readonly lastId: number;
   readonly random: readonly [number, number, number, number];
@@ -136,16 +141,20 @@ export class World {
   readonly players = new Set<number>();
   /** Its gravity field: data, like the rest of its state (decision 0012). */
   private field: GravityField;
+  /** How it runs (stage 2.5b, decision 0014): its physics, and who verifies it. */
+  readonly profile: Profile;
   /**
-   * ITS physics (Rapier, behind the boundary of physics.ts): every world has its own, like its
-   * randomness. The entities keep only their bodies' handles (decision 0004).
+   * ITS physics, the one its profile names (Rapier's deterministic build, behind the boundary of
+   * physics.ts): every world has its own, like its randomness. The entities keep only their bodies'
+   * handles (decision 0004).
    */
-  readonly physics: Physics;
+  readonly physics: PhysicsBackend;
 
   constructor(o: WorldOptions) {
     this.random = new Random(o.seed);
     this.field = o.gravity ?? EARTH;
-    this.physics = new Physics(this.uniformGravity(), STEP, o.physics);
+    this.profile = o.profile ?? VERIFIED;
+    this.physics = PHYSICS[this.profile.physics](this.uniformGravity(), STEP, o.physics);
   }
 
   /** The last id given (the next entity gets the following one): part of the state. */
@@ -167,6 +176,7 @@ export class World {
   snapshot(): WorldSnapshot {
     return {
       version: SIMULATION_VERSION,
+      profile: this.profile,
       tick: this.tick,
       lastId: this.lastId,
       random: [...this.random.state],
@@ -186,7 +196,7 @@ export class World {
   static restore(s: WorldSnapshot): World {
     if (s.version !== SIMULATION_VERSION)
       throw new Error(`A snapshot of version ${s.version}, and this engine is version ${SIMULATION_VERSION}.`);
-    const world = new World({ seed: 0, gravity: copyData(s.gravity), physics: s.physics });
+    const world = new World({ seed: 0, gravity: copyData(s.gravity), physics: s.physics, profile: s.profile });
     world.tick = s.tick;
     world.lastId = s.lastId;
     world.random.restore(s.random);

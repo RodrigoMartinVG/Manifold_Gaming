@@ -18,8 +18,6 @@ import type { Match, Tick, ToClient, ToServer } from './protocol';
 export interface ServerOptions {
   /** How the match is born: a recipe with its startup and world values. */
   birth?: string;
-  /** Every how many steps the ticks bring the hash, so each client checks its world (60: once per second). */
-  hashEvery?: number;
   /** A clock in milliseconds, for saying how long a snapshot took (the page gives `performance.now`). */
   now?: () => number;
 }
@@ -53,16 +51,22 @@ export class Server {
   private playback: ReplayPlayer | null = null;
   private saved: SessionSave | null = null;
   private readonly clock = new Clock();
-  readonly hashEvery: number;
   private readonly now: () => number;
 
   constructor(
     readonly cartridge: Cartridge,
     o: ServerOptions = {},
   ) {
-    this.hashEvery = o.hashEvery ?? 60;
     this.now = o.now ?? Date.now;
     this.session = this.born(o.birth ?? '');
+  }
+
+  /**
+   * Every how many steps the ticks bring the hash, so each client checks its world: what the game's
+   * profile says (decision 0014; 60, once a second, in the verified one).
+   */
+  get hashEvery(): number {
+    return this.session.world.profile.verify.hashEvery;
   }
 
   /** The match's world (the presentation draws its own copy, the client's: this one is for tests and checks). */

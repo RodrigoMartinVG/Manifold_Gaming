@@ -1,10 +1,12 @@
 import RAPIER from '@dimforge/rapier3d-deterministic-compat';
 import type { Quat, Vec3 } from '@manifold/common';
+import type { Profile } from './profile';
 import type { Body, BodySpec, CollisionGroups, Shape, Transform } from './types';
 
 /**
  * THE BOUNDARY WITH THE PHYSICS ENGINE (decision 0000: "Rapier behind a small boundary"). This is
- * the only file of the engine that imports Rapier: the rest talks to `Physics`, in our types.
+ * the only file of the engine that imports Rapier: the rest talks to a `PhysicsBackend`, in our types,
+ * and the world takes the one its profile says (stage 2.5b: `PHYSICS`).
  *
  * It is Rapier's DETERMINISTIC build (decision 0012): it does its math the same way on every
  * machine, so two browsers can run the same world and get the same hash. It is a little slower than
@@ -68,7 +70,43 @@ const CHARACTER = {
   minSlide: (30 * Math.PI) / 180,
 };
 
-export class Physics {
+/**
+ * WHAT THE ENGINE ASKS OF A PHYSICS (stage 2.5b): the world, the characters and the presentation
+ * talk to this, never to Rapier. The world takes one from `PHYSICS`, by its profile's name.
+ */
+export interface PhysicsBackend {
+  snapshot(): Uint8Array;
+  setGravity(g: Vec3): void;
+  addBody(spec: BodySpec, transform: Transform): Body;
+  removeBody(handle: number): void;
+  setKinematicVelocity(handle: number, linear: Vec3, angular: Vec3): void;
+  moveCharacter(
+    handle: number,
+    desired: Vec3,
+    up: Vec3,
+    standingOn?: number,
+  ): { movement: Vec3; grounded: boolean; ceiling: boolean };
+  castRay(from: Vec3, direction: Vec3, reach: number, o?: QueryOptions): PhysicsHit | null;
+  castShape(shape: Shape, position: Vec3, rotation: Quat, direction: Vec3, reach: number, o?: QueryOptions): PhysicsHit | null;
+  motionOf(handle: number): { kinematic: boolean; linear: Vec3; angular: Vec3; center: Vec3 } | null;
+  place(handle: number, position: Vec3, rotation: Quat): void;
+  setNextPose(handle: number, position: Vec3, rotation: Quat): void;
+  position(handle: number): Vec3;
+  step(): void;
+  read(handle: number, transform: Transform, body: Body): void;
+  readonly bodyCount: number;
+  debugLines(): { vertices: Float32Array; colors: Float32Array };
+  contacts(): { points: number[]; normals: number[] };
+  dispose(): void;
+}
+
+/** The physics a profile can name, and how each one is made (a new world, or one from its snapshot). */
+export const PHYSICS: Record<Profile['physics'], (gravity: Vec3, timestep: number, snapshot?: Uint8Array) => PhysicsBackend> = {
+  'rapier-deterministic': (gravity, timestep, snapshot) => new RapierPhysics(gravity, timestep, snapshot),
+};
+
+/** Rapier's deterministic build, behind `PhysicsBackend`. */
+export class RapierPhysics implements PhysicsBackend {
   private readonly world: RAPIER.World;
   /** One controller moves every character (its settings are the same for all, for now). */
   private controller: RAPIER.KinematicCharacterController | null = null;

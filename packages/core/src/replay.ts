@@ -2,6 +2,7 @@ import { splitLines } from '@manifold/commands';
 import type { Cartridge } from './cartridge';
 import { stateHash } from './hash';
 import { actionsFor, inputProblem } from './input';
+import { profileFromText, profileText, VERIFIED, type Profile } from './profile';
 import { registryFor, Session, type InputChange, type WorldChange } from './session';
 import type { InputValue } from './types';
 import { SIMULATION_VERSION } from './version';
@@ -10,7 +11,8 @@ import { SIMULATION_VERSION } from './version';
  * A REPLAY (stage 1c): everything needed to play a session again, step by step, and to check that it
  * gave exactly the same.
  *
- *   - how the world was born (a recipe: its startup and world values);
+ *   - how the world was born (a recipe: its startup and world values), and its profile (stage 2.5b:
+ *     its physics, and who verified it);
  *   - what each player asked for, and at which step (only the changes);
  *   - the world changes typed in the console, and at which step;
  *   - the last step and its hash: playing it again must end with the same hash.
@@ -21,6 +23,8 @@ import { SIMULATION_VERSION } from './version';
 export interface Replay {
   /** The cartridge it belongs to ("dojo"). */
   game: string;
+  /** The profile it was played with (stage 2.5b). One without it (older) is the verified one. */
+  profile: Profile;
   birth: string;
   inputs: InputChange[];
   changes: WorldChange[];
@@ -31,6 +35,7 @@ export interface Replay {
 export function replayOf(session: Session): Replay {
   return {
     game: session.cartridge.id,
+    profile: session.world.profile,
     birth: session.birth,
     inputs: session.inputs.map((i) => ({ ...i, input: { ...i.input } })),
     changes: session.history.map((c) => ({ ...c })),
@@ -60,6 +65,7 @@ function inputText(i: InputChange): string {
  *
  *   # Manifold replay 3                     the simulation's version (version.ts)
  *   game dojo
+ *   profile rapier-deterministic server 60   its physics, and who verified it (stage 2.5b)
  *   birth dojo.level course
  *   input 41 1 move 0 0 -1                  step, player, and each action that is not zero, by
  *   input 96 1 ahead 1 turn -1 jump           its name: a vector (three numbers), an axis (one),
@@ -68,7 +74,12 @@ function inputText(i: InputChange): string {
  *   end 600 1a2b3c4d                  the last step, and its hash
  */
 export function replayToText(r: Replay): string {
-  const lines = [`${HEADER} ${SIMULATION_VERSION}`, `game ${r.game}`, ...splitLines(r.birth).map((l) => `birth ${l}`)];
+  const lines = [
+    `${HEADER} ${SIMULATION_VERSION}`,
+    `game ${r.game}`,
+    `profile ${profileText(r.profile)}`,
+    ...splitLines(r.birth).map((l) => `birth ${l}`),
+  ];
   const events: [step: number, line: string][] = [
     ...r.changes.map((c): [number, string] => [c.step, `change ${c.step} ${c.line}`]),
     ...r.inputs.map((i): [number, string] => [i.step, inputText(i)]),
@@ -81,7 +92,7 @@ export function replayToText(r: Replay): string {
 
 /** Back from text. A line that is not understood is an error, with its number. */
 export function replayFromText(text: string): Replay {
-  const replay: Replay = { game: '', birth: '', inputs: [], changes: [], end: { step: -1, hash: 0 } };
+  const replay: Replay = { game: '', profile: VERIFIED, birth: '', inputs: [], changes: [], end: { step: -1, hash: 0 } };
   const birth: string[] = [];
   const rows = text.split(/\r?\n/);
   const fail = (n: number, why: string): never => {
@@ -108,6 +119,11 @@ export function replayFromText(text: string): Replay {
       case 'game':
         replay.game = rest.join(' ');
         break;
+      case 'profile': {
+        const profile = profileFromText(rest.join(' '));
+        replay.profile = typeof profile === 'string' ? fail(n, profile) : profile;
+        break;
+      }
       case 'birth':
         birth.push(line.slice('birth'.length).trim());
         break;
@@ -187,6 +203,10 @@ export class ReplayPlayer {
  */
 export function sessionFor(cartridge: Cartridge, replay: Replay): Session {
   if (replay.game && replay.game !== cartridge.id) throw new Error(`a replay of "${replay.game}", not of "${cartridge.id}"`);
+  // Another physics is another simulation (decision 0014); who verified it is not: it does not change a step.
+  const physics = (cartridge.profile ?? VERIFIED).physics;
+  if (replay.profile.physics !== physics)
+    throw new Error(`a replay played on "${replay.profile.physics}", and this game runs on "${physics}"`);
   const actions = actionsFor(cartridge.inputs);
   for (const i of replay.inputs) {
     const problem = inputProblem(i.input, actions);

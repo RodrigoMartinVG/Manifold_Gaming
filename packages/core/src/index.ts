@@ -39,7 +39,7 @@ export { playReplay, replayFromText, replayOf, ReplayPlayer, replayToText, sessi
 export { Clock } from './clock';
 export { stateHash } from './hash';
 export type { Cartridge } from './cartridge';
-export { initPhysics, Physics } from './physics';
+export { initPhysics, PHYSICS, RapierPhysics, type PhysicsBackend } from './physics';
 export { EARTH, gravityAt } from './gravity';
 export type {
   Appearance,
@@ -67,3 +67,4 @@ export type {
   CollisionGroups,
 } from './types';
 export { component, COMPONENT_NAME } from './components';
+export { VERIFIED, profileFromText, profileText, type Profile } from './profile';

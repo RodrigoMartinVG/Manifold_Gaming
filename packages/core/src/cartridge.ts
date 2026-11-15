@@ -1,5 +1,6 @@
 import type { Registry } from '@manifold/commands';
 import type { InputAction } from './input';
+import type { Profile } from './profile';
 import type { Event } from './types';
 import type { World } from './world';
 
@@ -36,6 +37,11 @@ export interface Cartridge {
    * The Dojo, a lab, lets everybody. (Finer permissions: phase 6, decision 0010.)
    */
   mayChange?(player: number): boolean;
+  /**
+   * How its matches run (stage 2.5b, decision 0014): the physics its worlds run on, and who verifies
+   * them. Without it, `VERIFIED`: Rapier's deterministic build, and a server that checks every copy.
+   */
+  readonly profile?: Profile;
   /**
    * Once, with the freshly created world: put whatever there is at the start. STARTUP values (how
    * many cubes, which room) are read from the registry, which already has the recipes applied.
