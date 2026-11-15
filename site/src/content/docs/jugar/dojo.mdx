@@ -55,7 +55,7 @@ Qué significan las clases (arranque, mundo, vista) está en [la consola](../con
 
 ## De dónde sale lo que se ve
 
-El personaje es un **maniquí**: lo modela y lo anima un guion que corre Blender sin pantalla, nunca a mano ([decisión 0015](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/docs/decisions/0015-art-and-sound.md)). Tiene una animación para cada manera de moverse (quieto, caminar, correr, en el aire, planear, trepar), y la que se ve la elige el estado del personaje en el mundo: la vista lee el mundo, nunca lo escribe. Su sombra, justo debajo, dice dónde va a caer.
+El personaje es un **maniquí**: lo modela y lo anima un guion que corre Blender sin pantalla, nunca a mano ([decisión 0015](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/docs/decisions/0015-art-and-sound.md)). Sus animaciones se mezclan según lo que hace en el mundo: caminar y correr hacia adelante, hacia atrás y de costado, según el ángulo entre adónde va y adónde mira; pasos al girar sin moverse; trepar hacia arriba y de lado; subir y caer en el aire, una vuelta en el salto en el aire y el peso de un aterrizaje. La vista lee el mundo, nunca lo escribe: mira cuánto avanzó de verdad, así que contra una pared no camina en el lugar. Su sombra, justo debajo, dice dónde va a caer.
 
 <DojoCredits />
 

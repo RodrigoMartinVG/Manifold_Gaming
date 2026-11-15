@@ -2,14 +2,26 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { clone as cloneSkeleton } from 'three/addons/utils/SkeletonUtils.js';
 import { vec3, type Vec3 } from '@manifold/common';
-import type { Character } from '@manifold/core';
+import { STEP, type Character } from '@manifold/core';
+import {
+  advance,
+  CHARACTER_CLIPS,
+  cycleTime,
+  dominant,
+  finalWeights,
+  newGait,
+  type CharacterClip,
+  type Gait,
+} from './locomotion';
 
 /** A copy of a model, ready to draw, and the animations it plays. */
 export interface ModelInstance {
   readonly object: THREE.Object3D;
   readonly mixer: THREE.AnimationMixer;
   readonly actions: ReadonlyMap<string, THREE.AnimationAction>;
-  /** The animation it plays now (null: none yet). */
+  /** How it moves (stage 2e2: locomotion.ts), from one frame to the next. */
+  readonly gait: Gait;
+  /** The animation that weighs most now (null: none yet). */
   playing: string | null;
 }
 
@@ -48,40 +60,96 @@ export function loadModels(urls: Readonly<Record<string, string>> = {}): Models 
       if (!model) return null;
       const object = cloneSkeleton(model.scene);
       const mixer = new THREE.AnimationMixer(object);
-      const actions = new Map(model.clips.map((clip) => [clip.name, mixer.clipAction(clip)] as const));
-      return { object, mixer, actions, playing: null };
+      // Every animation plays at once, each with its weight, at the time the gait says (stage 2e2):
+      // the mixer does not move them on by itself.
+      const actions = new Map(
+        model.clips.map((clip) => {
+          const action = mixer.clipAction(clip);
+          action.play();
+          action.timeScale = 0;
+          action.setEffectiveWeight(clip.name === 'idle' ? 1 : 0);
+          return [clip.name, action] as const;
+        }),
+      );
+      // (A gesture lasts as long as its animation: the model says how long.)
+      const length = (clip: string, otherwise: number) => model.clips.find((c) => c.name === clip)?.duration ?? otherwise;
+      return { object, mixer, actions, gait: newGait({ flip: length('flip', 0.45), land: length('land', 0.3) }), playing: null };
     },
     onLoad: (listener) => listeners.push(listener),
   };
 }
 
-/** How fast each animation was made to move (m/s): played faster or slower with the character, its feet do not slide. */
-const PACE: Record<string, number> = { walk: 4.5, run: 7.5, climb: 2.5 };
-
 /**
- * WHICH ANIMATION a character plays (stage 2e): from its mode, and walking, from how fast it goes
- * (along its ground: what a platform carries it does not count). The view only reads the world: the
- * animation follows the character, never the other way round.
+ * HOW A CHARACTER REALLY MOVED during its last step (m/s), apart from what carries it (a platform
+ * under it): from where it was before the step and where it is. Not its `velocity`, which is what it
+ * asks for on the ground: against a wall it asks for 4.5 m/s and goes nowhere. More than a meter in a
+ * step is not moving, it is being put somewhere (a checkpoint, `dojo.goto`).
  */
-export function clipFor(c: Character, up: Vec3): { clip: string; speed: number } {
-  const speed = vec3.length(vec3.onPlane(c.velocity, up));
-  if (c.mode === 'climb') return { clip: 'climb', speed: vec3.length(c.velocity) };
-  if (c.mode === 'glide') return { clip: 'glide', speed };
-  if (c.mode === 'air') return { clip: 'air', speed };
-  return { clip: speed < 0.5 ? 'idle' : speed < 6 ? 'walk' : 'run', speed };
+export function motion(before: Vec3, now: Vec3, c: Character): Vec3 {
+  const d = vec3.sub(now, before);
+  if (vec3.length(d) > 1) return [0, 0, 0];
+  return vec3.sub(vec3.scale(d, 1 / STEP), c.ground.velocity);
 }
 
-/** Moves a copy's animation on by `dt` seconds, towards the one the character asks for (a short blend). */
-export function animate(model: ModelInstance, c: Character, up: Vec3, dt: number) {
-  const { clip, speed } = clipFor(c, up);
-  const next = model.actions.get(clip);
-  if (next && model.playing !== clip) {
-    next.reset().play();
-    const before = model.playing ? model.actions.get(model.playing) : null;
-    if (before) next.crossFadeFrom(before, 0.15, false);
-    model.playing = clip;
+/** How fast the drawn body turns at most (radians per second): a turn of the world's in a step reads as a quick turn, not a jump. */
+const TURN_RATE = THREE.MathUtils.degToRad(900);
+const FORWARD = new THREE.Vector3(0, 0, -1);
+const ahead = new THREE.Vector3();
+const before = new THREE.Vector3();
+const upAxis = new THREE.Vector3();
+
+/**
+ * THE BODY'S TURN, as drawn (stage 2e2): towards where the world has it, at most `TURN_RATE`. The
+ * simulation turns a character at once (to where it walks, to the wall it climbs: 90° or 180° in one
+ * step); drawn like that, it flipped. Anything slower is drawn exactly as it is (a platform's turn, the
+ * mouse aiming). Returns how fast it turned around "up" (degrees per second), for the steps of turning
+ * on the spot. Only the view: the world is not touched.
+ */
+export function turnBody(drawn: THREE.Quaternion, target: THREE.Quaternion, up: Vec3, dt: number): number {
+  before.copy(FORWARD).applyQuaternion(drawn);
+  drawn.rotateTowards(target, TURN_RATE * dt);
+  if (dt <= 0) return 0;
+  ahead.copy(FORWARD).applyQuaternion(drawn);
+  upAxis.set(...up);
+  const sin = new THREE.Vector3().crossVectors(before, ahead).dot(upAxis);
+  return THREE.MathUtils.radToDeg(Math.atan2(sin, before.dot(ahead))) / dt;
+}
+
+/**
+ * Moves a copy's animations on by `dt` seconds (already scaled by the match's speed), as the
+ * character asks: its mode, how it really moved (`moved`, from `motion`), and how fast its body is
+ * drawn turning (`turning`, degrees per second, from `turnBody`). The view only reads the world.
+ */
+export function animate(model: ModelInstance, c: Character, up: Vec3, moved: Vec3, turning: number, dt: number) {
+  const spin = THREE.MathUtils.radToDeg(c.ground.spin);
+  advance(
+    model.gait,
+    {
+      mode: c.mode,
+      grounded: c.grounded,
+      up,
+      facing: c.facing,
+      velocity: moved,
+      vertical: vec3.dot(c.velocity, up),
+      airJumps: c.airJumps,
+      // (What a turning platform turns it is not turning on its feet.)
+      turning: turning - spin,
+    },
+    dt,
+  );
+  const weights = finalWeights(model.gait);
+  for (const [name, action] of model.actions) {
+    const clip = name as CharacterClip;
+    if (!(CHARACTER_CLIPS as readonly string[]).includes(name)) {
+      action.setEffectiveWeight(0);
+      continue;
+    }
+    action.setEffectiveWeight(weights[clip]);
+    const length = action.getClip().duration;
+    const at = cycleTime(model.gait, clip);
+    action.time =
+      'phase' in at ? at.phase * length : clip === 'flip' || clip === 'land' ? Math.min(at.seconds, length) : at.seconds % length;
   }
-  const pace = PACE[clip];
-  if (next) next.timeScale = pace ? THREE.MathUtils.clamp(speed / pace, 0, 1.6) : 1;
-  model.mixer.update(dt);
+  model.mixer.update(0);
+  model.playing = dominant(weights);
 }

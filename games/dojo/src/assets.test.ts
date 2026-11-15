@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+import { CHARACTER_CLIPS, FAMILIES } from '@manifold/presentation/locomotion';
 import list from '../assets/assets.json';
 
 /**
@@ -48,7 +49,7 @@ function gltf(dataUrl: string) {
       animations?: {
         name: string;
         channels: { sampler: number; target: { node: number; path: string } }[];
-        samplers: { output: number }[];
+        samplers: { input: number; output: number }[];
       }[];
       scenes: { nodes: number[] }[];
     },
@@ -83,9 +84,33 @@ describe("the Dojo's art (stage 2e)", () => {
     expect(json.textures?.length ?? 0).toBe(0); // colors, not textures: one palette
     expect(json.nodes.length).toBeLessThan(40);
     expect(size).toBeLessThan(300_000);
-    // An animation for each way of moving the presentation draws (bodies.ts: clipFor).
+    // The animations the presentation mixes (stage 2e2: locomotion.ts says which), exactly those.
     const clips = (json.animations ?? []).map((a) => a.name).sort();
-    expect(clips).toEqual(['air', 'climb', 'glide', 'idle', 'run', 'walk']);
+    expect(clips).toEqual([...CHARACTER_CLIPS].sort());
+    // Each one from 0 s (from frame 1, a cycle held its first pose two frames: stage 2e2), and the
+    // cycles of a family of one length: mixed, at one phase, their feet are in step.
+    const animation = (name: string) => json.animations!.find((a) => a.name === name)!;
+    const span = (name: string) => {
+      const inputs = animation(name).samplers.map((s) => json.accessors[s.input]!);
+      return { start: Math.min(...inputs.map((a) => a.min![0]!)), length: Math.max(...inputs.map((a) => a.max![0]!)) };
+    };
+    for (const clip of CHARACTER_CLIPS) expect(span(clip).start, `${clip} starts`).toBe(0);
+    for (const [family, members] of Object.entries(FAMILIES))
+      for (const clip of members)
+        expect(span(clip).length, `${clip}, as long as ${family}`).toBeCloseTo(span(members[0]!).length, 6);
+    // The jump in the air is a whole somersault: the hips turn all the way round. Added up from one
+    // key to the next (the angle between two quaternions, 2·acos|q1·q2|: the file writes each one with
+    // w ≥ 0, so no single key says "a whole turn", and three.js goes the short way between two).
+    const hips = json.nodes.findIndex((n) => n.name === 'hips');
+    const flip = animation('flip');
+    const somersault = flip.channels.find((c) => c.target.node === hips && c.target.path === 'rotation')!;
+    const q = glb.floats(flip.samplers[somersault.sampler]!.output, json);
+    let turned = 0;
+    for (let i = 4; i < q.length; i += 4) {
+      const dot = q[i]! * q[i - 4]! + q[i + 1]! * q[i - 3]! + q[i + 2]! * q[i - 2]! + q[i + 3]! * q[i - 1]!;
+      turned += (2 * Math.acos(Math.min(1, Math.abs(dot))) * 180) / Math.PI;
+    }
+    expect(turned, 'the hips, a whole turn (degrees)').toBeCloseTo(360, 0);
     // No root motion: the simulation moves the character; an animation only turns its bones. (Blender
     // writes every bone's place and size too: they must not change, from the first key to the last.)
     const root = json.scenes[0]!.nodes[0]!;

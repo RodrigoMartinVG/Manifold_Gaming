@@ -11,9 +11,10 @@ import {
   type Replay,
   type Session,
 } from '@manifold/core';
+import type { Vec3 } from '@manifold/common';
 import type { Match } from '@manifold/net';
 import type { Bodies } from './bodies';
-import { animate, type ModelInstance } from './models';
+import { animate, motion, turnBody, type ModelInstance } from './models';
 import { ownMaterial, release } from './owned';
 import type { PageMatch } from './match';
 import { hex, type GamePage, type Piece } from './page';
@@ -60,6 +61,9 @@ export function mountReplays(page: GamePage, match: PageMatch, bodies: Bodies): 
     player: ReplayPlayer;
     mesh: THREE.Object3D | null;
     model: ModelInstance | null;
+    /** Where its body was before its world's last step (to know how it really moved), and its body's turn as drawn (stage 2e2). */
+    before: Vec3 | null;
+    drawn: THREE.Quaternion | null;
   } | null = null;
 
   /** The server plays the replay: the match starts over like it, and each copy checks its hash at the end. */
@@ -67,7 +71,15 @@ export function mountReplays(page: GamePage, match: PageMatch, bodies: Bodies): 
 
   function startGhost(replay: Replay) {
     clearGhost();
-    ghost = { replay, session: sessionFor(page.cartridge, replay), player: new ReplayPlayer(replay), mesh: null, model: null };
+    ghost = {
+      replay,
+      session: sessionFor(page.cartridge, replay),
+      player: new ReplayPlayer(replay),
+      mesh: null,
+      model: null,
+      before: null,
+      drawn: null,
+    };
     const body = [...ghost.session.world.entities.values()].find((e) => e.character?.player === 1);
     if (body?.appearance) {
       // The same look, translucent: a ghost. (Its own materials: a model's are shared by every copy,
@@ -188,6 +200,8 @@ export function mountReplays(page: GamePage, match: PageMatch, bodies: Bodies): 
     },
     beforeStep() {
       if (ghost && !ghost.player.finished(ghost.session)) {
+        const body = [...ghost.session.world.entities.values()].find((e) => e.character?.player === 1);
+        ghost.before = body?.transform ? [...body.transform.position] : null;
         ghost.player.feed(ghost.session);
         ghost.session.step();
       }
@@ -212,11 +226,19 @@ export function mountReplays(page: GamePage, match: PageMatch, bodies: Bodies): 
       if (!ghost?.mesh) return;
       const body = [...ghost.session.world.entities.values()].find((e) => e.character?.player === 1);
       const g = body?.transform;
-      if (!g) return;
+      if (!g || !body.character) return;
+      const time = dt * timeScale();
+      const up = upAt(ghost.session.world, g.position);
       ghost.mesh.position.set(...g.position);
-      ghost.mesh.quaternion.set(...g.rotation);
-      if (ghost.model && body.character)
-        animate(ghost.model, body.character, upAt(ghost.session.world, g.position), dt * timeScale());
+      // Its body turns as the live one's does: quickly, not at once (models.ts: turnBody).
+      const target = new THREE.Quaternion(...g.rotation);
+      ghost.drawn ??= target.clone();
+      const turning = turnBody(ghost.drawn, target, up, time);
+      ghost.mesh.quaternion.copy(ghost.drawn);
+      if (ghost.model) {
+        const moved = ghost.before ? motion(ghost.before, g.position, body.character) : [0, 0, 0];
+        animate(ghost.model, body.character, up, moved as Vec3, turning, time);
+      }
     },
     afterRender() {
       const body = ghost && [...ghost.session.world.entities.values()].find((e) => e.character?.player === 1);

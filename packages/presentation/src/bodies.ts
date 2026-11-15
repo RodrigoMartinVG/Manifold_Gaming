@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { Quat, Vec3 } from '@manifold/common';
 import { upAt, type Appearance, type Entity, type EntityId, type Shape, type World } from '@manifold/core';
 import type { VariableInfo } from '@manifold/commands';
-import { animate, type ModelInstance, type Models } from './models';
+import { animate, motion, turnBody, type ModelInstance, type Models } from './models';
 import { own, ownMaterial, release } from './owned';
 import type { GamePage, Piece } from './page';
 
@@ -56,9 +56,11 @@ export const BODIES_VARIABLES = {
  * boxes. Two views of their own: `show.wireframe` and `show.sensors`.
  *
  * MODELS (stage 2e): an appearance that names a model (`model`) is drawn with a copy of it, once it
- * loaded (its shape meanwhile), and a character's copy plays the animation its state asks for
- * (models.ts: `clipFor`). Every character has a soft shadow straight under it, on whatever is there:
- * to read where it will land.
+ * loaded (its shape meanwhile), and a character's copy plays the animations its state asks for,
+ * mixed by where it really goes compared with where it looks (stage 2e2: locomotion.ts). A
+ * character's body is drawn turning at most 900°/s towards where the world has it (models.ts:
+ * `turnBody`): the simulation turns it at once. Every character has a soft shadow straight under it,
+ * on whatever is there: to read where it will land.
  */
 export function mountBodies(page: GamePage, models: Models, o: { timeScale(): number }): Bodies {
   const { scene, camera } = page.stage;
@@ -71,6 +73,9 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
   const shadowMaterial = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.35, depthWrite: false });
   const previous = new Map<EntityId, Pose>();
   const previousTurn = new Map<EntityId, Quat>();
+  /** Each character's body as drawn (stage 2e2: it turns towards the world's, not at once), and how fast it turned last frame (degrees per second). */
+  const drawnTurn = new Map<EntityId, THREE.Quaternion>();
+  const turning = new Map<EntityId, number>();
   /** The zones, as wire boxes (show.sensors), by entity: they have no appearance, they are only shown on request. */
   const zones = new Map<EntityId, THREE.LineSegments>();
   let wireframe = false;
@@ -208,6 +213,8 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
     }
     previous.delete(id);
     previousTurn.delete(id);
+    drawnTurn.delete(id);
+    turning.delete(id);
   };
   const savePrevious = (world: World) => {
     for (const e of world.entities.values()) {
@@ -219,6 +226,7 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
 
   const qa = new THREE.Quaternion();
   const qb = new THREE.Quaternion();
+  const qt = new THREE.Quaternion();
   const pointer = new THREE.Vector2();
   const raycaster = new THREE.Raycaster();
 
@@ -248,21 +256,37 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
       if (ev.type === 'entityRemoved') remove(ev.id);
     },
     frame({ world, alpha, dt, hero }) {
-      for (const [id, mesh] of meshes) {
-        const t = world.entities.get(id)?.transform;
-        const before = previous.get(id) ?? t;
-        if (!t || !before) continue;
-        mesh.position.set(...before.position).lerp(new THREE.Vector3(...t.position), alpha);
-        mesh.quaternion.slerpQuaternions(qa.set(...before.rotation), qb.set(...t.rotation), alpha);
-      }
-      // A character's animation, from its state (the view reads the world, never writes it).
+      // (How much time passed for the world: paused, none; at half speed, half.)
       const time = dt * o.timeScale();
+      for (const [id, mesh] of meshes) {
+        const e = world.entities.get(id);
+        const t = e?.transform;
+        const before = previous.get(id) ?? t;
+        if (!e || !t || !before) continue;
+        mesh.position.set(...before.position).lerp(new THREE.Vector3(...t.position), alpha);
+        const target = qt.slerpQuaternions(qa.set(...before.rotation), qb.set(...t.rotation), alpha);
+        if (!e.character) {
+          mesh.quaternion.copy(target);
+          continue;
+        }
+        // A character's body turns towards the world's, quickly but not at once (stage 2e2).
+        let drawn = drawnTurn.get(id);
+        if (!drawn) drawnTurn.set(id, (drawn = target.clone()));
+        turning.set(id, turnBody(drawn, target, upAt(world, t.position), time));
+        mesh.quaternion.copy(drawn);
+      }
+      // A character's animations, from its state and how it really moved in its last step (the view
+      // reads the world, never writes it).
       for (const [id, model] of instances) {
         const e = world.entities.get(id);
-        if (e?.character && e.transform) animate(model, e.character, upAt(world, e.transform.position), time);
+        const t = e?.transform;
+        if (!e?.character || !t) continue;
+        const before = previous.get(id);
+        const moved = before ? motion(before.position, t.position, e.character) : ([0, 0, 0] as const);
+        animate(model, e.character, upAt(world, t.position), [...moved], turning.get(id) ?? 0, time);
       }
-      // For the browser tests (probe.ts): the animation the player's model plays ('' while it is drawn
-      // with its shape), written when it changes.
+      // For the browser tests (probe.ts): the animation that weighs most in the player's model ('' while
+      // it is drawn with its shape), written when it changes.
       const clip = (hero && instances.get(hero.id)?.playing) || '';
       if (page.container.dataset.clip !== clip) page.container.dataset.clip = clip;
       // Its shadow, straight under it ("down" is where the world says): on what a ray down from its

@@ -8,10 +8,17 @@ Blender without a screen (`npm run art`), never by hand. It writes `games/dojo/a
 - Its skeleton: a hierarchy of bones; each piece of the body hangs from one (no skin weights: the
   pieces move rigidly, as a mannequin's do). And its sockets, where something is held or worn: one
   for each hand and one for the head (`hand_L_socket`, `hand_R_socket`, `head_socket`).
-- Its animations: one per way of moving the presentation draws, named after it: `idle`, `walk`,
-  `run`, `air`, `glide`, `climb`. Made of keyframes computed here (sines and angles), each one a loop
-  of whole seconds' fractions, with no root motion: the simulation moves the character, the
-  animation only moves its limbs.
+- Its animations, the ones the presentation mixes (packages/presentation/src/locomotion.ts:
+  `CHARACTER_CLIPS`): quiet (`idle`); walking and running, each forward, back and to each side
+  (`walk`, `walk_back`, `walk_left`, `walk_right`, and `run…`); stepping on the spot while it turns
+  (`turn`); climbing up and to each side (`climb`, `climb_left`, `climb_right`); rising and falling
+  (`rise`, `fall`); gliding (`glide`); and two gestures played once over the rest: a somersault for
+  the jump in the air (`flip`) and the weight of a landing (`land`). Made of keyframes computed here
+  (sines and angles), with no root motion: the simulation moves the character, the animation only
+  moves its limbs.
+- The cycles of one family (walking, running, climbing) have one length and one timing: the left
+  leg is the one that steps in the first half of every cycle, the right one in the second. So the
+  presentation can mix forward with a side, at 45°, and the feet do not fight.
 
 It is built in Blender's frame (Z up, its front towards -Y). The glTF exporter turns Blender's -Y into
 +Z, glTF's front; but the engine's front is -Z (where a character looks, and the capsule's visor). So
@@ -189,12 +196,16 @@ for pb in pose.bones:
     pb.rotation_mode = "XYZ"
 
 
-def animate(name, seconds, keys, frames=None):
+def animate(name, seconds, keys):
+    """An animation of about `seconds`, keyed on every frame: its length is a whole number of frames
+    (running, 0.45 s, is 14 frames: 0.467 s). Keys between two frames were moved to one by the
+    exporter, and a cycle came out shorter and uneven; the presentation does not need the exact
+    length, it plays a cycle by the distance travelled (locomotion.ts)."""
     action = bpy.data.actions.new(name)
     action.use_fake_user = True
     arm_obj.animation_data_create()
     arm_obj.animation_data.action = action
-    count = frames or max(2, round(seconds * FPS))
+    count = max(2, round(seconds * FPS))
     for f in range(count + 1):
         t = f / count
         for pb in pose.bones:
@@ -202,7 +213,7 @@ def animate(name, seconds, keys, frames=None):
         for bone, (rx, ry, rz) in keys(t).items():
             pose.bones[bone].rotation_euler = Euler((math.radians(rx), math.radians(ry), math.radians(rz)))
         for pb in pose.bones:
-            pb.keyframe_insert("rotation_euler", frame=1 + f * (seconds * FPS / count))
+            pb.keyframe_insert("rotation_euler", frame=1 + f)
     # Pushed to its own track, so the exporter takes each animation by its name.
     track = arm_obj.animation_data.nla_tracks.new()
     track.name = name
@@ -233,6 +244,41 @@ def legs_and_arms(t, stride, knee, arm, elbow):
     }
 
 
+def legs_back(t, stride, knee, arm, elbow):
+    """Walking backwards: the walking cycle with every swing the other way; the knee bends at the same
+    moment (the left leg in the first half), so it mixes with walking forward and to the sides."""
+    return {
+        "thigh_L": swing_limb(wave(t, -stride)),
+        "shin_L": bend_knee(once(t, knee, 0.0)),
+        "thigh_R": swing_limb(wave(t, stride)),
+        "shin_R": bend_knee(once(t, knee, 0.5)),
+        "upper_arm_L": swing_limb(wave(t, arm), 5, "L"),
+        "forearm_L": bend_elbow(elbow),
+        "upper_arm_R": swing_limb(wave(t, -arm), 5, "R"),
+        "forearm_R": bend_elbow(elbow),
+    }
+
+
+def legs_side(t, to, spread, knee, lift, lean_side):
+    """Stepping to a side (`to`: "R" or "L"), the feet apart and together again: the leg on that side
+    steps out, the other follows. Each leg goes from straight down (0) to `spread` degrees out of the
+    body and back, both at once, and the left one's knee bends in the first half, as in the other
+    cycles: to the right, the left leg comes in then; to the left, it goes out."""
+    sign = -1 if to == "R" else 1
+    out = spread / 2 * (1 + sign * math.sin(2 * math.pi * t))
+    return {
+        "spine": lean(3, lean_side if to == "R" else -lean_side),
+        "thigh_L": swing_limb(once(t, lift, 0.0), out, "L"),
+        "shin_L": bend_knee(once(t, knee, 0.0)),
+        "thigh_R": swing_limb(once(t, lift, 0.5), out, "R"),
+        "shin_R": bend_knee(once(t, knee, 0.5)),
+        "upper_arm_L": swing_limb(wave(t, 6), 12, "L"),
+        "forearm_L": bend_elbow(30),
+        "upper_arm_R": swing_limb(wave(t, -6), 12, "R"),
+        "forearm_R": bend_elbow(30),
+    }
+
+
 # Quiet: it breathes, its arms hang a little out.
 animate(
     "idle",
@@ -247,15 +293,40 @@ animate(
     },
 )
 
-# Walking (the engine's walk is a jog, 4.5 m/s), leaning a little forward.
-animate("walk", 0.6, lambda t: {"spine": lean(6, 0, wave(t, 4)), **legs_and_arms(t, 32, 55, 28, 40)})
+# Walking (the engine's walk is a jog, 4.5 m/s), leaning a little forward; back, leaning a little back;
+# to each side, stepping apart and together. One length for all four: 0.6 s.
+WALK = 0.6
+animate("walk", WALK, lambda t: {"spine": lean(6, 0, wave(t, 4)), **legs_and_arms(t, 32, 55, 28, 40)})
+animate("walk_back", WALK, lambda t: {"spine": lean(-4, 0, wave(t, 3)), **legs_back(t, 26, 45, 20, 35)})
+animate("walk_right", WALK, lambda t: legs_side(t, "R", 22, 40, 12, 4))
+animate("walk_left", WALK, lambda t: legs_side(t, "L", 22, 40, 12, 4))
 
-# Running: the same, faster and wider, leaning more.
-animate("run", 0.45, lambda t: {"spine": lean(14, 0, wave(t, 6)), "head": lean(-8), **legs_and_arms(t, 48, 90, 45, 75)})
+# Running: the same, faster and wider, leaning more. One length for all four: 0.45 s.
+RUN = 0.45
+animate("run", RUN, lambda t: {"spine": lean(14, 0, wave(t, 6)), "head": lean(-8), **legs_and_arms(t, 48, 90, 45, 75)})
+animate("run_back", RUN, lambda t: {"spine": lean(-2, 0, wave(t, 4)), **legs_back(t, 36, 70, 30, 60)})
+animate("run_right", RUN, lambda t: legs_side(t, "R", 32, 60, 18, 7))
+animate("run_left", RUN, lambda t: legs_side(t, "L", 32, 60, 18, 7))
 
-# In the air: knees up, arms out and a little up, a slow sway.
+# Turning on the spot: small steps, one foot then the other, the arms quiet.
 animate(
-    "air",
+    "turn",
+    0.5,
+    lambda t: {
+        "thigh_L": swing_limb(once(t, 16, 0.0), 4, "L"),
+        "shin_L": bend_knee(once(t, 32, 0.0)),
+        "thigh_R": swing_limb(once(t, 16, 0.5), 4, "R"),
+        "shin_R": bend_knee(once(t, 32, 0.5)),
+        "upper_arm_L": swing_limb(0, 8, "L"),
+        "upper_arm_R": swing_limb(0, 8, "R"),
+        "forearm_L": bend_elbow(12),
+        "forearm_R": bend_elbow(12),
+    },
+)
+
+# Rising: knees up, arms out and a little up, a slow sway.
+animate(
+    "rise",
     1.0,
     lambda t: {
         "spine": lean(4),
@@ -267,6 +338,24 @@ animate(
         "forearm_L": bend_elbow(25),
         "upper_arm_R": swing_limb(10, 45, "R"),
         "forearm_R": bend_elbow(25),
+    },
+)
+
+# Falling: the legs reach down for the ground, the arms up and out to keep the balance, looking down.
+animate(
+    "fall",
+    1.0,
+    lambda t: {
+        "spine": lean(-3),
+        "head": lean(10),
+        "thigh_L": swing_limb(14 + wave(t, 3)),
+        "shin_L": bend_knee(18),
+        "thigh_R": swing_limb(4 + wave(t, -3)),
+        "shin_R": bend_knee(10),
+        "upper_arm_L": swing_limb(25, 70 + wave(t, 4), "L"),
+        "forearm_L": bend_elbow(15),
+        "upper_arm_R": swing_limb(25, 70 + wave(t, -4), "R"),
+        "forearm_R": bend_elbow(15),
     },
 )
 
@@ -289,34 +378,98 @@ animate(
     },
 )
 
-# Climbing: facing the wall, arms reaching up in turns, knees too.
-animate(
-    "climb",
-    0.8,
-    lambda t: {
-        "upper_arm_L": swing_limb(150 + wave(t, 25), 8, "L"),
-        "forearm_L": bend_elbow(25 + once(t, 45, 0.5)),
-        "upper_arm_R": swing_limb(150 + wave(t, -25), 8, "R"),
-        "forearm_R": bend_elbow(25 + once(t, 45, 0.0)),
-        "thigh_L": swing_limb(45 + wave(t, -25)),
+
+def climbing(t, to=None):
+    """Facing the wall, arms reaching up in turns, knees too (the left hand and the left foot in the
+    first half). To a side (`to`: "R" or "L"), the reach is shorter up and goes out to that side: the
+    hand and the foot on that side reach out, the others follow. (An arm raised past the horizontal
+    turns "out" the other way: the turn away from the body is applied last, around the axis from front
+    to back, and an arm pointing up goes towards the head with it. So the hands reach with a minus.)"""
+    up = 1.0 if to is None else 0.5
+    reach_R = 0 if to is None else (45 * once(t, 1, 0.5) if to == "R" else 10 * once(t, 1, 0.5))
+    reach_L = 0 if to is None else (45 * once(t, 1, 0.0) if to == "L" else 10 * once(t, 1, 0.0))
+    lean_to = 0 if to is None else (6 if to == "R" else -6)
+    return {
+        "spine": lean(0, lean_to),
+        "upper_arm_L": swing_limb(150 + wave(t, 25 * up), 8 - reach_L, "L"),
+        "forearm_L": bend_elbow(25 + once(t, 45 * up, 0.5)),
+        "upper_arm_R": swing_limb(150 + wave(t, -25 * up), 8 - reach_R, "R"),
+        "forearm_R": bend_elbow(25 + once(t, 45 * up, 0.0)),
+        "thigh_L": swing_limb(45 + wave(t, -25 * up), 4 + reach_L * 0.6, "L"),
         "shin_L": bend_knee(70 + once(t, 30, 0.0)),
-        "thigh_R": swing_limb(45 + wave(t, 25)),
+        "thigh_R": swing_limb(45 + wave(t, 25 * up), 4 + reach_R * 0.6, "R"),
         "shin_R": bend_knee(70 + once(t, 30, 0.5)),
+    }
+
+
+# Climbing, up and to each side. One length for all three: 0.8 s.
+CLIMB = 0.8
+animate("climb", CLIMB, lambda t: climbing(t))
+animate("climb_right", CLIMB, lambda t: climbing(t, "R"))
+animate("climb_left", CLIMB, lambda t: climbing(t, "L"))
+
+
+def tucked(t):
+    """How tucked a somersault is: nothing at its ends, all of it in the middle."""
+    return math.sin(math.pi * t) ** 0.5
+
+
+# The jump in the air: a somersault forward around the hips, tucked (played once, over the rest).
+animate(
+    "flip",
+    0.45,
+    lambda t: {
+        "hips": lean(360 * (t * t * (3 - 2 * t))),
+        "spine": lean(20 * tucked(t)),
+        "head": lean(25 * tucked(t)),
+        "thigh_L": swing_limb(100 * tucked(t)),
+        "shin_L": bend_knee(120 * tucked(t)),
+        "thigh_R": swing_limb(100 * tucked(t)),
+        "shin_R": bend_knee(120 * tucked(t)),
+        "upper_arm_L": swing_limb(60 * tucked(t), 10, "L"),
+        "forearm_L": bend_elbow(90 * tucked(t)),
+        "upper_arm_R": swing_limb(60 * tucked(t), 10, "R"),
+        "forearm_R": bend_elbow(90 * tucked(t)),
+    },
+)
+
+
+def impact(t):
+    """A landing's crouch: all at once (at a third of it), then slowly up."""
+    return t / 0.3 if t < 0.3 else (1 - t) / 0.7
+
+
+# A landing's weight: the knees give, the body leans, the arms come forward (played once, over the rest).
+animate(
+    "land",
+    0.3,
+    lambda t: {
+        "spine": lean(18 * impact(t)),
+        "head": lean(-10 * impact(t)),
+        "thigh_L": swing_limb(40 * impact(t)),
+        "shin_L": bend_knee(75 * impact(t)),
+        "thigh_R": swing_limb(40 * impact(t)),
+        "shin_R": bend_knee(75 * impact(t)),
+        "upper_arm_L": swing_limb(25 * impact(t), 15, "L"),
+        "forearm_L": bend_elbow(35 * impact(t)),
+        "upper_arm_R": swing_limb(25 * impact(t), 15, "R"),
+        "forearm_R": bend_elbow(35 * impact(t)),
     },
 )
 
 # ---------------------------------------------------------------- a look at it (optional)
 #
-# With `--preview <folder>`: a picture of each animation, a quarter into it, seen from the front and
-# a little from the side (to check the look by running something, as everything else).
+# With `--preview <folder>`: contact sheets of the animations, to check them by running something, as
+# everything else. Each row is an animation (in the order they were made), at four points of its cycle,
+# seen from the front and from its side: `sheet-1.png`, `sheet-2.png`… six rows each.
 
 if "--preview" in sys.argv:
+    import numpy as np
+
     folder = sys.argv[sys.argv.index("--preview") + 1]
     os.makedirs(folder, exist_ok=True)
     cam = bpy.data.objects.new("camera", bpy.data.cameras.new("camera"))
     scene.collection.objects.link(cam)
-    cam.location = (2.2, -3.4, 0.6)
-    cam.rotation_euler = Euler((math.radians(86), 0, math.radians(33)))
     cam.data.lens = 50
     scene.camera = cam
     sun = bpy.data.objects.new("sun", bpy.data.lights.new("sun", "SUN"))
@@ -325,18 +478,43 @@ if "--preview" in sys.argv:
     scene.render.engine = "BLENDER_WORKBENCH"
     scene.display.shading.light = "STUDIO"
     scene.display.shading.color_type = "MATERIAL"
-    scene.render.resolution_x, scene.render.resolution_y = 360, 480
+    W, H = 180, 240
+    scene.render.resolution_x, scene.render.resolution_y = W, H
     views = {"front": ((2.2, -3.4, 0.6), (86, 0, 33)), "side": ((4.0, 0, 0.4), (88, 0, 90))}
-    for track in arm_obj.animation_data.nla_tracks:
-        arm_obj.animation_data.action = track.strips[0].action
-        start, end = track.strips[0].action.frame_range
-        scene.frame_set(int(start + (end - start) * 0.25))
+    phases = (0.0, 0.25, 0.5, 0.75)
+    tracks = list(arm_obj.animation_data.nla_tracks)
+    tile = os.path.join(folder, "tile.png")
+    rows = []
+    for track in tracks:
+        action = track.strips[0].action
+        arm_obj.animation_data.action = action
+        start, end = action.frame_range
+        row = []
         for view, (location, rotation) in views.items():
             cam.location = location
             cam.rotation_euler = Euler([math.radians(a) for a in rotation])
-            scene.render.filepath = os.path.join(folder, f"{track.name}-{view}.png")
-            bpy.ops.render.render(write_still=True)
+            for p in phases:
+                scene.frame_set(int(round(start + (end - start) * p)))
+                scene.render.filepath = tile
+                bpy.ops.render.render(write_still=True)
+                image = bpy.data.images.load(tile)
+                pixels = np.empty(W * H * 4, dtype=np.float32)
+                image.pixels.foreach_get(pixels)
+                bpy.data.images.remove(image)
+                row.append(pixels.reshape(H, W, 4))
+        rows.append(np.concatenate(row, axis=1))
     arm_obj.animation_data.action = None
+    os.remove(tile)
+    for n in range(0, len(rows), 6):
+        group = rows[n : n + 6]
+        # (Blender's pixels go from the bottom row up: the first animation, on top.)
+        sheet = np.concatenate(list(reversed(group)), axis=0)
+        image = bpy.data.images.new(f"sheet-{n // 6 + 1}", sheet.shape[1], sheet.shape[0], alpha=True)
+        image.pixels.foreach_set(sheet.ravel())
+        image.filepath_raw = os.path.join(folder, f"sheet-{n // 6 + 1}.png")
+        image.file_format = "PNG"
+        image.save()
+    print("PREVIEW:", ", ".join(t.name for t in tracks))
 
 # ---------------------------------------------------------------- written
 #
@@ -363,6 +541,9 @@ bpy.ops.export_scene.gltf(
     # every channel sampled. Every bone keeps its channel even where it does not change, because
     # constant is not resting (an elbow bent all through a walk).
     export_force_sampling=False,
+    # Every animation from 0 s: its keys are made from frame 1, and written as they are a cycle held
+    # its first pose for a frame at each end (walking, 0.633 s instead of 0.6: two frames still in each step).
+    export_anim_slide_to_zero=True,
     export_optimize_animation_size=True,
     export_optimize_animation_keep_anim_armature=True,
 )

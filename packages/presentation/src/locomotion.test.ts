@@ -1,0 +1,127 @@
+import { describe, expect, test } from 'vitest';
+import type { Vec3 } from '@manifold/common';
+import { advance, CHARACTER_CLIPS, directions, finalWeights, gestureWeight, newGait, targets, type Reading } from './locomotion';
+
+/** A character standing, looking at −Z (the engine's forward), with "up" up: what each test changes. */
+const reading = (over: Partial<Reading> = {}): Reading => ({
+  mode: 'walk',
+  grounded: true,
+  up: [0, 1, 0],
+  facing: [0, 0, -1],
+  velocity: [0, 0, 0],
+  vertical: 0,
+  airJumps: 1,
+  turning: 0,
+  ...over,
+});
+const sum = (w: Partial<Record<string, number>>) => Object.values(w).reduce((a, b) => a! + b!, 0)!;
+const at = (speed: number, degrees: number): Vec3 => {
+  // A velocity on the ground, `degrees` from where it looks (to its right, positive).
+  const r = (degrees * Math.PI) / 180;
+  return [speed * Math.sin(r), 0, -speed * Math.cos(r)];
+};
+
+describe('how the model moves (stage 2e2)', () => {
+  test('the four directions: the two nearest, by how near', () => {
+    expect(directions(0)).toEqual({ forward: 1, right: 0, back: 0, left: 0 });
+    expect(directions(90)).toEqual({ forward: 0, right: 1, back: 0, left: 0 });
+    expect(directions(180)).toEqual({ forward: 0, right: 0, back: 1, left: 0 });
+    expect(directions(-90)).toEqual({ forward: 0, right: 0, back: 0, left: 1 });
+    expect(directions(45)).toEqual({ forward: 0.5, right: 0.5, back: 0, left: 0 });
+    expect(directions(-135)).toEqual({ forward: 0, right: 0, back: 0.5, left: 0.5 });
+    for (let a = -360; a <= 360; a += 7) expect(sum(directions(a))).toBeCloseTo(1, 12);
+  });
+
+  test('on the ground, the cycle of where it really goes: forward, back, each side, walking or running', () => {
+    const g = { angle: 0, climbAngle: 0 };
+    expect(targets(reading({ velocity: at(4.5, 0) }), g).walk).toBeCloseTo(1, 9);
+    expect(targets(reading({ velocity: at(4.5, 180) }), g).walk_back).toBeCloseTo(1, 9);
+    expect(targets(reading({ velocity: at(4.5, 90) }), g).walk_right).toBeCloseTo(1, 9);
+    expect(targets(reading({ velocity: at(4.5, -90) }), g).walk_left).toBeCloseTo(1, 9);
+    expect(targets(reading({ velocity: at(7.5, -90) }), g).run_left).toBeCloseTo(1, 9);
+    // Between the paces, half and half; between two directions, too.
+    const between = targets(reading({ velocity: at(6, 0) }), g);
+    expect([between.walk, between.run]).toEqual([0.5, 0.5]);
+    const diagonal = targets(reading({ velocity: at(4.5, 45) }), g);
+    expect(diagonal.walk).toBeCloseTo(0.5, 9);
+    expect(diagonal.walk_right).toBeCloseTo(0.5, 9);
+  });
+
+  test('still, it is quiet; turning on the spot, it steps; and the weights always add up to 1', () => {
+    const g = { angle: 0, climbAngle: 0 };
+    expect(targets(reading(), g).idle).toBe(1);
+    expect(targets(reading({ turning: 180 }), g).turn).toBe(1);
+    expect(targets(reading({ turning: -45 }), g).turn).toBe(0.5);
+    for (const r of [
+      reading(),
+      reading({ velocity: at(0.5, 30) }),
+      reading({ velocity: at(3, -120), turning: 200 }),
+      reading({ velocity: at(9, 170) }),
+      reading({ mode: 'air', grounded: false, vertical: 0.5 }),
+      reading({ mode: 'climb', grounded: false, velocity: [1, 1.5, 0] }),
+      reading({ mode: 'glide', grounded: false }),
+    ])
+      expect(sum(targets(r, g))).toBeCloseTo(1, 12);
+  });
+
+  test('climbing, up or to a side along the wall, by the angle of its motion on it', () => {
+    const g = { angle: 0, climbAngle: 0 };
+    const climbing = (velocity: Vec3) => targets(reading({ mode: 'climb', grounded: false, velocity }), g);
+    expect(climbing([0, 2.5, 0])).toEqual({ climb: 1, climb_right: 0 });
+    const right = climbing([1.77, 1.77, 0]); // up and to its right, as the Dojo climbs pushing at 45°
+    expect(right.climb).toBeCloseTo(0.5, 6);
+    expect(right.climb_right).toBeCloseTo(0.5, 6);
+    expect(climbing([-2.5, 0, 0]).climb_left).toBe(1);
+    // Holding still on the wall (it does not, today: letting go, it falls), it keeps the last direction.
+    expect(climbing([0, 0, 0])).toEqual({ climb: 1, climb_right: 0 });
+  });
+
+  test('in the air, rising and then falling, by its vertical speed', () => {
+    const g = { angle: 0, climbAngle: 0 };
+    const air = (vertical: number) => targets(reading({ mode: 'air', grounded: false, vertical }), g);
+    expect(air(6)).toEqual({ rise: 1, fall: 0 });
+    expect(air(-3)).toEqual({ rise: 0, fall: 1 });
+    expect(air(1)).toEqual({ rise: 0.5, fall: 0.5 });
+  });
+
+  test('the cycle advances with the distance really travelled: against a wall, or paused, it does not move', () => {
+    const g = newGait();
+    // One second walking forward at 4.5 m/s, in 60 frames: 4.5 m over a cycle of 2.7 m.
+    for (let i = 0; i < 60; i++) advance(g, reading({ velocity: at(4.5, 0) }), 1 / 60);
+    expect(g.phase).toBeCloseTo((4.5 / 2.7) % 1, 6);
+    expect(g.weights.walk).toBeGreaterThan(0.99);
+    // Pushing against a wall: the view reads that it did not move (models.ts: motion), and the cycle
+    // stays where it was, the weights going back to quiet.
+    const phase = g.phase;
+    for (let i = 0; i < 60; i++) advance(g, reading(), 1 / 60);
+    expect(g.phase).toBe(phase);
+    expect(g.weights.idle).toBeGreaterThan(0.99);
+    // Paused (no time for the world), nothing changes, however it moved.
+    const before = structuredClone(g);
+    advance(g, reading({ velocity: at(7.5, 90) }), 0);
+    expect(g).toEqual(before);
+    for (const clip of CHARACTER_CLIPS) expect(Number.isFinite(g.weights[clip])).toBe(true);
+  });
+
+  test('the jump in the air is a somersault, over the rest; a hard landing weighs, a small hop does not', () => {
+    const g = newGait({ flip: 0.4, land: 0.3 });
+    advance(g, reading({ mode: 'air', grounded: false, vertical: 3, airJumps: 1 }), 1 / 60);
+    advance(g, reading({ mode: 'air', grounded: false, vertical: 6, airJumps: 0 }), 1 / 60);
+    expect(g.gesture?.clip).toBe('flip');
+    for (let i = 0; i < 6; i++) advance(g, reading({ mode: 'air', grounded: false, vertical: 5, airJumps: 0 }), 1 / 60);
+    expect(gestureWeight(g)).toBe(1);
+    expect(sum(finalWeights(g))).toBeCloseTo(1, 12);
+    expect(finalWeights(g).flip).toBe(1);
+    // It lasts as long as its animation (0.4 s here), and it is over.
+    for (let i = 0; i < 24; i++) advance(g, reading({ mode: 'air', grounded: false, vertical: -2, airJumps: 0 }), 1 / 60);
+    expect(g.gesture).toBeNull();
+    // Coming down at 8 m/s: a landing, strong; from a hop at 2 m/s, none.
+    advance(g, reading({ mode: 'air', grounded: false, vertical: -8, airJumps: 0 }), 1 / 60);
+    advance(g, reading({ airJumps: 1 }), 1 / 60);
+    expect(g.gesture).toMatchObject({ clip: 'land', strength: 0.8 });
+    const hop = newGait();
+    advance(hop, reading({ mode: 'air', grounded: false, vertical: -2 }), 1 / 60);
+    advance(hop, reading(), 1 / 60);
+    expect(hop.gesture).toBeNull();
+  });
+});

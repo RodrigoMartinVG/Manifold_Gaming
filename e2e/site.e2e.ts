@@ -380,17 +380,81 @@ test("in the course, the character is the Dojo's mannequin: its animation follow
     .toBe(true);
   await page.keyboard.up('KeyW');
   await expect.poll(last, { timeout: 20_000 }).toBe('idle');
-  // A jump from standing: in the air, its own animation. The character rises 2 m; the camera does
+  // A jump from standing: in the air, its own animations (rising, falling). The character rises 2 m; the camera does
   // not go with it (the vertical dead zone: before it, the whole world bounced on the screen).
   await settled(page, 'player');
   const from = (await seen()).length;
   await page.keyboard.press('Space');
-  await expect.poll(async () => (await seen()).slice(from).some((s) => s.clip === 'air'), { timeout: 15_000 }).toBe(true);
+  await expect
+    .poll(async () => (await seen()).slice(from).some((s) => s.clip === 'rise' || s.clip === 'fall'), { timeout: 15_000 })
+    .toBe(true);
   await expect.poll(last, { timeout: 20_000 }).toBe('idle');
   const jump = (await seen()).slice(from);
   const rise = (key: 'player' | 'camera') => Math.max(...jump.map((s) => s[key])) - Math.min(...jump.map((s) => s[key]));
   expect(rise('player')).toBeGreaterThan(1.5);
   expect(rise('camera'), 'the camera, during the jump').toBeLessThan(0.1);
+  expect(list).toEqual([]);
+});
+
+test('the mannequin moves where it really goes: backwards, to a side, and against a wall it does not walk in place (stage 2e2)', async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  const list = errors(page);
+  // Tank controls: S goes back from where it looks, E to its right, and neither turns it.
+  await page.goto('jugar/dojo/course/#recipe=controls.scheme+tank;view.camera+chase');
+  const clip = () => page.locator('#game').getAttribute('data-clip');
+  await expect.poll(clip, { timeout: 15_000 }).toBe('idle');
+  await settled(page, 'player');
+  for (const [key, cycle] of [
+    ['KeyS', 'walk_back'],
+    ['KeyE', 'walk_right'],
+    ['KeyQ', 'walk_left'],
+  ] as const) {
+    await page.keyboard.down(key);
+    await expect.poll(clip, { timeout: 20_000, message: key }).toBe(cycle);
+    await page.keyboard.up(key);
+    await expect.poll(clip, { timeout: 20_000 }).toBe('idle');
+  }
+  // In front of the tower (climbing is off), still looking at it (−Z): W walks into it, and pushing on
+  // against it, it stands. In 2e it walked in place: the view read the velocity it asked for.
+  await page.keyboard.press('Backquote');
+  await typeInConsole(page, 'dojo.goto 8 1 5');
+  await page.keyboard.press('Escape');
+  await page.keyboard.down('KeyW');
+  await expect.poll(clip, { timeout: 20_000 }).toBe('walk');
+  await expect.poll(async () => (await position(page, 'player'))[2], { timeout: 30_000 }).toBeLessThan(3.8);
+  await expect.poll(clip, { timeout: 20_000 }).toBe('idle');
+  await afterSteps(page, 60);
+  expect(await clip(), 'pushing on against the tower').toBe('idle');
+  await page.keyboard.up('KeyW');
+  expect(list).toEqual([]);
+});
+
+test('a jump in the air is a somersault, and coming down from high up, the landing weighs (stage 2e2)', async ({ page }) => {
+  const list = errors(page);
+  await page.goto('jugar/dojo/course/#recipe=dojo.doublejump+on');
+  await expect.poll(() => page.locator('#game').getAttribute('data-clip'), { timeout: 15_000 }).toBe('idle');
+  await settled(page, 'player');
+  // Every animation the page says it plays, in order (a somersault lasts less than half a second).
+  await page.locator('#game').evaluate((el) => {
+    const seen: string[] = [];
+    (window as unknown as { seen: string[] }).seen = seen;
+    new MutationObserver(() => {
+      if (seen.at(-1) !== el.dataset.clip) seen.push(el.dataset.clip!);
+    }).observe(el, { attributes: true, attributeFilter: ['data-clip'] });
+  });
+  const seen = () => page.evaluate(() => (window as unknown as { seen: string[] }).seen);
+  // A jump, and at its top (rising no more: falling), a second one in the air.
+  await page.keyboard.press('Space');
+  await expect.poll(async () => (await seen()).includes('fall'), { timeout: 15_000 }).toBe(true);
+  await page.keyboard.press('Space');
+  await expect.poll(async () => (await seen()).includes('flip'), { timeout: 15_000 }).toBe(true);
+  // Down from 4.7 m (about 9 m/s): the landing, over everything else; then quiet.
+  await expect.poll(async () => (await seen()).includes('land'), { timeout: 20_000 }).toBe(true);
+  await expect.poll(async () => (await seen()).at(-1), { timeout: 20_000 }).toBe('idle');
+  const order = await seen();
+  expect(order.indexOf('flip'), order.join(' → ')).toBeLessThan(order.indexOf('land'));
   expect(list).toEqual([]);
 });
 
