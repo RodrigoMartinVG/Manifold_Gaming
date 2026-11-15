@@ -66,6 +66,24 @@ export function copyData<T>(x: T): T {
  * server and a client) steal numbers from each other. Here every world has ITS clock, ITS id
  * counter and ITS randomness. A hundred worlds can be created at once without noticing each other.
  */
+/**
+ * THE STEP'S PHASES (stage 2.5b): what is the engine's, in the order it always runs.
+ *
+ *   1. spin: what spins without a body turns here;
+ *   2. kinematics: every kinematic body gets the velocity of this step (a moving platform, the one
+ *      that takes it where it has to be at its end, stage 2d);
+ *   3. characters: each one decides where it can go, with what its player asks for (character.ts);
+ *   4. physics: Rapier advances one step (gravity, collisions, bounces; the characters move);
+ *   5. readBack: every moving body's pose and velocities go to its components;
+ *   6. zones: who came into each zone, and who left (stage 2a).
+ *
+ * A game hooks in around them, never inside (mechanism and policy, decision 0000): before
+ * (`Cartridge.beforeStep`: what these phases will use at this step: a bot's inputs, a mechanism's
+ * target, what a character carries) and after (`Cartridge.onStep`: its rules, on the step's events).
+ */
+export const PHASES = ['spin', 'kinematics', 'characters', 'physics', 'readBack', 'zones'] as const;
+export type Phase = (typeof PHASES)[number];
+
 export class World {
   /** How many steps it took. */
   tick = 0;
@@ -203,27 +221,30 @@ export class World {
   }
 
   /**
-   * One fixed step. The systems ALWAYS run in the same order, and entities are visited in
-   * creation order (a `Map` keeps insertion order): the order is part of determinism.
-   *
-   *   1. spin: what spins without a body turns here; every kinematic body gets the velocity of this
-   *      step (a moving platform, the one that takes it where it has to be at its end, stage 2d);
-   *   2. characters: each one decides where it can go, with what its player asks for (character.ts);
-   *   3. physics: Rapier advances one step (gravity, collisions, bounces; the characters move);
-   *   4. read back: every moving body's pose and velocities go to its components;
-   *   5. zones (stage 2a): who came into each one, and who left.
+   * One fixed step: THE ENGINE'S PHASES (`PHASES`), always in the same order, and entities visited in
+   * creation order (a `Map` keeps insertion order): the order is part of determinism. Around them,
+   * the game (the session calls it: `Cartridge.beforeStep` before, `onStep` after).
    */
   step() {
     this.stepEvents = [];
     this.tick++;
-    this.spin();
-    this.move();
-    for (const e of this.entities.values()) if (e.character && e.body?.type === 'character') moveCharacter(this, e, STEP);
-    this.physics.step();
-    for (const e of this.entities.values())
-      if (e.body && e.transform && e.body.type !== 'fixed') this.physics.read(e.body.handle, e.transform, e.body);
-    this.sense();
+    for (const phase of PHASES) this.phases[phase]();
   }
+
+  /** What each phase does (see `PHASES`). */
+  private readonly phases: Record<Phase, () => void> = {
+    spin: () => this.spin(),
+    kinematics: () => this.move(),
+    characters: () => {
+      for (const e of this.entities.values()) if (e.character && e.body?.type === 'character') moveCharacter(this, e, STEP);
+    },
+    physics: () => this.physics.step(),
+    readBack: () => {
+      for (const e of this.entities.values())
+        if (e.body && e.transform && e.body.type !== 'fixed') this.physics.read(e.body.handle, e.transform, e.body);
+    },
+    zones: () => this.sense(),
+  };
 
   /**
    * KINEMATIC BODIES SYSTEM: each one gets the velocity of this step: the one it has, the one it

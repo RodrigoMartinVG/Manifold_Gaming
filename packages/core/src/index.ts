@@ -1,4 +1,4 @@
-export { copyData, World, STEP, type WorldOptions, type WorldSnapshot } from './world';
+export { copyData, World, STEP, type WorldOptions, type WorldSnapshot, PHASES, type Phase } from './world';
 export {
   Session,
   declareCore,

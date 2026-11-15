@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, test } from 'vitest';
-import { quat } from '@manifold/common';
+import { approx, quat } from '@manifold/common';
 import { World, STEP } from './world';
 import { stateHash } from './hash';
 import { initPhysics } from './physics';
@@ -58,8 +58,8 @@ describe('World', () => {
     for (let i = 0; i < 120; i++) w.step(); // 2 s
     const q = e.transform!.rotation;
     // Without trigonometry (stage 1f), each step turns 2·atan(|ω|·dt/2): a hair less than |ω|·dt.
-    expect(quat.angleBetween(quat.identity(), q)).toBeCloseTo(120 * 2 * Math.atan((0.9 * STEP) / 2), 9);
-    expect(quat.angleBetween(quat.identity(), q)).toBeCloseTo(0.9 * 120 * STEP, 4);
+    expect(approx.angleBetween(quat.identity(), q)).toBeCloseTo(120 * 2 * Math.atan((0.9 * STEP) / 2), 9);
+    expect(approx.angleBetween(quat.identity(), q)).toBeCloseTo(0.9 * 120 * STEP, 4);
     expect(Math.hypot(...q)).toBeCloseTo(1, 14);
   });
 

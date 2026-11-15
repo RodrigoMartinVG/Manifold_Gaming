@@ -182,6 +182,14 @@ export class Session {
     else this.pendingInputs.delete(player);
   }
 
+  /**
+   * ONE STEP OF THE SESSION, always in this order (stage 2.5b: written in one place):
+   *   1. the world changes that came (the console, the network), in the order they came;
+   *   2. what each player asks for at this step;
+   *   3. the game, before the engine (`Cartridge.beforeStep`): what this step's phases will use;
+   *   4. the engine's phases (`PHASES`: spin, kinematics, characters, physics, read back, zones);
+   *   5. the game's rules, after (`Cartridge.onStep`), with the step's events.
+   */
   step() {
     const step = this.world.tick + 1;
     const scheduled = this.scheduled;
@@ -200,6 +208,7 @@ export class Session {
     }
     // On EVERY step, even if nobody changed anything: the world remembers the previous step's inputs.
     this.world.applyInputs(entering);
+    this.cartridge.beforeStep?.(this.world);
     this.world.step();
     this.cartridge.onStep?.(this.world, this.world.stepEvents);
   }

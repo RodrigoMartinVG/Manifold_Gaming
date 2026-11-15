@@ -75,14 +75,9 @@ const sameEverywhere = {
       message: "A different sequence on every run: the simulation uses the world's randomness (world.random).",
     },
     {
-      object: 'quat',
-      property: 'fromAxisAngle',
-      message: 'It uses sine and cosine: in the simulation, a literal quaternion, or quat.look (stage 1f).',
-    },
-    {
-      object: 'quat',
-      property: 'angleBetween',
-      message: 'It uses acos: for tests and views, not for the simulation (stage 1f).',
+      object: 'approx',
+      message:
+        "It uses the browser's trigonometry (sine, cosine, acos): for tests and views, never in the simulation (stage 2.5b; in the simulation, a literal quaternion, quat.look or quat.fromDegrees).",
     },
   ],
   'no-restricted-syntax': [
@@ -147,14 +142,16 @@ export default defineConfig(
   },
   {
     // The simulation, the network and a game's rules give the same bits in every browser (stage 1f).
+    // (And the math they all use, `common`, except approx.ts: stage 2.5b.)
     files: [
+      'packages/common/src/**',
       'packages/core/src/**',
       'packages/net/src/**',
       'games/*/src/cartridge.ts',
       'games/*/src/rules.ts',
       'games/*/src/levels.ts',
     ],
-    ignores: ['**/*.test.ts'],
+    ignores: ['**/*.test.ts', 'packages/common/src/approx.ts'],
     rules: sameEverywhere,
   },
   {

@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, test } from 'vitest';
-import { quat } from '@manifold/common';
+import { approx, quat } from '@manifold/common';
 import { buildLevel, levelFromText, levelToText } from './level';
 import { initPhysics } from './physics';
 import { World } from './world';
@@ -50,7 +50,7 @@ describe('levels as data (stage 2a)', () => {
     expect(zones.every((z) => !z.appearance && !z.body)).toBe(true);
     // The ramp's 18°, with our own sine and cosine: the numbers the course used to have by hand.
     const ramp = entities[1]!.transform!.rotation;
-    expect(quat.angleBetween(ramp, [0.15643446504023087, 0, 0, 0.9876883405951378])).toBeLessThan(1e-12);
+    expect(approx.angleBetween(ramp, [0.15643446504023087, 0, 0, 0.9876883405951378])).toBeLessThan(1e-12);
     world.dispose();
   });
 });

@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { quat, sinCosDegrees, vec3, type Vec3 } from './math';
+import { approx } from './approx';
 
 const close = (a: readonly number[], b: readonly number[], tolerance = 1e-12) =>
   a.forEach((x, i) => expect(Math.abs(x - b[i]!)).toBeLessThan(tolerance));
@@ -22,33 +23,33 @@ describe('vectors', () => {
 
 describe('quaternions', () => {
   test('90° around Y take +X to −Z (right-hand rule)', () => {
-    const q = quat.fromAxisAngle([0, 1, 0], Math.PI / 2);
+    const q = approx.fromAxisAngle([0, 1, 0], Math.PI / 2);
     close(quat.rotate(q, [1, 0, 0]), [0, 0, -1]);
   });
 
   test('the identity does not rotate; multiplying by it changes nothing', () => {
-    const q = quat.fromAxisAngle([1, 2, 3], 0.7);
+    const q = approx.fromAxisAngle([1, 2, 3], 0.7);
     close(quat.multiply(quat.identity(), q), q);
     close(quat.multiply(q, quat.identity()), q);
     close(quat.rotate(quat.identity(), [4, 5, 6]), [4, 5, 6]);
   });
 
   test('composing: a × b rotates by b first and then by a', () => {
-    const a = quat.fromAxisAngle([0, 0, 1], 0.4);
-    const b = quat.fromAxisAngle([1, 0, 0], 1.1);
+    const a = approx.fromAxisAngle([0, 0, 1], 0.4);
+    const b = approx.fromAxisAngle([1, 0, 0], 1.1);
     const v: Vec3 = [0.3, -2, 5];
     close(quat.rotate(quat.multiply(a, b), v), quat.rotate(a, quat.rotate(b, v)));
   });
 
   test('around the same axis, the angles add up', () => {
     const axis: Vec3 = [1, 1, 0];
-    const q = quat.multiply(quat.fromAxisAngle(axis, 0.3), quat.fromAxisAngle(axis, 0.5));
-    close(q, quat.fromAxisAngle(axis, 0.8));
-    expect(quat.angleBetween(quat.identity(), q)).toBeCloseTo(0.8, 12);
+    const q = quat.multiply(approx.fromAxisAngle(axis, 0.3), approx.fromAxisAngle(axis, 0.5));
+    close(q, approx.fromAxisAngle(axis, 0.8));
+    expect(approx.angleBetween(quat.identity(), q)).toBeCloseTo(0.8, 12);
   });
 
   test('rotating keeps the length of vectors', () => {
-    const q = quat.fromAxisAngle([-2, 1, 4], 2.3);
+    const q = approx.fromAxisAngle([-2, 1, 4], 2.3);
     const v: Vec3 = [7, -1, 0.5];
     expect(vec3.length(quat.rotate(q, v))).toBeCloseTo(vec3.length(v), 12);
   });

@@ -13,9 +13,8 @@
  * DETERMINISM ACROSS BROWSERS (decision 0012): the JavaScript standard lets every engine compute
  * `Math.hypot`, `Math.sin`, `Math.cos`, `Math.atan2`… its own way, so two browsers may differ in the
  * last bit. Lengths are computed here with `Math.sqrt` of the sum of squares: the square root is
- * the operation every processor rounds the same way (IEEE 754). The functions used inside a
- * simulation step avoid the others (`fromAxisAngle` and `angleBetween` are for setting things up and
- * for tests).
+ * the operation every processor rounds the same way (IEEE 754). Nothing here uses the others (a lint
+ * rule checks it, stage 2.5b); what does, for tests and views, is in approx.ts.
  */
 const sqrt = Math.sqrt;
 export type Vec3 = [x: number, y: number, z: number];
@@ -50,13 +49,6 @@ export const vec3 = {
 
 export const quat = {
   identity: (): Quat => [0, 0, 0, 1],
-
-  /** The rotation of `angle` radians around `axis` (it does not need length 1). */
-  fromAxisAngle: (axis: Readonly<Vec3>, angle: number): Quat => {
-    const [x, y, z] = vec3.normalize(axis);
-    const s = Math.sin(angle / 2);
-    return [x * s, y * s, z * s, Math.cos(angle / 2)];
-  },
 
   /**
    * a × b: rotates by b first, then by a (like matrices: the right one is applied first).
@@ -137,12 +129,6 @@ export const quat = {
   fromDegrees: (axis: Readonly<Vec3>, degrees: number): Quat => {
     const [s, c] = sinCosDegrees(degrees / 2);
     return [axis[0] * s, axis[1] * s, axis[2] * s, c];
-  },
-
-  /** The angle (radians, from 0 to π) of the rotation that takes `a` to `b`. */
-  angleBetween: (a: Readonly<Quat>, b: Readonly<Quat>): number => {
-    const d = Math.abs(a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3]);
-    return 2 * Math.acos(Math.min(1, d));
   },
 };
 

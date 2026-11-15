@@ -683,4 +683,33 @@ describe('the players inputs, through the session', () => {
     a.session.world.dispose();
     b.session.world.dispose();
   });
+
+  test("the game before the engine's phases (stage 2.5b): it sees this step's inputs, and what it sets is used in this same step", () => {
+    const seen: string[] = [];
+    // A wind that blows while the player holds jump: the game reads this step's input and sets what the
+    // character carries, before the character phase reads it.
+    const Windy: Cartridge = {
+      ...Course,
+      beforeStep(world) {
+        const hero = [...world.entities.values()].find((e) => e.character)!;
+        const held = world.inputs.get(1)?.jump === true;
+        seen.push(`${world.tick + 1}:${held ? 'jump' : '-'}`);
+        if (held) hero.character!.carry = [3, 0, 0];
+      },
+      onStep(world) {
+        seen.push(`after ${world.tick}`);
+      },
+    };
+    const session = new Session(Windy);
+    for (let i = 0; i < 60; i++) session.step();
+    const hero = [...session.world.entities.values()].find((e) => e.character)!;
+    const x0 = hero.transform!.position[0];
+    session.setInput(1, { jump: true });
+    session.step();
+    // The order: the game before (with this step's input), the engine, the game after.
+    expect(seen.slice(-2)).toEqual(['61:jump', 'after 61']);
+    // And the wind moved it in that same step: 3 m/s for a sixtieth of a second.
+    expect(hero.transform!.position[0] - x0).toBeCloseTo(0.05, 2);
+    session.world.dispose();
+  });
 });

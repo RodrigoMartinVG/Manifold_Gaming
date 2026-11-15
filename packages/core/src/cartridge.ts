@@ -41,6 +41,12 @@ export interface Cartridge {
    * many cubes, which room) are read from the registry, which already has the recipes applied.
    */
   onStart(world: World, registry: Registry<World>): void;
-  /** On every step, after the world advanced, with that step's events. */
+  /**
+   * On every step, BEFORE the engine's phases (stage 2.5b, see `PHASES`): what they will use at this
+   * step. A bot decides what it asks for (phase 4), a mechanism where its platform goes (phase 3), a
+   * wind what a character carries. The world changes and the players' inputs of this step are in.
+   */
+  beforeStep?(world: World): void;
+  /** On every step, AFTER the engine's phases: the game's rules, with that step's events. */
   onStep?(world: World, events: readonly Event[]): void;
 }

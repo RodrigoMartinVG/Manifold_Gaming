@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, test } from 'vitest';
 import type { Vec3 } from '@manifold/common';
-import { quat } from '@manifold/common';
+import { approx, quat } from '@manifold/common';
 import {
   initPhysics,
   NO_INPUT,
@@ -42,7 +42,7 @@ test('the Dojo puts a cube that spins at |ω| rad/s, the same in two sessions wi
   // The physics turns it now, in 32-bit numbers: close to a millionth of a radian.
   const turned = (Math.hypot(0.35, 0.9, 0.15) * 300 * STEP) % (2 * Math.PI);
   const shortest = Math.min(turned, 2 * Math.PI - turned);
-  expect(quat.angleBetween(quat.identity(), cube.transform!.rotation)).toBeCloseTo(shortest, 4);
+  expect(approx.angleBetween(quat.identity(), cube.transform!.rotation)).toBeCloseTo(shortest, 4);
 });
 
 test("dojo.cubes (startup) adds cubes from the world's randomness; same seed, same cubes", () => {

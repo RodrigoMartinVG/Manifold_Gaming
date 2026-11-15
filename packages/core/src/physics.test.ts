@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, test } from 'vitest';
-import { Random, quat, type Vec3 } from '@manifold/common';
+import { approx, Random, quat, type Vec3 } from '@manifold/common';
 import { stateHash } from './hash';
 import { initPhysics } from './physics';
 import type { Shape } from './types';
@@ -111,7 +111,7 @@ describe('the physics (Rapier, behind physics.ts)', () => {
     });
     for (let i = 0; i < 60; i++) world.step();
     // One second at 1.5 rad/s around y: 1.5 rad, and it did not move.
-    expect(quat.angleBetween(quat.identity(), spinner.transform!.rotation)).toBeCloseTo(1.5, 5);
+    expect(approx.angleBetween(quat.identity(), spinner.transform!.rotation)).toBeCloseTo(1.5, 5);
     expect(spinner.transform!.position).toEqual([0, 1, 0]);
     world.dispose();
   });
