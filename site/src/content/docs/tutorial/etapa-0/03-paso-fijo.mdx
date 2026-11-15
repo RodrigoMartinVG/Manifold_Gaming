@@ -76,6 +76,15 @@ Esta versión conserva exactamente el **área** que ocupa un conjunto de estados
 
 </details>
 
+<details>
+<summary>Por qué interpolar y no adivinar</summary>
+
+Hay otra manera de dibujar suave entre pasos: en vez de dibujar entre el paso anterior y el actual, **adivinar** dónde va a estar la pelota, sumándole a su posición la velocidad por lo que pasó del paso siguiente. Se llama **extrapolar** (_extrapolate_), y no muestra el pasado.
+
+Pero se equivoca justo cuando importa: si en ese paso la pelota rebota, la extrapolación la dibuja metida en el piso, y al paso siguiente salta para arriba. La interpolación, en cambio, solo muestra lugares por los que la pelota pasó de verdad. Cuesta un paso de retraso (1/60 de segundo) y nunca dibuja algo que no pasó: por eso es la que usan casi todos los motores, y el de Manifold.
+
+</details>
+
 :::caution[Sutilezas]
 
 - **La interpolación muestra el pasado**: como mucho, un paso atrás. Con pasos de 1/60 de segundo no se nota.
@@ -83,10 +92,54 @@ Esta versión conserva exactamente el **área** que ocupa un conjunto de estados
 - **El orden de las dos líneas importa.** Primero la velocidad, después la posición: se llama **Euler semi-implícito**, y es lo que usan casi todos los motores de física. Al revés (Euler explícito), la energía crece sola y las órbitas se abren. La vitrina del [inicio](../../../) usa el semi-implícito, y una prueba verifica que en diez minutos su energía no se va.
   :::
 
+:::tip[Patrón: bucle de juego, con paso fijo]
+Es el mismo **bucle de juego** de la [lección del primer cubo](../01-primer-cubo/), en su forma completa: la simulación avanza de a pasos fijos, la pantalla dibuja cuando puede, y un acumulador une los dos relojes. Robert Nystrom lo llama "paso de actualización fijo, dibujo variable" (_fixed update time step, variable rendering_). [Todos los patrones del tutorial](../../patrones/#bucle-de-juego).
+:::
+
+## En los motores
+
+- **Unity** tiene dos métodos por objeto: `Update`, una vez por cuadro, y `FixedUpdate`, para la física, cada 0,02 segundos (50 por segundo) si no se cambia. También tiene el tope: si un cuadro tarda más de un tercio de segundo, no intenta alcanzar el resto. La interpolación de cada cuerpo (`Rigidbody.interpolation`) viene apagada.
+- **Godot** avanza su física 60 veces por segundo (`physics_ticks_per_second`), con un tope de 8 pasos por cuadro, y llama a `_physics_process(delta)` en cada uno.
+- **Unreal**, si no se le pide otra cosa, avanza la física con el tiempo de cada cuadro, y ofrece dividirlo en pasos más chicos (_substepping_) o un paso fijo aparte.
+- **En la literatura:** el artículo de Glenn Fiedler _Fix your timestep!_ (2004) es el que todos citan. Jason Gregory, _Game Engine Architecture_ (4.ª ed., vol. I), §8.5 "Measuring and Dealing with Time" (§8.5.2.4, gobernar el ritmo de los cuadros). Robert Nystrom, _Game Programming Patterns_, cap. "Game Loop".
+
+**Dónde Manifold eligió otra cosa.** Poco, y a propósito: 60 pasos por segundo, como Godot, un tope de 5 por cuadro, como todos, y todo interpolado, también lo que no tiene cuerpo. Lo distinto es que el mundo **cuenta pasos, no segundos**: su reloj es un entero (`tick`), y el tiempo es `tick × paso`, sin decimales que se acumulen (la [lección de los números](../06-numeros-que-no-son-exactos/) cuenta por qué importa). Y que nada en la simulación mira el reloj de la pantalla: un paso es un paso en cualquier máquina.
+
 ## En Manifold
 
 El reloj (_clock_) del motor es esto mismo, con el tope incluido: [`packages/core/src/clock.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/stage-00/packages/core/src/clock.ts). Da como mucho 5 pasos por cuadro: si hicieran falta más (por ejemplo, después de una pausa larga), descarta el resto en vez de intentar alcanzarlo. La presentación interpola cada objeto entre su posición anterior y la actual.
 
+## Para practicar
+
+**1. Cuántos pasos por cuadro.** Con la pantalla en 10 cuadros por segundo y el paso de la verde en 60, ¿cuántos pasos da la verde en cada cuadro? ¿Y con la pantalla en 120?
+
+<details>
+<summary>Una pista</summary>
+
+Cada cuadro, el acumulador recibe `1 / pantalla` segundos y los gasta de a `1 / paso`. Si no alcanza para uno entero, guarda el resto.
+
+</details>
+
+**2. Euler explícito.** En `integrate`, cambiá el orden de las dos primeras líneas (primero la posición, después la velocidad) y dejá correr un rato. ¿Qué pasa con las alturas máximas?
+
+<details>
+<summary>Una pista</summary>
+
+Mirá el segundo recuadro de "Más a fondo". Con los rebotes de por medio, la cuenta no es la del resorte, pero la energía igual se va.
+
+</details>
+
+**3. Ponele un tope.** Hacé que la verde dé como mucho 5 pasos por cuadro y, si le sobran, que los tire, como el reloj del motor. Probalo con la pantalla en 5 cuadros por segundo: ¿qué le pasa a la verde?
+
+<details>
+<summary>Una pista</summary>
+
+Contá los pasos dentro del `while` y cortá en 5. Si cortaste, `accumulator = 0`. Con 5 cuadros por segundo, cada cuadro pide 12 pasos: la verde va a ir más lento que el tiempo real, pero sin trabarse.
+
+</details>
+
 ## Para saber más
 
 - [Fix your timestep!](https://gafferongames.com/post/fix_your_timestep/), de Glenn Fiedler (en inglés): el artículo clásico sobre el paso fijo, el acumulador y la interpolación.
+- [Game Programming Patterns: Game Loop](https://gameprogrammingpatterns.com/game-loop.html), de Robert Nystrom (en inglés): las variantes del bucle, una por una.
+- Jason Gregory, _Game Engine Architecture_, 4.ª ed., vol. I, §8.5.

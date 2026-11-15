@@ -1,0 +1,146 @@
+---
+title: Matrices y espacios
+description: Mover, girar y escalar en una sola cuenta, con una matriz. Por qué el orden importa, y los espacios en los que vive un punto — el del objeto, el del mundo, el de la cámara y la pantalla.
+sidebar:
+  order: 7
+---
+
+import LiveCode from '../../../../components/LiveCode.astro';
+
+Cada objeto tiene un lugar, una orientación y un tamaño: se mueve, gira y escala. Para dibujarlo, la placa de video tiene que aplicarles eso a todos sus vértices, en cada cuadro. Lo hace con una sola herramienta, que hace las tres cosas a la vez: una **matriz** (_matrix_), una tabla de 4 × 4 números.
+
+Y un mismo punto vive en varios **espacios** (_spaces_) a la vez, cada uno con su origen y sus ejes:
+
+- **El del objeto** (_object space_ o _model space_): la punta de la nariz de una nave está "a 70 cm adelante de su centro", gire como gire la nave. Así vienen los vértices de un modelo.
+- **El del mundo** (_world space_): dónde está esa punta en la escena, ahora.
+- **El de la cámara** (_view space_): dónde está, vista desde la cámara. Adelante de la cámara es −Z.
+- **La pantalla:** en qué píxel cae.
+
+Pasar de un espacio al siguiente es multiplicar por una matriz. Y si un objeto es hijo de otro, su espacio está dentro del de su padre: es la escena como árbol de la [lección del primer cubo](../01-primer-cubo/), ahora con su cuenta.
+
+<LiveCode lesson="stage-0/07-matrices-and-spaces" autorun />
+
+La mesa (_table_) es el padre; la nave (_ship_) es su hija, y gira. Cada una tiene dibujados sus propios ejes: su espacio. El punto rojo no es parte de la nave: el código calcula dónde está la punta de su nariz en el mundo, y lo pone ahí.
+
+**Qué probar:**
+
+1. **Mirá el punto rojo:** está siempre en la punta de la nariz. Lo puso la cuenta, no la nave.
+2. **Cambiá el orden** (_the ship_) a _move, then turn_: la nave ya no gira sobre sí misma, **da vueltas alrededor del centro de la mesa**. Son las mismas dos matrices, multiplicadas al revés.
+3. **Mové, girá y escalá la mesa:** la nave va con ella. En el panel, la punta en el espacio de la nave (_the ship's_) no cambia nunca; en el del mundo, todo el tiempo.
+4. **Mirá la última columna de la matriz** mientras la nave se mueve: es dónde está la nave en el mundo. Y en el espacio de la cámara, la `z` de la punta es siempre negativa: está adelante de la cámara.
+
+## El código, paso a paso
+
+1. **Dos espacios, uno dentro del otro.** `table.add(ship)` hace a la nave hija de la mesa. Un `AxesHelper` en cada una dibuja sus ejes.
+2. **Un punto en el espacio de la nave:** `tip`, la punta de la nariz, es `(0, 0, −0.7)` y no cambia nunca.
+3. **La matriz de la nave, a mano.** `ship.matrixAutoUpdate = false` le dice a Three.js que no la arme él con `position` y `rotation`: se la damos nosotros. `turn` es un giro alrededor de `y` (`makeRotationY`) y `move`, una traslación (`makeTranslation`). `multiplyMatrices(a, b)` calcula `a · b`.
+4. **La mesa, como siempre:** se le cambian `position`, `rotation` y `scale`, y Three.js arma su matriz con eso.
+5. **`scene.updateMatrixWorld()`** calcula la matriz del mundo de cada objeto: la del mundo de su padre, por la suya.
+6. **De espacio en espacio:** `applyMatrix4(ship.matrixWorld)` lleva la punta al mundo; `camera.matrixWorldInverse`, del mundo a la cámara; `project(camera)`, a la pantalla, de −1 a 1 en cada lado, que se pasa a píxeles.
+7. **La matriz, por filas.** Three.js la guarda por columnas (`elements`); el panel la muestra por filas, con la última columna aparte.
+
+## Lo importante
+
+- **Una matriz de 4 × 4 mueve, gira y escala a la vez.** Las tres cosas, en una sola cuenta por vértice.
+- **Combinar es multiplicar, y el orden importa: la de la derecha actúa primero.** `T · R` gira en el lugar y después mueve; `R · T` mueve y después gira alrededor del origen: da vueltas.
+- **Un punto vive en varios espacios:** el del objeto, el del mundo, el de la cámara, la pantalla. Cada paso de uno a otro es una matriz.
+- **Un hijo hereda a su padre:** su matriz del mundo es la del padre por la suya. Por eso, al mover la mesa, la nave va con ella.
+- **La última columna es la traslación.** Para eso está la cuarta coordenada: los puntos llevan un 1, y las direcciones, un 0.
+
+## Más a fondo
+
+<details>
+<summary>Por qué 4 × 4, si el espacio tiene tres dimensiones</summary>
+
+Girar y escalar se pueden hacer con una matriz de 3 × 3. Sus columnas dicen adónde van a parar los tres ejes: la primera es adónde va el eje `x`, la segunda el `y`, la tercera el `z`. Multiplicar un punto `(x, y, z)` por ella es sumar `x` veces la primera columna, `y` veces la segunda y `z` veces la tercera.
+
+Pero mover no se puede: una matriz de 3 × 3 siempre deja el origen en el origen, porque `0` veces cualquier cosa es `0`. El truco es agregar una coordenada, siempre 1: el punto `(x, y, z)` se escribe `(x, y, z, 1)`. Esas son las **coordenadas homogéneas** (_homogeneous coordinates_). La matriz pasa a ser de 4 × 4: el bloque de 3 × 3 de arriba gira y escala, y la cuarta columna se suma entera, multiplicada por ese 1. Eso es mover.
+
+Una dirección (una velocidad, una normal) se escribe con un 0 al final: `(x, y, z, 0)`. Así gira y escala, pero no se mueve, como tiene que ser: una flecha que apunta "hacia arriba" sigue apuntando hacia arriba aunque la nave esté en otro lugar.
+
+La cuarta fila también sirve: la matriz de proyección de la [primera lección](../00-del-3d-a-la-pantalla/) la usa para guardar la distancia `z`, y la placa de video divide por ella al final. Es la cuenta `y′ = d · y / z` de la perspectiva, hecha con una matriz.
+
+</details>
+
+<details>
+<summary>El orden, con números</summary>
+
+Tomá la punta `p = (0, 0, −0.7)`, un giro `R` de 90° alrededor de `y` y una traslación `T` de `(1.1, 0, 0)`. Un giro de 90° alrededor de `y` lleva `(x, y, z)` a `(z, y, −x)`.
+
+- **`T · R · p`:** primero `R`: `(−0.7, 0, 0)`. Después `T`: `(0.4, 0, 0)`. La nave giró en su lugar, y su nariz quedó apuntando hacia −X, cerca del centro.
+- **`R · T · p`:** primero `T`: `(1.1, 0, −0.7)`. Después `R`: `(−0.7, 0, −1.1)`. La nave se fue a 1,1 m y después el giro la llevó, con todo, a otro lado de la mesa.
+
+Por eso no da igual: un giro siempre es alrededor del origen del espacio en el que se aplica. Para girar algo "sobre sí mismo", primero se gira (cuando todavía está en el origen) y después se lo lleva a su lugar. Three.js arma la matriz de cada objeto en el orden `T · R · S`: primero escala, después gira y al final mueve.
+
+</details>
+
+<details>
+<summary>Volver: la matriz inversa</summary>
+
+Si una matriz lleva del espacio de la nave al del mundo, su **inversa** (_inverse_) lleva del mundo a la nave. La matriz de la cámara lleva del espacio de la cámara al mundo, y su inversa (`matrixWorldInverse`, la **matriz de vista**, _view matrix_) hace lo que hace falta para dibujar: llevar todo el mundo al espacio de la cámara.
+
+Para un giro, la inversa es fácil: es la **transpuesta** (_transpose_), la misma matriz con las filas como columnas. Las columnas de un giro son tres ejes de largo 1 y perpendiculares entre sí, y eso hace que la transpuesta deshaga el giro. Con un cuaternión es todavía más fácil: su inverso es su conjugado, el mismo giro con el eje dado vuelta.
+
+</details>
+
+:::caution[Sutilezas]
+
+- **Three.js guarda las matrices por columnas.** `elements[12]`, `[13]` y `[14]` son la traslación, aunque `matrix.set(…)` se escriba por filas. Es una fuente clásica de confusión.
+- **`a.multiply(b)` es `a · b`, y `a.premultiply(b)` es `b · a`**, como con los cuaterniones de la [lección de los giros](../02-cuaterniones/): por la derecha, en el espacio propio; por la izquierda, en el del padre.
+- **Escalar distinto en cada eje deforma las normales.** Una normal (la dirección perpendicular a una cara) no se puede transformar con la misma matriz: hace falta la inversa transpuesta, la **matriz normal** (_normal matrix_). Three.js la calcula sola para la luz.
+- **Un cuerpo de la física no se escala.** Rapier no tiene escala: el tamaño está en la forma (el radio de la pelota, la mitad de cada lado de la caja).
+- **La matriz del mundo se calcula al dibujar.** Si se lee antes de `render` (o de `updateMatrixWorld`), es la del cuadro anterior.
+  :::
+
+:::tip[Patrón: compuesto, el grafo de escena]
+Una escena donde cada objeto puede tener hijos que se mueven con él es el patrón **compuesto** (_composite_): un objeto y un grupo de objetos se tratan igual, y un grupo puede tener grupos adentro. Cada hijo vive en el espacio de su padre. Su pariente es la **bandera de sucio** (_dirty flag_): recalcular la matriz del mundo solo cuando algo cambió. Three.js tiene la bandera (`matrixWorldNeedsUpdate`), pero con `matrixAutoUpdate` prendido, como viene, recalcula todas en cada cuadro; apagarlo en lo que no se mueve es su manera de ahorrar. [Todos los patrones del tutorial](../../patrones/#compuesto-el-grafo-de-escena).
+:::
+
+## En los motores
+
+- **Unity** guarda en cada objeto su lugar, su giro (un cuaternión) y su escala, relativos al padre (`localPosition`, `localRotation`, `localScale`), y arma con eso su matriz (`localToWorldMatrix`). **Unreal** usa un `FTransform`: traslación, cuaternión y escala, que se pasan a matriz cuando hace falta. **Godot** usa un `Transform3D`: una base de 3 × 3 (los tres ejes) y un origen, sin la cuarta fila, que siempre sería `0 0 0 1`.
+- **En los libros:** Eric Lengyel, _Foundations of Game Engine Development_, vol. 1, cap. 2 "Transforms" (§2.1 los espacios y cómo se combinan, §2.6 las coordenadas homogéneas). Jason Gregory, _Game Engine Architecture_ (4.ª ed., vol. I), §5.3 "Matrices": §5.3.8 las coordenadas homogéneas, §5.3.11 los espacios del modelo, del mundo y de la vista, §5.3.12.1 las jerarquías. _Real-Time Rendering_ (4.ª ed.), cap. 4 "Transforms".
+
+**Dónde Manifold eligió otra cosa.** El estado del mundo no guarda matrices, ni escala: el lugar de una entidad es una posición y un cuaternión, y nada más. El tamaño está en la forma de su cuerpo, como en Rapier. Las matrices aparecen al dibujar (las arma Three.js) y en un solo lugar del núcleo, `quat.look`: para hacer que algo mire hacia un lado, arma la matriz de giro con tres ejes (derecha, arriba y atrás) y la convierte en cuaternión solo con raíces cuadradas. Así guarda cuatro números en vez de dieciséis, y no hay escala que se pueda colar en un giro.
+
+## En Manifold
+
+- [`packages/core/src/types.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/types.ts): `Transform`, una posición y un giro. Sin escala.
+- [`packages/common/src/math.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/common/src/math.ts): `quat.look`, la matriz de tres ejes convertida en cuaternión (el método de Shoemake), y `quat.rotate`, que gira un vector sin armar ninguna matriz.
+- [`packages/core/src/world.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/world.ts): las zonas de un nivel están giradas, y para saber si un cuerpo está adentro, el motor **lleva su centro al espacio de la zona** con el giro inverso (`quat.conjugate`), donde la cuenta es una caja derecha. Antes, para descartar rápido a los que están lejos, calcula la caja alineada con los ejes del mundo que contiene a la zona girada (`holdingBox`): cada eje girado aporta lo que mide sobre cada eje del mundo. La [lección de los choques](../../etapa-1/01-como-se-encuentra-un-choque/) cuenta para qué.
+
+## Para practicar
+
+**1. Predecí la punta.** En el código, poné `spin: false` y ejecutá: la nave se queda con el ángulo en 0. Poné la mesa en escala 2, sin moverla ni girarla. ¿Dónde está la punta en el mundo? Calculalo y compará con el panel.
+
+<details>
+<summary>Una pista</summary>
+
+De adentro hacia afuera: primero la nave (con el ángulo en 0, el giro no hace nada; queda la traslación), después la mesa (que escala todo por 2 desde su centro).
+
+</details>
+
+**2. Órbita y giro a la vez.** Hacé que la nave dé vueltas alrededor de la mesa y, además, gire sobre sí misma más rápido.
+
+<details>
+<summary>Una pista</summary>
+
+Hacen falta tres matrices, con dos ángulos distintos: un giro, la traslación y otro giro. La de la derecha actúa primero.
+
+</details>
+
+**3. Una luna.** Agregale a la nave una esfera chica como hija, a 40 cm por encima, que gire alrededor de ella. Calculá su lugar en el mundo multiplicando a mano las tres matrices (la de la mesa, la de la nave y la de la luna) con `multiplyMatrices`, y comprobá que coincide con el de Three.js.
+
+<details>
+<summary>Una pista</summary>
+
+El origen de un objeto, llevado al mundo, es la última columna de su matriz del mundo: `new THREE.Vector3().setFromMatrixPosition(m)`.
+
+</details>
+
+## Para saber más
+
+- [La escena como árbol](https://threejs.org/manual/#en/scenegraph), en el manual de Three.js (en inglés): un sistema solar armado con hijos.
+- [Essence of linear algebra](https://www.3blue1brown.com/topics/linear-algebra), de Grant Sanderson, 3Blue1Brown (en inglés): las matrices como lo que le hacen al espacio, en videos.
+- [Game Programming Patterns: Dirty Flag](https://gameprogrammingpatterns.com/dirty-flag.html), de Robert Nystrom (en inglés): su ejemplo es justamente una escena con padres e hijos.
+- Eric Lengyel, _Foundations of Game Engine Development_, vol. 1, cap. 2. Jason Gregory, _Game Engine Architecture_, 4.ª ed., vol. I, §5.3. _Real-Time Rendering_, 4.ª ed., cap. 4.

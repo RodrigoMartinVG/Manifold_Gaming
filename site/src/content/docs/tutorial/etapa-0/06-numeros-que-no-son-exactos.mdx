@@ -1,0 +1,149 @@
+---
+title: Números que no son exactos
+description: Cómo guarda los números una computadora, por qué 0.1 + 0.2 no da 0.3, por qué lejos del origen todo se mueve a saltos, y por qué la misma cuenta puede dar otros bits en otro navegador.
+sidebar:
+  order: 6
+---
+
+import LiveCode from '../../../../components/LiveCode.astro';
+
+La [lección anterior](../05-simulacion-y-dibujo/) terminó con una promesa: la misma semilla y los mismos pasos dan el mismo mundo, **número por número**. Para cumplirla hay que saber cómo son esos números, porque no son los de la escuela.
+
+Una computadora guarda cada número en una cantidad fija de bits. JavaScript usa 64 bits por número, en un formato que se llama **punto flotante** (_floating point_), definido por la norma **IEEE 754**. Es como la notación científica (`1,6 × 10⁻¹`), pero en binario: un signo, unos dígitos y una potencia de dos. Eso tiene cuatro consecuencias:
+
+- **Casi ningún decimal es exacto.** 0,1 en binario tiene infinitos dígitos, como 1/3 en decimal, y se guarda el más cercano que entra.
+- **Cada cuenta redondea su resultado.** Por eso el orden de las cuentas cambia el resultado.
+- **El hueco entre un número y el siguiente crece con el tamaño.** Cerca del cero hay muchísimos números; a un millón de metros, pocos. Rapier y la placa de video usan números de 32 bits, con muchos menos dígitos: ahí se nota enseguida.
+- **Algunas cuentas dan los mismos bits en cualquier computadora, y otras no.** Sumar, restar, multiplicar, dividir y sacar la raíz cuadrada, sí. El seno, el coseno o la potencia, no necesariamente: cada navegador los calcula a su manera.
+
+<LiveCode lesson="stage-0/06-floating-point" autorun />
+
+Las dos pelotas van y vienen a 1 metro por segundo, un metro hacia cada lado de un punto. La **verde** suma su paso con los números de JavaScript (64 bits); la **roja** redondea a 32 bits después de cada cuenta, como Rapier. El punto puede estar lejos del origen: a 10 elevado a lo que diga _far_.
+
+**Qué probar:**
+
+1. **Mirá la consola.** Los bits de 0,1, de 0,2, de su suma y de 0,3: la suma no es 0,3. Y `(0.1 + 0.2) + 0.3` no da lo mismo que `0.1 + (0.2 + 0.3)`.
+2. **Llevá _far_ a 4, y después a 5.** A 10 km y a 100 km, la roja todavía se mueve casi igual que la verde. _next 32-bit number_ dice cuánto hay de un número de 32 bits al siguiente, ahí.
+3. **Ahora a 5,5** (316 km): **la roja va casi al doble de velocidad.** Su paso de 1,7 cm cae más cerca del número siguiente, que está a 3,1 cm, que del actual, y se redondea a él en cada paso.
+4. **Y a 6** (1000 km): **la roja no se mueve.** El paso es menos de la mitad del hueco, que ya es de 6 cm: cada suma se redondea al mismo número de antes. La verde, con 64 bits, ni se entera.
+
+## El código, paso a paso
+
+- **`bits.ts`** muestra un número como lo guarda la máquina. `bitsOf` escribe el número en 8 bytes con un `DataView` y los lee como unos y ceros: un bit de signo, 11 de exponente y 52 de fracción. `spacing` le suma 1 a esos bits, que da el número siguiente, y resta: es el hueco.
+- **La primera parte de `main.ts`** escribe en la consola los bits de 0,1, de 0,2 y de su suma, el valor exacto que la máquina guarda para 0,1, y las dos sumas en distinto orden.
+- **La segunda parte** tiene dos posiciones, `x64` y `x32`. En cada paso fijo, las dos suman velocidad por paso. `Math.fround` devuelve el número de 32 bits más cercano: aplicado después de cada cuenta, imita cómo cuenta Rapier.
+- **Al dibujar**, cada pelota se pone en `x − far`: su distancia al punto, calculada con 64 bits. Si se dibujaran en su lugar verdadero, lejos del origen, la placa de video (que también cuenta con 32 bits) las haría temblar a las dos.
+
+## Lo importante
+
+- **Un número de JavaScript es un _double_:** 64 bits, unos 16 dígitos significativos. Rapier y la placa de video usan 32 bits (_float_): unos 7.
+- **Casi ningún decimal es exacto, y cada cuenta redondea.** Por eso `0.1 + 0.2` es `0.30000000000000004`, y el orden de las cuentas cambia el último dígito.
+- **Lejos del origen, las posiciones son gruesas.** El hueco entre números crece con el tamaño: con 32 bits, a 1000 km ya es de 6 cm, y un paso más chico que medio hueco se pierde entero.
+- **Sumar, restar, multiplicar, dividir y la raíz cuadrada dan los mismos bits en todos lados.** Seno, coseno, potencias y logaritmos pueden no darlos: la misma cuenta, en otro navegador, puede terminar en otro bit. Un mundo que tiene que dar igual en todos lados usa solo las primeras.
+
+## Más a fondo
+
+<details>
+<summary>Cómo se guarda 0,1, bit por bit</summary>
+
+Un _double_ son tres partes: un bit de **signo** `s`, 11 bits de **exponente** `e` y 52 bits de **fracción** `f`. El número que representan es:
+
+`(−1)ˢ × 1,f × 2^(e − 1023)`
+
+donde `1,f` se lee en binario: un 1, la coma, y los 52 bits. El 1 de adelante no se guarda, porque siempre está.
+
+0,1 es `1,6 × 2⁻⁴`. En binario, 1,6 es `1,1001 1001 1001…`: el grupo `1001` se repite para siempre, como el 3 de 1/3 = 0,333… Hay que cortarlo en el bit 52, y redondear. Por eso los bits de la consola terminan en `…1010`: el último grupo, redondeado hacia arriba. El número guardado es un poquito más que 0,1:
+
+`0,1000000000000000055511151231257827…`
+
+Con 0,2 pasa lo mismo, y al sumarlos el resultado se redondea otra vez. Cae en el número de al lado de 0,3, no en el que la máquina usa para 0,3: `0.30000000000000004`.
+
+El hueco entre un número y el siguiente es una unidad del último bit de la fracción: `2^(e − 1023 − 52)`. Cerca de 1 es unos 2,2 × 10⁻¹⁶ (en JavaScript, `Number.EPSILON`); cerca de 10 millones, unos 1,9 × 10⁻⁹. En 32 bits la fracción tiene 23 bits, y el hueco cerca de 1 es unos 1,2 × 10⁻⁷: por eso, a 1000 km, 6 cm.
+
+</details>
+
+<details>
+<summary>Por qué unas cuentas dan los mismos bits en todos lados y otras no</summary>
+
+La norma IEEE 754 exige que la suma, la resta, la multiplicación, la división y la raíz cuadrada estén **correctamente redondeadas**: el resultado tiene que ser el número exacto, redondeado al más cercano que se puede guardar (y, en un empate, al que termina en 0). Hay una sola respuesta correcta, y cualquier procesador o navegador que cumpla la norma da esa. El estándar de JavaScript pide lo mismo para `Math.sqrt`, `Math.round` o `Math.floor`.
+
+Para `Math.sin`, `Math.cos`, `Math.atan2`, `Math.exp`, `Math.pow` (y su forma corta, `**`) o `Math.hypot`, el estándar solo pide una **aproximación**, que cada motor de JavaScript calcula con su propio algoritmo: V8 en Chrome, SpiderMonkey en Firefox, JavaScriptCore en Safari. Redondear correctamente un seno es caro: no se sabe de antemano cuántos dígitos de más hacen falta para saber hacia qué lado redondear (se lo llama el **dilema del fabricante de tablas**, _table maker's dilemma_). Así que cada uno elige su equilibrio, y el último bit puede ser distinto.
+
+Un bit de diferencia en un paso es nada. Pero un mundo con choques es caótico (la [lección anterior](../05-simulacion-y-dibujo/) lo contó): ese bit cambia un rebote, el rebote cambia el siguiente, y al rato es otra partida.
+
+</details>
+
+<details>
+<summary>Un seno hecho con sumas y productos</summary>
+
+Si `Math.sin` no sirve, el motor de Manifold calcula el suyo, con las cuentas que sí dan igual en todos lados ([`sinCosDegrees`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/common/src/math.ts)):
+
+1. **Achica el ángulo.** Le saca el múltiplo de 90° más cercano, en grados, donde la cuenta es exacta. Queda un resto `r` entre −45° y 45°, que se pasa a radianes.
+2. **Usa la serie de Taylor:** `sen r = r − r³/3! + r⁵/5! − …`. Con `r` tan chico, cada término es mucho menor que el anterior, y con ocho alcanza. Se escribe anidada (la forma de Horner: `r · (1 − r²/6 · (1 − r²/20 · (…)))`), que hace menos cuentas y redondea menos veces.
+3. **Vuelve al cuarto de vuelta:** `sen(90° + r) = cos r`, `sen(180° + r) = −sen r`… Cambiar de signo es exacto.
+
+Medido en este tutorial contra el valor exacto, en cada grado entero: el seno y el coseno propios se equivocan a lo sumo en unas 9,5 × 10⁻¹⁶, más o menos lo mismo que `Math.sin(grados · π / 180)` en esos grados (que pierde casi todo al calcular `grados · π / 180`). Pero dan los mismos bits en todos los navegadores, que es lo que importa. El error más grande está en el coseno de los ángulos cerca de 45°: su serie se corta un término antes que la del seno. El último ejercicio de esta lección lo arregla.
+
+</details>
+
+:::caution[Sutilezas]
+
+- **Comparar con `===` es comparar bits.** Para saber si dos números están "cerca", se compara la diferencia contra un margen. Para saber si dos simulaciones dieron lo mismo, no: ahí se comparan los bits, y para eso está la huella.
+- **Existe el −0.** `0 * -1` da −0. `-0 === 0` es verdadero, pero sus bits son distintos, y `String(-0)` escribe `"0"`: guardado como texto y leído de vuelta, vuelve como +0. A una repetición del motor le cambió la huella por eso, y el motor lo corrige con `x || 0`, que convierte −0 en +0.
+- **`NaN` no es igual a nada**, ni a sí mismo: `NaN === NaN` es falso. Y `JSON.stringify` lo convierte en `null`.
+- **Los enteros son exactos hasta 2⁵³** (9.007.199.254.740.992). Desde ahí, `2 ** 53 + 1` da `2 ** 53`: ya no hay lugar para el 1. Un contador de pasos no llega nunca: a 60 pasos por segundo, tardaría casi cinco millones de años.
+- **El dibujo también cuenta con 32 bits.** Por eso el ejemplo dibuja cada pelota relativa al punto, y no en su lugar verdadero: lejos del origen, la placa de video haría temblar hasta a la verde.
+  :::
+
+## En los motores
+
+- **Casi todos los motores usan números de 32 bits** para las posiciones: el `Vector3` de Unity, por ejemplo. Lejos del origen, todo tiembla, y los mundos enormes lo resuelven moviendo el origen con el jugador (un **origen flotante**, _floating origin_: el mundo se corre para que el jugador quede siempre cerca del cero). Unreal Engine 5 pasó sus posiciones a 64 bits ("Large World Coordinates"), y Godot se puede compilar con 64 bits.
+- **El determinismo entre máquinas casi nunca se promete.** Glenn Fiedler, en _Floating Point Determinism_, junta lo que lo rompe: compiladores que reordenan las cuentas, registros con más bits en los procesadores viejos, bibliotecas de matemática distintas. Y hay más: instrucciones que multiplican y suman con un solo redondeo (_fused multiply-add_), que unos procesadores usan y otros no. Rapier tiene una versión **determinista** que evita esas diferencias, con su propia matemática: es la que usan el motor y estos ejemplos.
+- **En los libros:** Jason Gregory, _Game Engine Architecture_ (4.ª ed., vol. I), §3.3.1.4 "Floating-Point Notation", con el épsilon de la máquina y las unidades del último lugar (_units in the last place_, ULP); y §8.5.4.4, sobre por qué un reloj de juego guardado como segundos con decimales pierde precisión con las horas. Christer Ericson, _Real-Time Collision Detection_, cap. 11 "Numerical Robustness".
+
+**Dónde Manifold eligió otra cosa.** No promete "casi igual": promete **los mismos bits** en cualquier navegador y en Node. Para eso la simulación usa solo cuentas correctamente redondeadas, y lo demás lo hace a mano: su seno, y las orientaciones armadas con raíces cuadradas. El tiempo del mundo no son segundos que se suman, sino un **entero** de pasos (`tick`): la hora es `tick × paso`, y no acumula redondeos. Y no mueve el origen: sus niveles son chicos, y a un kilómetro del centro el hueco de 32 bits es de 0,06 mm.
+
+## En Manifold
+
+- [`packages/common/src/math.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/common/src/math.ts): los largos, con `Math.sqrt` de la suma de cuadrados (no con `Math.hypot`); el seno y el coseno propios, `sinCosDegrees`; y `quat.look`, que arma una orientación sin trigonometría.
+- [`packages/common/src/approx.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/common/src/approx.ts): lo que sí usa la trigonometría del navegador, para las pruebas y las vistas. Nunca dentro de un paso.
+- [`eslint.config.js`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/eslint.config.js): una regla del revisor de código prohíbe `Math.sin`, `cos`, `atan2`, `exp`, `pow`, `**` y compañía en el núcleo, en la red y en las reglas de cada juego. La puso la [etapa 1f](../../../bitacora/etapa-1f/), cuando encontró trigonometría escondida en un paso.
+- [`packages/core/src/input.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/input.ts): las direcciones que pide un jugador van en **grados enteros**, armadas con el seno propio, y los −0 se vuelven +0.
+- [La misma huella](../../../jugar/la-misma-huella/): tu navegador juega las repeticiones de referencia del motor y compara su huella con la que dio Node al grabarlas. Las pruebas del proyecto lo hacen en Chromium, Firefox y WebKit.
+
+## Para practicar
+
+**1. Predecí el salto.** Con _far_ en 5, ¿cuánto avanza la roja en cada paso? Calculalo antes de mirar _the red one moved_.
+
+<details>
+<summary>Una pista</summary>
+
+El paso es 1/60 m (unos 1,67 cm) y el hueco ahí es _next 32-bit number_. La suma se redondea al múltiplo del hueco más cercano: dividí el paso por el hueco y redondeá.
+
+</details>
+
+**2. ¿Desde dónde se queda quieta?** Cambiá `SPEED` a `0.1` (10 cm por segundo). ¿Desde qué _far_ la roja deja de moverse? Predecilo y probá.
+
+<details>
+<summary>Una pista</summary>
+
+Se queda quieta cuando el paso es menos de la mitad del hueco. El hueco se duplica cada vez que el número pasa una potencia de dos.
+
+</details>
+
+**3. Un seno que da igual en todos lados.** Copiá `sinCosDegrees` de [`math.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/common/src/math.ts) a un archivo nuevo del ejemplo, y escribí en la consola, para cada grado de 0 a 359, si sus bits coinciden con los de `Math.sin`. Después agregale al coseno el término que le falta y medí cuánto cambia la diferencia más grande.
+
+<details>
+<summary>Una pista</summary>
+
+El término que falta sigue la cuenta de los otros: después de `r2 / 182` viene `r2 / 240` (15 × 16). Y `Math.sin` tampoco es exacto: una diferencia con él no dice cuál de los dos se equivoca.
+
+</details>
+
+## Para saber más
+
+- [What Every Computer Scientist Should Know About Floating-Point Arithmetic](https://docs.oracle.com/cd/E19957-01/806-3568/ncg_goldberg.html), de David Goldberg (en inglés): el artículo clásico, con toda la matemática.
+- [Float Toy](https://evanw.github.io/float-toy/), de Evan Wallace: un número de 16, 32 o 64 bits, con cada bit para prender y apagar.
+- [Floating Point Determinism](https://gafferongames.com/post/floating_point_determinism/), de Glenn Fiedler (en inglés): por qué es tan difícil que dos máquinas den lo mismo.
+- [Comparing Floating Point Numbers, 2012 Edition](https://randomascii.wordpress.com/2012/02/25/comparing-floating-point-numbers-2012-edition/), de Bruce Dawson (en inglés): cuándo dos números están "cerca", y la serie entera sobre punto flotante.
+- Jason Gregory, _Game Engine Architecture_, 4.ª ed., vol. I, §3.3.1.4 y §8.5.4.4. Christer Ericson, _Real-Time Collision Detection_, cap. 11.

@@ -84,6 +84,24 @@ Three.js hace esta cuenta con una **matriz de proyección** (_projection matrix_
 
 </details>
 
+<details>
+<summary>Qué está adelante: el búfer de profundidad</summary>
+
+Cuando dos triángulos caen sobre el mismo píxel, ¿cuál se ve? La GPU no los ordena: guarda, para cada píxel, además de su color, la **profundidad** (_depth_) de lo que pintó ahí, en el **búfer de profundidad** (_depth buffer_ o _z-buffer_). Cada triángulo nuevo pinta un píxel solo si está más cerca que lo que ya había. Así da igual el orden en que lleguen.
+
+Por eso la cámara tiene dos distancias, desde dónde y hasta dónde dibuja (en este ejemplo, 0,1 y 100 metros): la profundidad se guarda entre esas dos. Y no se reparte pareja: la perspectiva deja mucha precisión cerca y poca lejos. Con un "desde" muy chico, lo lejano se queda sin precisión, y dos caras casi en el mismo lugar se pisan a manchas, parpadeando: se llama _z-fighting_. Por eso conviene no poner el "desde" más cerca de lo necesario.
+
+</details>
+
+<details>
+<summary>Por qué una cara de costado se ve oscura: el coseno de Lambert</summary>
+
+Un haz de luz que llega de frente a una superficie se reparte en un área chica; el mismo haz, de costado, se reparte en un área más grande, y cada pedacito recibe menos. La cuenta es la **ley del coseno de Lambert** (_Lambert's cosine law_): la luz que recibe una cara es proporcional al coseno del ángulo entre su **normal** (la dirección perpendicular a la cara, hacia afuera) y la dirección de la luz.
+
+Con vectores de largo 1, ese coseno es el producto escalar: `n · l`. Si da negativo, la cara mira para el otro lado y no recibe nada. Con `flatShading`, cada triángulo tiene una sola normal, y por eso un solo tono: así se ven las caras de la esfera. El material de este ejemplo (`MeshStandardMaterial`) hace una cuenta más completa, con brillo y rugosidad, pero su parte difusa sigue esta ley.
+
+</details>
+
 :::caution[Sutilezas]
 
 - **"Arriba" es una convención.** Three.js usa `y` hacia arriba, pero otros programas usan `z` (Blender, por ejemplo). Por eso, al pasar un modelo de uno a otro, a veces aparece acostado.
@@ -91,11 +109,48 @@ Three.js hace esta cuenta con una **matriz de proyección** (_projection matrix_
 - **El campo de visión va en grados, pero casi todos los demás ángulos de Three.js van en radianes.** La lección siguiente explica qué son.
   :::
 
+## En los motores
+
+- **Todos dibujan igual por debajo.** Unity, Unreal, Godot y Three.js le mandan triángulos a la GPU, que los lleva por el mismo camino: cada vértice se transforma (con la cámara y la proyección), cada triángulo se convierte en píxeles (la _rasterización_), y cada píxel se pinta según la luz. Ese camino es el **pipeline gráfico** (_graphics pipeline_). Lo cuentan _Real-Time Rendering_ (4.ª ed.), cap. 2 "The Graphics Rendering Pipeline", y Eric Lengyel, _Foundations of Game Engine Development_, vol. 2, cap. 5 (§5.5 "The Graphics Pipeline") y cap. 6 "Projections".
+- **"Arriba" y "adelante" cambian de un motor a otro.** Three.js y Godot usan `y` hacia arriba y miran hacia −Z. Unity también usa `y` hacia arriba, pero con los ejes en espejo (su `z` crece hacia adelante: es "de mano izquierda"). Unreal y Blender usan `z` hacia arriba. Por eso un modelo que pasa de uno a otro a veces llega acostado o al revés.
+
+**Dónde Manifold eligió otra cosa.** No tiene un dibujante propio: dibuja con Three.js, y lo encierra en la presentación, para que el núcleo no sepa que existe. Usa los ejes de Three.js, así la presentación no traduce nada. Pero el núcleo **no supone** que arriba es `+y`: arriba es lo contrario de la gravedad, y la gravedad puede apuntar hacia cualquier lado (en la fase 7, hacia el centro de un planeta).
+
 ## En Manifold
 
-El motor dibuja con estas mismas piezas de Three.js, pero en un paquete aparte, la **presentación** (_presentation_): [`packages/presentation`](https://github.com/RodrigoMartinVG/Manifold_Gaming/tree/stage-00/packages/presentation). Lo que dibuja no lo decide la presentación, sino la simulación. Esa separación es el tema de la [última lección de esta etapa](../05-simulacion-y-dibujo/).
+El motor dibuja con estas mismas piezas de Three.js, pero en un paquete aparte, la **presentación** (_presentation_): [`packages/presentation`](https://github.com/RodrigoMartinVG/Manifold_Gaming/tree/stage-00/packages/presentation). Lo que dibuja no lo decide la presentación, sino la simulación. Esa separación es el tema de la [lección de la simulación y el dibujo](../05-simulacion-y-dibujo/).
+
+## Para practicar
+
+**1. Contá los triángulos.** Con el detalle en 16, ¿cuántos triángulos tiene la esfera? Calculalo antes de mirar el panel.
+
+<details>
+<summary>Una pista</summary>
+
+La esfera se arma como gajos (tantos como el detalle) y filas (en el código, `Math.ceil(detail * 0.75)`). Cada casillero de una fila del medio son dos triángulos; en las dos filas de las puntas, los casilleros terminan en un punto y son un triángulo.
+
+</details>
+
+**2. Sin perspectiva.** Cambiá la `PerspectiveCamera` por una `OrthographicCamera` y mirá qué pasa con lo lejano.
+
+<details>
+<summary>Una pista</summary>
+
+Una cámara ortográfica no recibe un campo de visión, sino los bordes de lo que ve: `new THREE.OrthographicCamera(-3, 3, 2, -2, 0.1, 100)`. En `fit`, sus bordes izquierdo y derecho tienen que seguir la forma de la ventana, o se estira. El deslizador del campo de visión deja de tener sentido.
+
+</details>
+
+**3. Un sol que da vueltas.** Hacé que el sol gire alrededor de la esfera, una vuelta cada diez segundos, y mirá cómo se mueven las caras claras y las oscuras.
+
+<details>
+<summary>Una pista</summary>
+
+En `frame`, `sun.position.set(4 * Math.cos(t), 4, 4 * Math.sin(t))`, con `t` el ángulo, que crece con el tiempo (`now`). Una vuelta son 2π radianes.
+
+</details>
 
 ## Para saber más
 
 - [Explicación de la teoría básica del 3D](https://developer.mozilla.org/en-US/docs/Games/Techniques/3D_on_the_web/Basic_theory), en MDN (en inglés): vértices, cámaras, luces y el recorrido de la GPU, con más detalle.
 - [Fundamentos de Three.js](https://threejs.org/manual/#en/fundamentals), en el manual oficial (en inglés).
+- _Real-Time Rendering_, 4.ª ed., cap. 2. Eric Lengyel, _Foundations of Game Engine Development_, vol. 2, caps. 5 y 6 (la profundidad, en §6.3.3) y §7.2 (la luz difusa).

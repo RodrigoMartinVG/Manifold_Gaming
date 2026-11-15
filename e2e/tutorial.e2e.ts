@@ -12,7 +12,7 @@ import { join, relative } from 'node:path';
 const DOCS = join(import.meta.dirname, '..', 'site', 'src', 'content', 'docs');
 
 /** Tutorial pages that are not lessons: they have no examples to run. */
-const NOT_LESSONS = new Set(['tutorial/glosario/']);
+const NOT_LESSONS = new Set(['tutorial/glosario/', 'tutorial/patrones/']);
 
 /** The tutorial's lessons, as addresses: `tutorial/`, `tutorial/etapa-0/01-primer-cubo/`... */
 function tutorialLessons(): string[] {
@@ -33,16 +33,23 @@ function tutorialLessons(): string[] {
   return pages.filter((p) => !NOT_LESSONS.has(p)).sort();
 }
 
-/** Runs an example and waits until it works: until it draws 20 frames, or (if it does not animate) writes to the console. */
+/**
+ * Runs an example and waits until it works: an example that animates (its code asks for frames) has
+ * to DRAW 20 frames; writing to the console is not enough (an example that wrote and then never drew
+ * passed before). One that does not animate has to write to the console.
+ */
 async function runAndWait(example: Locator) {
   await example.locator('.lc-run').click();
   // Chrome gives no frames to a cross-origin iframe that is off screen.
   await example.locator('.lc-result').scrollIntoViewIfNeeded();
   await expect(example).toHaveAttribute('data-state', 'running');
+  const animates = (await example.getAttribute('data-animates')) === '1';
   await expect
     .poll(
       async () =>
-        Number(await example.getAttribute('data-frames')) >= 20 || (await example.locator('.lc-console .lc-line').count()) > 0,
+        animates
+          ? Number(await example.getAttribute('data-frames')) >= 20
+          : (await example.locator('.lc-console .lc-line').count()) > 0,
       { timeout: 20_000 },
     )
     .toBe(true);
@@ -88,7 +95,21 @@ test('a lesson only fetches the libraries it imports: Rapier (4 MB) only where i
   expect(fetched).toContain('rapier.js');
 });
 
-test('the glossary is not a lesson: it has no examples', async ({ page }) => {
+test('the lessons that moved (stage 1, in the deeper pass) still answer at their old addresses', async ({ page, baseURL }) => {
+  for (const [old, now] of [
+    ['01-un-personaje', '02-un-personaje'],
+    ['02-repeticiones', '05-repeticiones'],
+    ['03-instantaneas', '06-instantaneas'],
+    ['04-servidor-y-cliente', '07-servidor-y-cliente'],
+  ]) {
+    await page.goto(`tutorial/etapa-1/${old}/`);
+    // The whole address, with the site's base: a redirect without it leaves the site.
+    await expect(page).toHaveURL(`${baseURL}tutorial/etapa-1/${now}/`);
+    await expect(page.locator('.live-code').first()).toBeVisible();
+  }
+});
+
+test('the glossary and the patterns are not lessons: they have no examples', async ({ page }) => {
   for (const p of NOT_LESSONS) {
     await page.goto(p);
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();

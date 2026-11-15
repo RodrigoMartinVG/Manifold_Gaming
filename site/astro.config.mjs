@@ -7,12 +7,26 @@ import starlight from '@astrojs/starlight';
  * on GitHub Pages, at https://rodrigomartinvg.github.io/Manifold_Gaming/ : that is why every address
  * starts with `base`. The site's TEXT is in Spanish (decision 0011); its code, in English.
  */
+const BASE = '/Manifold_Gaming';
+
 export default defineConfig({
   site: 'https://rodrigomartinvg.github.io',
-  base: '/Manifold_Gaming',
+  base: BASE,
   trailingSlash: 'always',
   // Models (stage 2e: the Dojo's mannequin): served as files, by their address.
   vite: { assetsInclude: ['**/*.glb'] },
+  // Addresses that moved, so old links still arrive. Stage 1's lessons took their places in the
+  // deeper pass (decision 0013): collisions, the camera and inputs went in between, where they teach.
+  // (Astro does not add `base` to a redirect's destination: without it, the page would send readers
+  // to /tutorial/…, outside the site, as the browser test found.)
+  redirects: Object.fromEntries(
+    [
+      ['01-un-personaje', '02-un-personaje'],
+      ['02-repeticiones', '05-repeticiones'],
+      ['03-instantaneas', '06-instantaneas'],
+      ['04-servidor-y-cliente', '07-servidor-y-cliente'],
+    ].map(([from, to]) => [`/tutorial/etapa-1/${from}/`, `${BASE}/tutorial/etapa-1/${to}/`]),
+  ),
   integrations: [
     starlight({
       title: 'Manifold Gaming',
@@ -70,6 +84,8 @@ export default defineConfig({
             { label: 'Etapa 0: cimientos', items: [{ autogenerate: { directory: 'tutorial/etapa-0' } }] },
             { label: 'Etapa 1: física y un personaje', items: [{ autogenerate: { directory: 'tutorial/etapa-1' } }] },
             { label: 'Glosario', link: '/tutorial/glosario/' },
+            // The design patterns the lessons use, gathered like the glossary gathers the words (0013).
+            { label: 'Patrones', link: '/tutorial/patrones/' },
           ],
         },
         { label: 'Bitácora', items: [{ autogenerate: { directory: 'bitacora' } }] },

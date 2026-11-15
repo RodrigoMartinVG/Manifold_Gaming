@@ -2,7 +2,7 @@
 title: Un servidor y un cliente
 description: Dos copias del mismo mundo, una en el servidor y otra en el cliente, que dan lo mismo porque reciben lo mismo. La demora, y una desincronización hecha a propósito.
 sidebar:
-  order: 4
+  order: 7
 ---
 
 import LiveCode from '../../../../components/LiveCode.astro';
@@ -15,7 +15,7 @@ En un juego en red, cada jugador tiene su computadora, y la partida tiene que se
 
 Lo que viaja es poco: lo que se pidió, solo cuando cambia, y un número de vez en cuando.
 
-<LiveCode lesson="stage-1/04-server-and-client" autorun />
+<LiveCode lesson="stage-1/07-server-and-client" autorun />
 
 A la izquierda, el mundo del **servidor** (la pelota naranja). A la derecha, la **copia del cliente** (la celeste). Un piloto automático hace de jugador del lado del cliente (o **WASD**, después de hacer clic en el dibujo). Entre los dos hay un cable de mentira, con **demora** (_lag_).
 
@@ -51,6 +51,26 @@ Eso no contradice el determinismo: la diferencia viene de haber simulado con dat
 
 </details>
 
+<details>
+<summary>La cuenta de la demora</summary>
+
+Con una demora de `d` segundos en cada sentido, una orden del cliente tarda `d` en llegar al servidor, que la pone en su próximo paso (hasta 1/60 de segundo después), y su tick tarda otros `d` en volver. Total: `2 · d` más hasta un paso. Con 150 ms, unos 300 ms: casi un tercio de segundo.
+
+La copia del cliente, además, va atrasada respecto del servidor en lo que tarda un tick en llegar: `d / paso` pasos. Con 150 ms, 9 pasos; con 800 ms, 48. Es lo que muestra _client steps behind_.
+
+</details>
+
+<details>
+<summary>Tres maneras de jugar en red</summary>
+
+- **Paso cerrado** (_lockstep_): cada copia espera tener las entradas de todos antes de dar un paso. Viaja poco y todos ven lo mismo, pero el más lento frena a todos, y la demora se siente en cada orden. Es la de los juegos de estrategia.
+- **Mandar el estado** (_state replication_): el servidor simula, y les manda a los clientes cómo quedó cada cosa (lo que cambió), varias veces por segundo. Los clientes dibujan entre lo que les llegó. No necesita determinismo y cuesta mucho más ancho de banda. Es la de casi todos los juegos de acción.
+- **Volver atrás** (_rollback_): cada copia adivina las entradas que todavía no llegaron, simula, y si se equivocó, vuelve a una instantánea y simula de nuevo. Es la de los juegos de pelea.
+
+El ejemplo es la primera, con un servidor que decide en qué paso entra cada cosa. El motor de Manifold suma una pieza de la tercera, pero solo para el personaje propio.
+
+</details>
+
 :::caution[Sutilezas]
 
 - **El cable entrega en orden.** Una conexión de red de las que usan los navegadores (como un WebSocket) también. Si los ticks llegaran desordenados, la copia daría los pasos en otro orden, y sería otro mundo.
@@ -58,10 +78,54 @@ Eso no contradice el determinismo: la diferencia viene de haber simulado con dat
 - **La huella cada 60 pasos es un equilibrio:** sumar todo el mundo cuesta, y una desincronización encontrada un segundo después alcanza para saber en qué paso empezó.
   :::
 
+:::tip[Patrón: cola de eventos]
+El cable del ejemplo guarda cada mensaje en una fila y lo entrega después, en orden: quien manda no espera a quien recibe. Separar en el tiempo el que avisa del que atiende es el patrón **cola de eventos** (_event queue_). La red es una cola con demora; los ticks que esperan en el cliente, otra. [Todos los patrones del tutorial](../../patrones/#cola-de-eventos).
+:::
+
+## En los motores
+
+- **Quake** (1996) ya tenía un servidor que guardaba la partida y clientes que dibujaban; _QuakeWorld_, ese mismo año, agregó la **predicción** en el cliente, para jugar por internet.
+- **El motor Source**, de Valve, manda el estado varias veces por segundo, dibuja a los demás un poco en el pasado (100 ms, si no se cambia) para tener siempre dos estados entre los que interpolar, y juzga cada disparo como lo vio el que disparó (la **compensación de la demora**, _lag compensation_). Unreal replica el estado de cada objeto desde el servidor, y su movimiento de personajes predice el propio.
+- **En la literatura:** Gabriel Gambetta, _Fast-Paced Multiplayer_ (la serie de esta lección). Glenn Fiedler, _What Every Programmer Needs to Know About Game Networking_ (2010). Paul Bettner y Mark Terrano, "1500 Archers on a 28.8" (2001), cómo _Age of Empires_ jugaba en red con paso cerrado. El volumen I de _Game Engine Architecture_ (4.ª ed.) solo presenta la red (§1.5.14).
+
+**Dónde Manifold eligió otra cosa.** Lo escribió en la [decisión 0016](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/docs/decisions/0016-the-networking-model.md): el servidor ordena las entradas y todos simulan, como en el ejemplo, y cada copia compara su huella cada segundo. Para internet, cada uno **predice solo a su propio personaje**, y lo corrige simulándolo de nuevo cuando el servidor confirma: no vuelve atrás el mundo entero. Los demás se ven en el último paso confirmado, un poco en el pasado, y por eso el servidor va a juzgar los disparos como los vio el que disparó, hasta 200 o 250 ms atrás.
+
 ## En Manifold
 
 El motor tiene esto mismo en un paquete propio: [`packages/net`](https://github.com/RodrigoMartinVG/Manifold_Gaming/tree/stage-01/packages/net/src), con un servidor y un cliente que no saben por dónde viajan sus mensajes. Y **todos los juegos juegan a través de él, aunque se juegue solo**: el servidor vive en la misma página, y cada partida comprueba el determinismo mientras se juega. En el Dojo, `net open` en una pestaña y `net join` en otra del mismo navegador ponen a dos jugadores en la misma partida, cada uno con su personaje. Cómo se armó está en la [Bitácora de la etapa 1e](../../../bitacora/etapa-1e/).
 
+## Para practicar
+
+**1. Cuántos pasos atrás.** Con _lag_ en 500 ms, ¿cuántos pasos de atraso va a mostrar _client steps behind_? Calculalo y probá.
+
+<details>
+<summary>Una pista</summary>
+
+Es lo que tarda un tick en llegar, contado en pasos de 1/60 de segundo.
+
+</details>
+
+**2. Un cable que pierde.** Hacé que el cable a veces pierda un tick (al azar, uno de cada doscientos), en vez del botón. ¿Qué tendría que hacer el cliente para darse cuenta, y para no desincronizarse?
+
+<details>
+<summary>Una pista</summary>
+
+Cada tick trae su número de paso, y llegan en orden: si el número no es el siguiente al último, falta uno. Para no desincronizarse, el cliente tiene que esperar y pedirlo de nuevo, no seguir sin él.
+
+</details>
+
+**3. Un segundo cliente.** Agregá otra copia, con su propio cable y otra demora (por ejemplo, el doble). Las dos tienen que dar las mismas huellas que el servidor.
+
+<details>
+<summary>Una pista</summary>
+
+El servidor manda cada tick por los dos cables. Cada copia necesita su propia lista de ticks, su propia entrada actual y su propio mundo, dibujado en otro lugar.
+
+</details>
+
 ## Para saber más
 
 - [Fast-paced multiplayer](https://www.gabrielgambetta.com/client-server-game-architecture.html), de Gabriel Gambetta (en inglés): el servidor, la predicción y la corrección, con ejemplos que se mueven.
+- [What Every Programmer Needs to Know About Game Networking](https://gafferongames.com/post/what_every_programmer_needs_to_know_about_game_networking/), de Glenn Fiedler (en inglés): las tres maneras, con su historia.
+- [Source Multiplayer Networking](https://developer.valvesoftware.com/wiki/Source_Multiplayer_Networking), en la documentación de Valve (en inglés): el estado, la interpolación y la compensación de la demora.
+- [La decisión 0016](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/docs/decisions/0016-the-networking-model.md) (en inglés): el modelo de red del motor, y lo que descartó.

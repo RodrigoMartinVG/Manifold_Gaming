@@ -1,0 +1,109 @@
+---
+title: Patrones
+description: Los patrones de diseño que aparecen en el código de las lecciones — qué resuelve cada uno, dónde está en el tutorial y dónde en el motor.
+---
+
+Un **patrón de diseño** (_design pattern_) es una manera conocida de resolver un problema que aparece una y otra vez, con un nombre. El nombre es lo que más sirve: cuando alguien dice "eso es una cola de eventos", todos saben qué forma tiene el código, qué resuelve y qué cuesta. Muchos los bautizó el libro _Design Patterns_ (1994), de Gamma, Helm, Johnson y Vlissides; los de los juegos los juntó Robert Nystrom en [_Game Programming Patterns_](https://gameprogrammingpatterns.com/) (2014, libre en la web, en inglés), que es la referencia de esta página.
+
+Las lecciones los marcan con un recuadro **Patrón** cuando su código usa uno. Esta página los junta, como el [glosario](../glosario/) junta las palabras, en el orden en que aparecen.
+
+| Patrón                       | En inglés                | Dónde aparece                                                                          |
+| ---------------------------- | ------------------------ | -------------------------------------------------------------------------------------- |
+| bucle de juego               | _game loop_              | [Tu primer cubo](../etapa-0/01-primer-cubo/), [El paso fijo](../etapa-0/03-paso-fijo/) |
+| estrategia                   | _strategy_               | [Azar con semilla](../etapa-0/04-azar-con-semilla/)                                    |
+| presentación separada        | _separated presentation_ | [Simulación y dibujo](../etapa-0/05-simulacion-y-dibujo/)                              |
+| compuesto (grafo de escena)  | _composite_              | [Matrices y espacios](../etapa-0/07-matrices-y-espacios/)                              |
+| bandera de sucio             | _dirty flag_             | [Matrices y espacios](../etapa-0/07-matrices-y-espacios/)                              |
+| componente                   | _component_              | [Un motor de física](../etapa-1/00-motor-de-fisica/)                                   |
+| partición espacial           | _spatial partition_      | [Cómo se encuentra un choque](../etapa-1/01-como-se-encuentra-un-choque/)              |
+| estado                       | _state_                  | [Un personaje](../etapa-1/02-un-personaje/)                                            |
+| método de actualización      | _update method_          | [La cámara que sigue](../etapa-1/03-la-camara-que-sigue/)                              |
+| comando                      | _command_                | [Entradas como acciones](../etapa-1/04-entradas-como-acciones/)                        |
+| registro de eventos          | _event sourcing_         | [Repeticiones y fantasmas](../etapa-1/05-repeticiones/)                                |
+| memento                      | _memento_                | [Instantáneas](../etapa-1/06-instantaneas/)                                            |
+| cola de eventos              | _event queue_            | [Un servidor y un cliente](../etapa-1/07-servidor-y-cliente/)                          |
+| objeto único (un antipatrón) | _singleton_              | [Azar con semilla](../etapa-0/04-azar-con-semilla/), y lo que el motor evita           |
+
+## Bucle de juego
+
+**El problema:** un juego no espera a que el usuario haga algo, como un programa de oficina; el mundo sigue aunque nadie toque nada, y tiene que verse igual de rápido en cualquier máquina. **La forma:** un ciclo que nunca termina (leer lo que pasó, actualizar el mundo según el tiempo que pasó, dibujar) y que mide el tiempo en vez de suponerlo.
+
+En [Tu primer cubo](../etapa-0/01-primer-cubo/) está en su forma más simple: un paso por cuadro, del tamaño del cuadro. En [El paso fijo](../etapa-0/03-paso-fijo/), en la completa: la simulación avanza de a pasos iguales, la pantalla dibuja cuando puede, y un acumulador une los dos relojes. En el motor, el reloj es `Clock` ([`clock.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/clock.ts)), y el bucle, del navegador: `requestAnimationFrame` llama a la presentación. Nystrom, cap. ["Game Loop"](https://gameprogrammingpatterns.com/game-loop.html).
+
+## Estrategia
+
+**El problema:** algo tiene que poder hacerse de varias maneras, y el que lo usa no debería cambiar por eso. **La forma:** las maneras tienen la misma forma (la misma función, la misma interfaz), y se le pasa una al que las usa.
+
+En [Azar con semilla](../etapa-0/04-azar-con-semilla/), `main.ts` recibe una función que da números, `Math.random` o `createRandom(seed)`, y no sabe cuál. En el motor, la física es una estrategia: el mundo habla con un `PhysicsBackend` y el perfil del juego dice cuál ([`physics.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/physics.ts), [decisión 0014](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/docs/decisions/0014-the-execution-profile.md)). Es de _Design Patterns_ (1994).
+
+## Presentación separada
+
+**El problema:** si las cuentas y el dibujo están mezclados, no se puede probar sin pantalla, ni correr en un servidor, ni tener dos vistas. **La forma:** el **modelo** (los datos y sus reglas) no sabe que existe una vista; la **vista** lee el modelo y nunca lo cambia. Es la idea de fondo del clásico modelo-vista-controlador.
+
+En [Simulación y dibujo](../etapa-0/05-simulacion-y-dibujo/), `simulation.ts` no importa nada y `view.ts` solo lee. En el motor es una regla que verifican el compilador y el revisor de código: `packages/core` no puede importar el dibujo ([decisión 0003](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/docs/decisions/0003-boundaries.md)).
+
+## Compuesto: el grafo de escena
+
+**El problema:** una escena tiene cosas dentro de cosas (la rueda en el auto, el auto en el barco), y moverlas una por una es imposible. **La forma:** un objeto puede tener hijos, que pueden tener hijos; un grupo se trata igual que un objeto suelto, y cada hijo vive en el espacio de su padre.
+
+En [Matrices y espacios](../etapa-0/07-matrices-y-espacios/), la nave es hija de la mesa, y su matriz del mundo es la de la mesa por la suya. Three.js entero está armado así: la escena es la raíz del árbol. Es de _Design Patterns_ (1994).
+
+## Bandera de sucio
+
+**El problema:** algo caro de calcular depende de datos que cambian poco (la matriz del mundo de un objeto depende de la de todos sus padres). **La forma:** una marca que dice "esto cambió, hay que recalcularlo", y se recalcula solo cuando hace falta.
+
+Three.js tiene la marca (`matrixWorldNeedsUpdate`), aunque con `matrixAutoUpdate` prendido, como viene, recalcula todo en cada cuadro: apagarlo en lo que no se mueve es su manera de ahorrar. Lo cuenta [Matrices y espacios](../etapa-0/07-matrices-y-espacios/). Nystrom, cap. ["Dirty Flag"](https://gameprogrammingpatterns.com/dirty-flag.html), con justamente ese ejemplo.
+
+## Componente
+
+**El problema:** una clase "Cosa del juego" que sabe moverse, chocar, dibujarse y sonar termina siendo enorme, y cada cosa nueva la empeora. **La forma:** una cosa es la suma de piezas independientes (un lugar, un cuerpo, una apariencia), y cada sistema solo mira las piezas que le importan.
+
+En [Un motor de física](../etapa-1/00-motor-de-fisica/), una caja es un cuerpo, una forma y una malla que no se conocen entre sí. En el motor, una entidad es un número y sus componentes, todos datos simples (`transform`, `body`, `character`, `appearance`, `sensor`…), y los de cada juego van con su nombre (`dojo.runner`) ([`types.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/types.ts)). Nystrom, cap. ["Component"](https://gameprogrammingpatterns.com/component.html).
+
+## Partición espacial
+
+**El problema:** encontrar lo que está cerca de algo comparando con todo cuesta `n²`. **La forma:** guardar las cosas ordenadas según dónde están (una grilla, un árbol), para buscar solo entre las vecinas.
+
+En [Cómo se encuentra un choque](../etapa-1/01-como-se-encuentra-un-choque/), una grilla sobre el piso. Rapier tiene la suya en su fase amplia, y con ella responde también los rayos. Las zonas del motor usan una versión mínima: una caja alineada con el mundo descarta rápido a los que están lejos ([`world.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/world.ts)). Nystrom, cap. ["Spatial Partition"](https://gameprogrammingpatterns.com/spatial-partition.html).
+
+## Estado
+
+**El problema:** algo se comporta distinto según en qué situación está, y los `if` sobre esa situación se desparraman por todo el código. **La forma:** cada situación es un estado con su propio comportamiento, y se decide en un solo lugar en cuál se está.
+
+En [Un personaje](../etapa-1/02-un-personaje/), el piso y el aire. En el motor, cada modo de moverse (caminar, en el aire, planear, trepar) es una entrada de una tabla, uno solo por paso, elegido por una sola función ([`character.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/character.ts)). Nystrom, cap. ["State"](https://gameprogrammingpatterns.com/state.html).
+
+## Método de actualización
+
+**El problema:** muchas cosas cambian con el tiempo, cada una a su manera, y el bucle no debería saber cómo. **La forma:** cada cosa tiene su propio método que se llama una vez por cuadro (o por paso) con el tiempo que pasó, y el bucle solo los recorre.
+
+En [La cámara que sigue](../etapa-1/03-la-camara-que-sigue/), cada manera de seguir es una función que se llama en cada cuadro. En el motor, cada pieza de la presentación (la cámara, el dibujo de los cuerpos, lo que maneja el jugador) tiene su `frame` ([`camera.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/presentation/src/camera.ts)). Nystrom, cap. ["Update Method"](https://gameprogrammingpatterns.com/update-method.html).
+
+## Comando
+
+**El problema:** un pedido que se ejecuta en el momento no se puede guardar, mandar, repetir ni deshacer. **La forma:** convertir el pedido en un dato: un objeto que dice qué se pidió, que se puede guardar en una lista, mandar por la red o fabricar.
+
+En [Entradas como acciones](../etapa-1/04-entradas-como-acciones/), una entrada no es "se apretó W", sino "el jugador 1 pide ir a 0° en el paso 412", y un bot puede pedir lo mismo. En el motor, las entradas declaradas y normalizadas ([`input.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/input.ts)), y también las líneas de la consola, que entran al mundo en un paso. Nystrom, cap. ["Command"](https://gameprogrammingpatterns.com/command.html).
+
+## Registro de eventos
+
+**El problema:** guardar el estado entero de algo, cada vez que cambia, pesa demasiado. **La forma:** guardar lo que pasó, en orden, desde un comienzo conocido; el estado se reconstruye repitiéndolo. Funciona si repetir da siempre lo mismo.
+
+En [Repeticiones y fantasmas](../etapa-1/05-repeticiones/), una repetición es el nacimiento del mundo y la lista de lo que se pidió, con sus pasos. En el motor, las repeticiones son texto, una cosa por línea, y entran en un enlace ([`replay.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/replay.ts)). Va de la mano del comando.
+
+## Memento
+
+**El problema:** volver a un momento anterior de algo que tiene un estado interno complicado, sin que el que guarda tenga que entenderlo. **La forma:** el objeto entrega una "foto" de sí mismo, que nadie más sabe leer, y sabe volver a ella.
+
+En [Instantáneas](../etapa-1/06-instantaneas/), los bytes de `takeSnapshot()`. En el motor, la instantánea de un mundo, con la de Rapier adentro ([`world.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/world.ts)). Es de _Design Patterns_ (1994).
+
+## Cola de eventos
+
+**El problema:** el que avisa algo no debería tener que esperar al que lo atiende, ni saber quién es. **La forma:** los avisos se guardan en una fila y se atienden después, en orden.
+
+En [Un servidor y un cliente](../etapa-1/07-servidor-y-cliente/), el cable entrega cada mensaje más tarde, en orden. En el motor, la red (`packages/net`) y también los eventos del mundo, que se guardan para dos lectores a dos ritmos: el juego, en cada paso, y la presentación, en cada cuadro ([`world.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/world.ts)). Nystrom, cap. ["Event Queue"](https://gameprogrammingpatterns.com/event-queue.html).
+
+## Un antipatrón: el objeto único
+
+Un **objeto único** (_singleton_) es una clase de la que hay una sola instancia, accesible desde todo el programa. Es cómodo, y por eso tienta. Pero dos cosas que debían ser independientes terminan compartiendo algo sin saberlo.
+
+En la primera versión del motor, un generador de azar y un contador de identificadores de todo el programa hacían que dos mundos en la misma página (una partida y su repetición, un servidor y un cliente) se robaran números uno al otro. Por eso cada mundo tiene **su** reloj, **su** contador y **su** azar ([`world.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/world.ts)). Lo cuenta [Azar con semilla](../etapa-0/04-azar-con-semilla/). Nystrom, cap. ["Singleton"](https://gameprogrammingpatterns.com/singleton.html), que explica por qué casi siempre conviene otra cosa.

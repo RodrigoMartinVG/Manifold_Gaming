@@ -83,6 +83,15 @@ La suma de todos los `dt` es el tiempo total, así que el ángulo es `ω · tiem
 
 </details>
 
+<details>
+<summary>Cuándo llama el navegador a `frame`</summary>
+
+La pantalla se dibuja a un ritmo fijo, el de su refresco: cada 16,7 ms en una de 60 Hz. El navegador junta todo lo que cambió y lo muestra en el próximo refresco, y `requestAnimationFrame` le pide que llame a `frame` justo antes de ese momento. El `now` que recibe es la hora de ese cuadro.
+
+Por eso `dt` no es lo que tardó tu código, sino el tiempo entre dos refrescos: unos 16,7 ms. Si `frame` tarda más que eso (o el navegador está ocupado), el cuadro se pierde, y el siguiente `dt` es de 33 ms. El cubo no se entera: como gira según `dt`, al cuadro siguiente está donde tiene que estar, solo que se vio un salto.
+
+</details>
+
 :::caution[Sutilezas]
 
 - **`MeshStandardMaterial` sin luces se ve negro.** `MeshBasicMaterial` ignora la luz: siempre se ve de su color, pero plano, sin volumen.
@@ -90,11 +99,53 @@ La suma de todos los `dt` es el tiempo total, así que el ángulo es `ω · tiem
 - **`requestAnimationFrame` se detiene cuando no se ve.** Si cambiás de pestaña, el navegador deja de llamar al bucle para ahorrar batería. Al volver, el primer `dt` puede ser enorme: la [lección del paso fijo](../03-paso-fijo/) cuenta cómo cuidarse de eso.
   :::
 
+:::tip[Patrón: bucle de juego]
+Repetir sin parar "leer lo que pasó, actualizar el mundo, dibujar", con el tiempo que pasó como dato, es el patrón **bucle de juego** (_game loop_). Aquí está en su forma más simple: un paso por cuadro, del tamaño del cuadro. La [lección del paso fijo](../03-paso-fijo/) le cambia una pieza importante. [Todos los patrones del tutorial](../../patrones/#bucle-de-juego).
+:::
+
+## En los motores
+
+- **El motor es dueño del bucle, y llama a tu código.** En Unity, cada objeto tiene un `Update()` que se llama una vez por cuadro, con el tiempo del cuadro en `Time.deltaTime`. En Unreal, `Tick(DeltaSeconds)`. En Godot, `_process(delta)`. Es el mismo `frame(now)` de este ejemplo, con otro nombre.
+- **En los libros:** Jason Gregory, _Game Engine Architecture_ (4.ª ed., vol. I), cap. 8 "The Game Loop and Real-Time Simulation": §8.1 el bucle de dibujo, §8.2 el bucle del juego, y §8.5.2.2, actualizar según el tiempo que pasó. Robert Nystrom, _Game Programming Patterns_, cap. "Game Loop".
+
+**Dónde Manifold eligió otra cosa.** En un navegador no se puede escribir un `while (true)` que nunca termina: la página se congelaría. El bucle es del navegador, y el programa le pide el próximo cuadro. La presentación del motor vive de eso. Pero la simulación no usa el `dt` del cuadro: avanza siempre de a pasos iguales, como cuenta la [lección del paso fijo](../03-paso-fijo/).
+
 ## En Manifold
 
 La presentación del motor hace esto mismo, pero lo que dibuja no lo decide ella: lo lee de la simulación. Está en [`packages/presentation/src/client.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/stage-00/packages/presentation/src/client.ts), y el detalle está en la [bitácora de la etapa 0](../../../bitacora/etapa-0/).
+
+## Para practicar
+
+**1. Una vuelta cada dos segundos.** ¿Qué número tiene que ir en lugar de `0.8` para que el cubo dé una vuelta entera, alrededor de `y`, cada dos segundos?
+
+<details>
+<summary>Una pista</summary>
+
+Una vuelta son 2π radianes. Velocidad es ángulo dividido tiempo.
+
+</details>
+
+**2. Una luna.** Agregá un cubo chico como hijo del primero, a 1,2 metros de su centro. Sin escribir nada más, ¿qué hace?
+
+<details>
+<summary>Una pista</summary>
+
+`cube.add(luna)` en vez de `scene.add(luna)`, y `luna.position.x = 1.2`. Un hijo vive en el espacio de su padre: lo cuenta la [lección de las matrices](../07-matrices-y-espacios/).
+
+</details>
+
+**3. Un cuadro lento.** Escribí en la consola, una vez por segundo, el `dt` más grande que hubo. Después hacé que un cuadro de cada diez tarde 50 ms a propósito (un `while` que espera mirando `performance.now()`). ¿Qué pasa con el `dt` más grande? ¿Y con la velocidad del cubo?
+
+<details>
+<summary>Una pista</summary>
+
+Guardá el máximo en una variable y, cuando pasó un segundo desde la última vez que escribiste, escribilo y volvelo a cero. Para "tardar": `const fin = performance.now() + 50; while (performance.now() < fin) {}`.
+
+</details>
 
 ## Para saber más
 
 - [Crear una escena](https://threejs.org/manual/#en/creating-a-scene), en el manual de Three.js (en inglés): el mismo programa, contado por los autores de la librería.
 - [`requestAnimationFrame`](https://developer.mozilla.org/es/docs/Web/API/Window/requestAnimationFrame), en MDN.
+- [Game Programming Patterns: Game Loop](https://gameprogrammingpatterns.com/game-loop.html), de Robert Nystrom (en inglés).
+- Jason Gregory, _Game Engine Architecture_, 4.ª ed., vol. I, cap. 8.

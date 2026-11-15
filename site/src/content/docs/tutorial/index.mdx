@@ -33,7 +33,7 @@ Por eso cada detalle matemático se cuenta **en capas**, y cada uno elige hasta 
 
 1. **Lo mínimo, en el texto de la lección:** qué es, para qué sirve y cómo se usa en el código, con un ejemplo que se mueve. Es lo único necesario para seguir la lección, y está escrito para quien lo ve por primera vez.
 2. **El porqué, en los recuadros "Más a fondo":** de dónde sale una fórmula, una cuenta hecha paso a paso, por qué funciona un truco. Están cerrados: se abren con un clic, para quien quiera entender además de usar.
-3. **La matemática completa, en "Para saber más":** artículos, videos y libros para seguir tan lejos como quieras.
+3. **La matemática completa, en "Para saber más":** artículos, videos y libros para seguir tan lejos como quieras, citados por capítulo.
 
 Saltearse los recuadros no te deja afuera de nada de lo que sigue. Cuando una lección necesita algo de una anterior, vuelve a contar su mínimo o te dice dónde está.
 
@@ -43,17 +43,17 @@ El tutorial sigue las etapas del motor ([el plan completo](../proyecto/)). Cada 
 
 El orden va de abajo hacia arriba: primero los cimientos (dibujar, el tiempo, el azar), después la física, y encima lo que se juega. Un personaje que se maneja aparece en la etapa 1, y los bots, en la 4. Los ejemplos son interactivos desde la primera lección; a partir de la etapa 1, además, se juegan.
 
-| Etapa                                      | Las ideas                                                                                                                                                                                               | Estado         |
-| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
-| **0. Cimientos**                           | Cómo se dibuja en 3D. La escena, la cámara y el bucle. Orientar las cosas sin que se traben. Por qué la física avanza de a pasos fijos. Un azar que se puede repetir. Separar la simulación del dibujo. | **Disponible** |
-| **1. Física y un personaje**               | Cuerpos que chocan, con un motor de física. **Un personaje que se maneja** con el teclado, el mouse o un joystick, y una cámara que lo sigue. Repetir una partida y comprobar que dio igual.            | **Disponible** |
-| **2. Capacidades**                         | Trepar, volar, agarrar: lo que un personaje sabe hacer, como piezas que se combinan.                                                                                                                    | La próxima     |
-| **3. Un mundo que responde**               | Mecanismos (puertas, ascensores, botones), cosas que se rompen, luces que se apagan.                                                                                                                    | Más adelante   |
-| **4. Combate y bots**                      | Armas, y **bots**: personajes que maneja la computadora. Patrullan, ven y oyen, persiguen, y usan el mundo; por ejemplo, un guardia que llama al ascensor.                                              | Más adelante   |
-| **5. Juegos**                              | Tres juegos completos sobre el motor, con historia, niveles, gráficos y sonido: uno de plataformas, una aventura de acción y un shooter. Se juegan en este sitio.                                       | Más adelante   |
-| **6. Red y niveles**                       | Jugar con otros por la red, y un editor para armar niveles.                                                                                                                                             | Más adelante   |
-| **7. Mundos extraños**                     | Gravedades que cambian de lugar en lugar, como la de un planeta. Caminar por paredes y techos. Espacios que se pegan consigo mismos. Los juegos de la segunda tanda.                                    | Más adelante   |
-| **8. Potencia para un jugador** (opcional) | Cuánto cuesta verificar que todo es determinista, y cómo un juego de un jugador puede recuperar esa potencia: una física más rápida, y escombros que cuentan.                                           | Más adelante   |
+| Etapa                                      | Las ideas                                                                                                                                                                                                                                                                | Estado         |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------- |
+| **0. Cimientos**                           | Cómo se dibuja en 3D. La escena, la cámara y el bucle. Orientar las cosas sin que se traben. Por qué la física avanza de a pasos fijos. Un azar que se puede repetir. Separar la simulación del dibujo. Números que no son exactos. Matrices y los espacios de un punto. | **Disponible** |
+| **1. Física y un personaje**               | Cuerpos que chocan, con un motor de física, y cómo se encuentra un choque. **Un personaje que se maneja** con el teclado, el mouse o un joystick, y una cámara que lo sigue. De la tecla a la acción. Repetir una partida y comprobar que dio igual.                     | **Disponible** |
+| **2. Capacidades**                         | Trepar, volar, agarrar: lo que un personaje sabe hacer, como piezas que se combinan.                                                                                                                                                                                     | La próxima     |
+| **3. Un mundo que responde**               | Mecanismos (puertas, ascensores, botones), cosas que se rompen, luces que se apagan.                                                                                                                                                                                     | Más adelante   |
+| **4. Combate y bots**                      | Armas, y **bots**: personajes que maneja la computadora. Patrullan, ven y oyen, persiguen, y usan el mundo; por ejemplo, un guardia que llama al ascensor.                                                                                                               | Más adelante   |
+| **5. Juegos**                              | Tres juegos completos sobre el motor, con historia, niveles, gráficos y sonido: uno de plataformas, una aventura de acción y un shooter. Se juegan en este sitio.                                                                                                        | Más adelante   |
+| **6. Red y niveles**                       | Jugar con otros por la red, y un editor para armar niveles.                                                                                                                                                                                                              | Más adelante   |
+| **7. Mundos extraños**                     | Gravedades que cambian de lugar en lugar, como la de un planeta. Caminar por paredes y techos. Espacios que se pegan consigo mismos. Los juegos de la segunda tanda.                                                                                                     | Más adelante   |
+| **8. Potencia para un jugador** (opcional) | Cuánto cuesta verificar que todo es determinista, y cómo un juego de un jugador puede recuperar esa potencia: una física más rápida, y escombros que cuentan.                                                                                                            | Más adelante   |
 
 ## Con qué se trabaja
 
@@ -74,16 +74,22 @@ Para que no sea una barrera, **la primera vez que aparece un término va en espa
 
 ## Cómo es una lección
 
-Todas tienen las mismas partes:
+Todas tienen las mismas partes. Las cuatro primeras son el **camino corto**: alcanzan para seguir.
 
 1. **La idea:** qué problema resuelve y por qué importa, en palabras.
 2. **El ejemplo:** el programa, corriendo. Arriba se ve lo que dibuja; abajo está el código. Cada lección dice **qué probar**.
 3. **El código, paso a paso:** qué hace cada parte, en orden.
 4. **Lo importante:** lo que hay que llevarse.
-5. **Más a fondo:** el porqué matemático, en recuadros que se abren con un clic. Son opcionales.
+
+Lo demás va alrededor, para quien quiera más:
+
+5. **Más a fondo:** el porqué, en recuadros que se abren con un clic: de dónde sale una fórmula, una cuenta paso a paso, por qué funciona un truco.
 6. **Sutilezas:** las trampas, y lo que no es obvio.
-7. **En Manifold:** dónde está esa idea en el motor de verdad, para quien quiera ver el código completo.
-8. **Para saber más:** dónde seguir leyendo.
+7. **Patrón:** cuando el código de la lección es un patrón de diseño conocido, un recuadro le pone nombre, para reconocerlo en otros lados. La página de [Patrones](patrones/) los junta todos.
+8. **En los motores:** cómo resuelven lo mismo otros motores (Unity, Unreal, Godot) y los libros, con su capítulo, y dónde Manifold eligió otra cosa, y por qué.
+9. **En Manifold:** dónde está esa idea en el motor de verdad, para quien quiera ver el código completo.
+10. **Para practicar:** dos o tres ejercicios, de más fácil a más difícil, que parten del ejemplo. Cada uno tiene una pista que se abre con un clic; la solución es tuya.
+11. **Para saber más:** dónde seguir leyendo.
 
 ## Cómo se usan los ejemplos
 
@@ -115,11 +121,16 @@ Este es el programa más chico posible: escribe en la consola con `console.log`,
 3. [El paso fijo](etapa-0/03-paso-fijo/): por qué la física no puede depender de la pantalla.
 4. [Azar con semilla](etapa-0/04-azar-con-semilla/): azar que se puede repetir.
 5. [Simulación y dibujo, separados](etapa-0/05-simulacion-y-dibujo/): lo que pasa y lo que se ve, en dos módulos que no se mezclan.
+6. [Números que no son exactos](etapa-0/06-numeros-que-no-son-exactos/): por qué 0.1 + 0.2 no da 0.3, por qué lejos del origen todo se mueve a saltos, y cómo se consiguen los mismos bits en todos los navegadores.
+7. [Matrices y espacios](etapa-0/07-matrices-y-espacios/): mover, girar y escalar en una sola cuenta, y los espacios en los que vive un punto.
 
 ## Etapa 1: física y un personaje
 
 0. [Un motor de física](etapa-1/00-motor-de-fisica/): cuerpos que caen, chocan y se apilan, calculados por Rapier.
-1. [Un personaje](etapa-1/01-un-personaje/): una cápsula que se maneja, sube escalones y salta. Por qué no es un cuerpo como los demás.
-2. [Repeticiones y fantasmas](etapa-1/02-repeticiones/): grabar una partida sin grabar el mundo, y comprobar con una huella que dio lo mismo.
-3. [Instantáneas](etapa-1/03-instantaneas/): guardar el mundo entero, física incluida, y volver a él.
-4. [Un servidor y un cliente](etapa-1/04-servidor-y-cliente/): dos copias del mismo mundo, la demora, y una desincronización a propósito.
+1. [Cómo se encuentra un choque](etapa-1/01-como-se-encuentra-un-choque/): las dos fases, y una grilla para no comparar todo con todo.
+2. [Un personaje](etapa-1/02-un-personaje/): una cápsula que se maneja, sube escalones y salta. Por qué no es un cuerpo como los demás.
+3. [La cámara que sigue](etapa-1/03-la-camara-que-sigue/): con correa o persiguiendo, y un suavizado que no depende de la pantalla.
+4. [Entradas como acciones](etapa-1/04-entradas-como-acciones/): de la tecla a la acción, con su jugador y su paso.
+5. [Repeticiones y fantasmas](etapa-1/05-repeticiones/): grabar una partida sin grabar el mundo, y comprobar con una huella que dio lo mismo.
+6. [Instantáneas](etapa-1/06-instantaneas/): guardar el mundo entero, física incluida, y volver a él.
+7. [Un servidor y un cliente](etapa-1/07-servidor-y-cliente/): dos copias del mismo mundo, la demora, y una desincronización a propósito.

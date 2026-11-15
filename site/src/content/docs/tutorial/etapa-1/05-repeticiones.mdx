@@ -2,7 +2,7 @@
 title: Repeticiones y fantasmas
 description: Grabar una partida sin grabar el mundo, volver a jugarla igual, y correr contra uno mismo. Y la huella que comprueba que dio exactamente lo mismo.
 sidebar:
-  order: 2
+  order: 5
 ---
 
 import LiveCode from '../../../../components/LiveCode.astro';
@@ -11,7 +11,7 @@ import LiveCode from '../../../../components/LiveCode.astro';
 
 Hay una manera mucho más chica, si el mundo es **determinista**: si el mismo comienzo y las mismas órdenes dan siempre exactamente lo mismo. Entonces alcanza con anotar **cómo arrancó y qué pidió el jugador, y en qué paso**. Es como una partida de ajedrez: no se fotografía el tablero en cada jugada, se anotan las jugadas. Esa lista es una **repetición** (_replay_). Volver a jugarla en otro mundo, al lado del tuyo, es un **fantasma** (_ghost_): lo que hacen los juegos de carreras para correr contra tu mejor vuelta.
 
-<LiveCode lesson="stage-1/02-replays" autorun />
+<LiveCode lesson="stage-1/05-replays" autorun />
 
 La pelota celeste se mueve sola (un piloto automático) o con **WASD**, después de hacer clic en el dibujo. Empuja las cajas. Todo lo que pide queda grabado.
 
@@ -50,6 +50,26 @@ Cualquier cosa que no sea exactamente igual en las dos corridas:
 
 </details>
 
+<details>
+<summary>Cuánto pesa una repetición, y cuánto pesaría un video</summary>
+
+Grabar el mundo como un video, en este ejemplo, es guardar 17 cuerpos (16 cajas y la pelota) con 7 números cada uno (tres de posición y cuatro de giro), de 4 bytes: 476 bytes por paso, unos 28 KB por segundo. Un minuto, 1,7 MB.
+
+La repetición guarda un cambio de entrada (el paso y dos números) cada vez que cambia lo que se pide: unas decenas cada mil pasos. Un minuto son unos pocos cientos de bytes. Y no crece con el mundo: con mil cajas pesa lo mismo, porque las cajas no se graban, se recalculan.
+
+</details>
+
+<details>
+<summary>Cómo se arma la huella: FNV-1a</summary>
+
+`hashOf` empieza con un número fijo (`0x811c9dc5`) y, por cada byte de cada número, hace dos cosas: lo mezcla con un **o exclusivo** (_XOR_), y multiplica todo por un primo (`0x01000193`), quedándose con 32 bits (`Math.imul`). Se llama **FNV-1a**, por Fowler, Noll y Vo, sus autores.
+
+Mira **los bytes**, no el valor: por eso 0,1 + 0,2 y 0,3 dan huellas distintas, como tiene que ser (la [lección de los números](../../etapa-0/06-numeros-que-no-son-exactos/) cuenta por qué son distintos). Y un solo bit distinto cambia la huella entera, porque cada multiplicación lo desparrama por todos los bits siguientes.
+
+Con 32 bits hay unos cuatro mil millones de huellas posibles: que dos mundos distintos den la misma por casualidad es una chance en cuatro mil millones en cada comparación. Para encontrar desincronizaciones alcanza de sobra; para seguridad, no sirve (para eso están las huellas criptográficas, como SHA-256).
+
+</details>
+
 :::caution[Sutilezas]
 
 - **El fantasma vive en otro mundo.** Lo que empuja no se mueve en el tuyo, y vos no lo podés tocar a él: por eso aquí cada uno tiene sus propias cajas.
@@ -57,10 +77,53 @@ Cualquier cosa que no sea exactamente igual en las dos corridas:
 - **Esta huella es de las posiciones y los giros.** La del motor suma todo el estado del mundo: velocidades, el azar, lo que pide cada jugador. Dos mundos pueden estar en el mismo lugar y moverse distinto.
   :::
 
+:::tip[Patrón: registro de eventos]
+Guardar **lo que pasó** en vez de **cómo quedó**, y reconstruir el estado repitiendo esos pasos desde un comienzo conocido, es el **registro de eventos** (_event sourcing_). Una repetición es eso: el nacimiento del mundo y la lista de lo que se pidió. Va de la mano del patrón comando, que convierte cada pedido en un dato que se puede guardar ([la lección de las entradas](../04-entradas-como-acciones/)). [Todos los patrones del tutorial](../../patrones/#registro-de-eventos).
+:::
+
+## En los motores
+
+- **Las repeticiones por entradas son viejas.** Las "demos" de _Doom_ (1993) guardaban lo que pedía el jugador en cada paso del juego, 35 por segundo, y el juego las volvía a jugar. Los juegos de estrategia en tiempo real, como _Age of Empires_ o _StarCraft_, graban las órdenes de cada jugador: por eso sus repeticiones pesan tan poco. Todos dependen de un mundo determinista.
+- **La otra manera es grabar el estado.** El sistema de repeticiones de Unreal graba lo que el servidor les manda a los clientes (el estado de los objetos, como viaja por la red): no necesita determinismo, y a cambio pesa mucho más.
+- **En la literatura:** Glenn Fiedler, _Deterministic Lockstep_ (2014). Jason Gregory, _Game Engine Architecture_ (4.ª ed., vol. I), §8.5.2.4, que muestra grabar y reproducir con los mismos tiempos y la misma semilla como una de las razones para controlar el ritmo de los cuadros.
+
+**Dónde Manifold eligió otra cosa.** Eligió las entradas, y las hizo **texto**: la primera línea es la versión de la simulación; después, el juego, su perfil y cómo nació el mundo (sus valores, como líneas de la consola); después, una por línea, cada entrada de cada jugador y cada cambio escrito en la consola, con su paso; al final, el último paso y su huella. Entra en un enlace. Y cada fase deja una **repetición de referencia** que las pruebas juegan en Chromium, Firefox, WebKit y Node: si un cambio altera el mundo sin querer, la huella del final lo delata ([La misma huella](../../../jugar/la-misma-huella/)).
+
 ## En Manifold
 
 Las repeticiones del motor son texto que se puede leer, una cosa por línea: [`packages/core/src/replay.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/stage-01/packages/core/src/replay.ts). Entran en un enlace: en el Dojo, `replay export` arma uno, y quien lo abre ve la partida y comprueba la huella al final, en su navegador. `ghost` corre contra lo que acabás de hacer. Una prueba graba una corrida con el teclado en Chromium, Firefox y WebKit, y la reproduce en Node: la misma huella en los cuatro. Está en la [Bitácora de la etapa 1c](../../../bitacora/etapa-1c/).
 
+## Para practicar
+
+**1. Cuántos cambios.** El piloto automático elige una dirección nueva cada 45 pasos. ¿Cuántos cambios de entrada esperás en 1000 pasos? ¿Por qué _input changes_ da algo menos?
+
+<details>
+<summary>Una pista</summary>
+
+1000 / 45 son unos 22 momentos de elegir. Pero un cambio se graba solo si la dirección nueva es distinta de la anterior: elige entre nueve (`−1`, `0` o `1` en cada eje).
+
+</details>
+
+**2. Un fantasma que nació distinto.** Hacé que el fantasma nazca con otra semilla para sus cajas (solo él). ¿En qué paso aparece la primera huella distinta?
+
+<details>
+<summary>Una pista</summary>
+
+`createWorld` recibe `ghost`: usalo para elegir la semilla de `createRandom`. La huella del fantasma se compara desde su primer paso.
+
+</details>
+
+**3. La repetición, como texto.** Escribí la grabación en la consola como texto, una línea por cambio (`paso x z`), y una función que lea ese texto y arme de nuevo `recording.inputs`. Comprobá que el fantasma alimentado con lo leído da las mismas huellas.
+
+<details>
+<summary>Una pista</summary>
+
+``inputs.map((c) => `${c.step} ${c.input[0]} ${c.input[1]}`).join('\n')`` para escribir; `split('\n')`, `split(' ')` y `Number` para leer. Cuidado con un −0: `String(-0)` es `"0"`.
+
+</details>
+
 ## Para saber más
 
 - [Deterministic lockstep](https://gafferongames.com/post/deterministic_lockstep/), de Glenn Fiedler (en inglés): repetir una simulación con sus entradas, y lo que hace falta para que dé igual.
+- Jason Gregory, _Game Engine Architecture_, 4.ª ed., vol. I, §8.5.2.4.
+- [Game Programming Patterns: Command](https://gameprogrammingpatterns.com/command.html), de Robert Nystrom (en inglés): los pedidos como datos, que se pueden repetir.

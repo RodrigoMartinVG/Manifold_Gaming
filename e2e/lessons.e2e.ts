@@ -22,7 +22,7 @@ const value = async (f: FrameLocator, name: string) => {
 const click = (f: FrameLocator, name: string) => f.locator('.lil-gui button', { hasText: name }).first().click();
 
 test('replays: the ghost gives the same hash on every step; one step late, another', async ({ page }) => {
-  const f = await open(page, 'tutorial/etapa-1/02-repeticiones/');
+  const f = await open(page, 'tutorial/etapa-1/05-repeticiones/');
   await expect.poll(async () => Number(await value(f, 'steps')), { timeout: 30_000 }).toBeGreaterThan(120);
   await click(f, 'race your ghost');
   await expect.poll(async () => Number(await value(f, 'steps checked')), { timeout: 30_000 }).toBeGreaterThan(100);
@@ -36,7 +36,7 @@ test('replays: the ghost gives the same hash on every step; one step late, anoth
 });
 
 test('snapshots: the twin born from a snapshot is the same world, until it is nudged', async ({ page }) => {
-  const f = await open(page, 'tutorial/etapa-1/03-instantaneas/');
+  const f = await open(page, 'tutorial/etapa-1/06-instantaneas/');
   await expect.poll(async () => Number(await value(f, 'step')), { timeout: 30_000 }).toBeGreaterThan(200);
   expect(await value(f, 'the twin is')).toBe('the same');
   await click(f, 'nudge the twin');
@@ -44,9 +44,56 @@ test('snapshots: the twin born from a snapshot is the same world, until it is nu
 });
 
 test('server and client: the hash checks agree; an input lost by the client is a desync', async ({ page }) => {
-  const f = await open(page, 'tutorial/etapa-1/04-servidor-y-cliente/');
+  const f = await open(page, 'tutorial/etapa-1/07-servidor-y-cliente/');
   await expect.poll(async () => Number(await value(f, 'hash checks')), { timeout: 30_000 }).toBeGreaterThan(2);
   expect(await value(f, 'desyncs')).toBe('0');
   await click(f, 'loses an input');
   await expect.poll(async () => Number(await value(f, 'desyncs')), { timeout: 30_000 }).toBeGreaterThan(0);
+});
+
+/** Sets a row of the panel: a number (its text box) or an option (its list). */
+async function set(f: FrameLocator, name: string, to: string) {
+  const row = f.locator('.lil-gui .controller', { has: f.locator('.name', { hasText: name }) }).first();
+  const select = row.locator('select');
+  if (await select.count()) await select.selectOption(to);
+  else {
+    await row.locator('input').first().fill(to);
+    await row.locator('input').first().press('Enter');
+  }
+}
+
+test('numbers that are not exact: far from the origin, a 32-bit step is lost', async ({ page }) => {
+  const f = await open(page, 'tutorial/etapa-0/06-numeros-que-no-son-exactos/');
+  expect(await value(f, 'a step moves')).toBe('0.0167 m');
+  await expect.poll(() => value(f, 'the red one moved'), { timeout: 30_000 }).toMatch(/^-?0\.0167 m$/);
+  await set(f, 'far: 10^', '6');
+  await expect.poll(() => value(f, 'next 32-bit number'), { timeout: 30_000 }).toBe('0.0625 m');
+  await expect.poll(() => value(f, 'the red one moved'), { timeout: 30_000 }).toBe('0.00 m');
+});
+
+test('matrices and spaces: the tip stays the same in the ship’s space, not in the world’s', async ({ page }) => {
+  const f = await open(page, 'tutorial/etapa-0/07-matrices-y-espacios/');
+  await expect.poll(() => value(f, 'the ship’s'), { timeout: 30_000 }).toBe('0.00  0.00  -0.70');
+  const world = await value(f, 'the world’s');
+  await expect.poll(() => value(f, 'the world’s'), { timeout: 30_000 }).not.toBe(world);
+  expect(await value(f, 'the ship’s')).toBe('0.00  0.00  -0.70');
+  expect(await value(f, 'row4')).toBe('0.00  0.00  0.00 |  1.00'); // (`value` trims the row)
+});
+
+test('finding collisions: the grid finds the same pairs as every pair, with fewer tests', async ({ page }) => {
+  const f = await open(page, 'tutorial/etapa-1/01-como-se-encuentra-un-choque/');
+  await expect.poll(() => value(f, 'the same pairs as every pair'), { timeout: 30_000 }).toBe('yes');
+  expect(Number(await value(f, 'box tests'))).toBeLessThan((300 * 299) / 2 / 5);
+  await set(f, 'broad phase', 'every pair');
+  await expect.poll(async () => Number(await value(f, 'box tests')), { timeout: 30_000 }).toBe((300 * 299) / 2);
+});
+
+test('inputs as actions: a bot asks for actions, and only the changes are kept, with their player', async ({ page }) => {
+  const f = await open(page, 'tutorial/etapa-1/04-entradas-como-acciones/');
+  await expect.poll(async () => Number(await value(f, 'changes kept')), { timeout: 30_000 }).toBeGreaterThan(2);
+  await expect(f.locator('pre')).toContainText('player 2');
+  await expect.poll(async () => Number(await value(f, 'jumps, player 2')), { timeout: 30_000 }).toBeGreaterThan(0);
+  // Player 1 is on the keyboard and nobody touches it: it asked for nothing.
+  expect(await value(f, 'jumps, player 1')).toBe('0');
+  expect(Number(await value(f, 'step'))).toBeGreaterThan(Number(await value(f, 'changes kept')));
 });

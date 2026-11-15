@@ -85,8 +85,11 @@ test('each section has its own sidebar, and previous/next never leave it', async
   expect(await sidebarLinks('bitacora').count()).toBe(reports().length + 1);
   await expect(sidebarLinks('tutorial')).toHaveCount(0);
 
-  // The glossary is the tutorial's last page: before, its "next" went to the Bitácora.
+  // The patterns are the tutorial's last page, after the glossary (before, the glossary was the last,
+  // and its "next" went to the Bitácora): the last page's "next" never leaves the section.
   await page.goto('tutorial/glosario/');
+  await expect(page.locator('.pagination-links a[rel="next"]')).toHaveAttribute('href', /\/tutorial\/patrones\/$/);
+  await page.goto('tutorial/patrones/');
   await expect(page.locator('.pagination-links a[rel="next"]')).toHaveCount(0);
   await page.goto('bitacora/etapa-0/');
   await expect(page.locator('.pagination-links a[rel="prev"]')).toHaveAttribute('href', /\/bitacora\/$/);

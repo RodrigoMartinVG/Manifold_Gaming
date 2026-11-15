@@ -67,12 +67,42 @@ Y una diferencia mínima no se queda mínima. En un mundo con choques, una pelot
 
 </details>
 
+<details>
+<summary>Un resumen no es una huella</summary>
+
+`summary` suma las posiciones con pesos distintos (`x + 3·y + 7·z`) y las escribe con 9 decimales. Sirve para el ejemplo, pero es ciego a muchas diferencias: si dos pelotas intercambian sus lugares, la suma da igual. Y dos números que difieren en el decimal 12 se escriben igual con 9.
+
+El motor usa una **huella** (_hash_) de verdad: recorre todo el estado del mundo en un orden fijo y mezcla **los bytes de cada número** en un solo número de 32 bits (con FNV-1a, que la [lección de las repeticiones](../../etapa-1/05-repeticiones/) cuenta). Dos mundos con un solo bit distinto en cualquier número dan, casi seguro, otra huella.
+
+</details>
+
+<details>
+<summary>Dos lectores, a dos ritmos</summary>
+
+La vista lee el mundo una vez por cuadro; la simulación avanza una vez por paso. Casi siempre es uno por uno, pero no siempre: en una pantalla lenta hay dos o tres pasos por cuadro, y en una de 144 Hz, cuadros sin ningún paso.
+
+Para las posiciones no importa: la vista dibuja dónde quedó cada cosa. Para los **eventos** sí: "nació una pelota", "algo entró a una zona". En el motor, el mundo los anota para dos lectores. El juego los lee en cada paso, y se vacían al empezar el siguiente. La presentación los lee en cada cuadro, y se le guardan los de todos los pasos que hubo desde la última vez. Si la vista solo mirara los del último paso, con dos pasos en un cuadro se perdería los del primero: a la primera versión del motor le pasó.
+
+</details>
+
 :::caution[Sutilezas]
 
 - **La vista lee y nunca escribe.** Si la vista moviera una pelota, la simulación y la pantalla dejarían de estar de acuerdo, y la repetición ya no daría igual.
 - **"Exactamente igual" quiere decir número por número.** Por eso el resumen se compara como texto, con 9 decimales, y no "más o menos". Una diferencia en el noveno decimal hoy es una pelota en otro lugar dentro de un minuto.
 - **En este ejemplo, la separación es una costumbre:** nada le impide a `simulation.ts` importar Three.js (probalo: funciona). En el motor no es costumbre, es una regla que el compilador hace cumplir.
   :::
+
+:::tip[Patrón: presentación separada]
+Separar los datos y sus reglas (el **modelo**) de lo que los muestra (la **vista**), con las flechas en un solo sentido, es la **presentación separada** (_separated presentation_), la idea de fondo del clásico modelo-vista-controlador. En un juego tiene un premio extra: el modelo corre sin pantalla, en un servidor o en una prueba. [Todos los patrones del tutorial](../../patrones/#presentación-separada).
+:::
+
+## En los motores
+
+- **En Unity, Unreal o Godot, la simulación y el dibujo conviven en los mismos objetos.** Un objeto tiene un lugar (su _transform_) que leen a la vez la física, el dibujo y el código del juego. Para un servidor, se arma el mismo juego sin dibujo: Unity y Unreal tienen versiones "de servidor dedicado" (_dedicated server_).
+- **Quake** (1996) ya separaba: aun jugando solo, el juego corría como un servidor local, y la parte que dibujaba era un cliente que le hablaba.
+- **En los libros:** Jason Gregory, _Game Engine Architecture_ (4.ª ed., vol. I), §1.5 "Runtime Engine Architecture", con las capas de un motor. Robert Nystrom, _Game Programming Patterns_, cap. "Game Loop", que separa actualizar de dibujar.
+
+**Dónde Manifold eligió otra cosa.** La separación no es una costumbre, es una regla que se verifica: el núcleo compila sin las funciones del navegador, y el revisor de código no deja que un paquete importe lo que no le toca ([decisión 0003](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/docs/decisions/0003-boundaries.md)). Y el estado del mundo son **datos simples**, sin métodos ni referencias a objetos de dibujo ([decisión 0004](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/docs/decisions/0004-state-as-data.md)): por eso se copia, se compara, se guarda y se manda por la red sin convertir nada.
 
 ## En Manifold
 
@@ -83,6 +113,37 @@ Así está armado todo el motor:
 
 Lo cuenta la [bitácora de la etapa 0](../../../bitacora/etapa-0/), y las reglas están en la [decisión 0003](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/docs/decisions/0003-boundaries.md) (en inglés, como todas las decisiones).
 
+## Para practicar
+
+**1. Otro paso, otro mundo.** En `simulation.ts`, cambiá `STEP` a `1 / 120`, y en `main.ts`, los 600 pasos por 1200 (los mismos 10 segundos). ¿El resumen da lo mismo que antes? ¿Por qué?
+
+<details>
+<summary>Una pista</summary>
+
+El tamaño del paso es parte de la física: lo cuenta la [lección del paso fijo](../03-paso-fijo/). Los dos mundos de 1200 pasos sí coinciden entre ellos.
+
+</details>
+
+**2. Una segunda vista.** Escribí otra vista, `shadows.ts`, que dibuje la sombra de cada pelota: un círculo oscuro en el piso, debajo de ella. Tiene que leer el mismo `World` y no cambiar nada.
+
+<details>
+<summary>Una pista</summary>
+
+Copiá la forma de `view.ts`: una malla por pelota (un círculo, `CircleGeometry`, girado para quedar acostado) y un `draw()` que copia solo `x` y `z`. En `main.ts`, llamá a los dos `draw()`.
+
+</details>
+
+**3. Diez veces más rápido.** Hacé que el mundo dibujado avance diez veces más rápido que el tiempo real, y comprobá que al llegar al paso 600 su resumen es el mismo que el de los mundos sin pantalla.
+
+<details>
+<summary>Una pista</summary>
+
+Sumale al acumulador `dt * 10`. Cuando `world.steps` llegue a 600, escribí su resumen en la consola. Ir más rápido cambia cuándo se dan los pasos, no cuáles.
+
+</details>
+
 ## Para saber más
 
 - [Game Programming Patterns: Game Loop](https://gameprogrammingpatterns.com/game-loop.html), de Robert Nystrom (en inglés, libre en la web): el bucle de un juego, el paso fijo y la separación entre actualizar y dibujar.
+- Jason Gregory, _Game Engine Architecture_, 4.ª ed., vol. I, §1.5.
+- [La decisión 0004](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/docs/decisions/0004-state-as-data.md) (en inglés): por qué el estado del motor es datos simples.

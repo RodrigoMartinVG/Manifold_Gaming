@@ -63,6 +63,17 @@ Por eso el código divide el estado entero por 2³²: así mandan los bits altos
 
 </details>
 
+<details>
+<summary>El generador del motor: SFC32 y una semilla repartida</summary>
+
+El motor usa **SFC32** (_small fast counter_, de Chris Doty-Humphrey). Su estado no es un número sino cuatro, de 32 bits cada uno, y en cada llamada los mezcla con sumas, desplazamientos y rotaciones de bits. Uno de los cuatro es un **contador** que solo suma 1: garantiza que la secuencia no cae en un ciclo corto, porque el estado nunca puede repetirse antes de que el contador dé toda la vuelta.
+
+Una semilla es un solo número, y hacen falta cuatro. Se reparten con otro generador chico, **SplitMix32**, elegido porque convierte números parecidos (1, 2, 3…) en estados muy distintos. Después, el generador da doce vueltas sin usar sus números: los primeros de un estado recién sembrado se parecen entre sí.
+
+Y su estado se puede leer y restaurar. Así una instantánea del mundo guarda también "por dónde iba el azar".
+
+</details>
+
 :::caution[Sutilezas]
 
 - **`Math.imul` multiplica como un procesador de 32 bits.** Una multiplicación común de JavaScript usa números con decimales de 64 bits: con números tan grandes, pierde los dígitos del final, justo los que la cuenta necesita.
@@ -71,11 +82,53 @@ Por eso el código divide el estado entero por 2³²: así mandan los bits altos
 - **Este generador es el más simple que hay**, y para un juego alcanza. Para claves o sorteos de verdad no sirve ninguno de estos: para eso existen los generadores criptográficos, como `crypto.getRandomValues()`.
   :::
 
+:::tip[Patrón: estrategia]
+`main.ts` no sabe de dónde salen sus números: recibe una función que los da, `Math.random` o `createRandom(seed)`, y las dos tienen la misma forma. Elegir entre piezas intercambiables detrás de una misma forma es el patrón **estrategia** (_strategy_). Y fijate en lo que el motor evita: un generador único para todo el programa (un _singleton_), que dos mundos en la misma página se robarían. [Todos los patrones del tutorial](../../patrones/#estrategia).
+:::
+
+## En los motores
+
+- **Unity** tiene un generador para todo el programa (`UnityEngine.Random`, un _xorshift_ de 128 bits), que se siembra con `Random.InitState(seed)` y cuyo estado se puede guardar (`Random.state`). **Godot** tiene funciones globales y, además, objetos `RandomNumberGenerator`, cada uno con su semilla y su estado. **Unreal** tiene `FMath::Rand`, global, y `FRandomStream`, un azar con semilla propio de quien lo crea.
+- **En los libros:** Jason Gregory, _Game Engine Architecture_ (4.ª ed., vol. I), §5.7 "Random Number Generation": el congruencial lineal de esta lección (§5.7.1), Mersenne Twister, _xorshift_ y PCG. Y el clásico: Donald Knuth, _The Art of Computer Programming_, vol. 2, cap. 3 "Random Numbers", donde están las condiciones de Hull y Dobell.
+
+**Dónde Manifold eligió otra cosa.** No hay ningún azar global: cada mundo tiene **el suyo**, con su estado adentro del estado del mundo (y por lo tanto en la huella y en cada instantánea). Es una lección de la primera versión del motor: un generador compartido hacía que dos mundos de la misma página (una partida y su repetición, un servidor y un cliente) se sacaran números uno al otro. Y en la simulación, `Math.random` está prohibido por una regla del revisor de código.
+
 ## En Manifold
 
 El motor usa un generador mejor (SFC32), cuyo estado se puede guardar y restaurar, y cada mundo tiene **el suyo**: [`packages/common/src/random.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/stage-00/packages/common/src/random.ts). En el Dojo se elige desde su consola: abrí [este mundo de 30 cubos](../../../jugar/dojo/#recipe=dojo.cubes+30;seed+1), apretá la tecla `` ` `` y escribí `seed 2`. El mundo vuelve a empezar con otra semilla; con `seed 1` vuelve el primero, idéntico.
+
+## Para practicar
+
+**1. La semilla 0.** Con la semilla en 0, ¿cuál es el primer número que sale? Calculalo y comparalo con la consola.
+
+<details>
+<summary>Una pista</summary>
+
+Con el estado en 0, la multiplicación no aporta nada: queda solo el `c`. Y el número que se devuelve es el estado dividido por 2³².
+
+</details>
+
+**2. Una moneda.** Escribí una función `coin(random)` que devuelva cara o ceca, y probá dos versiones: una con `random() < 0.5` y otra con el último bit del estado. Tirá veinte monedas con cada una.
+
+<details>
+<summary>Una pista</summary>
+
+Para la segunda, hace falta el estado: una variante de `createRandom` que devuelva `state` en vez de `state / 4294967296`, y `state % 2`. Mirá el segundo recuadro de "Más a fondo" antes de sorprenderte.
+
+</details>
+
+**3. Otro generador, sin tocar `main.ts`.** Copiá SFC32 del motor ([`random.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/common/src/random.ts)) en `random.ts`, y hacé que `createRandom(seed)` lo use, devolviendo la misma clase de función. `main.ts` no debería cambiar ni una letra.
+
+<details>
+<summary>Una pista</summary>
+
+`const r = new Random(seed); return () => r.next();`. Esa es toda la gracia de la estrategia.
+
+</details>
 
 ## Para saber más
 
 - [`Math.imul`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/imul), en MDN (en inglés).
 - [Generador lineal congruencial](https://es.wikipedia.org/wiki/Generador_lineal_congruencial), en Wikipedia: el tipo de generador de `random.ts`, con su historia y sus defectos.
+- Jason Gregory, _Game Engine Architecture_, 4.ª ed., vol. I, §5.7.
+- [Game Programming Patterns: Singleton](https://gameprogrammingpatterns.com/singleton.html), de Robert Nystrom (en inglés): por qué un objeto único para todo el programa trae más problemas de los que resuelve.

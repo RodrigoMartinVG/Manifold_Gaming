@@ -80,6 +80,19 @@ Eso también explica lo de `q` y `−q`: si se cambian todos los signos, aparece
 
 </details>
 
+<details>
+<summary>`slerp`, y cuándo alcanza con algo más barato</summary>
+
+Interpolar entre dos cuaterniones `q₀` y `q₁` es recorrer el arco que los une sobre la esfera de cuatro dimensiones. Si `Ω` es el ángulo entre ellos (su producto escalar es `cos Ω`), `slerp` es:
+
+`q(t) = q₀ · sen((1 − t) · Ω) / sen Ω  +  q₁ · sen(t · Ω) / sen Ω`
+
+Recorre el arco a **velocidad constante**: a la mitad del tiempo, la mitad del giro.
+
+Hay una versión barata, `nlerp`: mezclar los números en línea recta (`q₀ + t · (q₁ − q₀)`) y llevar el resultado a largo 1. Hace el mismo camino, pero no a velocidad pareja: un poco más lento en las puntas y más rápido en el medio. Entre dos orientaciones muy parecidas (como las de dos pasos seguidos de la física) la diferencia es invisible, y muchos motores usan `nlerp` ahí.
+
+</details>
+
 :::caution[Sutilezas]
 
 - **El orden de la multiplicación importa.** `a.multiply(b)` (por la derecha) gira en el marco **propio** del objeto: su derecha, su arriba. `a.premultiply(b)` (por la izquierda) gira en el marco **del mundo**: la derecha y el arriba de la escena. Cambiá uno por el otro en el código y probá.
@@ -87,11 +100,48 @@ Eso también explica lo de `q` y `−q`: si se cambian todos los signos, aparece
 - **El mismo giro tiene dos cuaterniones**: `q` y `−q` (todos los números cambiados de signo) representan la misma orientación. Al interpolar, hay que elegir el más cercano, o el objeto da la vuelta larga. `slerp` ya lo hace.
   :::
 
+## En los motores
+
+- **Todos guardan cuaterniones, y muestran ángulos.** En Unity, la orientación de un objeto (`transform.rotation`) es un cuaternión, y el editor muestra ángulos de Euler (`eulerAngles`) para que una persona los pueda escribir. Unreal tiene los dos: `FRotator` (cabeceo, guiñada y alabeo, en grados) para el código de juego, y `FQuat` para combinar giros. Godot guarda una matriz de 3 × 3 (`Basis`) y ofrece un `Quaternion` para interpolar.
+- **En los libros:** Eric Lengyel, _Foundations of Game Engine Development_, vol. 1, §2.7 "Quaternions" (§2.7.2, cómo giran). Jason Gregory, _Game Engine Architecture_ (4.ª ed., vol. I), §5.4 "Quaternions" (§5.4.5.1, `slerp`) y §5.5, que compara las maneras de guardar un giro (§5.5.1, los ángulos de Euler y su bloqueo). _Real-Time Rendering_ (4.ª ed.), §4.2.1 y §4.2.2 (los ángulos de Euler y el bloqueo de cardán) y §4.3 (los cuaterniones).
+
+**Dónde Manifold eligió otra cosa.** El estado del mundo no tiene ángulos de Euler en ningún lado: solo cuaterniones, como listas de cuatro números. Y los arma **sin la trigonometría del navegador**, porque podría dar otros bits en otro navegador: para mirar hacia un lado, con tres ejes y raíces cuadradas (`quat.look`); para un giro escrito en un nivel ("18° alrededor de x"), con su propio seno (`quat.fromDegrees`). Lo que gira solo avanza cada paso con el cuaternión de un giro chico, `[ω · dt / 2, 1]` llevado a largo 1: gira un poquito menos que `|ω| · dt` (dos partes en cien mil, a 1 radián por segundo), pero con sumas, productos y una raíz.
+
 ## En Manifold
 
 El motor guarda las orientaciones como cuaterniones y tiene su propia matemática, escrita sobre listas de números simples: [`packages/common/src/math.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/stage-00/packages/common/src/math.ts). Cuando un personaje camine por una pared o por una cinta de Möbius, no puede haber ninguna orientación "prohibida".
+
+## Para practicar
+
+**1. Predecí los cuatro números.** Desde el principio, tocá _pitch (its X)_ dos veces (30°). ¿Qué cuatro números va a mostrar el panel? Calculalos y después probá.
+
+<details>
+<summary>Una pista</summary>
+
+El eje es `x`, `(1, 0, 0)`. Con la fórmula de "Lo importante": `(x, y, z) = eje · sen(θ/2)` y `w = cos(θ/2)`.
+
+</details>
+
+**2. Por la izquierda.** Cambiá `multiply` por `premultiply` en `turnOwn` y repetí: cabeceo de 90° y después guiñada. ¿Alrededor de qué eje gira ahora la nave?
+
+<details>
+<summary>Una pista</summary>
+
+Por la izquierda, el giro se aplica en el marco del mundo, no en el de la nave. Mirá las líneas del piso.
+
+</details>
+
+**3. Un giro suave.** Agregá un botón que lleve la nave, en un segundo y sin saltos, desde donde esté hasta mirar hacia la derecha.
+
+<details>
+<summary>Una pista</summary>
+
+Guardá la orientación de partida, la de llegada y un tiempo `t` que va de 0 a 1. En `onFrame`, `t += dt` y `ship.quaternion.slerpQuaternions(partida, llegada, Math.min(t, 1))`. "Mirar hacia la derecha" es un giro de −90° alrededor de `y`.
+
+</details>
 
 ## Para saber más
 
 - [Visualizing quaternions](https://eater.net/quaternions), de Ben Eater y Grant Sanderson (3Blue1Brown), en inglés: videos interactivos que muestran qué son, con mucha paciencia.
 - [`Quaternion`](https://threejs.org/docs/#api/en/math/Quaternion), en la documentación de Three.js (en inglés): todo lo que se puede hacer con uno.
+- Eric Lengyel, _Foundations of Game Engine Development_, vol. 1, §2.7. Jason Gregory, _Game Engine Architecture_, 4.ª ed., vol. I, §5.4 y §5.5. _Real-Time Rendering_, 4.ª ed., §4.2 y §4.3.

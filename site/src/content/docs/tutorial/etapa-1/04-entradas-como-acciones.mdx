@@ -1,0 +1,139 @@
+---
+title: Entradas como acciones
+description: De la tecla a la acción, con su jugador y su paso. Por qué el mundo no lee teclas, cómo se sabe que un botón se apretó, y por qué un toque rápido no se puede perder.
+sidebar:
+  order: 4
+---
+
+import LiveCode from '../../../../components/LiveCode.astro';
+
+En la [lección del personaje](../02-un-personaje/), el paso de la física leía las teclas directamente: `held.has('KeyW')`. Para un ejemplo alcanza. Para un juego, no: el jugador 2 usa las flechas, otro tiene un mando, un bot no tiene teclado, una repetición vuelve a pedir lo que se pidió, y por la red llega lo que pidió otra computadora. El mundo no puede saber de dónde viene cada cosa.
+
+Por eso, entre la tecla y el mundo, hay una capa:
+
+1. **Las teclas (o el mando, o un bot) se traducen en acciones** (_actions_): cosas que un jugador puede pedir, con un nombre y una clase. `move` es una dirección sobre el piso; `jump` es un botón, apretado o no.
+2. **Lo que pide cada jugador en un paso es su entrada** (_input_), y entra al mundo **en un paso concreto, con el número de su jugador**. Solo cuando cambia.
+3. **El mundo lee acciones, nunca teclas.** Y él mismo decide cuándo un botón se **apretó**: cuando está apretado en este paso y no lo estaba en el anterior.
+
+<LiveCode lesson="stage-1/04-inputs-as-actions" autorun />
+
+Dos jugadores en un mismo teclado: el **1**, el celeste, con **WASD** y **Espacio**; el **2**, el naranja, con las **flechas** y **Enter**. Al principio, el 2 es un bot. Abajo a la izquierda, cada entrada que cambió: en qué paso, de qué jugador, y qué pide.
+
+**Qué probar:**
+
+1. **Hacé clic en el dibujo y mové al jugador 1.** Mirá la lista: cada cambio, con su paso y su jugador.
+2. **Mantené W apretada:** un solo cambio en la lista, no uno por paso. Soltala: otro.
+3. **Poné al jugador 2 en _keyboard_** y manejá a los dos a la vez. Después poné a los dos en _bot_: para el mundo, no hay ninguna diferencia.
+4. **Bajá la pantalla (_screen_) a 3 cuadros por segundo** y apagá _keep quick taps_ (guardar los toques rápidos). Tocá Espacio muy rápido, varias veces: algunos saltos se pierden (mirá _jumps, player 1_). Prendelo: no se pierde ninguno.
+
+## El código, paso a paso
+
+- **`actions.ts`** es la capa entre las teclas y el mundo.
+  - `ACTIONS` declara lo que se puede pedir: `move`, una dirección, y `jump`, un botón.
+  - `Input` es lo que pide un jugador en un paso: hacia dónde (en grados enteros, de adelante hacia la derecha; `null` si está quieto) y si salta.
+  - `BINDINGS` dice qué tecla pide qué, por jugador: es el lugar para cambiar los controles. Las teclas van por su **código físico** (`KeyW`), no por su letra.
+  - `DEGREES` convierte la combinación de teclas en una de las ocho direcciones, y `DIRECTION`, cada dirección en un paso sobre el piso, sin trigonometría.
+  - `keyboard` guarda las teclas apretadas y, aparte, las que se apretaron desde la última lectura, aunque ya se hayan soltado.
+- **`world.ts`** es un mundo chico para dos jugadores. En cada paso, cada jugador recibe su entrada nueva (o sigue con la que tenía), y el mundo guarda también la del paso anterior: así calcula `pressed`, apretado ahora y no antes.
+- **`main.ts`**, en cada paso fijo:
+  1. pide a cada jugador lo que quiere, a su teclado o a su bot (el bot no aprieta teclas: arma una `Input`);
+  2. si cambió, lo anota con su paso y su jugador, y lo deja entrar;
+  3. le da al mundo los cambios de ese paso.
+
+## Lo importante
+
+- **El mundo lee acciones, nunca teclas.** Un teclado, un mando, un bot, una repetición o la red son maneras distintas de pedir lo mismo.
+- **Cada entrada tiene su jugador y su paso.** Eso permite dos jugadores, repeticiones y juego en red, todo con lo mismo.
+- **"Apretado" se calcula en el mundo**, comparando este paso con el anterior. Así una repetición, o la copia de otra computadora, decide exactamente igual.
+- **Viaja solo lo que cambia.** Y un toque entre dos lecturas no se puede perder.
+
+## Más a fondo
+
+<details>
+<summary>Apretar es un flanco</summary>
+
+Si se mira un botón paso a paso, su estado es una sucesión de ceros y unos: `0 0 1 1 1 0 0 1 0`. Lo que importa para saltar no es el estado, sino **el cambio de 0 a 1**: en electrónica se llama **flanco** (_edge_), de subida al apretar y de bajada al soltar. Hay dos flancos de subida en esa sucesión: dos saltos, aunque el botón estuvo apretado cuatro pasos.
+
+`apretado ahora y no antes` es exactamente un flanco de subida. Con muchos botones, se pueden calcular todos a la vez con bits: si cada bit de un número es un botón, `(antes XOR ahora) AND ahora` deja en 1 los que se apretaron en este paso, y `(antes XOR ahora) AND antes`, los que se soltaron. Es como lo cuenta Jason Gregory en _Game Engine Architecture_ (4.ª ed., vol. I, §9.5.4.1).
+
+</details>
+
+<details>
+<summary>Por qué el motor guarda las direcciones en grados enteros</summary>
+
+Una tecla da ocho direcciones, pero un stick o una cámara dan cualquiera: `[0.7071, 0, -0.7071]`, y al cuadro siguiente `[0.7072, 0, -0.7070]`, porque la mano tiembla o la cámara gira un poco. Si cada uno de esos fuera un cambio, una repetición anotaría uno por paso.
+
+El motor de Manifold redondea cada dirección a **uno de 360 grados enteros**, y solo la cambia cuando se mueve un grado o más de la que tenía. La arma con su propio seno, así que da los mismos bits en todos lados (la [lección de los números](../../etapa-0/06-numeros-que-no-son-exactos/) cuenta por qué). Medido en el recorrido del Dojo, 30 segundos caminando con la cámara girando: el enlace de una repetición pasó de 5.800 caracteres a la mitad.
+
+</details>
+
+<details>
+<summary>Una zona muerta para el stick</summary>
+
+Un stick de un mando nunca vuelve exactamente al centro: en reposo da algo como `0.03`, y eso haría caminar despacito al personaje para siempre. La solución es una **zona muerta** (_dead zone_): por debajo de un umbral, cero. El motor usa 0,2, eje por eje (`DEAD_ZONE`, en la presentación).
+
+Una zona muerta por eje (cada eje por separado) deja "pegajosas" las diagonales cerca de los ejes; una zona muerta circular (sobre el largo del vector) no. Gregory explica la zona muerta en el mismo libro, §9.5.2 "Dead Zone".
+
+</details>
+
+:::caution[Sutilezas]
+
+- **`code` o `key`.** `e.code` es el lugar de la tecla en el teclado (`KeyW` está en el mismo lugar en un teclado francés, donde dice Z). `e.key` es la letra que escribe. Para moverse, el lugar; para un atajo que se recuerda por su letra, la letra.
+- **Si la página pierde el foco con una tecla apretada, nunca llega el aviso de que se soltó.** El motor suelta todo cuando la ventana pierde el foco; este ejemplo no lo hace, y el personaje puede quedar caminando solo.
+- **Dos teclas opuestas se anulan:** A y D a la vez dan cero. Algunos juegos prefieren que gane la última apretada.
+- **El navegador tiene sus propias ideas:** las flechas y Espacio mueven la página, y Espacio aprieta el botón que tiene el foco. Por eso el código llama a `preventDefault()` con esas teclas.
+- **Algunos teclados no ven ciertas combinaciones de tres o más teclas** a la vez: es del aparato, no del programa. Con dos jugadores en un mismo teclado, a veces se nota.
+  :::
+
+:::tip[Patrón: comando]
+Convertir un pedido en un dato (algo que se puede guardar, mandar, repetir o fabricar) es el patrón **comando** (_command_). Una entrada es eso: no "se apretó W", sino "el jugador 1 pide ir a 0° en el paso 412". Por eso un bot puede pedir lo mismo que un teclado, y una repetición puede volver a pedirlo. [Todos los patrones del tutorial](../../patrones/#comando).
+:::
+
+## En los motores
+
+- **Todos separan la tecla de la acción.** En **Unity**, el Input System tiene acciones (_Input Actions_) con sus asignaciones (_bindings_), agrupadas en mapas. En **Unreal**, el Enhanced Input tiene acciones (`Input Action`, de clase botón o de uno, dos o tres ejes) y contextos que asignan teclas a acciones (`Input Mapping Context`). En **Godot**, las acciones se declaran en el proyecto (el `InputMap`), y el código pregunta `Input.is_action_just_pressed("jump")`: ahí también, "recién apretado" es un flanco.
+- **En los libros:** Jason Gregory, _Game Engine Architecture_ (4.ª ed., vol. I), cap. 9 "Human Interface Devices": la zona muerta (§9.5.2), apretar y soltar (§9.5.4.1), cambiar qué tecla hace qué (§9.5.7) y los controles que dependen del contexto (§9.5.8). Robert Nystrom, _Game Programming Patterns_, cap. "Command": empieza justamente por configurar los controles.
+
+**Dónde Manifold eligió otra cosa.** En los motores comerciales, las acciones viven afuera de la simulación y se leen en cada cuadro. En Manifold son **parte del mundo**: lo que pide cada jugador entra en un paso, por la sesión, y queda en el estado (y en la huella), junto con lo que pidió en el paso anterior; "apretado" lo calcula el mundo con esos dos. Las acciones se **declaran**: las del personaje, el núcleo; las de cada juego, el juego, con su nombre de espacio (`dojo.throw`). Solo entra lo declarado: una repetición o un mensaje de la red no pueden traer otra cosa. Y entran redondeadas (los ejes, a centésimos; las direcciones, a grados enteros): chicas, comparables, y con los mismos bits en todos lados.
+
+## En Manifold
+
+- [`packages/core/src/input.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/input.ts): las acciones con su clase (botón, eje, vector, dirección), `pressed`, y `normalizeInput`, que redondea lo que entra.
+- [`packages/core/src/session.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/session.ts): `setInput` deja cada entrada esperando su paso. Si un toque se apretó y se soltó antes de un paso, el apretado espera su turno y el soltado entra en el paso siguiente: hasta la [etapa 2a](../../../bitacora/etapa-2a/), un toque así se perdía.
+- [`packages/presentation/src/player.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/presentation/src/player.ts): de las teclas y el mando a lo que se pide, por la cámara (adelante es hacia donde mira la cámara, aplastado sobre el piso) o como un tanque.
+- En el [Dojo](../../../jugar/dojo/course/), el comando `inputs` lista lo que puede pedir un jugador en ese juego, y qué tecla lo pide.
+
+## Para practicar
+
+**1. Otros controles.** Cambiá las teclas del jugador 1 a **IJKL** para moverse y **H** para saltar.
+
+<details>
+<summary>Una pista</summary>
+
+Todo está en `BINDINGS`. Los códigos de las letras son `KeyI`, `KeyJ`…
+
+</details>
+
+**2. Una acción más.** Agregá `run` (correr): un botón, con Shift Izquierdo para el jugador 1, que duplique la velocidad mientras está apretado.
+
+<details>
+<summary>Una pista</summary>
+
+Hay que tocar los tres archivos: la declaración y la `Input` (y `same`, que compara dos entradas), la lectura del teclado, y el mundo, que la lee.
+
+</details>
+
+**3. Una repetición.** Agregá un botón que arme un mundo nuevo y lo alimente con la lista `log`: en cada paso, los cambios anotados con ese paso. Al alcanzar el último paso grabado, los dos jugadores tienen que estar exactamente donde estaban en el original.
+
+<details>
+<summary>Una pista</summary>
+
+Guardá también las posiciones del original en el último paso grabado, para comparar. El mundo nuevo empieza en el paso 0, igual que el original: en su paso _k_, recibe los cambios del paso _k_.
+
+</details>
+
+## Para saber más
+
+- [Game Programming Patterns: Command](https://gameprogrammingpatterns.com/command.html), de Robert Nystrom (en inglés): de los controles configurables al deshacer y rehacer.
+- [`KeyboardEvent.code`](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/code) y [la API de los mandos](https://developer.mozilla.org/en-US/docs/Web/API/Gamepad_API), en MDN (en inglés).
+- Jason Gregory, _Game Engine Architecture_, 4.ª ed., vol. I, cap. 9.
