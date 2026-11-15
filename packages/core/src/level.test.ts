@@ -56,6 +56,24 @@ describe('levels as data (stage 2a)', () => {
 });
 
 describe('zones (stage 2a)', () => {
+  test('a turned zone notices a body in its corner, where the same zone unturned would not reach (stage 2.5b)', () => {
+    // A long thin zone (4 m by 0.5 m) turned 45° around y: its far corner is near (1.4, 0, 1.4).
+    // A body there is inside it; the zone unturned only reaches 0.25 m along z. (First, the box along
+    // the world's axes that holds the zone: it must hold all of it.)
+    const world = new World({ seed: 1 });
+    world.createEntity({
+      transform: { position: [0, 1, 0], rotation: quat.fromDegrees([0, 1, 0], -45) },
+      sensor: { kind: 'z', half: [2, 0.5, 0.25] },
+    });
+    const ball = world.createEntity({
+      transform: { position: [1.3, 1, 1.3], rotation: quat.identity() },
+      body: { type: 'kinematic', shape: { kind: 'ball', radius: 0.1 } },
+    });
+    world.step();
+    expect(world.stepEvents).toContainEqual({ type: 'sensorEntered', sensor: 1, entity: ball.id });
+    world.dispose();
+  });
+
   test('a ball falling through a zone: it came in, and then it left, once each', () => {
     const world = new World({ seed: 1 });
     const zone = world.createEntity({
@@ -101,6 +119,30 @@ describe('zones (stage 2a)', () => {
     world.step();
     expect(zone.sensor!.inside).toEqual([]);
     expect(world.stepEvents.filter((e) => e.type === 'sensorLeft')).toEqual([]);
+    world.dispose();
+  });
+
+  test('a body asleep is read once when it falls asleep, and again when something wakes it (stage 2.5b)', () => {
+    const world = new World({ seed: 1 });
+    world.createEntity({
+      transform: { position: [0, -0.5, 0], rotation: quat.identity() },
+      body: { type: 'fixed', shape: { kind: 'box', halfExtents: [10, 0.5, 10] } },
+    });
+    const cube = world.createEntity({
+      transform: { position: [0, 0.6, 0], rotation: quat.identity() },
+      body: { type: 'dynamic', shape: { kind: 'box', halfExtents: [0.25, 0.25, 0.25] } },
+    });
+    // Resting on the floor, it falls asleep: its velocities, read when it did, are exactly zero.
+    for (let i = 0; i < 300; i++) world.step();
+    expect(cube.body!.linearVelocity).toEqual([0, 0, 0]);
+    const resting = [...cube.transform!.position];
+    for (let i = 0; i < 30; i++) world.step();
+    expect(cube.transform!.position).toEqual(resting);
+    // Put up high, it wakes, falls, and its components follow it again.
+    world.place(cube, [0, 5, 0]);
+    for (let i = 0; i < 20; i++) world.step();
+    expect(cube.transform!.position[1]).toBeLessThan(4.9);
+    expect(cube.body!.linearVelocity[1]).toBeLessThan(-1);
     world.dispose();
   });
 

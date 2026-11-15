@@ -20,7 +20,9 @@ import { Client, localPair, Server, type Channel, type ToClient, type ToServer }
  * Measured on 2026-11-14 (a laptop, Node), to see how much room each budget leaves: Rapier's step
  * 0.38–0.50 ms; the engine's step 2.3–3.2 times that (reading back every body: 0.19 ms; the zones,
  * each one against every body: 0.20 ms); the hash 3.5–6.5 times; a snapshot 2.0–2.3 times to take
- * and 3.3–4.0 to restore, 571 KB; playing alone 2.06–2.25 times one copy.
+ * and 3.3–4.0 to restore, 571 KB; playing alone 2.06–2.25 times one copy. Stage 2.5b made the step
+ * cheaper (the zones look first at the box that holds them; a body asleep is not read again): the
+ * engine's step 1.65–1.90 times Rapier's, and its budget went from 4 to 2.5.
  */
 
 beforeAll(initPhysics);
@@ -113,8 +115,8 @@ describe('the performance budgets (stage 2.5a), in the stress room', () => {
     w.dispose();
   });
 
-  test("the engine's step costs less than four of Rapier's: what is around the physics is not more than three times it", () => {
-    expect(t.ratio.engine, `the engine's step ${said('engine')}`).toBeLessThan(4);
+  test("the engine's step costs less than 2.5 of Rapier's: what is around the physics is not more than one and a half times it", () => {
+    expect(t.ratio.engine, `the engine's step ${said('engine')}`).toBeLessThan(2.5);
   });
 
   test('and it fits in half a frame at 60 per second (8 ms), on any machine that runs the tests', () => {

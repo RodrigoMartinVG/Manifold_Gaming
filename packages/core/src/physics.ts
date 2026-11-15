@@ -72,6 +72,8 @@ export class Physics {
   private readonly world: RAPIER.World;
   /** One controller moves every character (its settings are the same for all, for now). */
   private controller: RAPIER.KinematicCharacterController | null = null;
+  /** The bodies that were asleep when they were last read: what they are, their components already say. */
+  private readonly asleep = new Set<number>();
 
   /** A new physics world; or, with `snapshot`, the one that snapshot keeps (its bodies keep their handles). */
   constructor(gravity: Vec3, timestep: number, snapshot?: Uint8Array) {
@@ -137,6 +139,7 @@ export class Physics {
   removeBody(handle: number) {
     const rigid = this.world.getRigidBody(handle);
     if (rigid) this.world.removeRigidBody(rigid);
+    this.asleep.delete(handle);
   }
 
   /** The velocity a kinematic body moves with during the next step. */
@@ -316,6 +319,13 @@ export class Physics {
   read(handle: number, transform: Transform, body: Body) {
     const rigid = this.world.getRigidBody(handle);
     if (!rigid) return;
+    // A body asleep does not move (stage 2.5b): read once when it falls asleep (Rapier stops it then:
+    // its velocities become zero), and not again until something wakes it. Four calls into WebAssembly
+    // a body, each one making an object: in the stress room, a third of the physics' time.
+    if (rigid.isSleeping()) {
+      if (this.asleep.has(handle)) return;
+      this.asleep.add(handle);
+    } else this.asleep.delete(handle);
     transform.position = toVec(rigid.translation());
     transform.rotation = toQuat(rigid.rotation());
     body.linearVelocity = toVec(rigid.linvel());
