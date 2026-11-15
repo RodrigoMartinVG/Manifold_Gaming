@@ -1,8 +1,28 @@
+import type { CommandInfo, VariableInfo } from '@manifold/commands';
 import { faceFor, upAt } from '@manifold/core';
 import type { Rig } from './camera';
 import type { PageMatch } from './match';
 import type { GamePage, Piece } from './page';
 import { CHARACTER_KEYS, type ControlScheme, type GameButton, type PlayerControls } from './player';
+
+/** What driving the character lets people change, as data (the site's console reference reads it). */
+export const DRIVE_VARIABLES = {
+  scheme: {
+    name: 'controls.scheme',
+    description:
+      "How the keys (and a gamepad's left stick) drive the character: `camera` goes by where the camera looks (W forward, A and D to its sides; the character looks where it walks); `tank` goes by where the character looks: W and S forward and back, A and D turn it on its own axis, Q and E (or A and D with Alt held) go to its sides. With `view.camera aim` the mouse turns it, and the keys go by the camera.",
+    scope: 'view',
+    type: { kind: 'option', options: ['camera', 'tank'] },
+    default: 'camera',
+  },
+} as const satisfies Record<string, VariableInfo>;
+export const DRIVE_COMMANDS = {
+  inputs: {
+    name: 'inputs',
+    description:
+      'What a player can ask for in this game, and what presses it (the core declares what the character reads; each game, its own buttons).',
+  },
+} as const satisfies Record<string, CommandInfo>;
 
 /**
  * DRIVING THE CHARACTER (stage 1b): on every frame, before the steps, what this page's player asks
@@ -17,18 +37,11 @@ export function mountDrive(
 ): Piece {
   let scheme: ControlScheme = 'camera';
   page.registry.declareVariable({
-    name: 'controls.scheme',
-    description:
-      "How the keys (and a gamepad's left stick) drive the character: `camera` goes by where the camera looks (W forward, A and D to its sides; the character looks where it walks); `tank` goes by where the character looks: W and S forward and back, A and D turn it on its own axis, Q and E (or A and D with Alt held) go to its sides. With `view.camera aim` the mouse turns it, and the keys go by the camera.",
-    scope: 'view',
-    type: { kind: 'option', options: ['camera', 'tank'] },
-    default: 'camera',
+    ...DRIVE_VARIABLES.scheme,
     onChange: (v) => (scheme = v as ControlScheme),
   });
   page.registry.declareCommand({
-    name: 'inputs',
-    description:
-      'What a player can ask for in this game, and what presses it (the core declares what the character reads; each game, its own buttons).',
+    ...DRIVE_COMMANDS.inputs,
     run: (_, out) => {
       out.write('what a player can ask for:');
       for (const a of page.session.actions) {

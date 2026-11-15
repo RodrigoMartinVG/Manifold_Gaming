@@ -6,6 +6,7 @@ description: El primer juego, el laboratorio del motor. Sus salas, lo que su per
 import { LinkButton } from '@astrojs/starlight/components';
 import RoomCards from '../../../components/RoomCards.astro';
 import LegacyDojoLinks from '../../../components/LegacyDojoLinks.astro';
+import ConsoleReference from '../../../components/ConsoleReference.astro';
 
 <LegacyDojoLinks />
 
@@ -47,15 +48,7 @@ La sala **Capabilities** es el recorrido con las tres capacidades prendidas, y t
 
 El Dojo monta [la consola](../consola/) y deja tocar todo: los comandos y las variables del motor, y además los suyos, que empiezan con `dojo.`:
 
-| Nombre                                        | Qué es                                                                                                        | Valores (por defecto)          | Clase    |
-| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------ | -------- |
-| `dojo.level`                                  | Qué hay en el piso: `empty`, o un nivel de `games/dojo/levels/`, como `course`, con un personaje para manejar | `empty` o `course` (`empty`)   | arranque |
-| `dojo.cubes`                                  | Cubos chicos al empezar, en lugares que salen del azar del mundo: con la misma semilla, siempre los mismos    | de 0 a 200 (0)                 | arranque |
-| `dojo.climb`, `dojo.glide`, `dojo.doublejump` | Las capacidades del personaje (arriba)                                                                        | `on` u `off` (`off`)           | mundo    |
-| `dojo.air`                                    | Cuánto se puede corregir un salto en el aire, en m/s²                                                         | de 0 a 60 (14)                 | mundo    |
-| `dojo.spin`                                   | Cómo gira el cubo grande: radianes por segundo alrededor de cada eje (x y z)                                  | tres números (`0.35 0.9 0.15`) | mundo    |
-| `dojo.spawn x y z`                            | Deja caer una pelota desde ese punto, con un tamaño y un color que salen del azar del mundo                   | un comando                     | mundo    |
-| `dojo.goto x y z`                             | Pone quieto en ese punto al personaje del jugador 1: para explorar un nivel                                   | un comando                     | mundo    |
+<ConsoleReference of="dojo" />
 
 Qué significan las clases (arranque, mundo, vista) está en [la consola](../consola/#tres-clases-de-opciones).
 

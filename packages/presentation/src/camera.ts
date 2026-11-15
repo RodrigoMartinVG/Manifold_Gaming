@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { CommandInfo, VariableInfo } from '@manifold/commands';
 import type { Quat, Vec3 } from '@manifold/common';
 import { upAt } from '@manifold/core';
 import type { Bodies } from './bodies';
@@ -17,6 +18,25 @@ export interface Rig extends Piece {
   /** Whether it takes a click now (aiming with a character, a click takes the mouse). */
   takesClick(): boolean;
 }
+
+/** What the camera lets people change, as data (the site's console reference reads it). */
+export const CAMERA_VARIABLES = {
+  camera: {
+    name: 'view.camera',
+    description:
+      "With a character to drive: `follow` follows it as if on a leash: it keeps its distance, and turns little by little when the character goes to a side (dragging turns it around); `chase` goes back behind the character by itself (dragging looks around, and it comes back when you let go: for `controls.scheme tank`); `aim` takes the mouse with a click, the mouse turns the camera and the character looks where the camera looks, walking sideways without turning (a shooter's way; Esc lets the mouse go); `free` leaves the camera where it is. A gamepad's right stick turns it too.",
+    scope: 'view',
+    type: { kind: 'option', options: ['follow', 'chase', 'aim', 'free'] },
+    default: 'follow',
+  },
+} as const satisfies Record<string, VariableInfo>;
+export const CAMERA_COMMANDS = {
+  reset: {
+    name: 'camera.reset',
+    description:
+      'The camera back to where it started, or behind the character (drag to look around; the wheel, or a pinch, gets closer).',
+  },
+} as const satisfies Record<string, CommandInfo>;
 
 /** Where it starts, and where `camera.reset` brings it without a character. */
 const START = { position: new THREE.Vector3(3.2, 2.4, 4.2), target: new THREE.Vector3(0, 1, 0) };
@@ -205,12 +225,7 @@ export function mountCamera(
 
   if (orbiting) {
     page.registry.declareVariable({
-      name: 'view.camera',
-      description:
-        "With a character to drive: `follow` follows it as if on a leash: it keeps its distance, and turns little by little when the character goes to a side (dragging turns it around); `chase` goes back behind the character by itself (dragging looks around, and it comes back when you let go: for `controls.scheme tank`); `aim` takes the mouse with a click, the mouse turns the camera and the character looks where the camera looks, walking sideways without turning (a shooter's way; Esc lets the mouse go); `free` leaves the camera where it is. A gamepad's right stick turns it too.",
-      scope: 'view',
-      type: { kind: 'option', options: ['follow', 'chase', 'aim', 'free'] },
-      default: 'follow',
+      ...CAMERA_VARIABLES.camera,
       onChange: (v) => {
         mode = v as CameraMode;
         cameraTurn = null;
@@ -219,9 +234,7 @@ export function mountCamera(
       },
     });
     page.registry.declareCommand({
-      name: 'camera.reset',
-      description:
-        'The camera back to where it started, or behind the character (drag to look around; the wheel, or a pinch, gets closer).',
+      ...CAMERA_COMMANDS.reset,
       run: (_, out) => {
         reset();
         out.write(page.player() ? 'the camera is behind the character' : 'the camera is back where it started');

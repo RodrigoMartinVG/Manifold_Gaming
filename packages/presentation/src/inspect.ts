@@ -1,6 +1,26 @@
+import type { CommandInfo } from '@manifold/commands';
 import type { World } from '@manifold/core';
 import type { Bodies } from './bodies';
 import { overlay, type GamePage, type Piece } from './page';
+
+/** What looking inside the world lets people do, as data (the site's console reference reads it). */
+export const INSPECT_COMMANDS = {
+  inspect: {
+    name: 'inspect',
+    description:
+      'What an entity is made of: its components, with their numbers (a click on an object does it too). Its id, or `me` (your character) or `it` (the last one inspected or clicked). With nothing: how many entities there are.',
+    args: [{ name: 'id', type: { kind: 'text' }, optional: true }],
+  },
+  watch: {
+    name: 'watch',
+    description:
+      'Pins an entity on the screen, its values updated while you play (the console can be closed): `watch me`, or what to show, `watch me character.mode character.ground`. Its id, `me` or `it`. `watch clear` takes them all away; with nothing, what is watched.',
+    args: [
+      { name: 'entity', type: { kind: 'text' }, optional: true },
+      { name: 'what', type: { kind: 'rest' }, optional: true },
+    ],
+  },
+} as const satisfies Record<string, CommandInfo>;
 
 /**
  * LOOKING INSIDE THE WORLD: `inspect` (what an entity is made of), `watch` (entities pinned on the
@@ -49,10 +69,7 @@ export function mountInspect(
   };
 
   page.registry.declareCommand({
-    name: 'inspect',
-    description:
-      'What an entity is made of: its components, with their numbers (a click on an object does it too). Its id, or `me` (your character) or `it` (the last one inspected or clicked). With nothing: how many entities there are.',
-    args: [{ name: 'id', type: { kind: 'text' }, optional: true }],
+    ...INSPECT_COMMANDS.inspect,
     run: ([which], out) => {
       if (which === undefined || which === '') return out.write(countEntities(page.session.world));
       const id = entityNamed(String(which));
@@ -62,13 +79,7 @@ export function mountInspect(
     },
   });
   page.registry.declareCommand({
-    name: 'watch',
-    description:
-      'Pins an entity on the screen, its values updated while you play (the console can be closed): `watch me`, or what to show, `watch me character.mode character.ground`. Its id, `me` or `it`. `watch clear` takes them all away; with nothing, what is watched.',
-    args: [
-      { name: 'entity', type: { kind: 'text' }, optional: true },
-      { name: 'what', type: { kind: 'rest' }, optional: true },
-    ],
+    ...INSPECT_COMMANDS.watch,
     run: ([which, what], out) => {
       if (which === undefined || which === '') {
         if (watched.length === 0) return out.write('nothing watched: `watch me`, or `watch 1 transform.position`');

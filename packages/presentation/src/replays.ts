@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { CommandInfo } from '@manifold/commands';
 import {
   replayFromText,
   replayOf,
@@ -21,6 +22,22 @@ export interface Replays extends Piece {
   /** A replay or a ghost that came with the page (the game gathered them, from its link), as text. */
   fromPage(o: { replay?: string; ghost?: string }): void;
 }
+
+/** What replays and ghosts let people do, as data (the site's console reference reads it). */
+export const REPLAY_COMMANDS = {
+  replay: {
+    name: 'replay',
+    description:
+      'The replay of this world since it was born: `replay export` builds a link with it (whoever opens it sees the same, and it checks that it gave the same hash), `replay play` plays it again from the start, `replay stop` gives the control back.',
+    args: [{ name: 'action', type: { kind: 'option', options: ['export', 'play', 'stop'] }, optional: true }],
+  },
+  ghost: {
+    name: 'ghost',
+    description:
+      'Races what you just did: the world starts over, with a ghost doing it again next to you. `ghost export` builds a link with it, for someone else to race; `ghost clear` removes it.',
+    args: [{ name: 'action', type: { kind: 'option', options: ['export', 'clear'] }, optional: true }],
+  },
+} as const satisfies Record<string, CommandInfo>;
 
 /**
  * REPLAYS AND GHOSTS (stage 1c). `replay` plays the world again from its birth (the server plays it,
@@ -80,10 +97,7 @@ export function mountReplays(page: GamePage, match: PageMatch, bodies: Bodies): 
   }
 
   page.registry.declareCommand({
-    name: 'replay',
-    description:
-      'The replay of this world since it was born: `replay export` builds a link with it (whoever opens it sees the same, and it checks that it gave the same hash), `replay play` plays it again from the start, `replay stop` gives the control back.',
-    args: [{ name: 'action', type: { kind: 'option', options: ['export', 'play', 'stop'] }, optional: true }],
+    ...REPLAY_COMMANDS.replay,
     run: ([action], out) => {
       const replay = replayOf(page.session);
       if (action === 'export') void exportReplay(replay, REPLAY_PREFIX);
@@ -103,10 +117,7 @@ export function mountReplays(page: GamePage, match: PageMatch, bodies: Bodies): 
     },
   });
   page.registry.declareCommand({
-    name: 'ghost',
-    description:
-      'Races what you just did: the world starts over, with a ghost doing it again next to you. `ghost export` builds a link with it, for someone else to race; `ghost clear` removes it.',
-    args: [{ name: 'action', type: { kind: 'option', options: ['export', 'clear'] }, optional: true }],
+    ...REPLAY_COMMANDS.ghost,
     run: ([action], out) => {
       if (action === 'clear') {
         clearGhost();

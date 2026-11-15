@@ -1,7 +1,29 @@
 import * as THREE from 'three';
 import { gravityAt } from '@manifold/core';
+import type { VariableInfo } from '@manifold/commands';
 import type { Bodies } from './bodies';
 import type { GamePage, Piece } from './page';
+
+const view = (name: string, description: string) =>
+  ({ name, description, scope: 'view', type: { kind: 'boolean' }, default: false }) as const satisfies VariableInfo;
+
+/** What the debug views let people change, as data (the site's console reference reads it). */
+export const VIEWS_VARIABLES = {
+  axes: view('show.axes', "The world's axes at the origin: x red, y green, z blue (3 meters)."),
+  physics: view('show.physics', "What the physics sees: every body's collider, as lines (it may not match what is drawn)."),
+  vectors: view(
+    'show.vectors',
+    "Every moving body's velocity, as a line to where it would be in a quarter of a second (yellow), and where each character looks (blue).",
+  ),
+  contacts: view(
+    'show.contacts',
+    'Where bodies touch now: each contact point the physics uses, and its normal (from the first body to the second).',
+  ),
+  gravity: view(
+    'show.gravity',
+    "The gravity field, as arrows: their length is the strength (1 m for every 6.5 m/s²; the Earth's, 1.5 m).",
+  ),
+};
 
 /**
  * THE DEBUG VIEWS (decision 0010: `show.*`), each one declaring itself: the world's axes, what the
@@ -11,15 +33,8 @@ import type { GamePage, Piece } from './page';
  */
 export function mountViews(page: GamePage, bodies: Bodies): Piece {
   const { scene } = page.stage;
-  const declare = (name: string, description: string, show: (on: boolean) => void) =>
-    page.registry.declareVariable({
-      name,
-      description,
-      scope: 'view',
-      type: { kind: 'boolean' },
-      default: false,
-      onChange: (v) => show(v === true),
-    });
+  const declare = (info: VariableInfo, show: (on: boolean) => void) =>
+    page.registry.declareVariable({ ...info, onChange: (v) => show(v === true) });
 
   const axes = new THREE.AxesHelper(3);
   axes.visible = false;
@@ -70,27 +85,11 @@ export function mountViews(page: GamePage, bodies: Bodies): Piece {
     }
   scene.add(gravityArrows);
 
-  declare('show.axes', "The world's axes at the origin: x red, y green, z blue (3 meters).", (on) => (axes.visible = on));
-  declare(
-    'show.physics',
-    "What the physics sees: every body's collider, as lines (it may not match what is drawn).",
-    (on) => (physicsLines.visible = on),
-  );
-  declare(
-    'show.vectors',
-    "Every moving body's velocity, as a line to where it would be in a quarter of a second (yellow), and where each character looks (blue).",
-    (on) => (velocityLines.visible = facingLines.visible = on),
-  );
-  declare(
-    'show.contacts',
-    'Where bodies touch now: each contact point the physics uses, and its normal (from the first body to the second).',
-    (on) => (contactLines.visible = contactPoints.visible = on),
-  );
-  declare(
-    'show.gravity',
-    "The gravity field, as arrows: their length is the strength (1 m for every 6.5 m/s²; the Earth's, 1.5 m).",
-    (on) => (gravityArrows.visible = on),
-  );
+  declare(VIEWS_VARIABLES.axes, (on) => (axes.visible = on));
+  declare(VIEWS_VARIABLES.physics, (on) => (physicsLines.visible = on));
+  declare(VIEWS_VARIABLES.vectors, (on) => (velocityLines.visible = facingLines.visible = on));
+  declare(VIEWS_VARIABLES.contacts, (on) => (contactLines.visible = contactPoints.visible = on));
+  declare(VIEWS_VARIABLES.gravity, (on) => (gravityArrows.visible = on));
 
   return {
     frame({ world }) {

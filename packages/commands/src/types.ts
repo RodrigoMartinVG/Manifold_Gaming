@@ -71,6 +71,14 @@ export interface Command<W = unknown> {
   run?(args: Value[], out: Output): void;
 }
 
+/**
+ * What a variable or a command IS, without what it does (stage 2.5a): its name, description, type,
+ * default and arguments, as data. A piece of a game exports them, and declares them with what they
+ * do; the site's console reference is generated from the same data, without mounting anything.
+ */
+export type VariableInfo = Omit<Variable, 'onChange' | 'onWorld'>;
+export type CommandInfo = Omit<Command, 'run' | 'onWorld'>;
+
 export type Level = 'info' | 'warn' | 'error';
 
 export interface Message {

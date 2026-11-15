@@ -1,4 +1,4 @@
-import { formatValue, type Registry } from '@manifold/commands';
+import { formatValue, type CommandInfo, type Registry, type VariableInfo } from '@manifold/commands';
 import { stateHash, type Cartridge, type PlayerInput, type Session, type World } from '@manifold/core';
 import { Client, localPair, Server, type Channel, type Match, type ToClient, type ToServer } from '@manifold/net';
 import { hex } from './page';
@@ -39,6 +39,56 @@ export interface PageMatch {
   restart(): void;
   stop(): void;
 }
+
+/** What this piece declares, as data (the site's console reference reads it). */
+export const MATCH_VARIABLES = {
+  timescale: {
+    name: 'view.timescale',
+    description:
+      'Show the world slower (0.2) or faster (2). The world advances the same, by fixed steps: it does not change the physics or the hash.',
+    scope: 'view',
+    type: { kind: 'number', min: 0.05, max: 4 },
+    default: 1,
+  },
+  paused: {
+    name: 'view.paused',
+    description: 'Stops the world (with `step` it advances one step at a time).',
+    scope: 'view',
+    type: { kind: 'boolean' },
+    default: false,
+  },
+} as const satisfies Record<string, VariableInfo>;
+export const MATCH_COMMANDS = {
+  pause: {
+    name: 'pause',
+    description: 'Stops or resumes the world (the same as `toggle view.paused`).',
+  },
+  step: {
+    name: 'step',
+    description: 'Advances the world n steps (1, if not said), and leaves it paused.',
+    args: [{ name: 'n', type: { kind: 'integer', min: 1, max: 600 }, optional: true }],
+  },
+  hash: {
+    name: 'hash',
+    description: "The world's step and its hash: a number that sums up its whole state.",
+  },
+  restart: {
+    name: 'restart',
+    description: 'The world starts over, with the current values.',
+  },
+  snapshot: {
+    name: 'snapshot',
+    description:
+      'Saves this moment (`snapshot`), and goes back to it (`snapshot load`), like an emulator\'s "save state": the whole world, its physics included. From there, the same inputs give the same hash, and its replay still holds. In a match with others, everybody goes back.',
+    args: [{ name: 'action', type: { kind: 'option', options: ['save', 'load'] }, optional: true }],
+  },
+  net: {
+    name: 'net',
+    description:
+      "The match, and where it lives. Even alone, this page plays through a server of its own. `net open` lets other tabs of this browser join it; `net join` joins a match opened in another tab (you get your own character, if the level has characters); `net leave` goes back to playing alone. Every second, each copy checks its world with the server's hash.",
+    args: [{ name: 'action', type: { kind: 'option', options: ['open', 'join', 'leave'] }, optional: true }],
+  },
+} as const satisfies Record<string, CommandInfo>;
 
 /**
  * THE MATCH (stage 1e). Even playing alone, the page plays THROUGH A SERVER: one that lives in this
@@ -128,20 +178,11 @@ export function createMatch(o: {
   const restart = () => link!.request({ type: 'restart', birth: birthOf() });
 
   registry.declareVariable({
-    name: 'view.timescale',
-    description:
-      'Show the world slower (0.2) or faster (2). The world advances the same, by fixed steps: it does not change the physics or the hash.',
-    scope: 'view',
-    type: { kind: 'number', min: 0.05, max: 4 },
-    default: 1,
+    ...MATCH_VARIABLES.timescale,
     onChange: (v) => (timescale = Number(v)),
   });
   registry.declareVariable({
-    name: 'view.paused',
-    description: 'Stops the world (with `step` it advances one step at a time).',
-    scope: 'view',
-    type: { kind: 'boolean' },
-    default: false,
+    ...MATCH_VARIABLES.paused,
     onChange: (v) => (paused = v === true),
   });
   /** The match's clock is its host's: a page that joined another tab's match cannot stop it. */
@@ -151,17 +192,14 @@ export function createMatch(o: {
     return false;
   };
   registry.declareCommand({
-    name: 'pause',
-    description: 'Stops or resumes the world (the same as `toggle view.paused`).',
+    ...MATCH_COMMANDS.pause,
     run: (_, out) => {
       if (!hostsTheClock(out)) return;
       for (const m of registry.run(`view.paused ${paused ? 'off' : 'on'}`)) out.write(m.text, m.level);
     },
   });
   registry.declareCommand({
-    name: 'step',
-    description: 'Advances the world n steps (1, if not said), and leaves it paused.',
-    args: [{ name: 'n', type: { kind: 'integer', min: 1, max: 600 }, optional: true }],
+    ...MATCH_COMMANDS.step,
     run: ([n], out) => {
       if (!hostsTheClock(out)) return;
       registry.run('view.paused on');
@@ -173,13 +211,11 @@ export function createMatch(o: {
     },
   });
   registry.declareCommand({
-    name: 'hash',
-    description: "The world's step and its hash: a number that sums up its whole state.",
+    ...MATCH_COMMANDS.hash,
     run: (_, out) => out.write(`step ${session.world.tick} · hash ${hex(stateHash(session.world))}`),
   });
   registry.declareCommand({
-    name: 'restart',
-    description: 'The world starts over, with the current values.',
+    ...MATCH_COMMANDS.restart,
     run: (_, out) => {
       restart();
       out.write('the world started over');
@@ -187,18 +223,12 @@ export function createMatch(o: {
   });
   // Snapshots (stage 1d): the server's, so everybody in the match goes back.
   registry.declareCommand({
-    name: 'snapshot',
-    description:
-      'Saves this moment (`snapshot`), and goes back to it (`snapshot load`), like an emulator\'s "save state": the whole world, its physics included. From there, the same inputs give the same hash, and its replay still holds. In a match with others, everybody goes back.',
-    args: [{ name: 'action', type: { kind: 'option', options: ['save', 'load'] }, optional: true }],
+    ...MATCH_COMMANDS.snapshot,
     run: ([action]) => link!.request({ type: 'snapshot', action: action === 'load' ? 'load' : 'save' }),
   });
   // The match with other tabs (stage 1e).
   registry.declareCommand({
-    name: 'net',
-    description:
-      "The match, and where it lives. Even alone, this page plays through a server of its own. `net open` lets other tabs of this browser join it; `net join` joins a match opened in another tab (you get your own character, if the level has characters); `net leave` goes back to playing alone. Every second, each copy checks its world with the server's hash.",
-    args: [{ name: 'action', type: { kind: 'option', options: ['open', 'join', 'leave'] }, optional: true }],
+    ...MATCH_COMMANDS.net,
     run: ([action], out) => {
       if (action === 'open') {
         if (!server) return out.write("this page is in another tab's match: `net leave` first", 'warn');

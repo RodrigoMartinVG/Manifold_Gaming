@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { Quat, Vec3 } from '@manifold/common';
 import type { Appearance, Entity, EntityId, World } from '@manifold/core';
+import type { VariableInfo } from '@manifold/commands';
 import type { GamePage, Piece } from './page';
 
 /** An entity's pose at the previous step: it is drawn halfway between that one and the current one. */
@@ -22,6 +23,25 @@ export interface Bodies extends Piece {
 
 const ZONE_COLORS: Record<string, number> = { checkpoint: 0x5ad87a, goal: 0xe0c05a, fall: 0xd85a5a };
 
+/** What the bodies let people change, as data (the site's console reference reads it). */
+export const BODIES_VARIABLES = {
+  wireframe: {
+    name: 'show.wireframe',
+    description: 'Meshes as wire: the triangles the graphics card draws.',
+    scope: 'view',
+    type: { kind: 'boolean' },
+    default: false,
+  },
+  sensors: {
+    name: 'show.sensors',
+    description:
+      "The level's zones, as wire boxes: checkpoints in green, the goal in gold, the void that brings you back in red (stage 2a).",
+    scope: 'view',
+    type: { kind: 'boolean' },
+    default: false,
+  },
+} as const satisfies Record<string, VariableInfo>;
+
 /**
  * THE BODIES: a mesh for every entity with an appearance, drawn between its last two steps (by
  * `alpha`: interpolation), created and removed as the world says; and the level's zones as wire
@@ -39,11 +59,7 @@ export function mountBodies(page: GamePage): Bodies {
   const geometries = { box: new THREE.BoxGeometry(1, 1, 1), sphere: new THREE.SphereGeometry(0.5, 24, 16) };
 
   page.registry.declareVariable({
-    name: 'show.wireframe',
-    description: 'Meshes as wire: the triangles the graphics card draws.',
-    scope: 'view',
-    type: { kind: 'boolean' },
-    default: false,
+    ...BODIES_VARIABLES.wireframe,
     onChange(v) {
       wireframe = v === true;
       for (const mesh of meshes.values())
@@ -53,12 +69,7 @@ export function mountBodies(page: GamePage): Bodies {
     },
   });
   page.registry.declareVariable({
-    name: 'show.sensors',
-    description:
-      "The level's zones, as wire boxes: checkpoints in green, the goal in gold, the void that brings you back in red (stage 2a).",
-    scope: 'view',
-    type: { kind: 'boolean' },
-    default: false,
+    ...BODIES_VARIABLES.sensors,
     onChange: (v) => {
       showZones = v === true;
       for (const zone of zones.values()) zone.visible = showZones;

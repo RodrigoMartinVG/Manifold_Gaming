@@ -1,0 +1,161 @@
+---
+/**
+ * THE CONSOLE'S REFERENCE, GENERATED (stage 2.5a): every variable and command the Dojo's console
+ * declares, read from the declarations themselves (`dojoDeclarations`, without mounting anything) when
+ * the site is built: the name, how it is written, the values it takes and its default, its class. What
+ * each one is comes in Spanish from `console-es.ts`; a name without its sentence, or a sentence for a
+ * name nobody declares, stops the build. A browser test checks the other side: that a mounted Dojo's
+ * console declares exactly what these tables list (`data-name`).
+ *
+ * `of="engine"`: the engine's (for every game that mounts the console), as two tables, variables and
+ * commands. `of="dojo"`: the Dojo's own (`dojo.*`), in one.
+ */
+import { dojoDeclarations, type DeclaredVariable } from '@manifold/dojo/declarations';
+import { CONSOLE_ES } from '../console-es';
+
+interface Props {
+  of: 'engine' | 'dojo';
+}
+const { of } = Astro.props;
+const { variables, commands } = dojoDeclarations();
+
+const declared = new Set([...variables, ...commands].map((d) => d.name));
+const missing = [...declared].filter((name) => !(name in CONSOLE_ES));
+const stale = Object.keys(CONSOLE_ES).filter((name) => !declared.has(name));
+if (missing.length || stale.length)
+  throw new Error(
+    [
+      missing.length ? `the console declares these, and site/src/console-es.ts does not say what they are: ${missing.join(', ')}` : '',
+      stale.length ? `site/src/console-es.ts says what these are, and nothing declares them: ${stale.join(', ')}` : '',
+    ]
+      .filter(Boolean)
+      .join('; '),
+  );
+
+const mine = (name: string) => (of === 'dojo') === name.startsWith('dojo.');
+const CLASS = { startup: 'arranque', world: 'mundo', view: 'vista' } as const;
+
+/** A sentence with `code`, **bold** and [links](…), as HTML (escaped first). */
+const inline = (text: string) =>
+  text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+
+/** A list in Spanish: `a`, `b` o `c` ("u" before a word that sounds like o). */
+const either = (items: readonly string[]) => {
+  if (items.length < 2) return items.join('');
+  const last = items[items.length - 1]!;
+  return `${items.slice(0, -1).join(', ')} ${/^`?h?o/i.test(last) ? 'u' : 'o'} ${last}`;
+};
+
+/** The values a variable takes, and its default between brackets. */
+function values(v: DeclaredVariable): string {
+  const t = v.type;
+  const range = (what: string, from?: number, to?: number) =>
+    from !== undefined && to !== undefined ? `${what}de ${from} a ${to}` : from !== undefined ? `${what}desde ${from}` : '';
+  const kinds: Record<string, string> = {
+    boolean: '`on` u `off`',
+    integer: t.kind === 'integer' ? range('un entero ', t.min, t.max) || 'un entero' : '',
+    number: t.kind === 'number' ? range('', t.min, t.max) || 'un número' : '',
+    option: t.kind === 'option' ? either(t.options.map((o) => `\`${o}\``)) : '',
+    vector: 'tres números',
+    text: 'un texto',
+    rest: 'el resto de la línea',
+  };
+  const written = typeof v.default === 'number' ? v.written : `\`${v.written}\``;
+  return `${kinds[t.kind]} (${written})`;
+}
+
+const ownVariables = variables.filter((v) => mine(v.name));
+const ownCommands = commands.filter((c) => mine(c.name));
+---
+
+{
+  of === 'engine' ? (
+    <>
+      <p>
+        <strong>Variables</strong>
+      </p>
+      <table class="console-reference">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Qué es</th>
+            <th>Valores (por defecto)</th>
+            <th>Clase</th>
+          </tr>
+        </thead>
+        <tbody>
+          {ownVariables.map((v) => (
+            <tr data-name={v.name}>
+              <td>
+                <code>{v.name}</code>
+              </td>
+              <td set:html={inline(CONSOLE_ES[v.name]!)} />
+              <td set:html={inline(values(v))} />
+              <td>{CLASS[v.scope]}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p>
+        <strong>Comandos</strong>
+      </p>
+      <table class="console-reference">
+        <thead>
+          <tr>
+            <th>Escribí</th>
+            <th>Qué hace</th>
+          </tr>
+        </thead>
+        <tbody>
+          {ownCommands.map((c) => (
+            <tr data-name={c.name}>
+              <td>
+                <code>{c.usage}</code>
+              </td>
+              <td set:html={inline(CONSOLE_ES[c.name]!)} />
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </>
+  ) : (
+    <table class="console-reference">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Qué es</th>
+          <th>Valores (por defecto)</th>
+          <th>Clase</th>
+        </tr>
+      </thead>
+      <tbody>
+        {ownVariables.map((v) => (
+          <tr data-name={v.name}>
+            <td>
+              <code>{v.name}</code>
+            </td>
+            <td set:html={inline(CONSOLE_ES[v.name]!)} />
+            <td set:html={inline(values(v))} />
+            <td>{CLASS[v.scope]}</td>
+          </tr>
+        ))}
+        {ownCommands.map((c) => (
+          <tr data-name={c.name}>
+            <td>
+              <code>{c.usage}</code>
+            </td>
+            <td set:html={inline(CONSOLE_ES[c.name]!)} />
+            <td>un comando</td>
+            <td>{c.scope ? CLASS[c.scope] : ''}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )
+}

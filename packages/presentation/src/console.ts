@@ -1,4 +1,12 @@
-import { closest, LINK_PREFIX, recipeToLink, type Level, type Message, type Registry } from '@manifold/commands';
+import {
+  closest,
+  LINK_PREFIX,
+  recipeToLink,
+  type CommandInfo,
+  type Level,
+  type Message,
+  type Registry,
+} from '@manifold/commands';
 
 export interface ConsoleOptions {
   /** To keep each game's things apart (the history, the bindings, the startup recipe): "dojo". */
@@ -27,6 +35,42 @@ export interface GameConsole {
 export interface ConsoleActions {
   restart(): void;
 }
+
+/** What this piece declares, as data (the site's console reference reads it). */
+export const CONSOLE_COMMANDS = {
+  export: {
+    name: 'export',
+    description: 'Builds a link with the recipe of what you changed: whoever opens it sees the same.',
+  },
+  load: {
+    name: 'load',
+    description: 'Loads a saved room (with no name: the list of rooms).',
+    args: [{ name: 'room', type: { kind: 'text' }, optional: true }],
+  },
+  startup: {
+    name: 'startup',
+    description:
+      'Your startup recipe for this game: `startup save` saves what you changed, and it is applied every time you open it; `startup clear` deletes it.',
+    args: [{ name: 'action', type: { kind: 'option', options: ['save', 'clear'] }, optional: true }],
+  },
+  bind: {
+    name: 'bind',
+    description: 'A key for a command, with the console closed: `bind t toggle show.wireframe`. With nothing: the list.',
+    args: [
+      { name: 'key', type: { kind: 'text' }, optional: true },
+      { name: 'command', type: { kind: 'rest' }, optional: true },
+    ],
+  },
+  unbind: {
+    name: 'unbind',
+    description: 'Removes a key binding: `unbind t`.',
+    args: [{ name: 'key', type: { kind: 'text' } }],
+  },
+  clear: {
+    name: 'clear',
+    description: 'Clears what is written in the console.',
+  },
+} as const satisfies Record<string, CommandInfo>;
 
 /** The console key, as in Quake: the one to the left of 1 (º on a Spanish keyboard, ` on an English one). */
 const KEY = 'Backquote';
@@ -184,8 +228,7 @@ export function mountConsole(
   const binds: Record<string, string> = saved.read('binds') ?? {};
 
   r.declareCommand({
-    name: 'export',
-    description: 'Builds a link with the recipe of what you changed: whoever opens it sees the same.',
+    ...CONSOLE_COMMANDS.export,
     run(_, out) {
       if (r.changed().length === 0) {
         out.write('nothing to export: everything is at its default value');
@@ -202,9 +245,7 @@ export function mountConsole(
   });
 
   r.declareCommand({
-    name: 'load',
-    description: 'Loads a saved room (with no name: the list of rooms).',
-    args: [{ name: 'room', type: { kind: 'text' }, optional: true }],
+    ...CONSOLE_COMMANDS.load,
     run([name], out) {
       const rooms = o.rooms ?? {};
       if (typeof name !== 'string') {
@@ -235,10 +276,7 @@ export function mountConsole(
   });
 
   r.declareCommand({
-    name: 'startup',
-    description:
-      'Your startup recipe for this game: `startup save` saves what you changed, and it is applied every time you open it; `startup clear` deletes it.',
-    args: [{ name: 'action', type: { kind: 'option', options: ['save', 'clear'] }, optional: true }],
+    ...CONSOLE_COMMANDS.startup,
     run([action], out) {
       if (action === 'save') {
         saved.write('startup', r.recipe('My startup recipe'));
@@ -254,12 +292,7 @@ export function mountConsole(
   });
 
   r.declareCommand({
-    name: 'bind',
-    description: 'A key for a command, with the console closed: `bind t toggle show.wireframe`. With nothing: the list.',
-    args: [
-      { name: 'key', type: { kind: 'text' }, optional: true },
-      { name: 'command', type: { kind: 'rest' }, optional: true },
-    ],
+    ...CONSOLE_COMMANDS.bind,
     run([key, command], out) {
       if (typeof key !== 'string') {
         const list = Object.entries(binds).map(([k, c]) => `${k.padEnd(5)} ${c}`);
@@ -282,9 +315,7 @@ export function mountConsole(
   });
 
   r.declareCommand({
-    name: 'unbind',
-    description: 'Removes a key binding: `unbind t`.',
-    args: [{ name: 'key', type: { kind: 'text' } }],
+    ...CONSOLE_COMMANDS.unbind,
     run([key], out) {
       const k = String(key).toLowerCase();
       if (!binds[k]) {
@@ -298,8 +329,7 @@ export function mountConsole(
   });
 
   r.declareCommand({
-    name: 'clear',
-    description: 'Clears what is written in the console.',
+    ...CONSOLE_COMMANDS.clear,
     run: () => log.replaceChildren(),
   });
 

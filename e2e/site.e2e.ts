@@ -75,10 +75,11 @@ async function typeInConsole(page: Page, ...lines: string[]) {
   }
 }
 
-// The console is the engine's: its page names every command and variable the engine declares, and the
-// Dojo's page the Dojo's own. Read from the console itself (`help`, `vars`), so a new declaration that
-// the site does not mention fails here.
-test('the console page and the Dojo page name every command and variable the Dojo declares', async ({ page }) => {
+// The console is the engine's: its page lists every command and variable the engine declares, and the
+// Dojo's page the Dojo's own. The site generates those tables from the declarations, as data, without
+// mounting anything (stage 2.5a); here, the other side: a mounted Dojo's console (`help`, `vars`)
+// declares exactly what the tables list, nothing missing and nothing extra.
+test('the console page and the Dojo page list exactly the commands and variables the Dojo declares', async ({ page }) => {
   await page.goto('jugar/dojo/empty/');
   await expect.poll(() => meshes(page), { timeout: 15_000 }).toBe(1);
   await page.keyboard.press('Backquote');
@@ -91,13 +92,15 @@ test('the console page and the Dojo page name every command and variable the Doj
   const variables = [...log.matchAll(/^ {2}([a-z][\w.]*) {2,}/gm)].map((m) => m[1]!);
   expect(commands.length).toBeGreaterThan(20);
   expect(variables.length).toBeGreaterThan(15);
-  const textOf = async (address: string) => {
+  const listed = async (address: string) => {
     await page.goto(address);
-    return page.locator('main').innerText();
+    return page.locator('.console-reference tr[data-name]').evaluateAll((rows) => rows.map((r) => r.getAttribute('data-name')!));
   };
-  const engine = await textOf('jugar/consola/');
-  const dojo = await textOf('jugar/dojo/');
-  for (const name of [...commands, ...variables]) expect(name.startsWith('dojo.') ? dojo : engine, name).toContain(name);
+  const engine = await listed('jugar/consola/');
+  const dojo = await listed('jugar/dojo/');
+  const live = [...commands, ...variables];
+  expect([...engine].sort()).toEqual(live.filter((name) => !name.startsWith('dojo.')).sort());
+  expect([...dojo].sort()).toEqual(live.filter((name) => name.startsWith('dojo.')).sort());
 });
 
 test("the Dojo's console opens with the º key and changes the world", async ({ page }) => {

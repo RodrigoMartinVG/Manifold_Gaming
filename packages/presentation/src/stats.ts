@@ -1,6 +1,18 @@
+import type { VariableInfo } from '@manifold/commands';
 import { stateHash } from '@manifold/core';
 import type { PageMatch } from './match';
 import { hex, overlay, type GamePage, type Piece } from './page';
+
+/** What the stats let people change, as data (the site's console reference reads it). */
+export const STATS_VARIABLES = {
+  stats: {
+    name: 'show.stats',
+    description: "The step, the world's hash, the entities and the frames per second.",
+    scope: 'view',
+    type: { kind: 'boolean' },
+    default: false,
+  },
+} as const satisfies Record<string, VariableInfo>;
 
 /**
  * THE STATS (`show.stats`): the step, the world's hash, the entities and the bodies, the frames per
@@ -20,11 +32,7 @@ export function mountStats(page: GamePage, match: PageMatch): Piece {
     whiteSpace: 'pre',
   });
   page.registry.declareVariable({
-    name: 'show.stats',
-    description: "The step, the world's hash, the entities and the frames per second.",
-    scope: 'view',
-    type: { kind: 'boolean' },
-    default: false,
+    ...STATS_VARIABLES.stats,
     onChange: (v) => (box.hidden = v !== true),
   });
 

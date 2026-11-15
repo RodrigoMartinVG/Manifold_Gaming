@@ -3,6 +3,8 @@ title: La consola
 description: La herramienta del motor para ver, cambiar, grabar y compartir lo que un juego deja tocar. Cómo se usa, cómo se escribe, y todos sus comandos.
 ---
 
+import ConsoleReference from '../../../components/ConsoleReference.astro';
+
 La consola es una herramienta **del motor**, no de un juego. Por debajo hay un _registro_ (_registry_): cada parte del motor y cada juego declara ahí lo que se puede cambiar (sus **variables**, con su tipo, su rango, su valor de siempre y para qué sirven) y lo que se puede hacer (sus **comandos**). La consola es una de las caras de ese registro: muestra, completa y ejecuta lo declarado. Por eso no hay un panel de opciones: una opción nueva aparece en la consola sola.
 
 **Cada juego decide si la monta y qué deja tocar.** El [Dojo](../dojo/), que es un laboratorio, deja tocar todo. Un juego competitivo quizás no deje cambiar nada del mundo, porque sería hacer trampa; otro puede tenerla solo para mirar. Lo que sigue vale para cualquier juego que la tenga; lo propio de cada uno está en su página.
@@ -108,55 +110,8 @@ Aunque juegues solo, la página juega a través de un servidor propio, que vive 
 
 ## Todos los comandos y variables del motor
 
-Lo que el motor declara para cualquier juego que monte la consola. Cada juego suma los suyos, con su prefijo (los del Dojo empiezan con `dojo.`, y están [en su página](../dojo/#su-parte-de-la-consola)). En la consola, `help` y un nombre dicen lo mismo, en inglés.
+Lo que el motor declara para cualquier juego que monte la consola. Cada juego suma los suyos, con su prefijo (los del Dojo empiezan con `dojo.`, y están [en su página](../dojo/#su-parte-de-la-consola)). En la consola, `help` y un nombre dicen lo mismo, en inglés. Estas tablas salen de lo que el motor declara cuando se arma el sitio: los nombres, cómo se escriben, sus valores y su clase no pueden quedar viejos.
 
-**Variables**
-
-| Nombre            | Qué es                                                                                                          | Valores (por defecto)                        | Clase    |
-| ----------------- | --------------------------------------------------------------------------------------------------------------- | -------------------------------------------- | -------- |
-| `seed`            | la semilla del azar del mundo: la misma semilla, el mismo mundo                                                 | un entero de 0 a 4294967295 (1)              | arranque |
-| `physics.gravity` | la gravedad, en m/s² a lo largo de cada eje (x y z): la de la Tierra es `0 -9.81 0`; la de la Luna, `0 -1.62 0` | tres números (`0 -9.81 0`)                   | mundo    |
-| `show.stats`      | el paso, la huella, las entidades y los cuadros por segundo                                                     | `on` u `off` (`off`)                         | vista    |
-| `show.wireframe`  | las mallas como alambre                                                                                         | `on` u `off` (`off`)                         | vista    |
-| `show.axes`       | los ejes del mundo en el origen                                                                                 | `on` u `off` (`off`)                         | vista    |
-| `show.physics`    | los colisionadores, como los ve la física                                                                       | `on` u `off` (`off`)                         | vista    |
-| `show.vectors`    | velocidades, y hacia dónde mira cada personaje                                                                  | `on` u `off` (`off`)                         | vista    |
-| `show.contacts`   | los puntos de contacto, con su normal                                                                           | `on` u `off` (`off`)                         | vista    |
-| `show.gravity`    | el campo de gravedad, como flechas                                                                              | `on` u `off` (`off`)                         | vista    |
-| `show.sensors`    | las zonas del nivel                                                                                             | `on` u `off` (`off`)                         | vista    |
-| `view.timescale`  | mostrar el mundo más lento (0.2) o más rápido (2), sin cambiar la física                                        | de 0.05 a 4 (1)                              | vista    |
-| `view.paused`     | el mundo frenado (con `step` avanza de a un paso)                                                               | `on` u `off` (`off`)                         | vista    |
-| `controls.scheme` | cómo manejan las teclas al personaje ([las dos maneras](../como-se-juega/#las-teclas-de-dos-maneras))           | `camera` o `tank` (`camera`)                 | vista    |
-| `view.camera`     | cómo lo sigue la cámara ([las cámaras](../como-se-juega/#las-cámaras))                                          | `follow`, `chase`, `aim` o `free` (`follow`) | vista    |
-
-**Comandos**
-
-| Escribí                          | Qué hace                                                                                                                                                         |
-| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `help [nombre]`                  | cómo se usa la consola, o la ayuda de un nombre                                                                                                                  |
-| `find texto`                     | busca en los nombres y en las descripciones                                                                                                                      |
-| `vars [prefijo]`                 | las variables y sus valores, por clase (todas, o las que empiezan con un prefijo: `vars show.`)                                                                  |
-| `changed`                        | solo las variables que no están en su valor de siempre                                                                                                           |
-| `inspect [id]`                   | de qué está hecha una entidad: por su número, `me` o `it` (sin nada: cuántas hay)                                                                                |
-| `watch [entidad] [qué]`          | deja una entidad fija en la pantalla, con sus valores al día mientras jugás; `watch clear` las saca, y `watch` solo dice cuáles mirás                            |
-| `inputs`                         | qué puede pedir un jugador en este juego, y qué tecla lo aprieta                                                                                                 |
-| `hash`                           | el paso del mundo y su huella: un número que resume todo su estado                                                                                               |
-| `toggle nombre`                  | da vuelta una variable de prendido y apagado                                                                                                                     |
-| `reset [nombre]`                 | vuelve una variable a su valor de siempre (sin nombre, todas); las de arranque hacen empezar de nuevo el mundo                                                   |
-| `restart`                        | el mundo empieza de nuevo, con los valores de ahora                                                                                                              |
-| `pause`                          | frena o reanuda el mundo (lo mismo que `toggle view.paused`)                                                                                                     |
-| `step [n]`                       | avanza el mundo n pasos (uno, si no se dice) y lo deja en pausa                                                                                                  |
-| `camera.reset`                   | la cámara a donde empezó, o detrás del personaje                                                                                                                 |
-| `clear`                          | borra lo escrito en la consola                                                                                                                                   |
-| `export`                         | un enlace con la receta de lo que cambiaste                                                                                                                      |
-| `load [sala]`                    | carga una sala guardada (sin nombre: la lista)                                                                                                                   |
-| `startup [save\|clear]`          | tu receta de inicio para este juego: guardarla o borrarla                                                                                                        |
-| `bind [tecla] [comando]`         | una tecla para un comando, con la consola cerrada (sin nada: la lista)                                                                                           |
-| `unbind tecla`                   | libera una tecla                                                                                                                                                 |
-| `replay [export\|play\|stop]`    | la repetición del mundo desde que nació                                                                                                                          |
-| `ghost [export\|clear]`          | correr contra lo que acabás de hacer                                                                                                                             |
-| `snapshot [load]`                | guardar este momento, y volver a él                                                                                                                              |
-| `net [open\|join\|leave]`        | la partida, y dónde vive                                                                                                                                         |
-| `players.join` y `players.leave` | un jugador entra a la partida o la deja. Los dice el servidor, en un paso: el juego decide qué significan (en el recorrido del Dojo, un personaje para cada uno) |
+<ConsoleReference of="engine" />
 
 Cómo está pensada la consola, con su porqué: la [decisión 0010](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/docs/decisions/0010-the-console-and-recipes.md) (en inglés).

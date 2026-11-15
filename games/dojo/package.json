@@ -8,6 +8,7 @@
     ".": "./src/index.ts",
     "./cartridge": "./src/cartridge.ts",
     "./check": "./src/check.ts",
+    "./declarations": "./src/declarations.ts",
     "./replays": "./src/replays.ts",
     "./rooms": "./src/rooms.ts",
     "./rules": "./src/rules.ts"

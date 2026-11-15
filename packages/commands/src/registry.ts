@@ -314,8 +314,12 @@ export class Registry<W = unknown> {
     return [...this.vars.keys(), ...this.cmds.keys()].sort();
   }
 
-  usage(c: Command<W>): string {
-    const args = (c.args ?? []).map((a: Argument) => (a.optional ? `[${a.name}]` : a.name));
+  /** How a command is written: `step [n]`, `replay [export|play|stop]` (an option says its choices). */
+  usage(c: Pick<Command<W>, 'name' | 'args'>): string {
+    const args = (c.args ?? []).map((a: Argument) => {
+      const word = a.type.kind === 'option' ? a.type.options.join('|') : a.name;
+      return a.optional ? `[${word}]` : word;
+    });
     return [c.name, ...args].join(' ');
   }
 
