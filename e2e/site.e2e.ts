@@ -366,6 +366,27 @@ test('the sound (stage 3f): steps on metal and on wood are made in the browser, 
   expect(list).toEqual([]);
 });
 
+test('G grabs the crate in front (stage 3g), and the console says what the character holds', async ({ page }) => {
+  const list = errors(page);
+  await page.goto('jugar/dojo/machines/');
+  await expect.poll(() => page.locator('#game').getAttribute('data-player'), { timeout: 20_000 }).toBeTruthy();
+  await page.keyboard.press('Backquote');
+  await typeInConsole(page, 'dojo.goto 0.3 1 5');
+  await page.keyboard.press('Escape');
+  await afterSteps(page, 30);
+  // A short step towards it (D: +X), so it looks at it; then G.
+  await page.keyboard.down('KeyD');
+  await afterSteps(page, 2);
+  await page.keyboard.up('KeyD');
+  await afterSteps(page, 10);
+  await page.keyboard.press('KeyG');
+  await afterSteps(page, 20);
+  await page.keyboard.press('Backquote');
+  await typeInConsole(page, 'inspect me');
+  await expect(consoleLog(page)).toContainText(/holding [1-9]/);
+  expect(list).toEqual([]);
+});
+
 test('the wheel gets the camera closer, and the right button moves it sideways', async ({ page }) => {
   const list = errors(page);
   await page.setViewportSize({ width: 1280, height: 800 });

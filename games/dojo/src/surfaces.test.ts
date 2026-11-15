@@ -1,4 +1,5 @@
 import { beforeAll, describe, expect, test } from 'vitest';
+import { quat } from '@manifold/common';
 import { initPhysics, levelFromText, NO_INPUT, registryFor, Session, type Entity, type PlayerInput } from '@manifold/core';
 import { DojoCartridge } from './cartridge';
 import { DOJO_ZONES } from './rules';
@@ -127,6 +128,24 @@ describe('surfaces (stage 3b): what a floor is made of, and a zone that carries'
     }
     expect(steps, 'a whole jump').toBeGreaterThan(60);
     expect(up.at()[0]! - from).toBeCloseTo(3 / 60, 3);
+  });
+
+  test('the stream carries what the physics moves too (stage 3g): a ball rolls away with it; a stone cube on its bottom stays', () => {
+    const m = surfaces();
+    const world = m.session.world;
+    const ball = world.createEntity({
+      transform: { position: [-2, 0.3, -12], rotation: quat.identity() },
+      body: { type: 'dynamic', shape: { kind: 'ball', radius: 0.25 }, angularDamping: 0.8 },
+    });
+    const cube = world.createEntity({
+      transform: { position: [-2, 0.3, -11], rotation: quat.identity() },
+      body: { type: 'dynamic', shape: { kind: 'box', halfExtents: [0.3, 0.3, 0.3] }, material: 'stone' },
+    });
+    m.step(NO_INPUT, 30);
+    const [b0, c0] = [ball.transform!.position[0]!, cube.transform!.position[0]!];
+    m.step(NO_INPUT, 120);
+    expect(ball.transform!.position[0]! - b0, 'the ball, downstream').toBeGreaterThan(1);
+    expect(Math.abs(cube.transform!.position[0]! - c0), 'the cube, still').toBeLessThan(0.05);
   });
 
   test("the Dojo's levels are read with its zones: one it does not have, or a current without its flow, says its line", () => {

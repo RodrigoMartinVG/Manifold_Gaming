@@ -99,6 +99,45 @@ describe('the machines: a button and a door, plates and a lift (stage 3c)', () =
   });
 });
 
+describe('the machines: a crate that holds a door open, a block too heavy (stage 3g)', () => {
+  test('the crate, grabbed (G) and carried onto the plate, holds the second door open', () => {
+    const m = machines();
+    const crate = m.session.world.named('crate')!;
+    const door = m.session.world.named('door_plate')!;
+    // Beside the crate, in the plate's row (z = 5), looking at it along +X.
+    m.put(0.3, 1, 5);
+    m.step({ ...NO_INPUT, move: [0.3, 0, 0] });
+    m.step();
+    m.step({ ...NO_INPUT, grab: true });
+    m.step();
+    expect(m.c().holding).toBe(crate.id);
+    // Along the row until the crate, held 0.95 m ahead, is over the plate (at x = 5.5); there, let go.
+    for (let i = 0; i < 120 && m.at()[0]! < 4.55; i++) m.step({ ...NO_INPUT, move: [1, 0, 0] });
+    for (let i = 0; i < 40; i++) m.step();
+    m.step({ ...NO_INPUT, grab: true });
+    m.step();
+    expect(m.c().holding).toBe(0);
+    // The character walks back off it: the crate holds the plate, and the door opens in a second.
+    for (let i = 0; i < 30; i++) m.step({ ...NO_INPUT, move: [-1, 0, 0] });
+    for (let i = 0; i < 70; i++) m.step();
+    expect(m.session.world.signal('held')).toBe(1);
+    const q = door.transform!.rotation;
+    expect(2 * Math.asin(Math.hypot(q[0], q[1], q[2]))).toBeCloseTo(Math.PI / 2, 3);
+  });
+
+  test('the stone block: walking into it does not move it, and grabbing it does not lift it', () => {
+    const m = machines();
+    const block = m.session.world.named('block')!;
+    const from = [...block.transform!.position];
+    m.put(-1.5, 1, 5.5);
+    for (let i = 0; i < 90; i++) m.step({ ...NO_INPUT, move: [0, 0, -1] });
+    m.step({ ...NO_INPUT, grab: true });
+    for (let i = 0; i < 60; i++) m.step();
+    expect(Math.hypot(block.transform!.position[0] - from[0]!, block.transform!.position[2] - from[2]!)).toBeLessThan(0.2);
+    expect(block.transform!.position[1]).toBeLessThan(0.45);
+  });
+});
+
 describe('the machines (stage 3a)', () => {
   /** The ferry, and whether the character stands on it. */
   const theFerry = (m: ReturnType<typeof machines>) => {

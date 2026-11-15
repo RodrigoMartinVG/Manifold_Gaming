@@ -142,17 +142,26 @@ export const DOJO_ZONES: ZoneKinds = {
  * it, it advances less; across it, it drifts. It takes hold through the feet, as water at the ankles
  * does: in the air, jumping over it, nothing holds on to it (at first it carried a jump too, from a
  * zone 5 m tall, and the author found it strange: over the water, without touching it, it pushed). A
- * wind, which would push in the air, would be another kind of zone. (What the physics moves is not
- * carried yet: a game cannot push a dynamic body until 3g, which brings that by mass; then a current
- * carries a ball by its material's drag, and a stone cube resting on the bottom stays.)
+ * wind, which would push in the air, would be another kind of zone. What the physics moves, it pushes
+ * by its material's drag (stage 3g).
  */
 function currents(world: World) {
   for (const zone of world.entities.values()) {
     if (zone.sensor?.kind !== 'current') continue;
     const flow = zone.sensor.params.flow as Vec3;
     for (const id of zone.sensor.inside) {
-      const c = world.entities.get(id)?.character;
+      const e = world.entities.get(id);
+      const c = e?.character;
       if (c?.grounded) c.carry = vec3.add(c.carry, flow);
+      // What the physics moves (stage 3g): pushed towards the flow by its material's drag, the part of
+      // the difference it closes in a step (stone's, without one). Along the ground only: a ball rolls
+      // away with it; a stone cube on the bottom stays, its friction holding it.
+      if (e?.body?.type === 'dynamic') {
+        const drag = world.materials[e.body.material ?? 'stone']?.drag ?? 0.5;
+        const v = e.body.linearVelocity;
+        const along: Vec3 = [flow[0] - v[0], 0, flow[2] - v[2]];
+        world.push(e, vec3.scale(along, Math.min(1, drag * STEP)));
+      }
     }
   }
 }

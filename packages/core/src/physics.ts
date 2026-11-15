@@ -95,7 +95,7 @@ export interface PhysicsBackend {
     desired: Vec3,
     up: Vec3,
     standingOn?: number,
-  ): { movement: Vec3; grounded: boolean; ceiling: boolean };
+  ): { movement: Vec3; grounded: boolean; ceiling: boolean; touched: number[] };
   castRay(from: Vec3, direction: Vec3, reach: number, o?: QueryOptions): PhysicsHit | null;
   castShape(shape: Shape, position: Vec3, rotation: Quat, direction: Vec3, reach: number, o?: QueryOptions): PhysicsHit | null;
   motionOf(handle: number): { kinematic: boolean; linear: Vec3; angular: Vec3; center: Vec3 } | null;
@@ -111,6 +111,8 @@ export interface PhysicsBackend {
   touching(handle: number): number[];
   /** A body's mass (stage 3e): what the physics gives it from its shape and density (0 if it moves only as told). */
   massOf(handle: number): number;
+  /** Changes a moving body's velocity by an impulse (stage 3g: kg·m/s), waking it if it sleeps. */
+  push(handle: number, impulse: Vec3): void;
   dispose(): void;
 }
 
@@ -157,6 +159,7 @@ export class RapierPhysics implements PhysicsBackend {
       angularVelocity: [...(spec.angularVelocity ?? [0, 0, 0])],
       ...(spec.groups ? { groups: { ...spec.groups } } : {}),
       ...(spec.material !== undefined ? { material: spec.material } : {}),
+      ...(spec.density !== undefined ? { density: spec.density } : {}),
       handle: 0,
     };
     // Kinematic bodies are moved by VELOCITY: the physics integrates them (with its deterministic
@@ -182,6 +185,7 @@ export class RapierPhysics implements PhysicsBackend {
           ? RAPIER.ColliderDesc.capsule(shape.halfHeight, shape.radius)
           : RAPIER.ColliderDesc.cuboid(...shape.halfExtents);
     collider.setRestitution(body.restitution).setFriction(body.friction);
+    if (body.density !== undefined) collider.setDensity(body.density);
     if (body.groups) collider.setCollisionGroups(groupsOf(body.groups)).setSolverGroups(groupsOf(body.groups));
     this.world.createCollider(collider, rigid);
     body.handle = rigid.handle;
@@ -231,10 +235,10 @@ export class RapierPhysics implements PhysicsBackend {
     desired: Vec3,
     up: Vec3,
     standingOn?: number,
-  ): { movement: Vec3; grounded: boolean; ceiling: boolean } {
+  ): { movement: Vec3; grounded: boolean; ceiling: boolean; touched: number[] } {
     const rigid = this.world.getRigidBody(handle);
     const collider = rigid?.collider(0);
-    if (!rigid || !collider) return { movement: [0, 0, 0], grounded: false, ceiling: false };
+    if (!rigid || !collider) return { movement: [0, 0, 0], grounded: false, ceiling: false, touched: [] };
     const c = (this.controller ??= this.createController());
     c.setUp(v(up));
     const ground = standingOn === undefined ? null : this.world.getRigidBody(standingOn);
@@ -249,11 +253,16 @@ export class RapierPhysics implements PhysicsBackend {
       ground.setAngvel(angular, false);
     }
     let ceiling = false;
+    // What it ran into that the physics moves (stage 3g: the character pushes it, by its own rule).
+    const touched: number[] = [];
     for (let i = 0; i < c.numComputedCollisions(); i++) {
-      const n = c.computedCollision(i)?.normal2;
+      const hit = c.computedCollision(i);
+      const n = hit?.normal2;
       if (n && n.x * up[0] + n.y * up[1] + n.z * up[2] > 0.7) ceiling = true;
+      const body = hit?.collider?.parent();
+      if (body?.isDynamic() && !touched.includes(body.handle)) touched.push(body.handle);
     }
-    return { movement: toVec(c.computedMovement()), grounded: c.computedGrounded(), ceiling };
+    return { movement: toVec(c.computedMovement()), grounded: c.computedGrounded(), ceiling, touched };
   }
 
   /**
@@ -362,7 +371,10 @@ export class RapierPhysics implements PhysicsBackend {
     c.enableSnapToGround(CHARACTER.snapToGround);
     c.setMaxSlopeClimbAngle(CHARACTER.maxClimb);
     c.setMinSlopeSlideAngle(CHARACTER.minSlide);
-    c.setApplyImpulsesToDynamicBodies(true);
+    // It does not push what the physics moves by Rapier's rule (each step, an impulse by the character's
+    // mass: it adds up, and a block of a tonne went along as easily as a crate of 45 kg). The character
+    // pushes by its own (character.ts: `push`), with a force its friction has to beat.
+    c.setApplyImpulsesToDynamicBodies(false);
     return c;
   }
 
@@ -441,6 +453,10 @@ export class RapierPhysics implements PhysicsBackend {
 
   massOf(handle: number): number {
     return this.world.getRigidBody(handle)?.mass() ?? 0;
+  }
+
+  push(handle: number, impulse: Vec3) {
+    this.world.getRigidBody(handle)?.applyImpulse(v(impulse), true);
   }
 
   /** Frees the physics' memory (WebAssembly's, which the garbage collector does not see). */

@@ -1,9 +1,9 @@
-# Manifold level 3
+# Manifold level 6
 # The machines (phase 3): what the program moves, and what signals move. Stage 3a: a ferry that leaves
 # from a pit's edge, level with the floor (late, the character catches its edge and gets on: before 3a
 # it was dragged along on it), and a platform that passes under a low beam (whoever rides it, the beam
 # stops: before 3a the carry took it into the beam). Stage 3c: a button that opens a door, and plates
-# that call a lift.
+# that call a lift. Stage 3g: a crate that holds a door open on a plate, and a block too heavy.
 title The machines
 spawn 3 1 6
 facing 0 0 -1
@@ -31,12 +31,24 @@ box 3 1.3 -25     0.25 0.8 3    color #5a4a38
 # makes: its size, its hinges on this edge). A button on the wall by the
 # door (a red panel, and in front of it the zone where `use`, E, presses it): each press flips the door.
 box -0.3 1.1 2    2.7 1.1 0.1   color #5a544c
-box 6.3 1.1 2     2.7 1.1 0.1   color #5a544c
+box 5 1.1 2       1.4 1.1 0.1   color #5a544c
+box 8.3 1.1 2     0.7 1.1 0.1   color #5a544c
 box 3 1.1 2       0.6 1.1 0.06  door -0.6 0 0 y 90 1 gate  color #8a6a42  model dojo.door  name door
 box 4.4 1.2 2.13  0.12 0.12 0.03  color #c04040
 sensor button     4.4 0.9 2.7   0.5 0.9 0.5  name button
 signal pressed  used button
 signal gate     toggle pressed
+
+# Stage 3g. A second doorway in the wall, its door open while something is on the plate before it, a
+# few meters away: standing there, the door is out of reach; a crate left on it holds it open. The
+# crate is wood, 0.4 m (45 kg): pushed, it slides along; grabbed (G), it is carried. And a stone block
+# of a tonne, too heavy to push or to lift.
+box 7 1.1 2       0.6 1.1 0.06  door -0.6 0 0 y 90 1 held  color #8a6a42  model dojo.door  name door_plate
+box 5.5 0.025 5   0.6 0.025 0.6  color #a04040
+sensor plate      5.5 0.7 5     0.6 0.7 0.6  name hold_plate
+signal held       zone hold_plate
+box 1.2 0.2 5     0.2 0.2 0.2   dynamic  material wood  color #9a7a4a  name crate
+box -1.5 0.4 4    0.4 0.4 0.4   dynamic  material stone  color #7a7672  name block
 
 # Past the door, a lift beside a ledge 4.3 m high, with a star on it. Standing on the lift calls it up;
 # a plate on the ledge calls it up too (if it is down), and a plate on the ground beside it calls it

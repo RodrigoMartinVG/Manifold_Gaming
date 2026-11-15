@@ -25,7 +25,7 @@ export {
   type SessionState,
   type WorldChange,
 } from './session';
-export { DEFAULT_MOVEMENT, faceFor, turned, upAt, poseOf } from './character';
+export { DEFAULT_MOVEMENT, faceFor, HOLD, PUSH, turned, upAt, poseOf } from './character';
 export {
   actionsFor,
   axisOf,

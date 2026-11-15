@@ -31,7 +31,9 @@ const overlap = (a: [number, number], b: [number, number]) => Math.max(0, Math.m
 /** Faces of two boxes in the same plane, facing the same way, overlapping with some area: a description of each. */
 function flickering(boxes: LevelBox[]): string[] {
   const found: string[] = [];
-  const straight = boxes.map((b, i) => ({ b, i })).filter(({ b }) => !b.turn && !b.spin && !b.door && b.look !== 'hidden');
+  const straight = boxes
+    .map((b, i) => ({ b, i }))
+    .filter(({ b }) => !b.turn && !b.spin && !b.door && !b.dynamic && b.look !== 'hidden');
   for (let p = 0; p < straight.length; p++)
     for (let q = p + 1; q < straight.length; q++) {
       const [A, B] = [straight[p]!, straight[q]!];
@@ -78,6 +80,7 @@ describe("the Dojo's levels (stage 3a)", () => {
       lift: null,
       model: null,
       breaks: null,
+      dynamic: false,
     } as const;
     const ferry: LevelBox = { ...box, center: [3, -0.15, -11.5], half: [1.5, 0.15, 1.5], move: { by: [0, 0, -6], seconds: 2.5 } };
     const floor: LevelBox = { ...box, center: [3, -0.5, -22], half: [6, 0.5, 6] };

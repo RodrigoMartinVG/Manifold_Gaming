@@ -8,6 +8,7 @@ import { HIT_HEARD, hitRadius } from './sound';
 import { PHYSICS, type PhysicsBackend, type PhysicsHit } from './physics';
 import { VERIFIED, type Profile } from './profile';
 import type {
+  Body,
   CollisionGroups,
   Components,
   Entity,
@@ -41,6 +42,18 @@ export interface Query {
   dynamic?: boolean;
   /** Only the bodies these groups meet. */
   groups?: CollisionGroups;
+}
+
+/** A body's mass, from its density (the physics' own, 1, without one) and its shape's volume: what Rapier gives it. */
+export function massOf(body: Pick<Body, 'shape' | 'density'>): number {
+  const s = body.shape;
+  const volume =
+    s.kind === 'box'
+      ? 8 * s.halfExtents[0] * s.halfExtents[1] * s.halfExtents[2]
+      : s.kind === 'ball'
+        ? (4 / 3) * Math.PI * s.radius ** 3
+        : Math.PI * s.radius ** 2 * (2 * s.halfHeight) + (4 / 3) * Math.PI * s.radius ** 3;
+  return (body.density ?? 1) * volume;
 }
 
 /** How many signals each kind of signal reads (−1: one or more). */
@@ -385,6 +398,16 @@ export class World {
     this.wires.push({ name, op, reads: [...reads], value: 0, memory: 0 });
   }
 
+  /**
+   * Pushes what the physics moves (stage 3g: a game, a grab, a current): changes its velocity by
+   * `change`, with the impulse that takes for its mass (so a heavy thing is as easy to push as a light
+   * one by this; how hard a push may be is the caller's), waking it if it sleeps.
+   */
+  push(e: Entity, change: Vec3) {
+    if (e.body?.type !== 'dynamic') return;
+    this.physics.push(e.body.handle, vec3.scale(change, this.physics.massOf(e.body.handle)));
+  }
+
   /** A signal's value: what it was at the end of the last step. */
   signal(name: string): number {
     const w = this.wires.find((x) => x.name === name);
@@ -475,8 +498,14 @@ export class World {
     }
     if (body) {
       if (!entity.transform) throw new Error('A body needs a transform: where is it?');
+      // What it is made of gives it its friction, its bounce and (stage 3g) what it weighs for its size.
       const spec = material
-        ? { ...body, friction: body.friction ?? material.friction, restitution: body.restitution ?? material.bounce }
+        ? {
+            ...body,
+            friction: body.friction ?? material.friction,
+            restitution: body.restitution ?? material.bounce,
+            density: body.density ?? material.density,
+          }
         : body;
       entity.body = this.physics.addBody(spec, entity.transform);
     }
@@ -641,7 +670,9 @@ export class World {
       this.physics.read(e.body.handle, e.transform, e.body);
       if (e.body.type !== 'dynamic') continue;
       const change = vec3.sub(vec3.sub(e.body.linearVelocity, before), vec3.scale(g, STEP));
-      const energy = 0.5 * this.physics.massOf(e.body.handle) * vec3.dot(change, change);
+      // Its mass from its density and its shape, here (asking the physics, a call into WebAssembly for
+      // every body on every step, took the stress room's step near its budget): the same number.
+      const energy = 0.5 * massOf(e.body) * vec3.dot(change, change);
       if (energy < HIT_HEARD) continue;
       // On what: the first thing it touches (its material), or its own.
       const other = this.physics.touching(e.body.handle)[0];

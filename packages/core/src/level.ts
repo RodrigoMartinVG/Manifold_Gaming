@@ -68,11 +68,16 @@ import { ENTITY_NAME, type World } from './world';
  *                                             hit), drawn with a model the game has
  *   box 2 0.5 -3  0.5 0.5 0.5  breaks 3       a box a hit of 3 J breaks into pieces
  *
+ * Format 6 (stage 3g) adds a box the physics moves:
+ *
+ *   box 1 0.2 5  0.2 0.2 0.2  dynamic  material wood    a crate of 45 kg (wood's density, its size):
+ *                                             it falls, it is pushed, it can be grabbed
+ *
  * The turns are written in degrees, as a person thinks them, and become quaternions with our own sine
  * and cosine (`quat.fromDegrees`): the browser's would give other bits in another browser, and the
  * world must be born the same everywhere.
  */
-export const LEVEL_FORMAT = 5;
+export const LEVEL_FORMAT = 6;
 const HEADER = '# Manifold level';
 
 /** A turn around one of the axes, as it is written. */
@@ -97,6 +102,8 @@ export interface LevelBox {
   model: string | null;
   /** The energy of a hit that breaks it (format 5), in joules, if it breaks. */
   breaks: number | null;
+  /** Whether the physics moves it (format 6): it falls, is pushed and can be grabbed. */
+  dynamic: boolean;
   /** What it is made of (format 2), if it is said: the engine's materials or the level's. */
   material: string | null;
   /** Which collision groups it is in and meets (format 2), if it is said: if not, all. */
@@ -209,6 +216,7 @@ const SINCE: Record<string, number> = {
   lamp: 4,
   watcher: 4,
   breaks: 5,
+  dynamic: 6,
 };
 /** How many signals or zones each kind of signal reads (−1: one or more), as the world says. */
 const READS: Record<SignalOp, number> = { input: 0, zone: 1, used: 1, seen: 1, any: -1, all: -1, not: 1, toggle: 1, latch: 2 };
@@ -343,6 +351,7 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
         lift: null as LevelBox['lift'],
         model: null as string | null,
         breaks: null as number | null,
+        dynamic: false,
       };
       /** How long a mechanism takes, more than 0, and the signal it follows. */
       const timeAndSignal = () => {
@@ -390,11 +399,13 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
           box.model = modelName();
         } else if (word === 'breaks') {
           box.breaks = energy();
+        } else if (word === 'dynamic') {
+          box.dynamic = true;
         } else fail(n, `"${word}" is not understood here`);
       }
       // What the program moves, one way at a time: a platform that comes and goes, one that turns, or a
       // mechanism that follows its signal.
-      const ways = ['move', 'spin', 'door', 'lift'].filter((w) => seen.has(w));
+      const ways = ['move', 'spin', 'door', 'lift', 'dynamic'].filter((w) => seen.has(w));
       if (ways.length > 1) fail(n, `a box moves one way: ${ways.join(' and ')} together`);
       // A grid's or a hidden box's color would not be seen: saying one is a mistake.
       if (seen.has('grid') && seen.has('hidden')) fail(n, 'a box is drawn as a grid or not at all, not both');
@@ -515,6 +526,7 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
           look: b.look,
           model: b.model,
           breaks: b.breaks,
+          dynamic: b.dynamic,
           material: b.material,
           groups,
           move: b.move,
@@ -642,6 +654,7 @@ export function levelToText(level: Level): string {
     (b.look === 'solid' ? `  color #${b.color.toString(16).padStart(6, '0')}` : `  ${b.look}`) +
     (b.model ? `  model ${b.model}` : '') +
     (b.breaks !== null ? `  breaks ${b.breaks}` : '') +
+    (b.dynamic ? '  dynamic' : '') +
     (b.name ? `  name ${b.name}` : '');
   const sensorText = (s: LevelSensor) =>
     `sensor ${s.kind}  ${numbersText(s.center)}  ${numbersText(s.half)}${turnText(s.turn)}` +
@@ -703,7 +716,7 @@ export function buildLevel(world: World, level: Level) {
       ...(b.name ? { name: b.name } : {}),
       transform: { position: [...b.center], rotation: turnOf(b.turn) },
       body: {
-        type: moves ? 'kinematic' : 'fixed',
+        type: b.dynamic ? 'dynamic' : moves ? 'kinematic' : 'fixed',
         shape: { kind: 'box', halfExtents: [...b.half] },
         ...(b.material ? { material: b.material } : {}),
         ...(b.groups ? { groups: { ...b.groups } } : {}),

@@ -216,6 +216,11 @@ export interface Body {
    * given; and a name the game reads (the sound of steps and hits, what breaks how).
    */
   material?: string;
+  /**
+   * What it weighs for its size (stage 3g), kg/m³: its material's, if it has one (a wooden crate, a
+   * stone block); without it, the physics' own (1). Its mass is that times its volume.
+   */
+  density?: number;
   /** Given by the world when the entity is created. */
   handle: number;
 }
@@ -243,6 +248,7 @@ export type BodySpec = Pick<Body, 'type' | 'shape'> &
       | 'angularVelocity'
       | 'groups'
       | 'material'
+      | 'density'
     >
   >;
 
@@ -327,6 +333,8 @@ export interface Character {
   jumpHeld: boolean;
   /** Where it looks: a unit vector perpendicular to its "up". */
   facing: Vec3;
+  /** What it holds (stage 3g), by id; 0, nothing. Held by a pull towards in front of it, it stays the physics'. */
+  holding: EntityId;
   /**
    * How lit it is (stage 3d), at its center: the world's ambient light, plus what every lamp that sees
    * it gives, at the end of the last step. What a watcher compares with its threshold (and, one day, a

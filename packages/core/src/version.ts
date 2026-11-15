@@ -35,5 +35,8 @@
  *      large pieces in the hash, and the break as an event with a seed
  *  20  stage 3f: what is heard: a character's stride (in the hash), and sounds as events, steps,
  *      landings, hits, doors, lifts and breaks, with a hearing radius
+ *  21  stage 3g: a body's density from its material; a character pushes what it walks into with a
+ *      force its friction must beat (not Rapier's impulses); a game pushes what the physics moves
+ *      (World.push); grabbing and holding (`holding`, in the hash)
  */
-export const SIMULATION_VERSION = 20;
+export const SIMULATION_VERSION = 21;

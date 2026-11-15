@@ -286,7 +286,7 @@ sensor fog  0 2 -20  4 2 4  rotate y 30  opacity 0.2  color 0.8 0.8 0.9
     expect(v1('box 0 0 0  1 1 1  grid')).toThrow(/line 3: "grid" is format 2/);
     expect(v1('material oil friction 0 bounce 0 density 1 drag 0')).toThrow(/line 3: "material" is format 2/);
     expect(v1('sensor current 0 0 0  1 1 1  flow 1 0 0')).toThrow(/line 3: "flow": a zone carries what it says from format 2 on/);
-    expect(() => levelFromText('# Manifold level 6\n')).toThrow(/line 1: a level of format 6: this engine reads formats 1 to 5/);
+    expect(() => levelFromText('# Manifold level 7\n')).toThrow(/line 1: a level of format 7: this engine reads formats 1 to 6/);
   });
 
   test('what format 2 does not allow says which line, and why', () => {
