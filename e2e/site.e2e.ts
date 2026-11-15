@@ -206,15 +206,22 @@ test('the free camera turns with a drag, camera.reset brings it back, and a clic
   await page.goto('jugar/dojo/empty/');
   const game = page.locator('#game');
   await expect.poll(() => game.getAttribute('data-camera'), { timeout: 15_000 }).toBe('3.20 2.40 4.20');
-  // Dragging turns the camera around the scene (the world does not change: only the view).
-  await page.mouse.move(900, 300);
-  await page.mouse.down();
-  await page.mouse.move(700, 320, { steps: 8 });
-  await page.mouse.up();
-  await expect.poll(() => game.getAttribute('data-camera')).not.toBe('3.20 2.40 4.20');
+  // Dragging turns the camera around the scene (the world does not change: only the view). A quick
+  // drag: let go, the camera keeps turning a little, slowing down.
   await page.keyboard.press('Backquote');
-  await typeInConsole(page, 'camera.reset');
+  await page.locator('.mg-console input').fill('camera.reset');
+  await page.mouse.move(900, 600);
+  await page.mouse.down();
+  await page.mouse.move(700, 620, { steps: 4 });
+  await page.mouse.up();
+  // camera.reset at once, while it still turns: it goes back, and it STAYS there. (1a2: with three.js's
+  // OrbitControls, what was left of the turn moved it again after the reset; stage 2.5a: the camera's
+  // own orbit, whose leftover turn the reset sets to zero.)
+  await page.locator('.mg-console input').press('Enter');
+  await expect(consoleLog(page)).toContainText('the camera is back where it started');
   await expect.poll(() => game.getAttribute('data-camera')).toBe('3.20 2.40 4.20');
+  await afterSteps(page, 30);
+  expect(await game.getAttribute('data-camera')).toBe('3.20 2.40 4.20');
   await page.keyboard.press('Escape');
   // The camera looks at the big cube: a click in the middle of the screen inspects it.
   await page.mouse.click(640, 400);
@@ -226,6 +233,30 @@ test('the free camera turns with a drag, camera.reset brings it back, and a clic
   await typeInConsole(page, 'inspect', 'show.stats on');
   await expect(consoleLog(page)).toContainText('2 entities: 1 kinematic, 1 fixed');
   await expect(page.locator('.mg-stats')).toContainText('ms per step');
+});
+
+test('the wheel gets the camera closer, and the right button moves it sideways', async ({ page }) => {
+  const list = errors(page);
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto('jugar/dojo/empty/');
+  const game = page.locator('#game');
+  await expect.poll(() => game.getAttribute('data-camera'), { timeout: 15_000 }).toBe('3.20 2.40 4.20');
+  // How far it is from what it looks at when it starts (0 1 0): 5.8 m.
+  const away = async () => {
+    const [x, y, z] = (await game.getAttribute('data-camera'))!.split(' ').map(Number);
+    return Math.hypot(x!, y! - 1, z!);
+  };
+  const far = await away();
+  await page.mouse.move(640, 500);
+  await page.mouse.wheel(0, -400);
+  await expect.poll(away).toBeLessThan(far - 0.5);
+  // The right button: sideways and up or down (no menu comes up: it is the camera's).
+  const before = await game.getAttribute('data-camera');
+  await page.mouse.down({ button: 'right' });
+  await page.mouse.move(520, 470, { steps: 5 });
+  await page.mouse.up({ button: 'right' });
+  await expect.poll(() => game.getAttribute('data-camera')).not.toBe(before);
+  expect(list).toEqual([]);
 });
 
 /**

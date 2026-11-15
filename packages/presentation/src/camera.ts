@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import type { Quat, Vec3 } from '@manifold/common';
 import { upAt } from '@manifold/core';
 import type { Bodies } from './bodies';
@@ -21,11 +20,29 @@ export interface Rig extends Piece {
 
 /** Where it starts, and where `camera.reset` brings it without a character. */
 const START = { position: new THREE.Vector3(3.2, 2.4, 4.2), target: new THREE.Vector3(0, 1, 0) };
+/** How close to and how far from what it looks at the wheel or a pinch can take it, in meters. */
+const NEAREST = 0.5;
+const FARTHEST = 120;
+/**
+ * How fast what is left of a drag dies out: e^(−4t), half of it in 0.17 s. Always, also while the drag
+ * pauses: let go right after moving, it keeps turning; after holding still a second, it hardly does.
+ */
+const SETTLE = 4;
+/** The most it keeps turning with, in radians per second (two turns): two moves a moment apart do not fling it. */
+const FASTEST = 4 * Math.PI;
 
 /**
- * THE CAMERA. `fixed` does not move. `orbit` is a lab's: dragging turns around the scene, the wheel
- * (or a pinch) gets closer; and with a character to drive, it goes with it in one of four ways
- * (`view.camera`: follow, chase, aim, free). A gamepad's right stick turns it too.
+ * THE CAMERA. `fixed` does not move. `orbit` is a lab's: dragging turns it around what it looks at,
+ * the wheel (or a pinch) gets closer, the right button (or two fingers) moves it sideways; and with a
+ * character to drive, it goes with it in one of four ways (`view.camera`: follow, chase, aim, free).
+ * A gamepad's right stick turns it too.
+ *
+ * ITS OWN ORBIT (stage 2.5a). Before, three.js's OrbitControls turned it, and kept a turn of its own
+ * inside, which it went on applying after a drag (the camera slowing down by itself): the camera went
+ * where we put it (behind the character, back to the start), and then OrbitControls moved it again
+ * with what it still had. `camera.reset` had to turn that off, apply the rest and turn it back on.
+ * Here a drag, the mouse aiming, the stick and the leash all go through the same orbit, and what is
+ * left of a drag is a velocity of ours: putting the camera somewhere sets it to zero.
  */
 export function mountCamera(
   page: GamePage,
@@ -40,88 +57,153 @@ export function mountCamera(
   },
 ): Rig {
   const { camera, renderer } = page.stage;
+  const canvas = renderer.domElement;
+  const orbiting = o.kind === 'orbit';
+  /** What it looks at, and turns around. */
+  const target = START.target.clone();
   camera.position.copy(START.position);
-  camera.lookAt(START.target);
-  const controls = o.kind === 'orbit' ? new OrbitControls(camera, renderer.domElement) : null;
-  if (controls) {
-    controls.target.copy(START.target);
-    controls.enableDamping = true; // it slows down smoothly when released
-    controls.update();
-    controls.saveState(); // for camera.reset
-  }
+  camera.lookAt(target);
   let mode: CameraMode = 'follow';
   /** The carried turn the aiming camera already turned by (null: none yet, it starts from the one there is). */
   let cameraTurn: THREE.Quaternion | null = null;
   /** When the camera was last turned by hand (a drag, the right stick): `chase` waits a little before coming back. */
   let turnedByHand = -Infinity;
-  let dragging = false;
+  /** What is left of a drag after letting go, in radians per second (right, down). */
+  const drift = { x: 0, y: 0 };
+  /** The pointers on the screen (a finger, the mouse), where they were at the last move, and their buttons. */
+  const pointers = new Map<number, { x: number; y: number; buttons: number; at: number }>();
 
   const turnAround = (axis: THREE.Vector3, angle: number) => {
-    if (!controls) return;
-    const offset = camera.position.clone().sub(controls.target).applyAxisAngle(axis, angle);
-    camera.position.copy(controls.target).add(offset);
+    const offset = camera.position.clone().sub(target).applyAxisAngle(axis, angle);
+    camera.position.copy(target).add(offset);
   };
   /**
    * Turns the camera around what it looks at, to look right (+dx) and down (+dy), in radians. To look
    * down the camera goes up (stage 1c2: it was the other way round, unlike dragging and most games).
    */
   const orbit = (dx: number, dy: number) => {
-    if (!controls) return;
     const up = camera.up.clone().normalize();
     turnAround(up, -dx);
     // Without going past the top or the bottom (it would turn upside down).
-    const offset = camera.position.clone().sub(controls.target);
+    const offset = camera.position.clone().sub(target);
     const tilt = offset.angleTo(up) - dy;
     if (tilt > 0.15 && tilt < Math.PI - 0.15) {
       const right = new THREE.Vector3().crossVectors(up, offset).normalize();
       turnAround(right, -dy);
     }
-    camera.lookAt(controls.target);
+    camera.lookAt(target);
   };
-  // Aiming: with the mouse taken, it turns the camera around the character's head.
-  const onMouseMove = (e: MouseEvent) => {
-    if (mode !== 'aim' || !controls || document.pointerLockElement !== renderer.domElement) return;
-    orbit(e.movementX * 0.0025, e.movementY * 0.0025);
+  /** Closer (scale < 1) or farther (> 1) from what it looks at. */
+  const dolly = (scale: number) => {
+    const offset = camera.position.clone().sub(target);
+    offset.setLength(THREE.MathUtils.clamp(offset.length() * scale, NEAREST, FARTHEST));
+    camera.position.copy(target).add(offset);
   };
-  document.addEventListener('mousemove', onMouseMove);
-  // Aiming, a click takes the mouse (instead of inspecting): from then on, it turns the camera.
-  let down: { x: number; y: number } | null = null;
-  const takesClick = () => mode === 'aim' && controls !== null && page.player() !== undefined;
-  const onDown = (e: PointerEvent) => (down = e.button === 0 ? { x: e.clientX, y: e.clientY } : null);
-  const onUp = (e: PointerEvent) => {
-    if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 5 || !takesClick()) return;
-    if (document.pointerLockElement !== renderer.domElement) void renderer.domElement.requestPointerLock();
+  /** Sideways and up or down, by pixels of the screen: what it looks at goes along under the pointer. */
+  const pan = (dx: number, dy: number) => {
+    const perPixel =
+      (2 * camera.position.distanceTo(target) * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))) / canvas.clientHeight;
+    const right = new THREE.Vector3().setFromMatrixColumn(camera.matrix, 0).multiplyScalar(-dx * perPixel);
+    const up = new THREE.Vector3().setFromMatrixColumn(camera.matrix, 1).multiplyScalar(dy * perPixel);
+    target.add(right).add(up);
+    camera.position.add(right).add(up);
   };
-  renderer.domElement.addEventListener('pointerdown', onDown);
-  renderer.domElement.addEventListener('pointerup', onUp);
 
-  /**
-   * Behind the character and a little above, looking at its head. Or, without a character, where it
-   * started. (With damping, what is left of a turn keeps being applied after a reset, and the camera
-   * drifts away again; without damping, update() applies that rest at once and throws it away: first
-   * that, and then the new place.)
-   */
-  function reset() {
-    if (!controls) return;
-    controls.enableDamping = false;
-    controls.update();
-    const hero = page.player();
-    if (hero?.transform && hero.character) {
-      const up = upAt(page.session.world, hero.transform.position);
-      const head = new THREE.Vector3(...hero.transform.position).addScaledVector(new THREE.Vector3(...up), 0.6);
-      const behind = new THREE.Vector3(...hero.character.facing).multiplyScalar(-5.5);
-      controls.target.copy(head);
-      camera.position
-        .copy(head)
-        .add(behind)
-        .addScaledVector(new THREE.Vector3(...up), 2.2);
-      camera.up.set(...up);
-      controls.update();
-    } else controls.reset();
-    controls.enableDamping = true;
+  // ---------- By hand: a drag turns it, the wheel or a pinch gets closer, the right button or two fingers move it ----------
+  /** A drag across the whole height of the screen turns it a whole turn (as OrbitControls did). */
+  const perPixel = () => (2 * Math.PI) / Math.max(1, canvas.clientHeight);
+  const spread = () => {
+    const [a, b] = [...pointers.values()];
+    return a && b ? { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, apart: Math.hypot(a.x - b.x, a.y - b.y) } : null;
+  };
+  const onDown = (e: PointerEvent) => {
+    canvas.setPointerCapture(e.pointerId);
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, buttons: e.buttons, at: e.timeStamp });
+    drift.x = drift.y = 0;
+  };
+  const onMove = (e: PointerEvent) => {
+    const was = pointers.get(e.pointerId);
+    if (!was) return;
+    const before = spread();
+    const dx = e.clientX - was.x;
+    const dy = e.clientY - was.y;
+    const dt = Math.max(1, e.timeStamp - was.at) / 1000;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, buttons: e.buttons, at: e.timeStamp });
+    const after = spread();
+    if (before && after) {
+      // Two fingers: apart or together gets closer or farther; both moving, sideways.
+      if (after.apart > 0) dolly(before.apart / after.apart);
+      pan(after.x - before.x, after.y - before.y);
+    } else if (was.buttons & 2 || e.shiftKey) pan(dx, dy);
+    else if (mode !== 'aim') {
+      // Aiming, the mouse turns it, not a drag.
+      orbit(dx * perPixel(), dy * perPixel());
+      // What it keeps turning with when let go: how fast it was turning (smoothed over the last moves).
+      const clamp = (v: number) => THREE.MathUtils.clamp(v, -FASTEST, FASTEST);
+      drift.x = clamp(0.5 * drift.x + 0.5 * ((dx * perPixel()) / dt));
+      drift.y = clamp(0.5 * drift.y + 0.5 * ((dy * perPixel()) / dt));
+    }
+  };
+  const onUp = (e: PointerEvent) => {
+    pointers.delete(e.pointerId);
+    if (pointers.size === 0) turnedByHand = performance.now();
+    // From two fingers to one: the one left starts from where it is (it does not jump).
+    for (const [id, p] of pointers) pointers.set(id, { ...p, at: e.timeStamp });
+  };
+  const onWheel = (e: WheelEvent) => {
+    e.preventDefault();
+    dolly(Math.exp(THREE.MathUtils.clamp(e.deltaY, -100, 100) * 0.0015));
+  };
+  const noMenu = (e: Event) => e.preventDefault();
+  // Aiming, a click takes the mouse (instead of inspecting): from then on, it turns the camera.
+  const takesClick = () => mode === 'aim' && orbiting && page.player() !== undefined;
+  let down: { x: number; y: number } | null = null;
+  const onClickDown = (e: PointerEvent) => (down = e.button === 0 ? { x: e.clientX, y: e.clientY } : null);
+  const onClickUp = (e: PointerEvent) => {
+    if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 5 || !takesClick()) return;
+    if (document.pointerLockElement !== canvas) void canvas.requestPointerLock();
+  };
+  if (orbiting) {
+    // The browser does not scroll or zoom the page with gestures on it: they are the camera's.
+    canvas.style.touchAction = 'none';
+    canvas.addEventListener('pointerdown', onDown);
+    canvas.addEventListener('pointerdown', onClickDown);
+    canvas.addEventListener('pointerup', onClickUp);
+    canvas.addEventListener('pointermove', onMove);
+    canvas.addEventListener('pointerup', onUp);
+    canvas.addEventListener('pointercancel', onUp);
+    canvas.addEventListener('wheel', onWheel, { passive: false });
+    canvas.addEventListener('contextmenu', noMenu);
+    document.addEventListener('mousemove', onAimMove);
+  }
+  // Aiming, with the mouse taken (pointer lock), it turns the camera around the character's head, with
+  // a button held or not (in a shooter, one aims while firing).
+  function onAimMove(e: MouseEvent) {
+    if (mode === 'aim' && document.pointerLockElement === canvas) orbit(e.movementX * 0.0025, e.movementY * 0.0025);
   }
 
-  if (controls) {
+  /** Behind the character and a little above, looking at its head. Or, without a character, where it started. */
+  function reset() {
+    drift.x = drift.y = 0;
+    const hero = page.player();
+    if (hero?.transform && hero.character) {
+      const up = new THREE.Vector3(...upAt(page.session.world, hero.transform.position));
+      const head = new THREE.Vector3(...hero.transform.position).addScaledVector(up, 0.6);
+      target.copy(head);
+      camera.position
+        .copy(head)
+        .add(new THREE.Vector3(...hero.character.facing).multiplyScalar(-5.5))
+        .addScaledVector(up, 2.2);
+      camera.up.copy(up);
+    } else {
+      target.copy(START.target);
+      camera.position.copy(START.position);
+      camera.up.set(0, 1, 0);
+    }
+    camera.lookAt(target);
+  }
+
+  if (orbiting) {
     page.registry.declareVariable({
       name: 'view.camera',
       description:
@@ -132,15 +214,9 @@ export function mountCamera(
       onChange: (v) => {
         mode = v as CameraMode;
         cameraTurn = null;
-        // In aim mode, the mouse turns the camera without dragging: OrbitControls does not rotate.
-        controls.enableRotate = mode !== 'aim';
-        if (mode !== 'aim' && document.pointerLockElement === renderer.domElement) document.exitPointerLock();
+        drift.x = drift.y = 0;
+        if (mode !== 'aim' && document.pointerLockElement === canvas) document.exitPointerLock();
       },
-    });
-    controls.addEventListener('start', () => (dragging = true));
-    controls.addEventListener('end', () => {
-      dragging = false;
-      turnedByHand = performance.now();
     });
     page.registry.declareCommand({
       name: 'camera.reset',
@@ -168,15 +244,25 @@ export function mountCamera(
     takesClick,
     welcome(_, m) {
       cameraTurn = null;
-      if (controls && page.player() && (!m.session || o.replaying())) reset();
+      if (orbiting && page.player() && (!m.session || o.replaying())) reset();
     },
     frame({ now, dt, alpha, world, hero }) {
-      if (!controls) return;
+      if (!orbiting) return;
       // A gamepad's right stick turns the camera (2.5 radians per second, pushed all the way).
       const [stickX, stickY] = o.stick();
       if (stickX || stickY) {
         orbit(stickX * 2.5 * dt, stickY * 2.5 * dt);
         turnedByHand = now;
+      }
+      // What is left of a drag: it turns the camera once let go, and it dies out (also while held).
+      if (drift.x || drift.y) {
+        if (pointers.size === 0) {
+          orbit(drift.x * dt, drift.y * dt);
+          turnedByHand = now;
+        }
+        const keep = Math.exp(-SETTLE * dt);
+        drift.x = Math.abs(drift.x * keep) < 1e-3 ? 0 : drift.x * keep;
+        drift.y = Math.abs(drift.y * keep) < 1e-3 ? 0 : drift.y * keep;
       }
       const heroMesh = hero && bodies.meshes.get(hero.id);
       if (mode !== 'free' && heroMesh && hero?.transform && hero.character) {
@@ -184,8 +270,8 @@ export function mountCamera(
         const head = heroMesh.position.clone().addScaledVector(up, 0.6);
         if (mode === 'aim') {
           // Aiming, it moves as much as the head moved (the mouse turns it).
-          const moved = head.sub(controls.target);
-          controls.target.add(moved);
+          const moved = head.sub(target);
+          target.add(moved);
           camera.position.add(moved);
           // On a platform that turns (stage 2d), aiming, the camera IS where the character looks, and the
           // character reads where to look inside the turn the platforms gave it (`carriedTurn`, the
@@ -198,8 +284,8 @@ export function mountCamera(
           const drawn = new THREE.Quaternion().slerpQuaternions(qa.set(...before), qb.set(...turnNow), alpha);
           if (cameraTurn) {
             const change = drawn.clone().multiply(cameraTurn.clone().invert());
-            const offset = camera.position.clone().sub(controls.target).applyQuaternion(change);
-            camera.position.copy(controls.target).add(offset);
+            const offset = camera.position.clone().sub(target).applyQuaternion(change);
+            camera.position.copy(target).add(offset);
           }
           cameraTurn = drawn;
         } else {
@@ -220,33 +306,38 @@ export function mountCamera(
             match.paused ? 0 : dt * match.timescale,
           );
           camera.position.add(carried);
-          controls.target.add(carried);
-          const offset = camera.position.clone().sub(controls.target);
+          target.add(carried);
+          const offset = camera.position.clone().sub(target);
           const height = offset.dot(up);
           const reach = offset.addScaledVector(up, -height).length();
           const along = camera.position.clone().sub(head);
           along.addScaledVector(up, -along.dot(up));
           if (along.lengthSq() < 1e-6) along.copy(offset);
           // Chasing: and it comes back behind the character, unless it was just turned by hand.
-          if (mode === 'chase' && !dragging && now - turnedByHand > 600) {
+          if (mode === 'chase' && pointers.size === 0 && now - turnedByHand > 600) {
             const behind = new THREE.Vector3(...hero.character.facing).negate();
             behind.addScaledVector(up, -behind.dot(up));
             const angle = Math.atan2(new THREE.Vector3().crossVectors(along, behind).dot(up), along.dot(behind));
             along.applyAxisAngle(up, angle * (1 - Math.exp(-4 * dt)));
           }
           along.setLength(reach);
-          controls.target.copy(head);
+          target.copy(head);
           camera.position.copy(head).add(along).addScaledVector(up, height);
         }
       }
-      controls.update();
+      camera.lookAt(target);
     },
     stop() {
-      document.removeEventListener('mousemove', onMouseMove);
-      renderer.domElement.removeEventListener('pointerdown', onDown);
-      renderer.domElement.removeEventListener('pointerup', onUp);
-      if (document.pointerLockElement === renderer.domElement) document.exitPointerLock();
-      controls?.dispose();
+      canvas.removeEventListener('pointerdown', onDown);
+      canvas.removeEventListener('pointerdown', onClickDown);
+      canvas.removeEventListener('pointerup', onClickUp);
+      canvas.removeEventListener('pointermove', onMove);
+      canvas.removeEventListener('pointerup', onUp);
+      canvas.removeEventListener('pointercancel', onUp);
+      canvas.removeEventListener('wheel', onWheel);
+      canvas.removeEventListener('contextmenu', noMenu);
+      document.removeEventListener('mousemove', onAimMove);
+      if (document.pointerLockElement === canvas) document.exitPointerLock();
     },
   };
 }
