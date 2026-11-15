@@ -65,9 +65,10 @@ describe('replays (stage 1c)', () => {
     expect(text).toContain('birth physics.gravity 0 -5 0');
     expect(text).toContain('change 90 physics.gravity 0 -9.81 0');
     expect(text.split('\n')[0]).toBe(`# Manifold replay ${SIMULATION_VERSION}`);
-    expect(text).toContain('input 40 1 move 0.6 0 -0.8\n');
-    expect(text).toContain('input 100 1 move 0.6 0 -0.8 jump\n');
-    expect(text).toContain('input 110 1 move 1 0 0 run\n');
+    // Directions on the ground, in whole degrees from forward (stage 2.5c): 0.6 right and 0.8 forward is 37°.
+    expect(text).toContain('input 40 1 move @37\n');
+    expect(text).toContain('input 100 1 move @37 jump\n');
+    expect(text).toContain('input 110 1 move @90 run\n');
     expect(text).toMatch(/^end 240 [0-9a-f]{8}$/m);
     expect(replayFromText(text)).toEqual(replay);
     session.world.dispose();

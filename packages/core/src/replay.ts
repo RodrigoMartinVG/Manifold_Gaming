@@ -1,7 +1,7 @@
 import { splitLines } from '@manifold/commands';
 import type { Cartridge } from './cartridge';
 import { stateHash } from './hash';
-import { actionsFor, inputProblem } from './input';
+import { actionsFor, degreesOf, direction, inputProblem } from './input';
 import { profileFromText, profileText, VERIFIED, type Profile } from './profile';
 import { registryFor, Session, type InputChange, type WorldChange } from './session';
 import type { InputValue } from './types';
@@ -47,15 +47,30 @@ const HEADER = '# Manifold replay';
 const hex = (n: number) => n.toString(16).padStart(8, '0');
 
 /**
+ * A direction on the ground as words (stage 2.5c), if the vector is one: `@37` (37° from forward
+ * towards the right, all of it) or `@37:0.5` (half of it). Only if it is exactly one of the 360 (so it
+ * comes back with the same bits); if not, null.
+ */
+function directionText(v: readonly number[]): string | null {
+  const amount = Math.round(Math.sqrt(v[0]! * v[0]! + v[2]! * v[2]!) * 100) / 100;
+  if (v[1] !== 0 || amount === 0) return null;
+  const degrees = degreesOf(v[0]!, v[2]!);
+  const back = direction(degrees, amount);
+  if (back[0] !== v[0] || back[2] !== v[2]) return null;
+  return amount === 1 ? `@${degrees}` : `@${degrees}:${amount}`;
+}
+
+/**
  * What a player asked for, as words: each action by its name, with its numbers (none for a button,
- * one for an axis, three for a vector). Only what is not zero: `input 41 1` is "nothing".
+ * one for an axis, three for a vector, `@degrees` for a direction). Only what is not zero: `input 41
+ * 1` is "nothing".
  */
 function inputText(i: InputChange): string {
   const parts = [`input ${i.step} ${i.player}`];
   for (const [name, value] of Object.entries(i.input)) {
     if (value === true) parts.push(name);
     else if (typeof value === 'number') parts.push(`${name} ${value}`);
-    else if (Array.isArray(value)) parts.push(`${name} ${value.join(' ')}`);
+    else if (Array.isArray(value)) parts.push(`${name} ${directionText(value) ?? value.join(' ')}`);
   }
   return parts.join(' ');
 }
@@ -67,9 +82,11 @@ function inputText(i: InputChange): string {
  *   game dojo
  *   profile rapier-deterministic server 60   its physics, and who verified it (stage 2.5b)
  *   birth dojo.level course
- *   input 41 1 move 0 0 -1                  step, player, and each action that is not zero, by
- *   input 96 1 ahead 1 turn -1 jump           its name: a vector (three numbers), an axis (one),
- *   input 130 1 dojo.throw                    a button (none)
+ *   input 41 1 move @0                      step, player, and each action that is not zero, by
+ *   input 52 1 move @37:0.5 run               its name: a direction on the ground (`@` its whole
+ *   input 96 1 ahead 1 turn -1 jump           degrees from forward, −Z, to the right, and how
+ *   input 130 1 dojo.throw                    much, if not all), an axis (one number), a vector
+ *                                             (three), a button (none)
  *   change 120 dojo.spawn 0 5 0       step, and the line typed in the console
  *   end 600 1a2b3c4d                  the last step, and its hash
  */
@@ -131,12 +148,21 @@ export function replayFromText(text: string): Replay {
         replay.changes.push({ step: integer(rest[0]), line: line.replace(/^change\s+\d+\s+/, '') });
         break;
       case 'input': {
-        // Each name, followed by its numbers: none (a button), one (an axis) or three (a vector).
+        // Each name, followed by its numbers: none (a button), one (an axis) or three (a vector); or
+        // a direction on the ground, `@degrees` or `@degrees:amount` (stage 2.5c).
         const input: Record<string, InputValue> = {};
         let at = 2;
         while (at < rest.length) {
           const name = rest[at++]!;
           if (!/^[a-z][a-z0-9.]*$/.test(name)) fail(n, `"${name}" is not the name of an action`);
+          const towards = /^@(\d{1,3})(?::(0?\.\d{1,2}|1))?$/.exec(rest[at] ?? '');
+          if (towards) {
+            const degrees = Number(towards[1]);
+            if (degrees >= 360) fail(n, `"${rest[at]}": the degrees go from 0 to 359`);
+            input[name] = direction(degrees, towards[2] ? Number(towards[2]) : 1);
+            at++;
+            continue;
+          }
           const values: number[] = [];
           while (at < rest.length && !/^[a-z]/.test(rest[at]!)) values.push(number(rest[at++]));
           if (values.length === 0) input[name] = true;

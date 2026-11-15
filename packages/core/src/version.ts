@@ -15,5 +15,7 @@
  *   9  stage 2.5b: what a character stands on, found with its whole capsule (not a ray from its center);
  *      stepping down from a moving platform keeps its velocity; a body's collision groups
  *  10  stage 2.5b: a game's components by name and nested (`game: { 'dojo.runner': {…} }`)
+ *  11  stage 2.5c: directions on the ground (`move`, `face`) in whole degrees, changing only past 1°;
+ *      written `@37` in a replay
  */
-export const SIMULATION_VERSION = 10;
+export const SIMULATION_VERSION = 11;

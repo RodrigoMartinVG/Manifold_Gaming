@@ -59,7 +59,8 @@ export class Client {
   /** What this page's player asks for now (sent only when it changes). */
   sendInput(input: PlayerInput) {
     if (!this.session) return;
-    const next = normalizeInput(input, this.session.actions);
+    // (Against what it sent last: a direction changes only past 1°, and then the server takes it as it is.)
+    const next = normalizeInput(input, this.session.actions, this.lastSent ?? {});
     if (this.lastSent && sameInput(next, this.lastSent)) return;
     this.lastSent = next;
     this.channel.send({ type: 'input', input: next });

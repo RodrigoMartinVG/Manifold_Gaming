@@ -162,10 +162,11 @@ export class Session {
    * Only what was declared enters (see input.ts): anything else is left out.
    */
   setInput(player: number, input: PlayerInput) {
-    const next = normalizeInput(input, this.actions);
     const queue = this.pendingInputs.get(player) ?? [];
     const now = this.world.inputs.get(player) ?? NO_INPUT;
     const last = queue.at(-1);
+    // (Against what it asked for last: a direction changes only past 1°, input.ts.)
+    const next = normalizeInput(input, this.actions, last ?? now);
     if (sameInput(next, last ?? now)) return;
     // What the world will have just before the last one that is waiting.
     const before = queue.at(-2) ?? now;

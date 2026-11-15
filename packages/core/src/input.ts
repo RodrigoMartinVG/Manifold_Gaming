@@ -1,4 +1,4 @@
-import type { Vec3 } from '@manifold/common';
+import { sinCosDegrees, type Vec3 } from '@manifold/common';
 import type { InputValue, PlayerInput } from './types';
 import type { World } from './world';
 
@@ -10,20 +10,23 @@ import type { World } from './world';
 export interface InputAction {
   /** The core's (`move`, `jump`…) or a game's, with its namespace (`dojo.throw`). */
   name: string;
-  /** `button`: held or not; `axis`: an amount from −1 to 1; `vector`: three numbers. */
-  kind: 'button' | 'axis' | 'vector';
+  /**
+   * `button`: held or not; `axis`: an amount from −1 to 1; `vector`: three numbers; `direction`
+   * (stage 2.5c): where on the ground, in whole degrees, and how much (see `direction`).
+   */
+  kind: 'button' | 'axis' | 'vector' | 'direction';
   description: string;
 }
 
 /** What the character system reads (stages 1b and 1c2): every game has them. */
 export const CHARACTER_ACTIONS: readonly InputAction[] = [
-  { name: 'move', kind: 'vector', description: 'where to go, in the world (length up to 1)' },
+  { name: 'move', kind: 'direction', description: 'where to go, on the ground of the world, and how much (up to 1)' },
   { name: 'ahead', kind: 'axis', description: 'forward (+) or back (−), where the character looks' },
   { name: 'side', kind: 'axis', description: 'to its right (+) or left (−), without turning' },
   { name: 'turn', kind: 'axis', description: 'turning on its own axis: to the right (+) or the left (−)' },
   {
     name: 'face',
-    kind: 'vector',
+    kind: 'direction',
     description: 'where to look, if it is given (inside the turn the platforms gave the character: faceFor)',
   },
   { name: 'jump', kind: 'button', description: 'jumping' },
@@ -66,6 +69,37 @@ export function pressed(world: World, player: number, name: string): boolean {
   return isDown(world.inputs.get(player) ?? NO_INPUT, name) && !isDown(world.lastInputs.get(player) ?? NO_INPUT, name);
 }
 
+/**
+ * A DIRECTION ON THE GROUND (stage 2.5c): `degrees` from forward (−Z) towards the right (+X), whole,
+ * and `amount` (0 to 1, in hundredths), as the vector the character reads. With our own sine and
+ * cosine (`sinCosDegrees`): the same bits in every browser. A direction asked for is one of 360, and
+ * it travels as its degrees: one number instead of three, in a replay and in a link.
+ */
+export function direction(degrees: number, amount = 1): Vec3 {
+  const [s, c] = sinCosDegrees(degrees);
+  return [amount * s || 0, 0, 0 - amount * c || 0];
+}
+
+/**
+ * The whole degrees of a direction on the ground (its x and z), from forward (−Z) towards the right
+ * (+X), from 0 to 359: the closest of the 360 directions. Without the browser's `atan2` (it may give
+ * other bits in another browser): from the four quarters, it goes towards the one it looks most like,
+ * halving the step, comparing with our own sine and cosine.
+ */
+export function degreesOf(x: number, z: number): number {
+  const along = (d: number) => {
+    const [s, c] = sinCosDegrees(d);
+    return x * s - z * c;
+  };
+  let best = 0;
+  for (const d of [90, 180, 270]) if (along(d) > along(best)) best = d;
+  for (const step of [45, 23, 12, 6, 3, 2, 1]) for (const d of [best - step, best + step]) if (along(d) > along(best)) best = d;
+  return ((best % 360) + 360) % 360;
+}
+
+/** How close two directions on the ground must be to count as the same one asked again: within 1°. */
+const SAME_DIRECTION = sinCosDegrees(1)[1];
+
 const hundredth = (x: number) =>
   // `|| 0`: a little negative number rounds to −0, which is written "0" and read back as +0; the two
   // have different bits, so a replay of it gave another hash (stage 1c2). Here it is +0 from the start.
@@ -74,11 +108,16 @@ const hundredth = (x: number) =>
 
 /**
  * An input as it enters the world and travels (in a replay, in a link, over the network): only the
- * declared actions, its numbers rounded to hundredths (axes from −1 to 1), and only what is not zero
- * or not held. Small, comparable, and without the noise of a camera that turns a little every frame.
- * In the declared order: so it is written the same way every time.
+ * declared actions, its numbers rounded to hundredths (axes from −1 to 1), its directions to whole
+ * degrees, and only what is not zero or not held. Small, comparable, and without the noise of a
+ * camera that turns a little every frame. In the declared order: so it is written the same way.
+ *
+ * A direction changes only when it moves 1° or more from the one `before` (stage 2.5c): a camera
+ * that turns slowly, or a hand on the mouse that trembles around the edge between two degrees, does
+ * not ask for a new direction on every step. (Measured on the course, 30 s walking with the camera
+ * turning: a replay link of 5,800 characters became half.)
  */
-export function normalizeInput(input: PlayerInput, actions: readonly InputAction[]): PlayerInput {
+export function normalizeInput(input: PlayerInput, actions: readonly InputAction[], before: PlayerInput = {}): PlayerInput {
   const out: Record<string, InputValue> = {};
   for (const a of actions) {
     const v = input[a.name];
@@ -87,6 +126,23 @@ export function normalizeInput(input: PlayerInput, actions: readonly InputAction
     } else if (a.kind === 'axis') {
       const x = typeof v === 'number' ? hundredth(Math.max(-1, Math.min(1, v))) : 0;
       if (x !== 0) out[a.name] = x;
+    } else if (a.kind === 'direction') {
+      if (!Array.isArray(v) || v.length !== 3) continue;
+      const length = Math.sqrt(v[0] * v[0] + v[2] * v[2]);
+      const amount = Number.isFinite(length) ? hundredth(Math.min(1, length)) : 0;
+      if (amount === 0) continue;
+      let degrees = degreesOf(v[0], v[2]);
+      const exact = direction(degrees, amount);
+      // Already one of the 360 (it came normalized: from a client, from a replay): as it is. If not,
+      // within 1° of the one asked for before, the same one.
+      const onGrid = exact[0] === v[0] && exact[1] === v[1] && exact[2] === v[2];
+      const was = before[a.name];
+      if (!onGrid && Array.isArray(was)) {
+        const wasLength = Math.sqrt(was[0] * was[0] + was[2] * was[2]);
+        if (wasLength > 0 && (v[0] * was[0] + v[2] * was[2]) / (length * wasLength) > SAME_DIRECTION)
+          degrees = degreesOf(was[0], was[2]);
+      }
+      out[a.name] = direction(degrees, amount);
     } else if (Array.isArray(v) && v.length === 3) {
       const x: Vec3 = [hundredth(v[0]), hundredth(v[1]), hundredth(v[2])];
       if (x.some((n) => n !== 0)) out[a.name] = x;
@@ -110,7 +166,9 @@ export function inputProblem(input: PlayerInput, actions: readonly InputAction[]
     const a = actions.find((x) => x.name === name);
     if (!a) return `"${name}" is not something a player can ask for here`;
     const kind = value === true ? 'button' : typeof value === 'number' ? 'axis' : Array.isArray(value) ? 'vector' : '?';
-    if (kind !== a.kind) return `"${name}" is a ${a.kind}, and it came as a ${kind}`;
+    // (A direction travels as the vector it is.)
+    if (kind !== a.kind && !(a.kind === 'direction' && kind === 'vector'))
+      return `"${name}" is a ${a.kind}, and it came as a ${kind}`;
   }
   return null;
 }
