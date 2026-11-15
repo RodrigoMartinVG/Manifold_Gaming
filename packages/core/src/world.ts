@@ -1,5 +1,6 @@
 import { Random, quat, vec3, type Quat, type Vec3 } from '@manifold/common';
 import { moveCharacter, newCharacter } from './character';
+import { COMPONENT_NAME } from './components';
 import { EARTH, gravityAt } from './gravity';
 import { Physics, type PhysicsHit } from './physics';
 import type { CollisionGroups, Components, Entity, Event, EntityId, GravityField, PlayerInput, Shape } from './types';
@@ -212,6 +213,11 @@ export class World {
 
   createEntity(components: Components): Entity {
     const { body, character, sensor, mover, ...rest } = components;
+    for (const name of Object.keys(rest.game ?? {}))
+      if (!COMPONENT_NAME.test(name))
+        throw new Error(
+          `"${name}" is not a game component's name: it goes with its game, \`<game>.<component>\`, like \`dojo.runner\``,
+        );
     const entity: Entity = { id: ++this.lastId, ...rest };
     if (mover) entity.mover = { from: [...mover.from], to: [...mover.to], seconds: mover.seconds };
     if (sensor) {

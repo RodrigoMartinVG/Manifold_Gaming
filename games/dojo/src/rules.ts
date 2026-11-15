@@ -1,6 +1,7 @@
 import { quat, vec3, type Vec3 } from '@manifold/common';
 import {
   buildLevel,
+  component,
   DEFAULT_MOVEMENT,
   pressed,
   STEP,
@@ -8,6 +9,7 @@ import {
   type Capabilities,
   type Cartridge,
   type Character,
+  type Entity,
   type Event,
   type Level,
   type Movement,
@@ -48,7 +50,17 @@ const copyMovement = (m: Movement): Movement => ({
   turn: m.turn,
 });
 
-/** A character: a capsule 1.6 m tall, and its game data for the level's loop. */
+/**
+ * THE DOJO'S RUNNER (stage 2a; a named component since 2.5b): what the level's loop keeps on each
+ * character: where it comes back after falling (its spawn, then its last checkpoint), when it
+ * started, when it reached the goal (−1: not yet), its falls and its stars.
+ */
+export type Runner = { spawn: Vec3; checkpoint: Vec3; start: number; finish: number; falls: number; stars: number };
+const RUNNER = 'dojo.runner';
+/** A character's runner, if it has one. */
+export const runner = (e: Entity) => component<Runner>(e, RUNNER);
+
+/** A character: a capsule 1.6 m tall, and its runner for the level's loop. */
 function character(world: World, player: number, at: Vec3, facing: Vec3, color: number, like?: Character) {
   world.createEntity({
     transform: { position: [...at], rotation: quat.identity() },
@@ -56,9 +68,9 @@ function character(world: World, player: number, at: Vec3, facing: Vec3, color: 
     // (Like another one, if given: a copy of the numbers it moves with and of what it can do.)
     character: { player, facing: [...facing], ...(like ? { movement: copyMovement(like.movement), can: { ...like.can } } : {}) },
     appearance: { shape: 'capsule', size: [0.6, 1.6, 0.6], color },
-    // Where it comes back after falling, when it started, when it reached the goal (−1: not yet), its
-    // falls, its stars.
-    game: { spawn: [...at], checkpoint: [...at], start: world.tick, finish: -1, falls: 0, stars: 0 },
+    game: {
+      [RUNNER]: { spawn: [...at], checkpoint: [...at], start: world.tick, finish: -1, falls: 0, stars: 0 } satisfies Runner,
+    },
   });
 }
 
@@ -87,8 +99,8 @@ function buildDojoLevel(world: World, level: Level) {
  * - `fall` (the void under the floor): a character goes back to its checkpoint; a cube or a ball is gone;
  * - `star` (stage 2c): whoever gets there first takes it, and it is gone;
  * - `goal`: the time it took (from when it started), how many times it fell and its stars, once.
- * What it keeps lives in the character's `game` data: it is the world's, so it is hashed, it travels in
- * snapshots, and a replay plays it the same.
+ * What it keeps lives in the character's runner (`dojo.runner`): it is the world's, so it is hashed, it
+ * travels in snapshots, and a replay plays it the same.
  */
 function levelLoop(world: World, events: readonly Event[]) {
   const notice = (player: number, text: string) => world.emit({ type: 'notice', text, player });
@@ -97,39 +109,37 @@ function levelLoop(world: World, events: readonly Event[]) {
     const zone = world.entities.get(ev.sensor);
     const e = world.entities.get(ev.entity);
     if (!zone?.sensor || !zone.transform || !e) continue;
-    const game = e.game;
+    const run = runner(e);
     const player = e.character?.player;
     switch (zone.sensor.kind) {
       case 'fall':
         if (!e.character) world.removeEntity(e.id);
-        else if (game && player !== undefined) {
-          world.place(e, game.checkpoint as Vec3);
-          game.falls = (game.falls as number) + 1;
+        else if (run && player !== undefined) {
+          world.place(e, run.checkpoint);
+          run.falls++;
           notice(player, 'you fell: back to the checkpoint');
         }
         break;
       case 'checkpoint':
-        if (game && player !== undefined && !vec3.equals(game.checkpoint as Vec3, zone.transform.position)) {
-          game.checkpoint = [...zone.transform.position];
+        if (run && player !== undefined && !vec3.equals(run.checkpoint, zone.transform.position)) {
+          run.checkpoint = [...zone.transform.position];
           notice(player, 'checkpoint');
         }
         break;
       case 'star':
-        if (game && player !== undefined) {
+        if (run && player !== undefined) {
           world.removeEntity(zone.id);
-          game.stars = (game.stars as number) + 1;
-          notice(player, `a star (${game.stars as number} taken, ${stars(world).length} left)`);
+          run.stars++;
+          notice(player, `a star (${run.stars} taken, ${stars(world).length} left)`);
         }
         break;
       case 'goal':
-        if (game && player !== undefined && (game.finish as number) < 0) {
-          game.finish = world.tick;
-          const seconds = (((game.finish as number) - (game.start as number)) * STEP).toFixed(2);
-          const falls = game.falls as number;
-          const taken = game.stars as number;
+        if (run && player !== undefined && run.finish < 0) {
+          run.finish = world.tick;
+          const seconds = ((run.finish - run.start) * STEP).toFixed(2);
           notice(
             player,
-            `the goal: ${seconds} s, ${falls === 1 ? '1 fall' : `${falls} falls`}, ${taken === 1 ? '1 star' : `${taken} stars`}`,
+            `the goal: ${seconds} s, ${run.falls === 1 ? '1 fall' : `${run.falls} falls`}, ${run.stars === 1 ? '1 star' : `${run.stars} stars`}`,
           );
         }
         break;
@@ -168,7 +178,7 @@ function joinedPlayers(world: World) {
   const first = characters.find((e) => e.character!.player === 1);
   if (!first) return;
   // Next to where the first one started, each one 1.2 m further to the right.
-  const spawn = (first.game?.spawn as Vec3 | undefined) ?? [0, 1, 6];
+  const spawn = runner(first)?.spawn ?? [0, 1, 6];
   for (const p of world.players)
     if (p !== 1 && !characters.some((e) => e.character!.player === p))
       character(

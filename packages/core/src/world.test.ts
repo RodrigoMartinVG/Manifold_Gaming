@@ -1,5 +1,6 @@
 import { beforeAll, describe, expect, test } from 'vitest';
 import { approx, quat } from '@manifold/common';
+import { component } from './components';
 import { World, STEP } from './world';
 import { stateHash } from './hash';
 import { initPhysics } from './physics';
@@ -161,6 +162,45 @@ describe('spatial queries through the world (stage 2.5b)', () => {
   test("a body's material is kept with it (the game's: the engine does not read it)", () => {
     const { world, floor } = scene();
     expect(floor.body!.material).toBe('stone');
+    world.dispose();
+  });
+});
+
+describe("a game's components (stage 2.5b): by name, as deep as they need", () => {
+  /** A game's inventory: a list of records (it did not fit before: only loose values did). */
+  type Inventory = { items: { kind: string; count: number }[]; open: boolean };
+
+  test('an inventory travels in a snapshot, as deep as it is, and changing one item changes the hash', () => {
+    const world = new World({ seed: 1 });
+    const chest = world.createEntity({
+      transform: { position: [0, 0, 0], rotation: quat.identity() },
+      game: {
+        'test.inventory': {
+          items: [
+            { kind: 'key', count: 1 },
+            { kind: 'coin', count: 3 },
+          ],
+          open: false,
+        } satisfies Inventory,
+      },
+    });
+    const before = stateHash(world);
+    const snap = world.snapshot();
+    // Deep in it: the coins.
+    component<Inventory>(chest, 'test.inventory')!.items[1]!.count = 4;
+    expect(stateHash(world)).not.toBe(before);
+    // The snapshot kept its own copy, as it was.
+    const back = World.restore(snap);
+    expect(component<Inventory>(back.entities.get(chest.id)!, 'test.inventory')!.items[1]!.count).toBe(3);
+    expect(stateHash(back)).toBe(before);
+    world.dispose();
+    back.dispose();
+  });
+
+  test("a component's name goes with its game: `<game>.<component>`", () => {
+    const world = new World({ seed: 1 });
+    expect(() => world.createEntity({ game: { inventory: { items: [] } } })).toThrow(/<game>\.<component>/);
+    expect(() => world.createEntity({ game: { 'dojo.runner': { falls: 0 }, 'dojo.inventory': { items: [] } } })).not.toThrow();
     world.dispose();
   });
 });

@@ -51,7 +51,8 @@ export type {
   Entity,
   Event,
   EntityId,
-  GameData,
+  GameComponents,
+  PlainData,
   GravityField,
   Capabilities,
   InputValue,
@@ -65,3 +66,4 @@ export type {
   Transform,
   CollisionGroups,
 } from './types';
+export { component, COMPONENT_NAME } from './components';

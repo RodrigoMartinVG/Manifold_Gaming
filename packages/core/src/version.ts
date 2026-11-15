@@ -14,5 +14,6 @@
  *   8  stage 2d: moving platforms (`mover`), what a character stands on (`ground`) and the turn they gave it (`carriedTurn`)
  *   9  stage 2.5b: what a character stands on, found with its whole capsule (not a ray from its center);
  *      stepping down from a moving platform keeps its velocity; a body's collision groups
+ *  10  stage 2.5b: a game's components by name and nested (`game: { 'dojo.runner': {…} }`)
  */
-export const SIMULATION_VERSION = 9;
+export const SIMULATION_VERSION = 10;

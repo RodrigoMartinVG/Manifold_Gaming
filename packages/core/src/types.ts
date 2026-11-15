@@ -19,7 +19,7 @@ export interface Entity {
   character?: Character;
   appearance?: Appearance;
   sensor?: Sensor;
-  game?: GameData;
+  game?: GameComponents;
   mover?: Mover;
 }
 
@@ -50,11 +50,22 @@ export interface Sensor {
 }
 
 /**
- * A GAME'S OWN DATA on an entity (stage 2a): the last checkpoint, the time, the falls… Plain values,
- * like every component: copied, compared and hashed with the rest of the world, so it travels in
- * snapshots and replays play it the same. The engine never reads it.
+ * PLAIN DATA, as deep as needed (decision 0004): numbers, texts, yes or no, and lists and records of
+ * them. What every component is made of: it is copied, compared, hashed and sent as it is.
  */
-export type GameData = Record<string, number | string | boolean | Vec3>;
+export type PlainData = number | string | boolean | PlainData[] | { [key: string]: PlainData };
+
+/**
+ * A GAME'S OWN COMPONENTS on an entity (stage 2a; by name and nested since 2.5b): each one named
+ * with its game, `<game>.<component>` (`dojo.runner`, and one day `dojo.inventory`), and made of
+ * plain data as deep as it needs (an inventory: a list of records). Like every component they are
+ * copied, compared and hashed with the rest of the world, so they travel in snapshots and replays
+ * play them the same. The engine never reads them; a game reads its own with `component`.
+ *
+ * Before, one flat record of loose values per entity: no list fitted (no inventory), and two games,
+ * or two parts of one, could step on each other's names.
+ */
+export type GameComponents = Record<string, { [key: string]: PlainData }>;
 
 export interface Transform {
   position: Vec3;

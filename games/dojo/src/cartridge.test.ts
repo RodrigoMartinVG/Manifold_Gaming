@@ -16,6 +16,7 @@ import {
 } from '@manifold/core';
 import { DojoCartridge } from './cartridge';
 import { ROOMS } from './rooms';
+import { runner } from './rules';
 
 // The Dojo's worlds have physics (stage 1a), and Rapier loads asynchronously.
 beforeAll(initPhysics);
@@ -231,7 +232,7 @@ test("the course's loop: a checkpoint, a fall back to it, the goal with its time
   world().place(hero(), [12, 1, 0]);
   steps(120);
   expect(notices).toEqual(['checkpoint', 'you fell: back to the checkpoint']);
-  expect(hero().game!.falls).toBe(1);
+  expect(runner(hero())!.falls).toBe(1);
   expect(hero().transform!.position[2]).toBeCloseTo(-4, 1);
   // The goal: once, with the time since it started.
   world().place(hero(), zone('goal').transform!.position);
@@ -239,7 +240,7 @@ test("the course's loop: a checkpoint, a fall back to it, the goal with its time
   world().place(hero(), zone('goal').transform!.position);
   steps(30);
   expect(notices.filter((n) => n.startsWith('the goal'))).toEqual([
-    `the goal: ${((hero().game!.finish as number) * STEP).toFixed(2)} s, 1 fall, 0 stars`,
+    `the goal: ${(runner(hero())!.finish * STEP).toFixed(2)} s, 1 fall, 0 stars`,
   ]);
   // A ball thrown off the floor is gone when it falls into the void.
   const before = world().entities.size;
@@ -259,7 +260,7 @@ test('a run that falls off the floor and comes back, driven by its inputs, plays
     session.setInput(1, step > 30 && step < 150 ? { move: [0, 0, 1] } : NO_INPUT);
     session.step();
   }
-  expect(hero().game!.falls).toBe(1);
+  expect(runner(hero())!.falls).toBe(1);
   expect(hero().transform!.position[2]).toBeLessThan(7);
   expect(playReplay(DojoCartridge, replayFromText(replayToText(replayOf(session)))).same).toBe(true);
   session.world.dispose();
@@ -293,7 +294,7 @@ describe('capabilities in the course (stage 2c): each star needs its own', () =>
       session.setInput(1, drive(step));
       session.step();
     }
-    const result = { stars: hero().game!.stars as number, falls: hero().game!.falls as number, session };
+    const result = { stars: runner(hero())!.stars, falls: runner(hero())!.falls, session };
     return result;
   }
   // Towards the tower, pushing against it.
@@ -312,7 +313,7 @@ describe('capabilities in the course (stage 2c): each star needs its own', () =>
     for (let i = 0; i < 300; i++) ferry.session.step();
     expect(out.transform!.position[0]).toBeLessThan(12.5); // and back, at 11.5
     expect(ferry.falls).toBe(0);
-    expect(out.game!.falls).toBe(0);
+    expect(runner(out)!.falls).toBe(0);
     // The carousel turns 40° a second: in 4.5 s, half a turn, from 1.2 m east of its center to 1.2 m west.
     const carousel = attempt('', [-4.8, 0.9, 7], () => NO_INPUT, 270);
     const round = [...carousel.session.world.entities.values()].find((e) => e.character?.player === 1)!;
