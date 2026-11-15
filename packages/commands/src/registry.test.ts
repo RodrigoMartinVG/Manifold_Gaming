@@ -164,10 +164,28 @@ describe('the registry', () => {
     expect(world.done).toEqual(['gravity 0,-3,0', 'gravity 0,-1,0', 'spawn 1,2,3']);
   });
 
-  it('VIEW values are applied right away', () => {
+  it('VIEW values are stored until there is a view (applyToView), which applies what changed; then, right away', () => {
     const { r, view } = build();
-    r.run('show.axes on');
+    // A recipe that comes before the view exists (a link's): only stored.
+    r.run('show.axes on; view.timescale 0.5', 'recipe');
+    expect(view).not.toHaveBeenCalled();
+    expect(r.value('show.axes')).toBe(true);
+    // The view exists: what came changed is applied, once.
+    r.applyToView();
+    expect(view).toHaveBeenCalledTimes(1);
     expect(view).toHaveBeenCalledWith(true);
+    r.applyToView();
+    expect(view).toHaveBeenCalledTimes(1);
+    // From now on, right away.
+    r.run('show.axes off');
+    expect(view).toHaveBeenLastCalledWith(false);
+  });
+
+  it('a view value at its default is not applied when the view comes (nothing to change)', () => {
+    const { r, view } = build();
+    r.run('show.axes on; show.axes off');
+    r.applyToView();
+    expect(view).not.toHaveBeenCalled();
   });
 
   it('commands read their arguments (optional, missing, extra, the rest of the line)', () => {
@@ -212,6 +230,7 @@ describe('the registry', () => {
 
   it('reset puts everything back to its default (and view values are applied)', () => {
     const { r, view } = build();
+    r.applyToView();
     r.run('dojo.cubes 20; show.axes on');
     r.reset();
     expect(r.changed()).toEqual([]);

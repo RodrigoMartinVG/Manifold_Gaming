@@ -40,7 +40,7 @@ export interface Variable<W = unknown> {
   scope: Scope;
   type: Type;
   default: Value;
-  /** For the view: what to do when it changes (right away). */
+  /** For the view: what to do when it changes (right away, once there is a view: `Registry.applyToView`). */
   onChange?(value: Value): void;
   /**
    * For the world: how it is applied to the world. Not called right away: the session calls it at

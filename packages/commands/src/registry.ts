@@ -23,7 +23,11 @@ export type Scheduler<W> = (line: string, apply: (world: W) => void) => void;
  * - `world`: it is stored and handed to the `scheduler` (set by the session), which applies it at
  *   the start of the next step and keeps it in its history. Without a session yet, it is only
  *   stored, and the session applies it when the world is created (`applyToWorld`).
- * - `view`: it is stored and applied right away (`onChange`).
+ * - `view`: it is stored, and applied right away (`onChange`) once there is a view to apply it to.
+ *   Before that, it is only stored, like a world value before there is a world: whoever draws calls
+ *   `applyToView` once every piece of the view exists, and it applies what came changed (stage 2.5a:
+ *   a link's recipe can bring any view value, whatever order the view's pieces are built in. Before,
+ *   a recipe ran while the view was half built, and the same bug came back three times).
  *
  * `W` is the type of the world (the core uses `Registry<World>`); this package does not know it.
  */
@@ -34,6 +38,8 @@ export class Registry<W = unknown> {
   scheduler: Scheduler<W> | null = null;
   /** Set by whoever mounts the game: what to do when a startup value changes (restart). */
   onStartupChange: (() => void) | null = null;
+  /** Whether there is a view to apply view values to (`applyToView`): until then, they are only stored. */
+  private viewLive = false;
 
   // ---------------------------------------------------------------- declaring
 
@@ -105,12 +111,12 @@ export class Registry<W = unknown> {
 
   // ---------------------------------------------------------------- changing
 
-  /** Everything back to its default value (view values are applied right away; the rest, on restart). */
+  /** Everything back to its default value (view values are applied right away, if there is a view; the rest, on restart). */
   reset() {
     for (const s of this.vars.values()) {
       if (sameValue(s.value, s.decl.default)) continue;
       s.value = copy(s.decl.default);
-      if (s.decl.scope === 'view') s.decl.onChange?.(copy(s.value));
+      if (s.decl.scope === 'view' && this.viewLive) s.decl.onChange?.(copy(s.value));
     }
   }
 
@@ -120,6 +126,19 @@ export class Registry<W = unknown> {
    */
   resetWorldValues() {
     for (const s of this.vars.values()) if (s.decl.scope !== 'view') s.value = copy(s.decl.default);
+  }
+
+  /**
+   * THE VIEW EXISTS: the view values that are not at their default are applied (`onChange`), and from
+   * now on every change is applied right away. Called once, by whoever draws, when every piece of
+   * the view is built (the presentation's `mount`). A registry without a view (a test, a server)
+   * never calls it: its view values are only stored.
+   */
+  applyToView() {
+    if (this.viewLive) return;
+    this.viewLive = true;
+    for (const s of this.vars.values())
+      if (s.decl.scope === 'view' && !sameValue(s.value, s.decl.default)) s.decl.onChange?.(copy(s.value));
   }
 
   /** The world values that are not at their default, applied to a freshly created world. */
@@ -249,7 +268,7 @@ export class Registry<W = unknown> {
         return false;
       }
       case 'view':
-        s.decl.onChange?.(copy(value));
+        if (this.viewLive) s.decl.onChange?.(copy(value));
         out.write(`${name} = ${written}`);
         return false;
     }

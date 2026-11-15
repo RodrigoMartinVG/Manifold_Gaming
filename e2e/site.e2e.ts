@@ -228,6 +228,50 @@ test('the free camera turns with a drag, camera.reset brings it back, and a clic
   await expect(page.locator('.mg-stats')).toContainText('ms per step');
 });
 
+/**
+ * A value other than the default for each of the view's variables. A test below checks that this is
+ * all of them (the console lists them): a new view variable fails it until it is written here.
+ */
+const VIEW_VALUES: Record<string, string> = {
+  'show.wireframe': 'on',
+  'show.axes': 'on',
+  'show.physics': 'on',
+  'show.vectors': 'on',
+  'show.contacts': 'on',
+  'show.sensors': 'on',
+  'show.gravity': 'on',
+  'show.stats': 'on',
+  'view.timescale': '0.5',
+  'view.paused': 'on',
+  'controls.scheme': 'tank',
+  'view.camera': 'aim',
+};
+
+// Stage 2.5a: a link's recipe runs before the view is built, and the registry keeps its view values
+// until every piece exists (applyToView). Before, the same bug came back three times (0d, 1b, 2a): a
+// link with one view variable broke the page, because its onChange ran while the view was half built.
+test('a link can bring every view variable at once: the page is built, and each one is applied', async ({ page }) => {
+  const list = errors(page);
+  const recipe = Object.entries(VIEW_VALUES)
+    .map(([name, value]) => `${name}+${value}`)
+    .join(';');
+  await page.goto(`jugar/dojo/course/#recipe=${recipe}`);
+  await expect.poll(async () => (await position(page, 'player')).length).toBe(3);
+  // They are all of them, and each one changed.
+  await page.keyboard.press('Backquote');
+  await typeInConsole(page, 'vars');
+  const log = await consoleLog(page).innerText();
+  const view = log.slice(log.lastIndexOf('view: only what is seen'));
+  const listed = [...view.matchAll(/^ {2}([a-z][\w.]*) {2,}(.*)$/gm)];
+  expect(listed.map((m) => m[1]).sort()).toEqual(Object.keys(VIEW_VALUES).sort());
+  for (const m of listed) expect(m[2], m[1]).toContain('(changed');
+  // And applied: what can be seen from outside the 3D (the stats say the world is paused, and slower).
+  await expect(page.locator('.mg-stats')).toBeVisible();
+  await expect(page.locator('.mg-stats')).toContainText('(paused)');
+  await expect(page.locator('.mg-stats')).toContainText('timescale 0.5×');
+  expect(list).toEqual([]);
+});
+
 test('reset puts everything back to its default value, and vars shows it by scope', async ({ page }) => {
   await page.goto('jugar/dojo/empty/');
   await expect.poll(() => meshes(page), { timeout: 15_000 }).toBe(1);
@@ -259,8 +303,13 @@ test('in the course, the keys drive the character: it walks where the camera loo
   await page.keyboard.down('KeyW');
   await expect.poll(async () => (await position(page, 'player'))[2], { timeout: 20_000 }).toBeLessThan(z0! - 2);
   await page.keyboard.up('KeyW');
-  // The camera came along.
-  expect((await position(page, 'camera'))[2]).toBeLessThan(camera0[2]! - 2);
+  // The camera came along: as far as the character, less what drawing between two steps lags (the
+  // camera follows the body as drawn, at most one step behind: 7.5 cm walking). Both read from the
+  // same frame. (It asked for 2 m from both: the character just past them, the camera a step short.)
+  const [player, camera] = await page
+    .locator('#game')
+    .evaluate((el) => [el.dataset.player!, el.dataset.camera!].map((v) => v.split(' ').map(Number)));
+  expect(camera0[2]! - camera![2]!).toBeGreaterThan(z0! - player![2]! - 0.1);
   // Space, pressed and released at once (maybe between two frames): it jumps all the same.
   await page.keyboard.press('Space');
   // (With time: without a GPU and after many tests, a frame can take long.)
