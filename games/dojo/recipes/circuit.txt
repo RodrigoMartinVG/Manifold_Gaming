@@ -1,0 +1,12 @@
+# The circuit: everything so far
+# A longer level that goes through everything the character does: stairs, a ramp and a low roof;
+# jumps over the void that ask for more and more (the last one, only running); a narrow beam; a
+# ferry, a lift and a carousel; a wall to climb; a shelf only a second jump reaches; and a glide to
+# the goal. Four checkpoints on the way, and three stars off it: on the lift's ledge, on top of a
+# thin pillar (climb it straight), and on an islet far out (glide running).
+seed 3
+dojo.level circuit
+dojo.cubes 4
+dojo.climb on
+dojo.glide on
+dojo.doublejump on

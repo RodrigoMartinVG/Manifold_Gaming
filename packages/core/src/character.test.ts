@@ -420,6 +420,101 @@ describe('the character (stage 1b)', () => {
     expect(withIt.onTop).toBe(true);
   });
 
+  test('climb (stage 2e2): climbing along a wall past its side edge, it lets go; only at the top does it hop', () => {
+    // A narrow wall 6 m high (1.2 m wide along z): pushing into it at 45°, it climbs up and along it,
+    // and its side edge comes long before its top.
+    const { world, hero } = setUp({
+      boxes: [
+        [
+          [2, 3, 0],
+          [0.5, 3, 0.6],
+        ],
+      ],
+    });
+    hero.character!.can.climb = true;
+    run(world, 60);
+    // Straight at it until it climbs, then at 45°, along it.
+    let climbed = false;
+    let left: number | null = null;
+    let peak = -Infinity;
+    run(world, 150, (step) => {
+      const c = hero.character!;
+      const y = hero.transform!.position[1];
+      if (c.mode === 'climb') climbed = true;
+      else if (climbed && left === null) left = y;
+      if (left !== null) peak = Math.max(peak, y);
+      return input(step < 50 ? [1, 0, 0] : [0.7, 0, 0.71]);
+    });
+    expect(hero.transform!.position[2]).toBeGreaterThan(0.6); // past the side edge
+    world.dispose();
+    // It climbed, and left the wall by its side, well below the top.
+    expect(left).not.toBeNull();
+    expect(left!).toBeGreaterThan(1);
+    expect(left!).toBeLessThan(4);
+    // Then it rose only what its climbing speed carried it (1.8 m/s: 16 cm), not the top's hop (4 m/s: 82 cm).
+    expect(peak - left!).toBeLessThan(0.3);
+  });
+
+  test('climb (closing phase 2): at the top the hop takes it over the edge, even with no control in the air', () => {
+    // A block 3 m high and 3 m deep, as above; but nothing steers it in the air: the hop alone has to
+    // get it onto the top (before, only up: it fell back beside the wall and grabbed it again, forever).
+    const { world, hero } = setUp({
+      boxes: [
+        [
+          [3, 1.5, 0],
+          [1.5, 1.5, 3],
+        ],
+      ],
+    });
+    hero.character!.can.climb = true;
+    hero.character!.movement.air.control = 0;
+    run(world, 60);
+    let onTop = -1;
+    let grabs = 0;
+    let before = hero.character!.mode;
+    run(world, 300, (step) => {
+      const c = hero.character!;
+      if (c.mode === 'climb' && before !== 'climb') grabs++;
+      before = c.mode;
+      if (onTop < 0 && c.grounded && hero.transform!.position[1] > 3.5) onTop = step;
+      return input([1, 0, 0]);
+    });
+    world.dispose();
+    expect(onTop, 'standing on top').toBeGreaterThan(0);
+    expect(grabs, 'it grabbed the wall once').toBe(1);
+  });
+
+  test('climb (closing phase 2): climbing turned off halfway up, it lets go and falls, with no hop', () => {
+    // A wall 6 m high; climbing taken away (the console's `dojo.climb off`) at 2 m: in the code before
+    // the phase closed, the wall it no longer looked for seemed to have ended, and it got the top's hop.
+    const { world, hero } = setUp({
+      boxes: [
+        [
+          [2, 3, 0],
+          [0.5, 3, 3],
+        ],
+      ],
+    });
+    hero.character!.can.climb = true;
+    run(world, 60);
+    let off = -1;
+    let rise = 0;
+    for (let step = 1; step <= 240; step++) {
+      world.inputs.set(1, input([1, 0, 0]));
+      world.step();
+      const y = hero.transform!.position[1];
+      if (off < 0 && y > 2) {
+        off = y;
+        hero.character!.can.climb = false;
+      } else if (off >= 0) rise = Math.max(rise, y - off);
+    }
+    world.dispose();
+    expect(off, 'it climbed to 2 m').toBeGreaterThan(0);
+    // It rose only what its climbing speed carried it (2.5 m/s: 32 cm), not the top's hop (4 m/s: 82 cm).
+    expect(rise).toBeLessThan(0.4);
+    expect(hero.character!.mode).not.toBe('climb');
+  });
+
   test('climb (stage 2c): a jump from the wall takes it up and away from it', () => {
     const { world, hero } = setUp({
       boxes: [

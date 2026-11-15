@@ -7,22 +7,22 @@ Un **patrón de diseño** (_design pattern_) es una manera conocida de resolver 
 
 Las lecciones los marcan con un recuadro **Patrón** cuando su código usa uno. Esta página los junta, como el [glosario](../glosario/) junta las palabras, en el orden en que aparecen.
 
-| Patrón                       | En inglés                | Dónde aparece                                                                          |
-| ---------------------------- | ------------------------ | -------------------------------------------------------------------------------------- |
-| bucle de juego               | _game loop_              | [Tu primer cubo](../etapa-0/01-primer-cubo/), [El paso fijo](../etapa-0/03-paso-fijo/) |
-| estrategia                   | _strategy_               | [Azar con semilla](../etapa-0/04-azar-con-semilla/)                                    |
-| presentación separada        | _separated presentation_ | [Simulación y dibujo](../etapa-0/05-simulacion-y-dibujo/)                              |
-| compuesto (grafo de escena)  | _composite_              | [Matrices y espacios](../etapa-0/07-matrices-y-espacios/)                              |
-| bandera de sucio             | _dirty flag_             | [Matrices y espacios](../etapa-0/07-matrices-y-espacios/)                              |
-| componente                   | _component_              | [Un motor de física](../etapa-1/00-motor-de-fisica/)                                   |
-| partición espacial           | _spatial partition_      | [Cómo se encuentra un choque](../etapa-1/01-como-se-encuentra-un-choque/)              |
-| estado                       | _state_                  | [Un personaje](../etapa-1/02-un-personaje/)                                            |
-| método de actualización      | _update method_          | [La cámara que sigue](../etapa-1/03-la-camara-que-sigue/)                              |
-| comando                      | _command_                | [Entradas como acciones](../etapa-1/04-entradas-como-acciones/)                        |
-| registro de eventos          | _event sourcing_         | [Repeticiones y fantasmas](../etapa-1/05-repeticiones/)                                |
-| memento                      | _memento_                | [Instantáneas](../etapa-1/06-instantaneas/)                                            |
-| cola de eventos              | _event queue_            | [Un servidor y un cliente](../etapa-1/07-servidor-y-cliente/)                          |
-| objeto único (un antipatrón) | _singleton_              | [Azar con semilla](../etapa-0/04-azar-con-semilla/), y lo que el motor evita           |
+| Patrón                       | En inglés                | Dónde aparece                                                                                                                            |
+| ---------------------------- | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| bucle de juego               | _game loop_              | [Tu primer cubo](../etapa-0/01-primer-cubo/), [El paso fijo](../etapa-0/03-paso-fijo/)                                                   |
+| estrategia                   | _strategy_               | [Azar con semilla](../etapa-0/04-azar-con-semilla/)                                                                                      |
+| presentación separada        | _separated presentation_ | [Simulación y dibujo](../etapa-0/05-simulacion-y-dibujo/)                                                                                |
+| compuesto (grafo de escena)  | _composite_              | [Matrices y espacios](../etapa-0/07-matrices-y-espacios/)                                                                                |
+| bandera de sucio             | _dirty flag_             | [Matrices y espacios](../etapa-0/07-matrices-y-espacios/)                                                                                |
+| componente                   | _component_              | [Un motor de física](../etapa-1/00-motor-de-fisica/), [Capacidades como datos](../etapa-2/03-capacidades-como-datos/)                    |
+| partición espacial           | _spatial partition_      | [Cómo se encuentra un choque](../etapa-1/01-como-se-encuentra-un-choque/)                                                                |
+| estado                       | _state_                  | [Un personaje](../etapa-1/02-un-personaje/), [Un modo por paso](../etapa-2/02-un-modo-por-paso/)                                         |
+| método de actualización      | _update method_          | [La cámara que sigue](../etapa-1/03-la-camara-que-sigue/)                                                                                |
+| comando                      | _command_                | [Entradas como acciones](../etapa-1/04-entradas-como-acciones/)                                                                          |
+| registro de eventos          | _event sourcing_         | [Repeticiones y fantasmas](../etapa-1/05-repeticiones/)                                                                                  |
+| memento                      | _memento_                | [Instantáneas](../etapa-1/06-instantaneas/)                                                                                              |
+| cola de eventos              | _event queue_            | [Un servidor y un cliente](../etapa-1/07-servidor-y-cliente/), [Zonas que notan quién entra](../etapa-2/01-zonas-que-notan-quien-entra/) |
+| objeto único (un antipatrón) | _singleton_              | [Azar con semilla](../etapa-0/04-azar-con-semilla/), y lo que el motor evita                                                             |
 
 ## Bucle de juego
 
@@ -60,6 +60,8 @@ Three.js tiene la marca (`matrixWorldNeedsUpdate`), aunque con `matrixAutoUpdate
 
 En [Un motor de física](../etapa-1/00-motor-de-fisica/), una caja es un cuerpo, una forma y una malla que no se conocen entre sí. En el motor, una entidad es un número y sus componentes, todos datos simples (`transform`, `body`, `character`, `appearance`, `sensor`…), y los de cada juego van con su nombre (`dojo.runner`) ([`types.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/types.ts)). Nystrom, cap. ["Component"](https://gameprogrammingpatterns.com/component.html).
 
+En [Capacidades como datos](../etapa-2/03-capacidades-como-datos/), un nivel más adentro: en vez de una clase por cada combinación de lo que un personaje sabe hacer (el que trepa, el que planea, el que trepa y planea…), un solo personaje con una pieza de datos más, `can: { climb, glide, doubleJump }`, que solo lee la función que elige el modo. En el motor es el campo `can` del componente `character` ([`types.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/types.ts)). Nystrom cuenta la idea vecina en ["Type Object"](https://gameprogrammingpatterns.com/type-object.html): tipos que son datos, no subclases.
+
 ## Partición espacial
 
 **El problema:** encontrar lo que está cerca de algo comparando con todo cuesta `n²`. **La forma:** guardar las cosas ordenadas según dónde están (una grilla, un árbol), para buscar solo entre las vecinas.
@@ -71,6 +73,8 @@ En [Cómo se encuentra un choque](../etapa-1/01-como-se-encuentra-un-choque/), u
 **El problema:** algo se comporta distinto según en qué situación está, y los `if` sobre esa situación se desparraman por todo el código. **La forma:** cada situación es un estado con su propio comportamiento, y se decide en un solo lugar en cuál se está.
 
 En [Un personaje](../etapa-1/02-un-personaje/), el piso y el aire. En el motor, cada modo de moverse (caminar, en el aire, planear, trepar) es una entrada de una tabla, uno solo por paso, elegido por una sola función ([`character.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/character.ts)). Nystrom, cap. ["State"](https://gameprogrammingpatterns.com/state.html).
+
+En [Un modo por paso](../etapa-2/02-un-modo-por-paso/), el patrón entero: cuatro modos (caminar, en el aire, planear, trepar) en una tabla, `MODES`, y una sola función, `decide`, que elige cuál vale en cada paso, de cero y en orden de prioridad, sin transiciones guardadas. Lo que vale en todos los estados, como la gravedad o el viento, queda afuera de ellos: se suma después.
 
 ## Método de actualización
 
@@ -101,6 +105,8 @@ En [Instantáneas](../etapa-1/06-instantaneas/), los bytes de `takeSnapshot()`. 
 **El problema:** el que avisa algo no debería tener que esperar al que lo atiende, ni saber quién es. **La forma:** los avisos se guardan en una fila y se atienden después, en orden.
 
 En [Un servidor y un cliente](../etapa-1/07-servidor-y-cliente/), el cable entrega cada mensaje más tarde, en orden. En el motor, la red (`packages/net`) y también los eventos del mundo, que se guardan para dos lectores a dos ritmos: el juego, en cada paso, y la presentación, en cada cuadro ([`world.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/world.ts)). Nystrom, cap. ["Event Queue"](https://gameprogrammingpatterns.com/event-queue.html).
+
+En [Zonas que notan quién entra](../etapa-2/01-zonas-que-notan-quien-entra/), una zona no llama a nadie cuando una pelota entra: `sense` deja los eventos del paso en una lista, en un orden fijo, y las reglas los leen apenas termina el paso. En el motor son `sensorEntered` y `sensorLeft`, que van a `stepEvents` para las reglas del juego (`onStep`) y a la cola que la presentación vacía en cada cuadro con `takeEvents`.
 
 ## Un antipatrón: el objeto único
 

@@ -4,7 +4,7 @@
 
 🌐 **Site:** https://rodrigomartinvg.github.io/Manifold_Gaming/ (in Spanish for now)
 
-> Status: **phase 2** (capabilities). In the Dojo, a character runs, jumps, climbs, glides and double-jumps (each capability turned on and off live) in a level written as text, and rides platforms that move and turn; its replay gives the same hash in Chromium, Firefox, WebKit and Node. Stage 2.5 is done: reference replays, the same hash checked in every browser, performance budgets, the presentation in pieces, the core's seams (the step's phases, spatial queries, the games' components, the execution profile) and replay links half as long. Stages 2e and 2e2 are done too: the character is a mannequin made and animated by a script, whose animations follow where it really goes, mixed by direction. Next: closing phase 2, with a real level of the platformer.
+> Status: **phase 2 is done** (capabilities), next is phase 3 (a world that responds). In the Dojo, a character runs, jumps, climbs, glides and double-jumps (each capability turned on and off live) in levels written as text, and rides platforms that move and turn; its replay gives the same hash in Chromium, Firefox, WebKit and Node. Stage 2.5 laid the seams the next phases lean on (reference replays, the same hash checked in every browser, performance budgets, the presentation in pieces, the core's seams, the execution profile); in 2e and 2e2 the character became a mannequin made and animated by a script, whose animations follow where it really goes. The phase closed with the circuit, a longer level in the Dojo played from start to goal by a test, and the tutorial's five lessons of stage 2.
 
 ## How it is organized
 

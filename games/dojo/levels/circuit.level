@@ -1,0 +1,72 @@
+# Manifold level 1
+# The circuit (closing phase 2): a longer level that goes through everything the character does so
+# far, each part sized to ask for exactly what it tests. With the character's numbers: a jump rises
+# 2.15 m and lasts 1.33 s (walking it covers about 6 m, running about 9.9 m); it walks up steps of
+# 35 cm and slopes of 50°; a second jump reaches about 4 m; gliding, it falls 1.5 m a second.
+# Everything floats over the void: falling brings it back to its last checkpoint.
+title The circuit
+spawn 0 1 4
+facing 0 0 -1
+
+# 1. THE YARD: walking. Stairs of 30 cm up to a terrace on the right, a ramp of 18° up to a ledge on
+# the left, and a low roof over the way out (2.15 m: a jump under it hits its head).
+box 0 -0.5 0     5 0.5 6     color #6f6a62
+box 3.5 0.15 1.5   1.5 0.15 0.5  color #7d776e
+box 3.5 0.3 0.5    1.5 0.3 0.5   color #7d776e
+box 3.5 0.45 -2    1.5 0.45 2    color #7d776e
+box -3.5 0.62 1.5  1.5 0.1 2.2   rotate x 18  color #7d776e
+box -3.5 0.7 -2.5  1.5 0.7 2     color #7d776e
+box -1.75 1.15 -5  0.25 1.15 1   color #5a544c
+box 1.75 1.15 -5   0.25 1.15 1   color #5a544c
+box 0 2.3 -5       2 0.15 1      color #5a544c
+
+# 2. THE JUMPS, over the void, each one asking a little more: 2 m; 3 m and a meter up; 3.5 m and half
+# a meter down; a beam 40 cm wide and 8 m long; and, from the first checkpoint, 7 m (only running).
+box 0 -0.5 -9    1 0.5 1     color #8a6a42
+box 0 0 -14      1 1 1       color #8a6a42
+box 0 0 -20      1 0.5 1.5   color #8a6a42
+box 0 0.35 -25.75  0.2 0.15 4.25  color #9a7a52
+box 0 0 -32.75   2 0.5 2.75  color #8a6a42
+box 0 0 -44.5    2 0.5 2     color #8a6a42
+
+# 3. THE MACHINES. A ferry over 12 m of void (5 s each way), to the second checkpoint; from there a
+# lift that rises 5.5 m (4 s each way) to a ledge no jump reaches, with a star (a slab 20 cm thick:
+# two jumps do not get the feet up to its edge, so it cannot be climbed either); and a carousel turning
+# 60° a second, 3.5 m away: jump onto it, and off it to the wall's foot.
+box 0 0.35 -48   1.5 0.15 1.5  move 0 0 -12 5  color #7a5a3a
+box 0 0 -64      2 0.5 2.5   color #8a6a42
+box 3 0.35 -64   1 0.15 1    move 0 5.5 0 4  color #7a5a3a
+box 6 5.9 -64    2 0.1 2     color #8a6a42
+box 0 0.35 -72   2 0.15 2    spin y 60  color #7a5a3a
+
+# 4. THE WALL. Its foot, wide; the wall itself, 5.5 m up to a plateau (only climbing); and beside
+# it a pillar 1 m wide and 8 m high, with a star on top: climbing it at an angle, it lets go at its
+# side edge (closing phase 2), so straight up.
+box 1.5 0 -80    4.5 0.5 3   color #8a6a42
+box 0 3 -85      3 3 2       color #5a4a38
+box 5 4 -83.5    0.5 4 0.5   color #5a4a38
+
+# 5. UP: from the plateau, 4 m out and 3.2 m above it, a shelf: the highest point of the circuit. One
+# jump is not enough, two are. A slab 20 cm thick, so with one jump the feet never reach its edge
+# (2.6 m above and 1 m thick, the controller took its edge as a step, and climbing took its face);
+# and out beyond the plateau, so a jump does not pass under it before it is above it.
+box 0 9.1 -92.5  2 0.1 1.5   color #8a6a42
+
+# 6. THE GLIDE. The goal's island, 22.5 m out and 7.2 m down: a running jump falls 15 m away, gliding
+# (hold the jump while falling) gets there. And an islet much further, 38.5 m out, a slab 20 cm thick
+# with its top at 3 m: only gliding running reaches its star. Walking, the glide arrives 10 m short,
+# passing under it (1 m thick and lower, a walking glide reached its face, and climbing took it up).
+box 0 1 -119.5   3 1 3       color #8a6a42
+box 6 2.9 -132   1 0.1 1     color #8a6a42
+
+# Zones: four checkpoints on the way, the goal on the last island, three stars off the way, and the
+# void under it all.
+sensor checkpoint  0 1.3 -32.75  1.8 0.8 2.4
+sensor checkpoint  0 1.3 -64     1.8 0.8 2.2
+sensor checkpoint  1.5 1.3 -80   4 0.8 2.6
+sensor checkpoint  0 6.8 -85     2.8 0.8 1.8
+sensor goal        0 2.8 -119.5  2.5 0.8 2.5
+sensor star        6 6.9 -64     0.6 0.9 0.6
+sensor star        5 8.9 -83.5   0.6 0.9 0.6
+sensor star        6 3.9 -132    0.6 0.9 0.6
+sensor fall        0 -6 -60      80 3 100

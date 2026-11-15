@@ -199,10 +199,11 @@ export class RapierPhysics implements PhysicsBackend {
    * meanwhile: the engine carries the character with it, exactly (character.ts). Two things measured
    * with Rapier alone, without anything of ours:
    *   - on a kinematic body, the controller does not walk: it stands on it with no gap (the offset is
-   *     not kept) and every movement along it comes out zero, still or moving, by velocity or by
-   *     position (on the same board, fixed, it walks). It is V1's "the controller got stuck on
-   *     kinematic bodies", explained. Seen as fixed while it computes, it walks exactly as on a
-   *     fixed one;
+   *     not kept) and every movement along it comes out zero if the board stands still, by velocity
+   *     or by position; if it moves or turns, it walks in fits (measured again when phase 2 closed:
+   *     of 4.5 m asked, 2.3 to 2.6, with zero on 25 of 60 steps). On the same board, fixed, it walks.
+   *     It is V1's "the controller got stuck on kinematic bodies", explained. Seen as fixed while it
+   *     computes, it walks exactly as on a fixed one;
    *   - when a kinematic body moves under a character, the controller takes it along by itself, but
    *     only part of the way and not on every step (on a turning platform, every other step; on one
    *     going along a line, never): so it must not see it move either.

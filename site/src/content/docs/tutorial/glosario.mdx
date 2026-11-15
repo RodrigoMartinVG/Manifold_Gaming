@@ -140,45 +140,85 @@ El texto del tutorial está en español y el código, en inglés ([por qué](../
 
 ## La física
 
-| En español                   | En inglés                              | Dónde aparece                                                                                |
-| ---------------------------- | -------------------------------------- | -------------------------------------------------------------------------------------------- |
-| motor de física              | _physics engine_                       | Rapier, dentro del motor (`packages/core/src/physics.ts`)                                    |
-| cuerpo                       | _body_                                 | el componente `body` de una entidad                                                          |
-| colisionador                 | _collider_                             | la forma con la que un cuerpo choca; en la consola, `show.physics`                           |
-| nivel                        | _level_                                | un lugar para jugar, guardado como texto: sus piezas, sus zonas y dónde se empieza           |
-| zona                         | _sensor_                               | una caja que no empuja, solo nota quién entra y quién sale                                   |
-| punto de control             | _checkpoint_                           | donde volvés si te caés                                                                      |
-| meta                         | _goal_                                 | donde termina el nivel                                                                       |
-| modo de moverse              | _locomotion mode_                      | caminar, en el aire, trepar…: uno solo por vez, cada uno con sus números                     |
-| aporte                       | _contribution_                         | lo que se suma al movimiento sea cual sea el modo: la gravedad, lo que arrastra al personaje |
-| control en el aire           | _air control_                          | cuánto se puede corregir un salto ya en el aire: `dojo.air`                                  |
-| capacidad                    | _capability_                           | algo que un personaje sabe hacer además de caminar y saltar, y que se prende y apaga         |
-| trepar                       | _climb_                                | subir por una pared empujando contra ella                                                    |
-| planear                      | _glide_                                | caer despacio, manteniendo el salto                                                          |
-| doble salto                  | _double jump_                          | un salto más, en el aire                                                                     |
-| dinámico                     | _dynamic_                              | un cuerpo que mueve la física: cae, rebota, choca                                            |
-| cinemático                   | _kinematic_                            | un cuerpo que mueve el juego, y que empuja lo que toca                                       |
-| fijo                         | _fixed_                                | un cuerpo que no se mueve nunca, como el piso                                                |
-| rebote                       | _restitution_                          | cuánta velocidad conserva un cuerpo al chocar (de 0 a 1)                                     |
-| rozamiento                   | _friction_                             | `friction`                                                                                   |
-| amortiguación                | _damping_                              | cuánta velocidad pierde un cuerpo por sí solo                                                |
-| gravedad                     | _gravity_                              | en la consola, `physics.gravity`                                                             |
-| identificador (de un cuerpo) | _handle_                               | lo que guarda la entidad, nunca el cuerpo (decisión 0004)                                    |
-| números de 32 bits           | _single precision_                     | cómo cuenta Rapier: unos 7 dígitos significativos                                            |
-| fase amplia                  | _broad phase_                          | [Cómo se encuentra un choque](../etapa-1/01-como-se-encuentra-un-choque/)                    |
-| fase fina                    | _narrow phase_                         | [Cómo se encuentra un choque](../etapa-1/01-como-se-encuentra-un-choque/)                    |
-| caja alineada con los ejes   | _axis-aligned bounding box_ (AABB)     | [Cómo se encuentra un choque](../etapa-1/01-como-se-encuentra-un-choque/)                    |
-| grilla                       | _grid_                                 | una partición del espacio en celdas iguales                                                  |
-| árbol de cajas               | _bounding volume hierarchy_ (BVH)      | cajas que envuelven grupos de cajas                                                          |
-| ordenar y barrer             | _sort and sweep_, _sweep and prune_    | una fase amplia por intervalos ordenados                                                     |
-| teorema del eje separador    | _separating axis theorem_ (SAT)        | si dos formas convexas no se tocan, hay un eje que las separa                                |
-| contacto                     | _contact_                              | donde se tocan dos cuerpos: un punto, una normal y una profundidad                           |
-| solver                       | _solver_                               | la parte del motor de física que empuja los contactos                                        |
-| impulso                      | _impulse_                              | un empujón instantáneo: lo que aplica el solver                                              |
-| coherencia temporal          | _temporal coherence_                   | aprovechar que de un paso al siguiente casi nada cambia                                      |
-| dormir                       | _sleep_                                | un cuerpo quieto que deja de calcularse: `isSleeping()`                                      |
-| efecto túnel                 | _tunneling_                            | atravesar algo fino entre dos pasos                                                          |
-| detección continua           | _continuous collision detection_ (CCD) | `setCcdEnabled(true)` en Rapier                                                              |
+| En español                   | En inglés                              | Dónde aparece                                                             |
+| ---------------------------- | -------------------------------------- | ------------------------------------------------------------------------- |
+| motor de física              | _physics engine_                       | Rapier, dentro del motor (`packages/core/src/physics.ts`)                 |
+| cuerpo                       | _body_                                 | el componente `body` de una entidad                                       |
+| colisionador                 | _collider_                             | la forma con la que un cuerpo choca; en la consola, `show.physics`        |
+| nivel                        | _level_                                | [Un nivel como texto](../etapa-2/00-un-nivel-como-texto/)                 |
+| zona                         | _sensor_, _trigger_                    | [Zonas que notan quién entra](../etapa-2/01-zonas-que-notan-quien-entra/) |
+| punto de control             | _checkpoint_                           | [Zonas que notan quién entra](../etapa-2/01-zonas-que-notan-quien-entra/) |
+| meta                         | _goal_                                 | [Zonas que notan quién entra](../etapa-2/01-zonas-que-notan-quien-entra/) |
+| modo de moverse              | _locomotion mode_                      | [Un modo por paso](../etapa-2/02-un-modo-por-paso/)                       |
+| aporte                       | _contribution_                         | [Un modo por paso](../etapa-2/02-un-modo-por-paso/)                       |
+| control en el aire           | _air control_                          | cuánto se puede corregir un salto ya en el aire: `dojo.air`               |
+| capacidad                    | _capability_                           | [Capacidades como datos](../etapa-2/03-capacidades-como-datos/)           |
+| trepar                       | _climb_                                | [Capacidades como datos](../etapa-2/03-capacidades-como-datos/)           |
+| planear                      | _glide_                                | [Capacidades como datos](../etapa-2/03-capacidades-como-datos/)           |
+| doble salto                  | _double jump_                          | [Capacidades como datos](../etapa-2/03-capacidades-como-datos/)           |
+| dinámico                     | _dynamic_                              | un cuerpo que mueve la física: cae, rebota, choca                         |
+| cinemático                   | _kinematic_                            | un cuerpo que mueve el juego, y que empuja lo que toca                    |
+| fijo                         | _fixed_                                | un cuerpo que no se mueve nunca, como el piso                             |
+| rebote                       | _restitution_                          | cuánta velocidad conserva un cuerpo al chocar (de 0 a 1)                  |
+| rozamiento                   | _friction_                             | `friction`                                                                |
+| amortiguación                | _damping_                              | cuánta velocidad pierde un cuerpo por sí solo                             |
+| gravedad                     | _gravity_                              | en la consola, `physics.gravity`                                          |
+| identificador (de un cuerpo) | _handle_                               | lo que guarda la entidad, nunca el cuerpo (decisión 0004)                 |
+| números de 32 bits           | _single precision_                     | cómo cuenta Rapier: unos 7 dígitos significativos                         |
+| fase amplia                  | _broad phase_                          | [Cómo se encuentra un choque](../etapa-1/01-como-se-encuentra-un-choque/) |
+| fase fina                    | _narrow phase_                         | [Cómo se encuentra un choque](../etapa-1/01-como-se-encuentra-un-choque/) |
+| caja alineada con los ejes   | _axis-aligned bounding box_ (AABB)     | [Cómo se encuentra un choque](../etapa-1/01-como-se-encuentra-un-choque/) |
+| grilla                       | _grid_                                 | una partición del espacio en celdas iguales                               |
+| árbol de cajas               | _bounding volume hierarchy_ (BVH)      | cajas que envuelven grupos de cajas                                       |
+| ordenar y barrer             | _sort and sweep_, _sweep and prune_    | una fase amplia por intervalos ordenados                                  |
+| teorema del eje separador    | _separating axis theorem_ (SAT)        | si dos formas convexas no se tocan, hay un eje que las separa             |
+| contacto                     | _contact_                              | donde se tocan dos cuerpos: un punto, una normal y una profundidad        |
+| solver                       | _solver_                               | la parte del motor de física que empuja los contactos                     |
+| impulso                      | _impulse_                              | un empujón instantáneo: lo que aplica el solver                           |
+| coherencia temporal          | _temporal coherence_                   | aprovechar que de un paso al siguiente casi nada cambia                   |
+| dormir                       | _sleep_                                | un cuerpo quieto que deja de calcularse: `isSleeping()`                   |
+| efecto túnel                 | _tunneling_                            | atravesar algo fino entre dos pasos                                       |
+| detección continua           | _continuous collision detection_ (CCD) | `setCcdEnabled(true)` en Rapier                                           |
+
+## Niveles, zonas, modos y plataformas
+
+| En español                             | En inglés                             | Dónde aparece                                                             |
+| -------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------- |
+| lector (de un formato)                 | _parser_                              | [Un nivel como texto](../etapa-2/00-un-nivel-como-texto/)                 |
+| análisis léxico                        | _scanning_                            | [Un nivel como texto](../etapa-2/00-un-nivel-como-texto/)                 |
+| análisis sintáctico                    | _parsing_                             | [Un nivel como texto](../etapa-2/00-un-nivel-como-texto/)                 |
+| punto de partida                       | _spawn_                               | [Un nivel como texto](../etapa-2/00-un-nivel-como-texto/)                 |
+| media medida                           | _half extent_                         | [Un nivel como texto](../etapa-2/00-un-nivel-como-texto/)                 |
+| encabezado                             | _header_                              | [Un nivel como texto](../etapa-2/00-un-nivel-como-texto/)                 |
+| recuperarse en modo pánico             | _panic mode_                          | [Un nivel como texto](../etapa-2/00-un-nivel-como-texto/)                 |
+| compatible hacia atrás                 | _backward compatible_                 | [Un nivel como texto](../etapa-2/00-un-nivel-como-texto/)                 |
+| migrar (un formato)                    | _migrate_                             | [Un nivel como texto](../etapa-2/00-un-nivel-como-texto/)                 |
+| guiado por datos                       | _data-driven_                         | [Un nivel como texto](../etapa-2/00-un-nivel-como-texto/)                 |
+| espacio de la caja (local)             | _local space_                         | [Zonas que notan quién entra](../etapa-2/01-zonas-que-notan-quien-entra/) |
+| producto escalar                       | _dot product_                         | [Zonas que notan quién entra](../etapa-2/01-zonas-que-notan-quien-entra/) |
+| superponerse                           | _overlap_                             | [Zonas que notan quién entra](../etapa-2/01-zonas-que-notan-quien-entra/) |
+| desigualdad triangular                 | _triangle inequality_                 | [Zonas que notan quién entra](../etapa-2/01-zonas-que-notan-quien-entra/) |
+| vacío                                  | _void_ (`fall` en el Dojo)            | [Zonas que notan quién entra](../etapa-2/01-zonas-que-notan-quien-entra/) |
+| bandera                                | _flag_                                | [Un modo por paso](../etapa-2/02-un-modo-por-paso/)                       |
+| máquina de estados                     | _state machine_                       | [Un modo por paso](../etapa-2/02-un-modo-por-paso/)                       |
+| máquina de estados jerárquica          | _hierarchical state machine_          | [Un modo por paso](../etapa-2/02-un-modo-por-paso/)                       |
+| autómata con pila                      | _pushdown automaton_                  | [Un modo por paso](../etapa-2/02-un-modo-por-paso/)                       |
+| dirigir (la velocidad)                 | _steer_                               | [Un modo por paso](../etapa-2/02-un-modo-por-paso/)                       |
+| límite de caída                        | _fall limit_                          | [Un modo por paso](../etapa-2/02-un-modo-por-paso/)                       |
+| saltos en el aire                      | _air jumps_                           | [Capacidades como datos](../etapa-2/03-capacidades-como-datos/)           |
+| herencia                               | _inheritance_                         | [Capacidades como datos](../etapa-2/03-capacidades-como-datos/)           |
+| subclase                               | _subclass_                            | [Capacidades como datos](../etapa-2/03-capacidades-como-datos/)           |
+| habilidad (en Unreal)                  | _ability_ (_Gameplay Ability System_) | [Capacidades como datos](../etapa-2/03-capacidades-como-datos/)           |
+| etiqueta (de juego)                    | _gameplay tag_                        | [Capacidades como datos](../etapa-2/03-capacidades-como-datos/)           |
+| metroidvania                           | _metroidvania_                        | [Capacidades como datos](../etapa-2/03-capacidades-como-datos/)           |
+| plataforma que se mueve                | _moving platform_                     | [Plataformas que llevan](../etapa-2/04-plataformas-que-llevan/)           |
+| llevar (una plataforma, al personaje)  | _carry_                               | [Plataformas que llevan](../etapa-2/04-plataformas-que-llevan/)           |
+| onda triangular                        | _triangle wave_                       | [Plataformas que llevan](../etapa-2/04-plataformas-que-llevan/)           |
+| brazo (de un punto, desde lo que gira) | _arm_                                 | [Plataformas que llevan](../etapa-2/04-plataformas-que-llevan/)           |
+| transbordador, balsa                   | _ferry_                               | [Plataformas que llevan](../etapa-2/04-plataformas-que-llevan/)           |
+| carrusel                               | _carousel_                            | [Plataformas que llevan](../etapa-2/04-plataformas-que-llevan/)           |
+| el giro que lleva el personaje         | _carried turn_ (`carriedTurn`)        | [Plataformas que llevan](../etapa-2/04-plataformas-que-llevan/)           |
+| base de movimiento                     | _movement base_                       | [Plataformas que llevan](../etapa-2/04-plataformas-que-llevan/)           |
 
 ## El personaje
 

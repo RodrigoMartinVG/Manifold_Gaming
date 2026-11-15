@@ -18,5 +18,7 @@
  *  11  stage 2.5c: directions on the ground (`move`, `face`) in whole degrees, changing only past 1°;
  *      written `@37` in a replay
  *  12  stage 2e: an appearance may name a model (`model`): the Dojo's characters, its mannequin
+ *  13  closing phase 2: climbing along a wall past its side edge, it lets go (before, it got the hop
+ *      for the wall's top); and in the Dojo, the void takes what the physics moves, not a platform
  */
-export const SIMULATION_VERSION = 12;
+export const SIMULATION_VERSION = 13;

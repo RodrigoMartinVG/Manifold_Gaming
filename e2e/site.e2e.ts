@@ -141,10 +141,17 @@ function dojoRooms() {
     .filter((f) => f.endsWith('.txt'))
     .map((f) => {
       const text = readFileSync(path.join(folder, f), 'utf8');
+      // The level it builds, if any: each of its boxes and stars is drawn (zones are not, unless asked).
+      const level = text.match(/^dojo\.level\s+(\S+)/m)?.[1];
+      const pieces = level
+        ? readFileSync(path.join(process.cwd(), `games/dojo/levels/${level}.level`), 'utf8').match(/^(box|sensor star)\s/gm)!
+            .length
+        : 0;
       return {
         name: f.replace(/\.txt$/, ''),
         title: text.match(/^#\s*(.+)$/m)![1]!,
         cubes: Number(text.match(/^dojo\.cubes\s+(\d+)/m)?.[1] ?? 0),
+        pieces,
       };
     });
 }
@@ -156,8 +163,9 @@ for (const room of dojoRooms()) {
     const list = errors(page);
     await page.goto(`jugar/dojo/${room.name}/`);
     await expect(page).toHaveTitle(new RegExp(escapeRegExp(room.title)));
-    // The big cube and the room's cubes, at least (a room may bring a level, with more meshes).
-    await expect.poll(() => meshes(page), { timeout: 15_000 }).toBeGreaterThanOrEqual(1 + room.cubes);
+    // The big cube (or, with a level, the character), the room's cubes, and every box and star of its
+    // level, at least: a level drawn halfway does not pass.
+    await expect.poll(() => meshes(page), { timeout: 15_000 }).toBeGreaterThanOrEqual(1 + room.cubes + room.pieces);
     expect(list).toEqual([]);
   });
 }
@@ -426,12 +434,24 @@ test('the mannequin moves where it really goes: backwards, to a side, and agains
   await page.keyboard.press('Backquote');
   await typeInConsole(page, 'dojo.goto 8 1 5');
   await page.keyboard.press('Escape');
+  await settled(page, 'player');
+  // Every animation it plays from now on, in order: it walks only 1.5 m before the tower (a third of a
+  // second), which a poll can miss on a loaded machine (it did, once).
+  await page.locator('#game').evaluate((el) => {
+    const seen: string[] = [];
+    (window as unknown as { clipsSeen: string[] }).clipsSeen = seen;
+    new MutationObserver(() => {
+      if (seen.at(-1) !== el.dataset.clip) seen.push(el.dataset.clip!);
+    }).observe(el, { attributes: true, attributeFilter: ['data-clip'] });
+  });
+  const seen = () => page.evaluate(() => (window as unknown as { clipsSeen: string[] }).clipsSeen);
   await page.keyboard.down('KeyW');
-  await expect.poll(clip, { timeout: 20_000 }).toBe('walk');
+  await expect.poll(async () => (await seen()).includes('walk'), { timeout: 20_000 }).toBe(true);
   await expect.poll(async () => (await position(page, 'player'))[2], { timeout: 30_000 }).toBeLessThan(3.8);
   await expect.poll(clip, { timeout: 20_000 }).toBe('idle');
   await afterSteps(page, 60);
   expect(await clip(), 'pushing on against the tower').toBe('idle');
+  expect((await seen()).at(-1), (await seen()).join(' → ')).toBe('idle');
   await page.keyboard.up('KeyW');
   expect(list).toEqual([]);
 });

@@ -1,0 +1,136 @@
+---
+title: Un nivel como texto
+description: Un lugar para jugar, escrito como texto, una pieza por línea. Cómo se lee, cómo dice un error en qué línea está, y cómo el texto se vuelve cajas que se ven y que chocan.
+sidebar:
+  order: 0
+---
+
+import LiveCode from '../../../../components/LiveCode.astro';
+
+En la etapa 1, los niveles estaban escritos en el código: en la [lección del personaje](../../etapa-1/02-un-personaje/), el piso, los escalones y la rampa eran llamadas a una función, `block([0, -0.5, 0], [10, 0.5, 10])`. Para mover un escalón había que cambiar el programa. Pero un juego tiene decenas de niveles, y los arma otra gente, o un editor.
+
+La solución: el nivel es **datos**, no código. Un texto con **una pieza por línea**, que un **lector** (_parser_) convierte en cajas, zonas y un **punto de partida** (_spawn_). Se escribe a mano, se lee de un vistazo y se compara con la versión anterior línea por línea. Y si una línea está mal, el lector dice cuál.
+
+<LiveCode lesson="stage-2/00-level-as-text" autorun />
+
+El nivel está en la pestaña **level.ts**: editalo y ejecutalo (▶, o Ctrl/⌘ + Enter). `main.ts` lo lee, arma cada caja y deja caer unas pelotas en el punto de partida. El panel cuenta las cajas (_boxes_), las zonas (_zones_), los errores (_errors_) y las pelotas quietas (_at rest_) o caídas (_fell off_).
+
+**Qué probar:**
+
+1. **Mové el punto de partida.** En la línea 5, cambiá `spawn -3 3.5 -1` por `spawn 3 3.5 0`. Las pelotas caen sobre los escalones: algunas se quedan ahí, y otras ruedan escalón abajo.
+2. **Agregá una línea.** Debajo de la línea 18, escribí `box -3 0.5 3.5   1 0.5 0.2   color #c0504d`: un murito rojo al pie de la rampa. _boxes_ pasa de 7 a 8, y las pelotas ya no llegan a la zona dorada.
+3. **Rompé una línea.** En la línea 14, cambiá el primer `0.15` por `0,15` (con coma, como en castellano). _first error_ dice `line 14: "0,15" is not a number`, y la consola también. Ese escalón falta; el resto está. Probá también `tree 1 2 3`.
+4. **Cambiá la versión.** En la primera línea, cambiá `level 1` por `level 2`: ya no se lee nada, ni el piso, y las pelotas caen al vacío.
+
+## El código, paso a paso
+
+- **El texto es un módulo aparte** (`level.ts`), una cadena que empieza en la primera línea del archivo: la línea 14 del nivel es la 14 del editor.
+- **La primera línea dice el formato y su versión.** Si no es `# Manifold level 1`, no se lee nada más.
+- **Se corta en líneas, y cada línea en palabras** (`split`). Las vacías y las que empiezan con `#`, los comentarios, se saltean.
+- **La primera palabra dice qué es** (`switch (words[0])`), y lo demás se lee en orden, con un cursor (`at`): `number()` lee un número, `vector()` tres, y `half()` tres **medias medidas** (_half extents_). Después de una caja pueden venir `rotate x 20` y `color #9a7a52`. Si sobra algo, es un error (`end()`).
+- **Un error es una excepción con su motivo**, que se atrapa línea por línea (`try`/`catch`) y se guarda con su número. La línea se saltea, y se sigue con la próxima.
+- **Cada caja se arma dos veces**, en el mismo lugar y con el mismo giro: un cuerpo fijo de Rapier, cuyo `cuboid` pide la **mitad** de cada lado, y una malla de three.js, cuya `BoxGeometry` pide el lado **entero**. Las zonas solo se dibujan, en alambre: lo que notan es de la [lección siguiente](../01-zonas-que-notan-quien-entra/).
+- **_at rest_ cuenta las pelotas que la física puso a dormir:** las que quedaron quietas sobre algo.
+
+## Lo importante
+
+- **Un nivel es datos, no código.** Lo escriba una persona, un editor o un exportador de Blender, el motor lee el mismo texto.
+- **Una pieza por línea, sin nada anidado.** Cada error queda encerrado en su línea, y se puede decir cuál es.
+- **El formato dice su versión** en la primera línea. Un archivo de otra versión no se adivina: se rechaza.
+- **Grados para la persona, mitades para la física.** El lector traduce lo demás, una vez, al cargar.
+
+## Más a fondo
+
+<details>
+<summary>Cómo lee un lector de líneas, y por qué una pieza por línea</summary>
+
+El lector va del texto a las palabras y de las palabras a lo que quieren decir: en un compilador, el **análisis léxico** (_scanning_) y el **sintáctico** (_parsing_). Con una pieza por línea, alcanzan un `switch` y un cursor.
+
+Lo mejor de este formato es cómo falla. Cada línea es independiente: cuando algo no cierra, el lector sabe en qué línea está, y para seguir salta a la próxima. Los compiladores llaman a eso **recuperarse en modo pánico** (_panic mode_): descartar hasta un punto seguro. En un lenguaje de programación, ese punto cuesta encontrarlo; aquí es siempre el fin de línea. En un formato anidado, como JSON, una llave de menos en la línea 3 puede hacer que el lector se queje en la 40, donde recién lo nota.
+
+Y Git compara línea por línea: mover un escalón cambia una línea, y dos personas que tocan piezas distintas no se pisan.
+
+</details>
+
+<details>
+<summary>Medias medidas y grados: lo que escribe una persona y lo que usa la máquina</summary>
+
+Una caja con centro `c` y medias medidas `h` va de `c − h` a `c + h` en cada eje: saber si un punto `p` está adentro es comparar `|p − c| ≤ h`, sin dividir nada. Por eso Rapier pide medias medidas (`cuboid(hx, hy, hz)`), y las zonas del motor también; three.js pide lados enteros, y el ejemplo multiplica por 2. Una caja apoya en el piso (en `y = 0`) si su centro está a la altura de su media medida: `box 0 0.5 0  1 0.5 1`.
+
+Los giros se escriben en grados, y la máquina los usa como [cuaterniones](../../etapa-0/02-cuaterniones/): `(x, y, z) = eje · sen(θ/2)` y `w = cos(θ/2)`. Para `rotate x 20`, unos `(0.1736, 0, 0, 0.9848)`. Positivo es en contra de las agujas del reloj, mirando desde la punta del eje: la punta `+z` de la rampa baja, y por eso la alta es la del fondo.
+
+El ejemplo hace la cuenta con `setFromAxisAngle` de three.js, que usa `Math.sin`: para dibujar, alcanza. El motor usa un seno y un coseno propios, hechos con sumas, productos y divisiones, que dan [los mismos bits](../../etapa-0/06-numeros-que-no-son-exactos/) en todos los navegadores: un mundo que nace de un nivel tiene que nacer igual en todas partes.
+
+</details>
+
+<details>
+<summary>Un formato con versión, y qué hacer con los archivos viejos</summary>
+
+La primera línea, el **encabezado** (_header_), se mira antes que nada: los archivos duran más que el código que los escribió, y el lector tiene que saber con qué reglas se escribió cada uno.
+
+No todo cambio pide una versión nueva. En la [etapa 2d](../../../bitacora/etapa-2d/), el formato aprendió `move` y `spin` y siguió en la 1: un archivo viejo no los usa, y se lee igual. Es un cambio **compatible hacia atrás** (_backward compatible_). Hace falta otra versión cuando el mismo texto pasaría a decir otra cosa: si las medidas pasaran a ser lados enteros, cada caja vieja quedaría a la mitad, sin un solo error.
+
+Con los archivos viejos hay tres caminos: **rechazarlos** con un mensaje claro, como el motor ("a level of format 2: this engine reads format 1"); **mantener el lector viejo** al lado del nuevo; o **migrarlos** (_migrate_), reescribiéndolos una vez. Los niveles de Manifold viven en el repositorio, y migrarlos todos es barato. Lo difícil son los archivos ajenos, como las partidas guardadas de los jugadores: para esos, los lectores viejos duran años.
+
+</details>
+
+:::caution[Sutilezas]
+
+- **Un color no es un comentario.** Un comentario es una línea entera que empieza con `#`, y no "todo lo que sigue a un `#`", como en muchos formatos: si no, se comería los colores, como casi hizo la primera versión del motor ([etapa 2a](../../../bitacora/etapa-2a/)).
+- **El ejemplo perdona; el motor, no.** Aquí una línea mala se saltea, para ver todos los errores juntos. El motor se detiene en el primero y no arma nada: un nivel al que le falta una pieza es otro nivel.
+- **Una caja gira alrededor de su centro.** Con `rotate x 35`, la punta de arriba de la rampa sube por encima de la plataforma y la de abajo se hunde en el piso: hay que mover también el centro.
+  :::
+
+## En los motores
+
+- **Quake (1996)** guardaba sus niveles como texto, en archivos `.map`: entidades entre llaves, con pares de clave y valor, y bloques convexos (_brushes_), con un plano por línea (tres puntos y una textura). El juego no leía ese texto: un compilador (`qbsp`, `light`, `vis`) lo convertía en un `.bsp` binario, con todo precalculado.
+- **Doom (1993)** guardaba sus mapas como bloques binarios (_lumps_) de registros de tamaño fijo (`THINGS`, `LINEDEFS`, `SECTORS`…): agregar un campo rompía a quien los leía. Años después, la comunidad de los _source ports_ escribió **UDMF**, el mapa como texto (`thing { x = 64.0; y = 128.0; type = 1; }`), con una regla: lo que no se conoce, se ignora, para que cada port agregue lo suyo.
+- **Unity** guarda escenas y _prefabs_ como YAML: cada objeto y cada componente, un bloque con un número (`fileID`) con el que los demás lo nombran. Es texto para el control de versiones, aunque juntar dos cambios a una escena cuesta.
+- **Godot** guarda sus escenas en `.tscn`, un texto por secciones que empieza con `[gd_scene format=3 …]`, la versión del formato (Godot 3 escribía `format=2`), y sigue con un `[node]` por nodo.
+- **Tiled**, un editor de mapas 2D muy usado, guarda en XML (TMX) o en JSON: capas de baldosas (_tiles_) y capas de objetos.
+- **En los libros:** Jason Gregory, _Game Engine Architecture_ (3.ª ed.), cap. 15 "Introduction to Gameplay Systems", sobre los motores guiados por datos (_data-driven_) y el editor de mundos, y cap. 16 "Runtime Gameplay Foundation Systems", sobre cómo se guarda y se carga un pedazo de mundo. Robert Nystrom, _Game Programming Patterns_, cap. "Prototype", que termina modelando en JSON los datos de un juego.
+
+**Dónde Manifold eligió otra cosa.** Un formato propio y mínimo, de líneas, con su versión en la primera. Solo sabe lo que tiene un nivel (cajas, zonas, dónde se empieza), y cada línea se lee como una oración; no guarda cada propiedad de cada objeto, como Unity o Godot. Quake compilaba sus mapas; aquí no hay nada que precalcular, y el motor lee el texto mismo. Al revés que UDMF, una palabra que no entiende es un error: un `colour` mal escrito, ignorado en silencio, daría otro nivel. Y se revisa antes: los niveles del Dojo se leen al construir el sitio, y uno que no se entiende frena la construcción, con su línea y su motivo ([etapa 2a](../../../bitacora/etapa-2a/)). Mejor ahí que en manos de un jugador.
+
+## En Manifold
+
+El lector del motor es `levelFromText`, en [`packages/core/src/level.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/level.ts): el mismo formato, más `move` (una plataforma que va y vuelve) y `spin` (una que gira). También escribe un nivel como texto (`levelToText`), y [sus pruebas](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/level.test.ts) comprueban que leer lo escrito da lo mismo y que cada error dice su línea. El seno propio, `sinCosDegrees`, está en [`packages/common/src/math.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/common/src/math.ts).
+
+Los niveles del Dojo son archivos, y sumar uno es sumar un archivo ([`games/dojo/src/levels.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/games/dojo/src/levels.ts)). El más largo es [`circuit.level`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/games/dojo/levels/circuit.level): 26 cajas y 9 zonas en unos 125 m, cada parte medida para pedir justo lo que prueba. Se juega en la sala `circuit` del [Dojo](../../../jugar/dojo/circuit/), y la [Bitácora del cierre de la fase 2](../../../bitacora/etapa-2-cierre/) cuenta cómo se midió. El primero, [`course.level`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/games/dojo/levels/course.level), está en la sala [`course`](../../../jugar/dojo/course/).
+
+## Para practicar
+
+**1. Una caja a mano.** Escribí la línea de una caja de 4 m de ancho, 2 m de alto y 1 m de fondo, apoyada en el piso, en x = 2, z = −4. Calculá sus seis números antes de ejecutar, y comprobá que no flota ni se hunde.
+
+<details>
+<summary>Una pista</summary>
+
+Las medidas van a la mitad, y el centro de una caja apoyada en el piso (en `y = 0`) está a media altura.
+
+</details>
+
+**2. Comentarios al final.** Hacé que el lector acepte un comentario al final de una línea, como `box 0 0.4 6.5   7 0.4 0.25   # the wall`, sin comerse los colores.
+
+<details>
+<summary>Una pista</summary>
+
+Antes del `switch`, recorré las palabras y cortá la lista en la primera que empiece con `#`, salvo que la anterior sea `color`.
+
+</details>
+
+**3. De vuelta a texto.** Escribí `writeLevel(level)`, que arme el texto de un nivel a partir de sus datos, y comprobá que leer lo escrito da lo mismo que el original.
+
+<details>
+<summary>Una pista</summary>
+
+El encabezado, y una línea por pieza con plantillas de texto, unidas con `join('\n')`. El color: `color.toString(16).padStart(6, '0')`. Para comparar, `JSON.stringify` de `readLevel(LEVEL)` y de `readLevel(writeLevel(readLevel(LEVEL)))`.
+
+</details>
+
+## Para saber más
+
+- Robert Nystrom, _Crafting Interpreters_ (libre en la web, en inglés): ["Scanning"](https://craftinginterpreters.com/scanning.html), de texto a palabras, con el número de línea de cada error, y ["Parsing Expressions"](https://craftinginterpreters.com/parsing-expressions.html), con la recuperación en modo pánico.
+- [Game Programming Patterns: Prototype](https://gameprogrammingpatterns.com/prototype.html), de Robert Nystrom (en inglés).
+- [El formato de mapas de Quake](https://quakewiki.org/wiki/Quake_Map_Format), en la Quake Wiki, y [la especificación de UDMF](https://github.com/ZDoom/gzdoom/blob/master/specs/udmf.txt) (en inglés).
+- [El formato TSCN de Godot](https://docs.godotengine.org/en/stable/engine_details/file_formats/tscn.html) y [el formato TMX de Tiled](https://doc.mapeditor.org/en/stable/reference/tmx-map-format/) (en inglés).
+- Jason Gregory, _Game Engine Architecture_, 3.ª ed., caps. 15 y 16.

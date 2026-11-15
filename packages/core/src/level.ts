@@ -67,9 +67,11 @@ export function levelFromText(text: string): Level {
   const fail = (n: number, why: string): never => {
     throw new Error(`level, line ${n + 1}: ${why}`);
   };
-  const header = /^# Manifold level (\d+)$/.exec(rows[0]?.trim() ?? '');
+  const header = /^# Manifold level ([1-9]\d*)$/.exec(rows[0]?.trim() ?? '');
   if (!header) fail(0, `it must start with "${HEADER} ${LEVEL_FORMAT}"`);
   if (Number(header![1]) !== LEVEL_FORMAT) fail(0, `a level of format ${header![1]}: this engine reads format ${LEVEL_FORMAT}`);
+  /** The lines that come once in a level (`title`, `spawn`, `facing`), and where each one came. */
+  const once = new Map<string, number>();
   rows.forEach((row, n) => {
     // A comment is a whole line that starts with # (a color, like #6f6a62, is not one).
     const line = row.trim();
@@ -77,10 +79,19 @@ export function levelFromText(text: string): Level {
     const words = line.split(/\s+/);
     const kind = words[0]!;
     let at = 1;
+    // A number in decimal (an exponent too: a level written by a program may have one). Not
+    // hexadecimal, not Infinity: closing phase 2 found that `Number` took them.
     const number = () => {
       const t = words[at++];
-      const x = Number(t);
-      return t !== undefined && t !== '' && Number.isFinite(x) ? x : fail(n, `"${t ?? ''}" is not a number`);
+      if (t === undefined) return fail(n, 'a number is missing');
+      if (!/^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/.test(t)) return fail(n, `"${t}" is not a number`);
+      return Number(t);
+    };
+    /** Half a size along each axis: more than 0 (a box of no size, or turned inside out, is not one). */
+    const halves = (): Vec3 => {
+      const half = vector();
+      if (half.some((h) => h <= 0)) fail(n, 'a half size must be more than 0');
+      return half;
     };
     const vector = (): Vec3 => [number(), number(), number()];
     /** An axis and a number of degrees, as in `rotate x 18` or `spin y 40`. */
@@ -95,8 +106,12 @@ export function levelFromText(text: string): Level {
       let paint = 0x6f6a62;
       let move: LevelBox['move'] = null;
       let spin: Turn | null = null;
+      const seen = new Set<string>();
       while (at < words.length) {
-        const word = words[at++];
+        const word = words[at++]!;
+        // Each one once: twice, the first was silently lost.
+        if (seen.has(word)) fail(n, `"${word}" twice on one line`);
+        seen.add(word);
         if (word === 'rotate') turn = axisAndDegrees();
         else if (word === 'move' && box) {
           const by = vector();
@@ -112,6 +127,11 @@ export function levelFromText(text: string): Level {
       }
       return { turn, color: paint, move, spin };
     };
+    if (kind === 'title' || kind === 'spawn' || kind === 'facing') {
+      const first = once.get(kind);
+      if (first !== undefined) fail(n, `"${kind}" twice in a level (the first, on line ${first + 1})`);
+      once.set(kind, n);
+    }
     switch (kind) {
       case 'title':
         level.title = line.slice('title'.length).trim();
@@ -122,10 +142,11 @@ export function levelFromText(text: string): Level {
         break;
       case 'facing':
         level.facing = vector();
+        if (level.facing.every((v) => v === 0)) fail(n, 'facing needs a direction, not 0 0 0');
         break;
       case 'box': {
         const center = vector();
-        const half = vector();
+        const half = halves();
         const { turn, color, move, spin } = extras(true);
         level.boxes.push({ center, half, turn, color, move, spin });
         break;
@@ -134,7 +155,7 @@ export function levelFromText(text: string): Level {
         const what = words[at++];
         if (!what || !/^[a-z][a-z0-9.-]*$/.test(what)) fail(n, 'a zone needs what it is for, in one word (checkpoint, goal…)');
         const center = vector();
-        const half = vector();
+        const half = halves();
         const { turn } = extras(false);
         level.sensors.push({ kind: what!, center, half, turn });
         break;

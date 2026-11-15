@@ -31,13 +31,31 @@ describe('levels as data (stage 2a)', () => {
 
   test('a line that is not understood says which one, and why', () => {
     const bad = (line: string) => () => levelFromText(`# Manifold level 1\ntitle x\n${line}\n`);
-    expect(bad('box 0 0 0  1 1')).toThrow(/line 3: "" is not a number/);
+    expect(bad('box 0 0 0  1 1')).toThrow(/line 3: a number is missing/);
     expect(bad('box 0 0 0  1 1 1  rotate w 10')).toThrow(/line 3: "w" is not an axis/);
     expect(bad('box 0 0 0  1 1 1  color red')).toThrow(/line 3: "red" is not a color/);
     expect(bad('sensor 0 0 0  1 1 1')).toThrow(/line 3: a zone needs what it is for/);
     expect(bad('tree 1 2 3')).toThrow(/line 3: "tree" is not understood/);
     expect(() => levelFromText('title x')).toThrow(/line 1: it must start with/);
     expect(() => levelFromText('# Manifold level 9\n')).toThrow(/format 9/);
+  });
+
+  test('what the format does not say is an error too (closing phase 2: before, these were read)', () => {
+    const bad = (lines: string) => () => levelFromText(`# Manifold level 1\ntitle x\n${lines}\n`);
+    // A box of no size, or turned inside out.
+    expect(bad('box 0 0 0  0 1 1')).toThrow(/line 3: a half size must be more than 0/);
+    expect(bad('sensor goal 0 0 0  1 -1 1')).toThrow(/line 3: a half size must be more than 0/);
+    // Twice on a line, or twice in a level: the first was silently lost.
+    expect(bad('box 0 0 0  1 1 1  rotate x 10  rotate y 20')).toThrow(/line 3: "rotate" twice on one line/);
+    expect(bad('spawn 0 1 0\nspawn 0 2 0')).toThrow(/line 4: "spawn" twice in a level \(the first, on line 3\)/);
+    expect(bad('title y')).toThrow(/line 3: "title" twice/);
+    // A direction that is none, and numbers that are not decimal.
+    expect(bad('facing 0 0 0')).toThrow(/line 3: facing needs a direction/);
+    expect(bad('box 0x10 0 0  1 1 1')).toThrow(/line 3: "0x10" is not a number/);
+    expect(bad('box Infinity 0 0  1 1 1')).toThrow(/line 3: "Infinity" is not a number/);
+    expect(() => levelFromText('# Manifold level 01\n')).toThrow(/line 1: it must start with/);
+    // What a program writes is still read: an exponent, a sign.
+    expect(levelFromText('# Manifold level 1\nbox 1e-7 +2 -.5  1 1 1\n').boxes[0]!.center).toEqual([1e-7, 2, -0.5]);
   });
 
   test('built into a world: its boxes as fixed bodies that are seen, its zones as sensors that are not', () => {

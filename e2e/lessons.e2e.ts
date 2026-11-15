@@ -97,3 +97,116 @@ test('inputs as actions: a bot asks for actions, and only the changes are kept, 
   expect(await value(f, 'jumps, player 1')).toBe('0');
   expect(Number(await value(f, 'step'))).toBeGreaterThan(Number(await value(f, 'changes kept')));
 });
+
+// ---------------------------------------------------------------- stage 2 (closing phase 2)
+
+test('zones: balls come into the zones and leave them, each "left" after its "entered", and who is inside adds up', async ({
+  page,
+}) => {
+  const f = await open(page, 'tutorial/etapa-2/01-zonas-que-notan-quien-entra/');
+  await expect.poll(async () => Number(await value(f, 'left')), { timeout: 30_000 }).toBeGreaterThan(5);
+  // The console from its first line (it keeps the last 200: none dropped yet): for every ball and zone,
+  // "entered" and "left" take turns, starting with "entered".
+  const lines = (await page.locator('.live-code .lc-console').first().innerText()).split('\n');
+  expect(lines[0]).toContain('10 balls, and every zone empty');
+  const inside = new Map<string, boolean>();
+  let events = 0;
+  for (const line of lines) {
+    const m = /^ball (\d+) (entered|left) (\w+)$/.exec(line.trim());
+    if (!m) continue;
+    events++;
+    const key = `ball ${m[1]} in ${m[3]}`;
+    expect(inside.get(key) ?? false, `${line}: is it inside?`).toBe(m[2] === 'left');
+    inside.set(key, m[2] === 'entered');
+  }
+  expect(events).toBeGreaterThan(10);
+  // Paused, the counters hold still: whoever entered and has not left is inside a zone.
+  await f
+    .locator('.lil-gui .controller', { has: f.locator('.name', { hasText: 'pause' }) })
+    .locator('input')
+    .click();
+  await expect
+    .poll(async () => {
+      const [entered, left] = [Number(await value(f, 'entered')), Number(await value(f, 'left'))];
+      let now = 0;
+      for (const zone of ['gate', 'pad', 'spot', 'drain']) now += Number(await value(f, `inside ${zone}`));
+      return entered - left - now;
+    })
+    .toBe(0);
+});
+
+test('platforms that carry: on the carousel the character goes round and turns with it; without the carry, it stays', async ({
+  page,
+}) => {
+  const f = await open(page, 'tutorial/etapa-2/04-plataformas-que-llevan/');
+  await click(f, 'demo');
+  await expect.poll(() => value(f, 'on'), { timeout: 30_000 }).toBe('carousel');
+  await expect.poll(async () => Number(await value(f, 'carried (m/s)')), { timeout: 30_000 }).toBeGreaterThan(0.5);
+  const turned = Number(await value(f, 'turned (°)'));
+  await expect.poll(async () => Number(await value(f, 'turned (°)')), { timeout: 30_000 }).toBeGreaterThan(turned + 10);
+  // Without the carry, the carousel turns under it: it is still on it, and nothing carries it.
+  await f
+    .locator('.lil-gui .controller', { has: f.locator('.name', { hasText: 'the platform carries it' }) })
+    .locator('input')
+    .click();
+  await expect.poll(() => value(f, 'carried (m/s)'), { timeout: 30_000 }).toBe('0.00');
+  expect(await value(f, 'on')).toBe('carousel');
+});
+
+test('a level as text: what is read is the level, the balls come to rest on its boxes, and a bad line says its number', async ({
+  page,
+}) => {
+  const f = await open(page, 'tutorial/etapa-2/00-un-nivel-como-texto/');
+  // The default level: 7 boxes and 2 zones, every line understood.
+  expect(await value(f, 'title')).toBe('A small yard');
+  expect(await value(f, 'boxes')).toBe('7');
+  expect(await value(f, 'zones')).toBe('2');
+  expect(await value(f, 'errors')).toBe('0');
+  // The 8 balls dropped at the spawn roll down the ramp and come to rest: on the boxes the text made, none in the void.
+  await expect.poll(async () => Number(await value(f, 'at rest')), { timeout: 30_000 }).toBe(8);
+  expect(await value(f, 'fell off')).toBe('0');
+  // A level with a line that is not understood: the rest is built, and the error says which line.
+  const example = page.locator('.live-code').first();
+  await example.locator('.lc-tabs button', { hasText: 'level.ts' }).click();
+  await example.locator('.cm-content').click();
+  await page.keyboard.press('ControlOrMeta+A');
+  await page.keyboard.press('Delete');
+  await page.keyboard.insertText(
+    'export const LEVEL = `# Manifold level 1\nbox 0 -0.5 0  7 0.5 7\nbox 0 1 0  1 1\nsensor goal  0 0.5 0  1 0.5 1\n`;\n',
+  );
+  await example.locator('.lc-run').click();
+  await expect(example.locator('.lc-console')).toContainText('line 3: a number is missing');
+  await expect.poll(() => value(f, 'errors')).toBe('1');
+  expect(await value(f, 'boxes')).toBe('1');
+  expect(await value(f, 'zones')).toBe('1');
+});
+
+test('one mode per step: the demo walks, climbs, jumps and glides, and every mode is seen', async ({ page }) => {
+  const f = await open(page, 'tutorial/etapa-2/02-un-modo-por-paso/');
+  await expect.poll(() => value(f, 'mode'), { timeout: 30_000 }).toBe('walk');
+  await click(f, 'demo');
+  // The demo starts over from the start, and "modes seen" lists only what it visits: all four.
+  await expect
+    .poll(async () => (await value(f, 'modes seen')).split(', ').sort().join(' '), { timeout: 60_000 })
+    .toBe('air climb glide walk');
+});
+
+test('capabilities as data: the demo takes the three stars; without climbing, the same inputs miss the wall’s', async ({
+  page,
+}) => {
+  test.slow();
+  const f = await open(page, 'tutorial/etapa-2/03-capacidades-como-datos/');
+  await click(f, 'demo');
+  // (It waits on "demos played": "stars" goes back to 0 when a demo starts, and could be read too early.)
+  await expect.poll(async () => Number(await value(f, 'demos played')), { timeout: 60_000 }).toBe(1);
+  expect(await value(f, 'stars')).toBe('3');
+  expect(await value(f, 'taken')).toBe('wall, gap, ledge');
+  await f
+    .locator('.lil-gui .controller', { has: f.locator('.name', { hasText: 'climb' }) })
+    .locator('input')
+    .click();
+  await click(f, 'demo');
+  await expect.poll(async () => Number(await value(f, 'demos played')), { timeout: 60_000 }).toBe(2);
+  expect(Number(await value(f, 'stars'))).toBeLessThan(3);
+  expect(await value(f, 'taken')).not.toContain('wall');
+});

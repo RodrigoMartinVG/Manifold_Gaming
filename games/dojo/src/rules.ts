@@ -118,7 +118,8 @@ function buildDojoLevel(world: World, level: Level) {
  * A LEVEL'S LOOP (stage 2a), with its zones: the engine says who came into which one, and what it
  * means is the Dojo's.
  * - `checkpoint`: a character comes back here from now on, if it falls;
- * - `fall` (the void under the floor): a character goes back to its checkpoint; a cube or a ball is gone;
+ * - `fall` (the void under the floor): a character goes back to its checkpoint; a cube or a ball is gone
+ *   (a platform, which the program moves, is not);
  * - `star` (stage 2c): whoever gets there first takes it, and it is gone;
  * - `goal`: the time it took (from when it started), how many times it fell and its stars, once.
  * What it keeps lives in the character's runner (`dojo.runner`): it is the world's, so it is hashed, it
@@ -135,8 +136,11 @@ function levelLoop(world: World, events: readonly Event[]) {
     const player = e.character?.player;
     switch (zone.sensor.kind) {
       case 'fall':
-        if (!e.character) world.removeEntity(e.id);
-        else if (run && player !== undefined) {
+        // What the physics moves (a cube, a ball) is gone; what the program moves (a platform) is not
+        // the void's (closing phase 2: before, a platform whose center dipped into it was deleted).
+        if (!e.character) {
+          if (e.body?.type === 'dynamic') world.removeEntity(e.id);
+        } else if (run && player !== undefined) {
           world.place(e, run.checkpoint);
           run.falls++;
           notice(player, 'you fell: back to the checkpoint');

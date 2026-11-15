@@ -83,6 +83,7 @@ export default defineConfig({
             { label: 'Empezar aquí', link: '/tutorial/' },
             { label: 'Etapa 0: cimientos', items: [{ autogenerate: { directory: 'tutorial/etapa-0' } }] },
             { label: 'Etapa 1: física y un personaje', items: [{ autogenerate: { directory: 'tutorial/etapa-1' } }] },
+            { label: 'Etapa 2: capacidades', items: [{ autogenerate: { directory: 'tutorial/etapa-2' } }] },
             { label: 'Glosario', link: '/tutorial/glosario/' },
             // The design patterns the lessons use, gathered like the glossary gathers the words (0013).
             { label: 'Patrones', link: '/tutorial/patrones/' },

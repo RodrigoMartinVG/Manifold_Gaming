@@ -249,6 +249,14 @@ test("the course's loop: a checkpoint, a fall back to it, the goal with its time
   expect(world().entities.size).toBe(before + 1);
   steps(120);
   expect(world().entities.size).toBe(before);
+  // A platform that dips into the void (the program moves it) is not the void's: it stays.
+  const lift = world().createEntity({
+    transform: { position: [20, 0, 0], rotation: quat.identity() },
+    body: { type: 'kinematic', shape: { kind: 'box', halfExtents: [1, 0.1, 1] } },
+    mover: { from: [20, 0, 0], to: [20, -8, 0], seconds: 1 },
+  });
+  steps(90);
+  expect(world().entities.has(lift.id), 'the platform, after dipping into the void').toBe(true);
   session.world.dispose();
 });
 

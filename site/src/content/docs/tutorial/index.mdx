@@ -39,7 +39,7 @@ Saltearse los recuadros no te deja afuera de nada de lo que sigue. Cuando una le
 
 ## Qué vas a aprender
 
-El tutorial sigue las etapas del motor ([el plan completo](../proyecto/)). Cada etapa trae sus lecciones cuando el motor llega a ella. Hoy están las etapas 0 y 1.
+El tutorial sigue las etapas del motor ([el plan completo](../proyecto/)). Cada etapa trae sus lecciones cuando el motor llega a ella. Hoy están las etapas 0, 1 y 2.
 
 El orden va de abajo hacia arriba: primero los cimientos (dibujar, el tiempo, el azar), después la física, y encima lo que se juega. Un personaje que se maneja aparece en la etapa 1, y los bots, en la 4. Los ejemplos son interactivos desde la primera lección; a partir de la etapa 1, además, se juegan.
 
@@ -47,8 +47,8 @@ El orden va de abajo hacia arriba: primero los cimientos (dibujar, el tiempo, el
 | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------- |
 | **0. Cimientos**                           | Cómo se dibuja en 3D. La escena, la cámara y el bucle. Orientar las cosas sin que se traben. Por qué la física avanza de a pasos fijos. Un azar que se puede repetir. Separar la simulación del dibujo. Números que no son exactos. Matrices y los espacios de un punto. | **Disponible** |
 | **1. Física y un personaje**               | Cuerpos que chocan, con un motor de física, y cómo se encuentra un choque. **Un personaje que se maneja** con el teclado, el mouse o un joystick, y una cámara que lo sigue. De la tecla a la acción. Repetir una partida y comprobar que dio igual.                     | **Disponible** |
-| **2. Capacidades**                         | Trepar, volar, agarrar: lo que un personaje sabe hacer, como piezas que se combinan.                                                                                                                                                                                     | La próxima     |
-| **3. Un mundo que responde**               | Mecanismos (puertas, ascensores, botones), cosas que se rompen, luces que se apagan.                                                                                                                                                                                     | Más adelante   |
+| **2. Capacidades**                         | Un nivel escrito como texto. Zonas que notan quién entra. Un modo de moverse por paso, y lo que se suma. Trepar, planear, un segundo salto: lo que un personaje sabe hacer, como datos. Plataformas que llevan.                                                          | **Disponible** |
+| **3. Un mundo que responde**               | Mecanismos (puertas, ascensores, botones), cosas que se rompen, luces que se apagan.                                                                                                                                                                                     | La próxima     |
 | **4. Combate y bots**                      | Armas, y **bots**: personajes que maneja la computadora. Patrullan, ven y oyen, persiguen, y usan el mundo; por ejemplo, un guardia que llama al ascensor.                                                                                                               | Más adelante   |
 | **5. Juegos**                              | Tres juegos completos sobre el motor, con historia, niveles, gráficos y sonido: uno de plataformas, una aventura de acción y un shooter. Se juegan en este sitio.                                                                                                        | Más adelante   |
 | **6. Red y niveles**                       | Jugar con otros por la red, y un editor para armar niveles.                                                                                                                                                                                                              | Más adelante   |
@@ -134,3 +134,11 @@ Este es el programa más chico posible: escribe en la consola con `console.log`,
 5. [Repeticiones y fantasmas](etapa-1/05-repeticiones/): grabar una partida sin grabar el mundo, y comprobar con una huella que dio lo mismo.
 6. [Instantáneas](etapa-1/06-instantaneas/): guardar el mundo entero, física incluida, y volver a él.
 7. [Un servidor y un cliente](etapa-1/07-servidor-y-cliente/): dos copias del mismo mundo, la demora, y una desincronización a propósito.
+
+## Etapa 2: capacidades
+
+0. [Un nivel como texto](etapa-2/00-un-nivel-como-texto/): un lugar para jugar escrito como texto, una pieza por línea; cómo se lee, y cómo un error dice en qué línea está.
+1. [Zonas que notan quién entra](etapa-2/01-zonas-que-notan-quien-entra/): cajas que no empujan, solo notan quién tiene el centro adentro, y avisan quién entró y quién salió, en orden y como parte del paso.
+2. [Un modo por paso, y lo que se suma](etapa-2/02-un-modo-por-paso/): caminar, en el aire, planear o trepar, uno solo por paso y elegido en un solo lugar; y lo que vale en todos (la gravedad, el viento), sumado después.
+3. [Capacidades como datos](etapa-2/03-capacidades-como-datos/): trepar, planear y un segundo salto, que se prenden y se apagan en vivo; lo que un personaje sabe hacer, como datos y no como clases.
+4. [Plataformas que llevan](etapa-2/04-plataformas-que-llevan/): un transbordador y un carrusel con el personaje encima; el lugar como función del paso, y por qué el controlador tiene que ver la plataforma quieta.

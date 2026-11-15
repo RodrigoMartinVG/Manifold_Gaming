@@ -147,7 +147,7 @@ describe('the reference replays (stage 2.5a), recorded from their scripts', () =
       { lines: ['dojo.goto 0 2 -4'], steps: 30 },
       { steps: 300, drive: (s) => (s < 180 ? { move: [-1, 0, 0] } : NO_INPUT) },
       // The tower, climbed: its star.
-      { lines: ['dojo.goto 6 1 2'], steps: 300, drive: (s) => (s < 200 ? { move: [1, 0, 0] } : NO_INPUT) },
+      { lines: ['dojo.goto 6 1 2'], steps: 300, drive: (s) => (s < 175 ? { move: [1, 0, 0] } : NO_INPUT) },
       // The island, gliding: its star.
       { lines: ['dojo.goto -3.5 4.5 -7'], steps: 300, drive: (s) => ({ move: [-1, 0, 0], jump: s > 1 }) },
       // The highest platform (the goal), and once landed, a second jump at the top of the first: its star.
