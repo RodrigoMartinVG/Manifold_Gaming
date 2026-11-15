@@ -18,6 +18,9 @@ export const CONSOLE_ES: Readonly<Record<string, string>> = {
   'show.vectors': 'velocidades, y hacia dónde mira cada personaje',
   'show.contacts': 'los puntos de contacto, con su normal',
   'show.gravity': 'el campo de gravedad, como flechas',
+  'show.light': 'el alcance de las lámparas: amarillo mientras están prendidas, gris mientras están apagadas',
+  'show.vision':
+    'lo que mira cada observador: el borde de su campo de visión, y una línea a cada personaje en él, verde si lo ve',
   'show.signals':
     'las señales: una línea desde cada mecanismo hasta las zonas de donde sale su señal, verde mientras está prendida',
   'view.timescale': 'mostrar el mundo más lento (0.2) o más rápido (2), sin cambiar la física',

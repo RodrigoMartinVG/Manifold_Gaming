@@ -14,6 +14,7 @@ import { mountProbe } from './probe';
 import { mountReplays } from './replays';
 import { createStage } from './stage';
 import { mountStats } from './stats';
+import { mountLights } from './lights';
 import { mountSignals } from './signals';
 import { mountViews } from './views';
 
@@ -153,6 +154,7 @@ export function mount(cartridge: Cartridge, container: HTMLElement, o: MountOpti
     bodies,
     mountViews(page, bodies),
     mountSignals(page, bodies),
+    mountLights(page, bodies),
     replays,
     mountStats(page, match),
     mountNotices(page),

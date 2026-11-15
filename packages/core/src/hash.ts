@@ -67,6 +67,8 @@ export function stateHash(world: World): number {
   number(world.lastEntityId);
   for (const n of world.random.state) number(n);
   value(world.gravity);
+  // Its ambient light (stage 3d).
+  number(world.ambient);
   // Its materials (stage 3b): a level's ice is part of what the world is.
   value(world.materials);
   // Its signals (stage 3c), in their order.

@@ -7,7 +7,8 @@ import type { GamePage, Piece } from './page';
  * coarse without a GPU, where a frame can take 5 steps, and a whole jump (about 36 steps above a
  * meter) could happen between two readings. The match too (a test that waits for "joined" should not
  * wait ten frames). The rest, every 10 frames: how many frames were drawn, how many entities are really
- * drawn in the scene (not in a map: a bug of step 0 did not show there), and the other players.
+ * drawn in the scene (not in a map: a bug of step 0 did not show there), what the last frame cost the
+ * GPU (draw calls, triangles: stage 3d), and the other players.
  * (Other pieces write what they own when it happens: `notice`, `replay`, `ghost`, `contacts`, `desyncs`,
  * and the bodies `clip`, the animation the player's model plays, and `gesture`, the last gesture it
  * started, numbered.)
@@ -29,6 +30,11 @@ export function mountProbe(page: GamePage, match: PageMatch): Piece {
       // What is drawn for an entity (a mesh, or a model's copy), and the ghost: not shadows or lines.
       data.meshes = String(page.stage.scene.children.filter((x) => x.userData.entity !== undefined || x.userData.ghost).length);
       data.checks = String(match.checks);
+      // What the last frame cost the GPU (stage 3d: the budgets for what is drawn): its draw calls and
+      // its triangles, as three.js counts them.
+      const drawn = page.stage.renderer.info.render;
+      data.draws = String(drawn.calls);
+      data.triangles = String(drawn.triangles);
       data.others = [...world.entities.values()]
         .filter((e) => e.character && e.character.player !== match.me && e.transform)
         .map((e) => `${e.character!.player}:${fixed(e.transform!.position)}`)

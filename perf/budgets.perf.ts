@@ -1,4 +1,5 @@
 import { beforeAll, describe, expect, test } from 'vitest';
+import { quat } from '@manifold/common';
 import { initPhysics, registryFor, Session, stateHash, World, type WorldSnapshot } from '@manifold/core';
 import { DojoCartridge } from '@manifold/dojo/cartridge';
 import { ROOMS } from '@manifold/dojo/rooms';
@@ -181,5 +182,57 @@ describe('the performance budgets (stage 2.5a), in the stress room', () => {
       alone.ratio.alone,
       `playing alone ${ms(alone.ms.alone / steps)} a step, one copy ${ms(alone.ms.one / steps)}: ${alone.ratio.alone.toFixed(2)} times`,
     ).toBeLessThan(2.5);
+  });
+});
+
+describe('the light (stage 3d), in the stress room with eight characters', () => {
+  test("four lamps, a fog bank and a watcher cost the step less than half of Rapier's: their rays, every character's and the watcher's", () => {
+    // The stress room, with seven more players (eight characters, each lit by every lamp that reaches
+    // it), two seconds after its birth; and the same moment with the light added.
+    const session = new Session(DojoCartridge, { registry: stress() });
+    for (let p = 2; p <= 8; p++) session.registry.run(`players.join ${p}`, 'console');
+    for (let i = 0; i < 120; i++) session.step();
+    const plain = session.world.snapshot();
+    const w = session.world;
+    w.ambient = 0.1;
+    for (const [x, z] of [
+      [-4, 4],
+      [4, 4],
+      [-4, -4],
+      [4, -4],
+    ])
+      w.createEntity({
+        transform: { position: [x!, 3, z!], rotation: quat.identity() },
+        lamp: { radius: 7, intensity: 1, signal: null },
+      });
+    w.createEntity({
+      transform: { position: [0, 1, 2], rotation: quat.identity() },
+      sensor: { kind: 'fog', half: [3, 1, 1], params: { opacity: [1] } },
+    });
+    w.createEntity({
+      transform: { position: [0, 2.5, -9], rotation: quat.fromDegrees([0, 1, 0], 180) },
+      watcher: { range: 25, cone: 0.5, threshold: 0.3 },
+    });
+    session.step();
+    const lit = session.world.snapshot();
+    session.world.dispose();
+    const steps = 60;
+    const stepping = (snap: WorldSnapshot, step: (w: World) => void) => () => {
+      const world = World.restore(snap);
+      const spent = time(() => {
+        for (let i = 0; i < steps; i++) step(world);
+      });
+      world.dispose();
+      return spent / steps;
+    };
+    const t = measure('rapier', {
+      rapier: stepping(plain, (x) => x.physics.step()),
+      plain: stepping(plain, (x) => x.step()),
+      lit: stepping(lit, (x) => x.step()),
+    });
+    const light = t.ratio.lit - t.ratio.plain;
+    expect(light, `the step with the light ${ms(t.ms.lit)}, without ${ms(t.ms.plain)}; Rapier's ${ms(t.ms.rapier)}`).toBeLessThan(
+      0.5,
+    );
   });
 });

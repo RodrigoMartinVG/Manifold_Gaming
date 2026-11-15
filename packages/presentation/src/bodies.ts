@@ -127,6 +127,8 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
   const shapeFor = (a: Appearance): THREE.Object3D => {
     if (a.shape === 'grid') return gridFor(a);
     const material = new THREE.MeshLambertMaterial({ color: a.color, wireframe });
+    // Translucent (stage 3d: a fog bank): what is behind shows through, and it does not hide what is in it.
+    if (a.opacity !== undefined) Object.assign(material, { transparent: true, opacity: a.opacity, depthWrite: false });
     if (a.shape !== 'capsule') {
       const mesh = own(new THREE.Mesh(geometries[a.shape], material), { material: true });
       mesh.scale.set(...a.size);

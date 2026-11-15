@@ -295,6 +295,54 @@ test("E presses a button (stage 3c): in the machines room, it flips the door's s
   expect(list).toEqual([]);
 });
 
+test('the watcher (stage 3d): in a pool of light it sees you, in the dark it loses you, and the page says so', async ({
+  page,
+}) => {
+  const list = errors(page);
+  await page.goto('jugar/dojo/watch/');
+  await expect.poll(() => page.locator('#game').getAttribute('data-player'), { timeout: 20_000 }).toBeTruthy();
+  // At the start, in the dark: how lit it is, the room's ambient; nobody sees it.
+  await expect.poll(() => page.locator('#game').getAttribute('data-light'), { timeout: 15_000 }).toBe('0.08');
+  expect(await page.locator('#game').getAttribute('data-seen')).toBe('0');
+  const go = async (line: string) => {
+    await page.keyboard.press('Backquote');
+    await typeInConsole(page, line);
+    await page.keyboard.press('Escape');
+  };
+  await go('dojo.goto -4 1 3');
+  await expect.poll(() => page.locator('#game').getAttribute('data-seen'), { timeout: 15_000 }).toBe('1');
+  await expect(page.locator('.mg-notice')).toContainText('the watcher sees you');
+  await go('dojo.goto 0 1 9');
+  await expect.poll(() => page.locator('#game').getAttribute('data-seen'), { timeout: 15_000 }).toBe('0');
+  await expect(page.locator('.mg-notice')).toContainText('the watcher lost you');
+  expect(list).toEqual([]);
+});
+
+// Stage 3d: what is drawn has its budgets too, as the simulation's (stage 2.5a): what a room costs the
+// GPU, as three.js counts it. Measured on 2026-11-15 (Chromium, without a GPU): the watcher room, 28
+// draw calls and 5,024 triangles (its four lamps' balls are 3,072 of them); the circuit, 45 and 1,992;
+// the stress room, 226 and 4,152 (a draw call for every cube: one shape for all would be one).
+for (const [room, draws, triangles] of [
+  ['watch', 40, 8000],
+  ['circuit', 60, 4000],
+  ['stress', 260, 6000],
+] as const)
+  test(`what the room "${room}" costs the GPU stays in its budget: ${draws} draw calls, ${triangles} triangles`, async ({
+    page,
+  }) => {
+    await page.goto(`jugar/dojo/${room}/`);
+    await expect
+      .poll(() => page.locator('#game').getAttribute('data-draws').then(Number), { timeout: 30_000 })
+      .toBeGreaterThan(0);
+    await afterSteps(page, 60);
+    const drawn = {
+      draws: Number(await page.locator('#game').getAttribute('data-draws')),
+      triangles: Number(await page.locator('#game').getAttribute('data-triangles')),
+    };
+    expect(drawn.draws, `draw calls (${JSON.stringify(drawn)})`).toBeLessThanOrEqual(draws);
+    expect(drawn.triangles, `triangles (${JSON.stringify(drawn)})`).toBeLessThanOrEqual(triangles);
+  });
+
 test('the wheel gets the camera closer, and the right button moves it sideways', async ({ page }) => {
   const list = errors(page);
   await page.setViewportSize({ width: 1280, height: 800 });
@@ -332,6 +380,8 @@ const VIEW_VALUES: Record<string, string> = {
   'show.sensors': 'on',
   'show.gravity': 'on',
   'show.signals': 'on',
+  'show.light': 'on',
+  'show.vision': 'on',
   'show.stats': 'on',
   'view.timescale': '0.5',
   'view.paused': 'on',

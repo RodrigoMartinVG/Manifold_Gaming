@@ -29,5 +29,7 @@
  *      over it (it takes hold through the feet)
  *  17  stage 3c: the world's signals (in the hash and snapshots) and their phase at the end of every
  *      step; mechanisms, doors and lifts, that follow them; the character's `use`
+ *  18  stage 3d: the light, the simulation's: the world's ambient, lamps, how lit every character is,
+ *      and watchers that see by it (their phase, before the signals'); zones that attenuate
  */
-export const SIMULATION_VERSION = 17;
+export const SIMULATION_VERSION = 18;

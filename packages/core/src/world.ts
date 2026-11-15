@@ -43,7 +43,44 @@ export interface Query {
 }
 
 /** How many signals each kind of signal reads (−1: one or more). */
-const SIGNAL_READS: Record<SignalOp, number> = { input: 0, zone: 1, used: 1, any: -1, all: -1, not: 1, toggle: 1, latch: 2 };
+const SIGNAL_READS: Record<SignalOp, number> = {
+  input: 0,
+  zone: 1,
+  used: 1,
+  seen: 1,
+  any: -1,
+  all: -1,
+  not: 1,
+  toggle: 1,
+  latch: 2,
+};
+
+/**
+ * How long the segment from `a` to `b` is inside a box (its center, its turn, half its size): both
+ * points turned into the box's axes, and the part of the segment between its faces on every axis (the
+ * slabs). Additions, multiplications and divisions.
+ */
+export function insideLength(center: Vec3, rotation: Quat, half: Vec3, a: Vec3, b: Vec3): number {
+  const back = quat.conjugate(rotation);
+  const p = quat.rotate(back, vec3.sub(a, center));
+  const q = quat.rotate(back, vec3.sub(b, center));
+  const d = vec3.sub(q, p);
+  let enter = 0;
+  let exit = 1;
+  for (let k = 0; k < 3; k++) {
+    if (Math.abs(d[k]!) < 1e-12) {
+      if (Math.abs(p[k]!) > half[k]!) return 0;
+      continue;
+    }
+    let t1 = (-half[k]! - p[k]!) / d[k]!;
+    let t2 = (half[k]! - p[k]!) / d[k]!;
+    if (t1 > t2) [t1, t2] = [t2, t1];
+    enter = Math.max(enter, t1);
+    exit = Math.min(exit, t2);
+    if (exit <= enter) return 0;
+  }
+  return (exit - enter) * vec3.length(d);
+}
 
 /** How far a mechanism is from closed (0) to open (1) at a step: from where it last turned, at its speed. */
 export function progressOf(m: Mechanism, tick: number): number {
@@ -102,6 +139,7 @@ export interface WorldSnapshot {
   readonly lastId: number;
   readonly random: readonly [number, number, number, number];
   readonly gravity: GravityField;
+  readonly ambient: number;
   readonly materials: Readonly<Record<string, Material>>;
   readonly signals: readonly Signal[];
   readonly inputs: readonly [number, PlayerInput][];
@@ -148,14 +186,16 @@ export function copyData<T>(x: T): T {
  *   4. physics: Rapier advances one step (gravity, collisions, bounces; the characters move);
  *   5. readBack: every moving body's pose and velocities go to its components;
  *   6. zones: who came into each zone, and who left (stage 2a);
- *   7. signals: every signal, from what the zones noticed, in the order declared (stage 3c, decision
- *      0018); mechanisms read them at the next step's kinematics.
+ *   7. light: every lamp on or off as its signal was, how lit every character is, and who every watcher
+ *      sees (stage 3d);
+ *   8. signals: every signal, from what the zones noticed and the watchers saw, in the order declared
+ *      (stage 3c, decision 0018); mechanisms and lamps read them at the next step.
  *
  * A game hooks in around them, never inside (mechanism and policy, decision 0000): before
  * (`Cartridge.beforeStep`: what these phases will use at this step: a bot's inputs, a mechanism's
  * target, what a character carries) and after (`Cartridge.onStep`: its rules, on the step's events).
  */
-export const PHASES = ['spin', 'kinematics', 'characters', 'physics', 'readBack', 'zones', 'signals'] as const;
+export const PHASES = ['spin', 'kinematics', 'characters', 'physics', 'readBack', 'zones', 'light', 'signals'] as const;
 export type Phase = (typeof PHASES)[number];
 
 export class World {
@@ -190,6 +230,11 @@ export class World {
   readonly players = new Set<number>();
   /** Its gravity field: data, like the rest of its state (decision 0012). */
   private field: GravityField;
+  /**
+   * ITS AMBIENT LIGHT (stage 3d): how lit everything is with no lamp, from 0 (dark) to 1 (the light
+   * every room had before: a room says less). Data, like the rest: hashed, and in snapshots.
+   */
+  ambient = 1;
   /**
    * WHAT ITS THINGS CAN BE MADE OF (stage 3b), by name: the engine's (`MATERIALS`) and those a level
    * declares (`addMaterial`). Data, like the rest: hashed, and in snapshots. A body names one
@@ -242,6 +287,7 @@ export class World {
       lastId: this.lastId,
       random: [...this.random.state],
       gravity: copyData(this.field),
+      ambient: this.ambient,
       materials: copyData(this.table),
       signals: copyData(this.wires),
       inputs: copyData([...this.inputs]),
@@ -268,6 +314,7 @@ export class World {
     });
     world.tick = s.tick;
     world.lastId = s.lastId;
+    world.ambient = s.ambient;
     for (const signal of copyData(s.signals)) world.wires.push(signal);
     world.random.restore(s.random);
     for (const [player, input] of copyData(s.inputs)) world.inputs.set(player, input);
@@ -328,6 +375,8 @@ export class World {
     for (const r of reads) {
       if (op === 'zone' || op === 'used') {
         if (!this.named(r)?.sensor) fail(`no zone named "${r}"`);
+      } else if (op === 'seen') {
+        if (!this.named(r)?.watcher) fail(`no watcher named "${r}"`);
       } else if (!this.wires.some((w) => w.name === r)) fail(`it reads "${r}", which is not a signal added before it`);
     }
     this.wires.push({ name, op, reads: [...reads], value: 0, memory: 0 });
@@ -365,7 +414,7 @@ export class World {
   }
 
   createEntity(components: Components): Entity {
-    const { body, character, sensor, mover, mechanism, ...rest } = components;
+    const { body, character, sensor, mover, mechanism, lamp, watcher, ...rest } = components;
     for (const name of Object.keys(rest.game ?? {}))
       if (!COMPONENT_NAME.test(name))
         throw new Error(
@@ -383,6 +432,18 @@ export class World {
       throw new Error(`no material "${body.material}" in this world (${Object.keys(this.table).join(', ')})`);
     const entity: Entity = { id: ++this.lastId, ...rest };
     if (mover) entity.mover = { from: [...mover.from], to: [...mover.to], seconds: mover.seconds };
+    if (lamp) {
+      if (!entity.transform) throw new Error('A lamp needs a transform: where is it?');
+      if (!(lamp.radius > 0) || !(lamp.intensity >= 0))
+        throw new Error('A lamp reaches somewhere (a radius over 0), with some light (0 or more)');
+      entity.lamp = { radius: lamp.radius, intensity: lamp.intensity, signal: lamp.signal, on: lamp.signal === null };
+    }
+    if (watcher) {
+      if (!entity.transform) throw new Error('A watcher needs a transform: where is its eye, and where does it look?');
+      if (!(watcher.range > 0) || !(watcher.cone >= -1 && watcher.cone <= 1))
+        throw new Error('A watcher sees somewhere: a range over 0, a cone between -1 and 1');
+      entity.watcher = { range: watcher.range, cone: watcher.cone, threshold: watcher.threshold, sees: [] };
+    }
     if (mechanism) {
       if (!entity.transform) throw new Error('A mechanism needs a transform: where is it, closed?');
       if (!(mechanism.seconds > 0)) throw new Error('A mechanism takes some time: its seconds must be more than 0');
@@ -499,6 +560,7 @@ export class World {
         if (e.body && e.transform && e.body.type !== 'fixed') this.physics.read(e.body.handle, e.transform, e.body);
     },
     zones: () => this.sense(),
+    light: () => this.illuminate(),
     signals: () => this.compute(),
   };
 
@@ -550,6 +612,104 @@ export class World {
   }
 
   /**
+   * HOW LIT A POINT IS (stage 3d): the ambient light, plus, from every lamp on that reaches it and sees
+   * it (a ray from the lamp: nothing in between, the lamp and `skip`, the one lit, left out), its intensity falling
+   * linearly to its radius, times what gets through the zones in between (`transmission`). Additions,
+   * multiplications, a division and a square root: the same in every browser and in Node.
+   */
+  lightAt(point: Vec3, skip?: EntityId): number {
+    return this.lit(point, skip, this.lampsOn(), this.attenuators());
+  }
+
+  /** The lamps on, and the zones that attenuate: what the light reads, gathered once per step. */
+  private lampsOn(): Entity[] {
+    return [...this.entities.values()].filter((e) => e.lamp?.on && e.transform);
+  }
+  private attenuators(): Entity[] {
+    return [...this.entities.values()].filter((e) => e.sensor?.params.opacity?.[0] && e.transform);
+  }
+
+  private lit(point: Vec3, skip: EntityId | undefined, lamps: readonly Entity[], fogs: readonly Entity[]): number {
+    let light = this.ambient;
+    for (const e of lamps) {
+      const lamp = e.lamp!;
+      if (!e.transform) continue;
+      const to = vec3.sub(point, e.transform.position);
+      const d = vec3.length(to);
+      if (d >= lamp.radius) continue;
+      if (d > 1e-9) {
+        const hit = this.castRay(e.transform.position, vec3.scale(to, 1 / d), d, {
+          besides: e.id,
+          ...(skip === undefined ? {} : { skip }),
+        });
+        if (hit && hit.distance < d - 1e-6) continue;
+      }
+      light += lamp.intensity * (1 - d / lamp.radius) * this.through(e.transform.position, point, fogs);
+    }
+    return light;
+  }
+
+  /**
+   * WHAT GETS THROUGH from one point to another (stage 3d), from 1 (all) towards 0: each zone with an
+   * `opacity` (per meter) the segment crosses takes its length inside it times its opacity, and what
+   * gets through is 1 / (1 + their sum): a rational falloff, not the browsers' exponential (no `exp`),
+   * the same everywhere. Light and sight both cross it: a watcher sees no more through a fog bank than
+   * the player does.
+   */
+  transmission(from: Vec3, to: Vec3): number {
+    return this.through(from, to, this.attenuators());
+  }
+
+  private through(from: Vec3, to: Vec3, fogs: readonly Entity[]): number {
+    if (fogs.length === 0) return 1;
+    let thickness = 0;
+    for (const zone of fogs)
+      thickness +=
+        zone.sensor!.params.opacity![0]! *
+        insideLength(zone.transform!.position, zone.transform!.rotation, zone.sensor!.half, from, to);
+    return 1 / (1 + thickness);
+  }
+
+  /**
+   * LIGHT SYSTEM (stage 3d): every lamp on or off as its signal was at the end of the last step (as a
+   * mechanism reads it); how lit every character is, at its center; and who every watcher sees (in
+   * range, in its cone, nothing in between, lit enough as seen from it). A change in what a watcher
+   * sees is an event (`seen`, `lost`).
+   */
+  private illuminate() {
+    for (const e of this.entities.values()) if (e.lamp) e.lamp.on = e.lamp.signal === null || this.signal(e.lamp.signal) !== 0;
+    const lamps = this.lampsOn();
+    const fogs = this.attenuators();
+    const characters: Entity[] = [];
+    for (const e of this.entities.values())
+      if (e.character && e.transform) {
+        e.character.light = this.lit(e.transform.position, e.id, lamps, fogs);
+        characters.push(e);
+      }
+    for (const eye of this.entities.values()) {
+      const w = eye.watcher;
+      if (!w || !eye.transform) continue;
+      const from = eye.transform.position;
+      const forward = quat.rotate(eye.transform.rotation, [0, 0, -1]);
+      const now: EntityId[] = [];
+      for (const e of characters) {
+        const to = vec3.sub(e.transform!.position, from);
+        const d = vec3.length(to);
+        if (d > w.range || d < 1e-9) continue;
+        const direction = vec3.scale(to, 1 / d);
+        if (vec3.dot(direction, forward) < w.cone) continue;
+        const hit = this.castRay(from, direction, d, { skip: eye.id, besides: e.id });
+        if (hit && hit.distance < d - 1e-6) continue;
+        if (e.character!.light * this.through(from, e.transform!.position, fogs) < w.threshold) continue;
+        now.push(e.id);
+      }
+      for (const id of w.sees) if (!now.includes(id)) this.emit({ type: 'lost', watcher: eye.id, entity: id });
+      for (const id of now) if (!w.sees.includes(id)) this.emit({ type: 'seen', watcher: eye.id, entity: id });
+      w.sees = [...w.sees.filter((id) => now.includes(id)), ...now.filter((id) => !w.sees.includes(id))];
+    }
+  }
+
+  /**
    * SIGNALS SYSTEM (stage 3c, decision 0018): every signal, in the order declared, from what the
    * zones noticed in this step and the signals above it. A change is an event (`signalChanged`).
    */
@@ -575,6 +735,9 @@ export class World {
             const c = this.entities.get(id)?.character;
             return c !== undefined && pressed(this, c.player, 'use');
           }).length;
+          break;
+        case 'seen':
+          w.value = this.named(w.reads[0]!)?.watcher?.sees.length ?? 0;
           break;
         case 'any':
           w.value = w.reads.some(on) ? 1 : 0;

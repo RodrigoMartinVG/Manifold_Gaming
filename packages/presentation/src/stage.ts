@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import type { Stage } from './page';
 
 /**
- * THE STAGE: the renderer, the scene with its lights, and the camera, fitted to the element it is in
+ * THE STAGE: the renderer, the scene with its lights (as much of them as the world's ambient light
+ * says, stage 3d), and the camera, fitted to the element it is in
  * (and refitted when it changes size). Where the camera goes is the camera's piece. (Until stage 3b
  * it drew a grid too, 20 m square, under any level; now a floor is drawn as one, if it says so.)
  */
@@ -13,11 +14,16 @@ export function createStage(container: HTMLElement): Stage {
   container.append(renderer.domElement);
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x14161c);
+  let day = 1;
   const camera = new THREE.PerspectiveCamera(60, 1, 0.05, 200);
-  scene.add(new THREE.HemisphereLight(0xc8d4ff, 0x3a3028, 1.4));
+  const sky = new THREE.HemisphereLight(0xc8d4ff, 0x3a3028, 1.4);
+  scene.add(sky);
   const sun = new THREE.DirectionalLight(0xfff2e0, 1.8);
   sun.position.set(4, 8, 3);
   scene.add(sun);
+  // The background darkens with them: a dark room is dark all round, not only on what it lights.
+  const background = new THREE.Color(0x14161c);
+  const night = new THREE.Color(0x07080b);
 
   const fitSize = () => {
     const width = Math.max(1, container.clientWidth);
@@ -34,6 +40,14 @@ export function createStage(container: HTMLElement): Stage {
     renderer,
     scene,
     camera,
+    daylight(amount) {
+      const a = Math.max(0, Math.min(1, amount));
+      if (a === day) return;
+      day = a;
+      sky.intensity = 1.4 * a;
+      sun.intensity = 1.8 * a;
+      (scene.background as THREE.Color).copy(night).lerp(background, a);
+    },
     render: () => renderer.render(scene, camera),
     stop() {
       observer.disconnect();

@@ -32,6 +32,8 @@ export interface Stage {
   readonly renderer: THREE.WebGLRenderer;
   readonly scene: THREE.Scene;
   readonly camera: THREE.PerspectiveCamera;
+  /** How much of the day's light there is (stage 3d): the world's ambient light, from 0 to 1. */
+  daylight(amount: number): void;
   render(): void;
   stop(): void;
 }

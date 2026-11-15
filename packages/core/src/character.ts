@@ -44,6 +44,7 @@ export function newCharacter(spec: CharacterSpec): Character {
     jumpPending: 0,
     jumpHeld: false,
     facing: [...(spec.facing ?? [0, 0, -1])],
+    light: 0,
     carry: [0, 0, 0],
     ground: { velocity: [0, 0, 0], spin: 0 },
     carriedTurn: quat.identity(),

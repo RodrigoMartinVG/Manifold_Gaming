@@ -9,13 +9,15 @@ import { expect, test } from '@playwright/test';
  * in every browser, also in continuous integration (Chromium, Firefox and WebKit).
  */
 const folder = path.join(import.meta.dirname, '..', 'games', 'dojo', 'replays');
+// In the order of their names, as the page lists them (`phase-3` before `phase-3-light`; by the files'
+// names, with `.replay`, it would be the other way round).
 const references = readdirSync(folder)
   .filter((f) => f.endsWith('.replay'))
-  .sort()
   .map((f) => ({
     name: f.replace(/\.replay$/, ''),
     hash: /^end \d+ ([0-9a-f]{8})$/m.exec(readFileSync(path.join(folder, f), 'utf8'))![1]!,
-  }));
+  }))
+  .sort((a, b) => a.name.localeCompare(b.name));
 
 test('this browser plays every reference replay to the hash Node recorded, without drawing anything', async ({ page }) => {
   const errors: string[] = [];
@@ -28,7 +30,7 @@ test('this browser plays every reference replay to the hash Node recorded, witho
   const rows = check.locator('tbody tr');
   await expect(rows).toHaveCount(references.length);
   for (const [i, r] of references.entries()) {
-    await expect(rows.nth(i).locator('td').first()).toHaveText(r.name.replace(/^phase-/, 'Fase '));
+    await expect(rows.nth(i).locator('td').first()).toHaveText(r.name.replace(/^phase-/, 'Fase ').replace(/-light$/, ', la luz'));
     await expect(rows.nth(i).locator('td').nth(3)).toHaveText(r.hash);
   }
   await expect(check).toHaveAttribute('data-same', String(references.length));

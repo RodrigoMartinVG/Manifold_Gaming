@@ -286,7 +286,7 @@ sensor fog  0 2 -20  4 2 4  rotate y 30  opacity 0.2  color 0.8 0.8 0.9
     expect(v1('box 0 0 0  1 1 1  grid')).toThrow(/line 3: "grid" is format 2/);
     expect(v1('material oil friction 0 bounce 0 density 1 drag 0')).toThrow(/line 3: "material" is format 2/);
     expect(v1('sensor current 0 0 0  1 1 1  flow 1 0 0')).toThrow(/line 3: "flow": a zone carries what it says from format 2 on/);
-    expect(() => levelFromText('# Manifold level 4\n')).toThrow(/line 1: a level of format 4: this engine reads formats 1 to 3/);
+    expect(() => levelFromText('# Manifold level 5\n')).toThrow(/line 1: a level of format 5: this engine reads formats 1 to 4/);
   });
 
   test('what format 2 does not allow says which line, and why', () => {
@@ -434,6 +434,59 @@ signal either   any gate lights
       door: { hinge: [2.4, 1.1, -4], axis: [0, 1, 0], degrees: 90 },
     });
     expect(world.named('the_lift')!.mechanism).toMatchObject({ signal: 'lift_up', lift: { by: [0, 4, 0] }, toward: 0, from: 0 });
+    world.dispose();
+  });
+});
+
+describe('the level format, version 4: the light (stage 3d)', () => {
+  const V4 = `# Manifold level 4
+title Dark
+ambient 0.1
+lamp 0 3 0  6 1  signal lights  name lamp
+lamp 5 2 5  3 0.5
+watcher 0 2 -10  20 90 0.3  rotate y 180  name eye
+sensor fog  -5 1 0  1.5 1 1.5  opacity 2
+signal lights
+signal spotted  seen eye
+`;
+
+  test('the ambient, lamps, watchers, and what a watcher sees as a signal: read, and written back the same', () => {
+    const level = levelFromText(V4);
+    expect(level.ambient).toBe(0.1);
+    expect(level.lamps).toEqual([
+      { name: 'lamp', center: [0, 3, 0], radius: 6, intensity: 1, signal: 'lights' },
+      { name: null, center: [5, 2, 5], radius: 3, intensity: 0.5, signal: null },
+    ]);
+    expect(level.watchers).toEqual([
+      { name: 'eye', center: [0, 2, -10], turn: { axis: 'y', degrees: 180 }, range: 20, degrees: 90, threshold: 0.3 },
+    ]);
+    expect(level.signals.at(-1)).toEqual({ name: 'spotted', op: 'seen', reads: ['eye'] });
+    expect(levelFromText(levelToText(level))).toEqual(level);
+  });
+
+  test('what format 4 does not allow says which line, and why', () => {
+    const bad = (lines: string) => () => levelFromText(`# Manifold level 4\n${lines}\n`);
+    expect(bad('ambient -1')).toThrow(/line 2: the ambient light is 0 or more/);
+    expect(bad('ambient 0.1\nambient 0.2')).toThrow(/line 3: "ambient" twice in a level \(the first, on line 2\)/);
+    expect(bad('lamp 0 3 0  0 1')).toThrow(/line 2: a lamp's radius must be more than 0/);
+    expect(bad('lamp 0 3 0  6 1  signal nothing')).toThrow(/line 2: no signal "nothing" in the level/);
+    expect(bad('lamp 0 3 0  6 1  rotate y 90')).toThrow(/line 2: "rotate" is not understood here \(signal, name\)/);
+    expect(bad('watcher 0 2 0  10 400 0.3')).toThrow(/line 2: a watcher's field of view is more than 0 degrees, and 360 at most/);
+    expect(bad('signal spotted seen nobody')).toThrow(/line 2: no watcher named "nobody" in the level/);
+    expect(() => levelFromText('# Manifold level 3\nlamp 0 3 0  6 1\n')).toThrow(
+      /line 2: "lamp" is format 4: this level says format 3/,
+    );
+  });
+
+  test('built into a world: its ambient, its lamps (drawn, and on unless they follow a signal), its watchers with their cone', () => {
+    const world = new World({ seed: 1 });
+    buildLevel(world, levelFromText(V4));
+    expect(world.ambient).toBe(0.1);
+    expect(world.named('lamp')!.lamp).toEqual({ radius: 6, intensity: 1, signal: 'lights', on: false });
+    const eye = world.named('eye')!;
+    // Half of 90°, 45°: its cosine, √2 / 2, with our own (the same bits everywhere).
+    expect(eye.watcher!.cone).toBeCloseTo(Math.SQRT1_2, 15);
+    expect(eye.watcher!.sees).toEqual([]);
     world.dispose();
   });
 });

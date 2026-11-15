@@ -1,4 +1,4 @@
-import { quat, vec3, type Quat, type Vec3 } from '@manifold/common';
+import { quat, sinCosDegrees, vec3, type Quat, type Vec3 } from '@manifold/common';
 import { MATERIAL_NAME, MATERIALS, materialProblem, type Material } from './materials';
 import type { CollisionGroups, Components, SignalOp } from './types';
 import { ENTITY_NAME, type World } from './world';
@@ -48,11 +48,24 @@ import { ENTITY_NAME, type World } from './world';
  *
  * A signal reads only zones (anywhere in the level) and signals declared above it.
  *
+ * Format 4 (stage 3d) adds the light, and an eye that looks with it:
+ *
+ *   ambient 0.15                              how lit everything is with no lamp (1, if not said)
+ *   lamp 0 3 -4  6 1  signal lights  name a   a lamp: where, how far it reaches, how bright at its
+ *                                             center; on while its signal is (always, without one)
+ *   watcher 0 2.5 -10  12 60 0.4  rotate y 180  name eye
+ *                                             an eye: where, how far it sees, its field of view
+ *                                             (degrees), how lit things must look; it looks along −Z,
+ *                                             turned as it says
+ *   signal spotted  seen eye                  how many characters the watcher named eye sees
+ *   sensor fog  0 1 -6  3 1 1  opacity 0.8    a zone with an opacity (per meter) attenuates light and
+ *                                             sight through it, whatever its kind
+ *
  * The turns are written in degrees, as a person thinks them, and become quaternions with our own sine
  * and cosine (`quat.fromDegrees`): the browser's would give other bits in another browser, and the
  * world must be born the same everywhere.
  */
-export const LEVEL_FORMAT = 3;
+export const LEVEL_FORMAT = 4;
 const HEADER = '# Manifold level';
 
 /** A turn around one of the axes, as it is written. */
@@ -89,6 +102,25 @@ export interface LevelBox {
   lift: { by: Vec3; seconds: number; signal: string } | null;
 }
 
+/** A lamp (format 4): where, how far it reaches, how bright at its center, the signal it follows. */
+export interface LevelLamp {
+  name: string | null;
+  center: Vec3;
+  radius: number;
+  intensity: number;
+  signal: string | null;
+}
+
+/** A watcher (format 4): where, turned how, how far it sees, its field of view, how lit things must look. */
+export interface LevelWatcher {
+  name: string | null;
+  center: Vec3;
+  turn: Turn | null;
+  range: number;
+  degrees: number;
+  threshold: number;
+}
+
 /** A signal (format 3): its name, what it is, and what it reads. */
 export interface LevelSignal {
   name: string;
@@ -117,6 +149,10 @@ export interface Level {
   sensors: LevelSensor[];
   /** Its signals (format 3), in the order they are computed. */
   signals: LevelSignal[];
+  /** How lit everything is with no lamp (format 4), if it says. */
+  ambient: number | null;
+  lamps: LevelLamp[];
+  watchers: LevelWatcher[];
 }
 
 /**
@@ -157,13 +193,27 @@ const SINCE: Record<string, number> = {
   door: 3,
   lift: 3,
   model: 3,
+  ambient: 4,
+  lamp: 4,
+  watcher: 4,
 };
 /** How many signals or zones each kind of signal reads (−1: one or more), as the world says. */
-const READS: Record<SignalOp, number> = { input: 0, zone: 1, used: 1, any: -1, all: -1, not: 1, toggle: 1, latch: 2 };
+const READS: Record<SignalOp, number> = { input: 0, zone: 1, used: 1, seen: 1, any: -1, all: -1, not: 1, toggle: 1, latch: 2 };
 
 /** A level from its text. A line that is not understood is an error, with its number. */
 export function levelFromText(text: string, o: LevelOptions = {}): Level {
-  const level: Level = { title: '', spawn: [0, 1, 0], facing: [0, 0, -1], materials: {}, boxes: [], sensors: [], signals: [] };
+  const level: Level = {
+    title: '',
+    spawn: [0, 1, 0],
+    facing: [0, 0, -1],
+    materials: {},
+    boxes: [],
+    sensors: [],
+    signals: [],
+    ambient: null,
+    lamps: [],
+    watchers: [],
+  };
   const rows = text.split(/\r?\n/);
   const fail = (n: number, why: string): never => {
     throw new Error(`level, line ${n + 1}: ${why}`);
@@ -184,6 +234,8 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
   const followed: { signal: string; line: number }[] = [];
   /** Where each signal was declared. */
   const signalLines = new Map<string, number>();
+  /** The watchers signals read, with their lines (checked at the end: a watcher may come below). */
+  const watchersRead: { watcher: string; line: number }[] = [];
   rows.forEach((row, n) => {
     // A comment is a whole line that starts with # (a color, like #6f6a62, is not one).
     const line = row.trim();
@@ -324,7 +376,7 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
       if (box.look !== 'solid' && box.model) fail(n, `a ${box.look} box is not drawn with a model`);
       return box;
     };
-    if (kind === 'title' || kind === 'spawn' || kind === 'facing') {
+    if (kind === 'title' || kind === 'spawn' || kind === 'facing' || kind === 'ambient') {
       const first = once.get(kind);
       if (first !== undefined) fail(n, `"${kind}" twice in a level (the first, on line ${first + 1})`);
       once.set(kind, n);
@@ -341,6 +393,59 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
         level.facing = vector();
         if (level.facing.every((v) => v === 0)) fail(n, 'facing needs a direction, not 0 0 0');
         break;
+      case 'ambient': {
+        since(kind);
+        const light = number();
+        if (light < 0) fail(n, 'the ambient light is 0 or more');
+        level.ambient = light;
+        break;
+      }
+      case 'lamp': {
+        since(kind);
+        const center = vector();
+        const radius = number();
+        if (radius <= 0) fail(n, "a lamp's radius must be more than 0");
+        const intensity = number();
+        if (intensity < 0) fail(n, "a lamp's intensity is 0 or more");
+        let signal: string | null = null;
+        let name: string | null = null;
+        const seen = new Set<string>();
+        while (at < words.length) {
+          const word = words[at++]!;
+          if (seen.has(word)) fail(n, `"${word}" twice on one line`);
+          seen.add(word);
+          if (word === 'signal') {
+            signal = signalName();
+            followed.push({ signal, line: n });
+          } else if (word === 'name') name = aName();
+          else fail(n, `"${word}" is not understood here (signal, name)`);
+        }
+        level.lamps.push({ name, center, radius, intensity, signal });
+        break;
+      }
+      case 'watcher': {
+        since(kind);
+        const center = vector();
+        const range = number();
+        if (range <= 0) fail(n, "a watcher's range must be more than 0");
+        const degrees = number();
+        if (degrees <= 0 || degrees > 360) fail(n, "a watcher's field of view is more than 0 degrees, and 360 at most");
+        const threshold = number();
+        if (threshold < 0) fail(n, "a watcher's threshold is 0 or more");
+        let turn: Turn | null = null;
+        let name: string | null = null;
+        const seen = new Set<string>();
+        while (at < words.length) {
+          const word = words[at++]!;
+          if (seen.has(word)) fail(n, `"${word}" twice on one line`);
+          seen.add(word);
+          if (word === 'rotate') turn = axisAndDegrees();
+          else if (word === 'name') name = aName();
+          else fail(n, `"${word}" is not understood here (rotate, name)`);
+        }
+        level.watchers.push({ name, center, turn, range, degrees, threshold });
+        break;
+      }
       case 'material': {
         since(kind);
         const name = words[at++] ?? '';
@@ -408,6 +513,7 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
           );
         for (const read of reads) {
           if (op === 'zone' || op === 'used') zonesRead.push({ zone: read, line: n });
+          else if (op === 'seen') watchersRead.push({ watcher: read, line: n });
           // Only signals declared above: so a cycle cannot be written.
           else if (!signalLines.has(read))
             fail(
@@ -464,7 +570,7 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
         break;
       }
       default:
-        fail(n, `"${kind}" is not understood (title, spawn, facing, material, box, sensor, signal)`);
+        fail(n, `"${kind}" is not understood (title, spawn, facing, ambient, material, box, sensor, lamp, watcher, signal)`);
     }
     if (at < words.length) fail(n, `"${words[at]}" is extra`);
   });
@@ -474,6 +580,9 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
   const zoneNames = new Set(level.sensors.flatMap((s) => (s.name ? [s.name] : [])));
   for (const { zone, line } of zonesRead) if (!zoneNames.has(zone)) fail(line, `no zone named "${zone}" in the level`);
   for (const { signal, line } of followed) if (!signalLines.has(signal)) fail(line, `no signal "${signal}" in the level`);
+  const watcherNames = new Set(level.watchers.flatMap((w) => (w.name ? [w.name] : [])));
+  for (const { watcher, line } of watchersRead)
+    if (!watcherNames.has(watcher)) fail(line, `no watcher named "${watcher}" in the level`);
   return level;
 }
 
@@ -513,11 +622,23 @@ export function levelToText(level: Level): string {
       `title ${level.title}`,
       `spawn ${numbersText(level.spawn)}`,
       `facing ${numbersText(level.facing)}`,
+      ...(level.ambient === null ? [] : [`ambient ${level.ambient}`]),
       ...Object.entries(level.materials).map(
         ([name, m]) => `material ${name}  friction ${m.friction}  bounce ${m.bounce}  density ${m.density}  drag ${m.drag}`,
       ),
       ...level.boxes.map(boxText),
       ...level.sensors.map(sensorText),
+      ...level.lamps.map(
+        (l) =>
+          `lamp ${numbersText(l.center)}  ${l.radius} ${l.intensity}` +
+          (l.signal ? `  signal ${l.signal}` : '') +
+          (l.name ? `  name ${l.name}` : ''),
+      ),
+      ...level.watchers.map(
+        (w) =>
+          `watcher ${numbersText(w.center)}  ${w.range} ${w.degrees} ${w.threshold}${turnText(w.turn)}` +
+          (w.name ? `  name ${w.name}` : ''),
+      ),
       ...level.signals.map((g) => ['signal', g.name, ...(g.op === 'input' ? [] : [g.op, ...g.reads])].join(' ')),
     ].join('\n') + '\n'
   );
@@ -567,11 +688,48 @@ export function buildLevel(world: World, level: Level) {
       ...(b.lift ? { mechanism: { signal: b.lift.signal, seconds: b.lift.seconds, lift: { by: [...b.lift.by] } } } : {}),
     });
   }
-  for (const s of level.sensors)
+  for (const s of level.sensors) {
+    // A zone that attenuates (stage 3d: an `opacity`) is seen: a translucent box, as much as what gets
+    // through its thinnest side lets through.
+    const opacity = s.params.opacity?.[0];
     world.createEntity({
       ...(s.name ? { name: s.name } : {}),
       transform: { position: [...s.center], rotation: turnOf(s.turn) },
       sensor: { kind: s.kind, half: [...s.half], params: s.params },
+      ...(opacity
+        ? {
+            appearance: {
+              shape: 'box' as const,
+              size: [s.half[0] * 2, s.half[1] * 2, s.half[2] * 2] as Vec3,
+              color: FOG_COLOR,
+              opacity: 1 - 1 / (1 + opacity * 2 * Math.min(...s.half)),
+            },
+          }
+        : {}),
+    });
+  }
+  if (level.ambient !== null) world.ambient = level.ambient;
+  // A lamp, seen: a small warm ball (the presentation lights with it too); a watcher, a short capsule
+  // with a visor that shows where it looks.
+  for (const l of level.lamps)
+    world.createEntity({
+      ...(l.name ? { name: l.name } : {}),
+      transform: { position: [...l.center], rotation: quat.identity() },
+      lamp: { radius: l.radius, intensity: l.intensity, signal: l.signal },
+      appearance: { shape: 'sphere', size: [0.3, 0.3, 0.3], color: LAMP_COLOR },
+    });
+  for (const w of level.watchers)
+    world.createEntity({
+      ...(w.name ? { name: w.name } : {}),
+      transform: { position: [...w.center], rotation: turnOf(w.turn) },
+      // Half its field of view's cosine, with our own (the same bits everywhere).
+      watcher: { range: w.range, cone: sinCosDegrees(w.degrees / 2)[1], threshold: w.threshold },
+      appearance: { shape: 'capsule', size: [0.5, 0.8, 0.5], color: WATCHER_COLOR },
     });
   for (const g of level.signals) world.addSignal(g.name, g.op, g.reads);
 }
+
+/** How a lamp and a watcher are drawn. */
+export const LAMP_COLOR = 0xffd27a;
+const FOG_COLOR = 0xb8c0c8;
+const WATCHER_COLOR = 0x9a4a4a;

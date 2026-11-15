@@ -4,6 +4,7 @@ import { CAMERA_COMMANDS, CAMERA_VARIABLES } from './camera';
 import { CONSOLE_COMMANDS } from './console';
 import { DRIVE_COMMANDS, DRIVE_VARIABLES } from './drive';
 import { INSPECT_COMMANDS } from './inspect';
+import { LIGHTS_VARIABLES } from './lights';
 import { MATCH_COMMANDS, MATCH_VARIABLES } from './match';
 import { REPLAY_COMMANDS } from './replays';
 import { SIGNALS_COMMANDS, SIGNALS_VARIABLES } from './signals';
@@ -21,6 +22,7 @@ export const PRESENTATION_VARIABLES: readonly VariableInfo[] = [
   ...Object.values(BODIES_VARIABLES),
   ...Object.values(VIEWS_VARIABLES),
   ...Object.values(SIGNALS_VARIABLES),
+  ...Object.values(LIGHTS_VARIABLES),
   ...Object.values(MATCH_VARIABLES),
   ...Object.values(DRIVE_VARIABLES),
   ...Object.values(CAMERA_VARIABLES),

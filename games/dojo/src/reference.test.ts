@@ -202,11 +202,49 @@ describe('the reference replays (stage 2.5a), recorded from their scripts', () =
     ).toMatchFileSnapshot('../replays/phase-3.replay');
     session.world.dispose();
   });
+
+  test('phase 3, the light: seen in a pool of light, lost in the dark, behind a pillar and in a fog; a lamp switched on', async () => {
+    // (The room `watch`, written here.) How lit the character is goes into the hash at every step: this
+    // replay is what checks, in every browser, that the light is the same as in Node.
+    const { session, seen } = run('seed 8\ndojo.level watch', [
+      { steps: 30 },
+      // Into the pool on the left: seen. Back into the dark: lost.
+      { lines: ['dojo.goto -4 1 3'], steps: 40 },
+      { steps: 70, drive: (s) => (s < 50 ? { move: [1, 0, 1] } : NO_INPUT) },
+      // Behind the pillar, lit: unseen; a step aside: seen.
+      { lines: ['dojo.goto -3 1 -5.5'], steps: 40 },
+      { steps: 30, drive: (s) => (s < 6 ? { move: [1, 0, 0] } : NO_INPUT) },
+      // Into the fog bank from beside it.
+      { lines: ['dojo.goto 5.6 1 5'], steps: 40 },
+      { steps: 60, drive: (s) => (s < 12 ? { move: [-1, 0, 0] } : NO_INPUT) },
+      // The switch, and the pool it lights.
+      { lines: ['dojo.goto -5.4 1 6.2'], steps: 40, drive: (s) => ({ use: s === 20 }) },
+      { lines: ['dojo.goto 3 1 -3'], steps: 60 },
+    ]);
+    // Seen in the pool, lost in the dark; seen a step aside from the pillar (still, beside the fog), lost
+    // in it; seen in the pool the switch lit.
+    expect(seen.notices.filter((n) => n.startsWith('the watcher')).map((n) => n.split(' ')[2])).toEqual([
+      'sees',
+      'lost',
+      'sees',
+      'lost',
+      'sees',
+    ]);
+    expect(session.world.named('lamp_switch')!.lamp!.on).toBe(true);
+    expect(session.world.signal('spotted')).toBe(1);
+    await expect(
+      referenceText(
+        session,
+        'Phase 3, the light: seen in the light, lost in the dark, behind a pillar and in a fog; a lamp switched on.',
+      ),
+    ).toMatchFileSnapshot('../replays/phase-3-light.replay');
+    session.world.dispose();
+  });
 });
 
 describe('the reference replays, as they are in their files', () => {
-  test('there is one per phase, of this simulation version', () => {
-    expect(Object.keys(REFERENCE_REPLAYS)).toEqual(['phase-0', 'phase-1', 'phase-2', 'phase-3']);
+  test('there is one per phase (two for phase 3: its machines and its light), of this simulation version', () => {
+    expect(Object.keys(REFERENCE_REPLAYS)).toEqual(['phase-0', 'phase-1', 'phase-2', 'phase-3', 'phase-3-light']);
     for (const text of Object.values(REFERENCE_REPLAYS))
       expect(text.split('\n')[0]).toBe(`# Manifold replay ${SIMULATION_VERSION}`);
   });

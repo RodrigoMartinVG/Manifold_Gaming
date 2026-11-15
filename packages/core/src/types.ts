@@ -27,6 +27,35 @@ export interface Entity {
   game?: GameComponents;
   mover?: Mover;
   mechanism?: Mechanism;
+  lamp?: Lamp;
+  watcher?: Watcher;
+}
+
+/**
+ * A LAMP (stage 3d): the light is the simulation's. It lights what it sees (a ray from it, the same in
+ * Node), within its `radius`, falling linearly from `intensity` at its center to 0 there, and less
+ * through what attenuates (a zone with an `opacity` per meter). On while its signal is on (stage 3c),
+ * or always, without one: `on` is what it was at the last step. The drawing reads the same data.
+ */
+export interface Lamp {
+  radius: number;
+  intensity: number;
+  signal: string | null;
+  on: boolean;
+}
+
+/**
+ * A WATCHER (stage 3d): an eye, fixed where its transform puts it, looking along its −Z. It sees a
+ * character within its `range` and its field of view (`cone`: the cosine of half of it), with nothing
+ * in between, as lit as `threshold` at least, as it looks from there (its light, attenuated by what is
+ * in between). No decisions: phase 4's guard takes its eyes. `sees`: who it sees now, in the order it
+ * saw them; a change is an event (`seen`, `lost`).
+ */
+export interface Watcher {
+  range: number;
+  cone: number;
+  threshold: number;
+  sees: EntityId[];
 }
 
 /**
@@ -35,6 +64,7 @@ export interface Entity {
  * - `input`: nothing; the game or the console sets it (`World.setSignal`);
  * - `zone`: how many characters and bodies the physics moves are in the zone named in `reads`;
  * - `used`: how many characters pressed `use` in that zone, at this step;
+ * - `seen`: how many characters the watcher named in `reads` sees (stage 3d);
  * - `any`, `all`, `not`: on while one, every one, or none of the signals it reads is on;
  * - `toggle`: flips each time the signal it reads turns on;
  * - `latch`: on when the first it reads is on, off when the second is (the first wins), and as it
@@ -42,7 +72,7 @@ export interface Entity {
  * `memory` is what it keeps from one step to the next besides its value: a toggle's, whether what it
  * reads was on; an input's, the value it was set to, which it takes at the step's end.
  */
-export type SignalOp = 'input' | 'zone' | 'used' | 'any' | 'all' | 'not' | 'toggle' | 'latch';
+export type SignalOp = 'input' | 'zone' | 'used' | 'seen' | 'any' | 'all' | 'not' | 'toggle' | 'latch';
 export interface Signal {
   name: string;
   op: SignalOp;
@@ -284,6 +314,12 @@ export interface Character {
   /** Where it looks: a unit vector perpendicular to its "up". */
   facing: Vec3;
   /**
+   * How lit it is (stage 3d), at its center: the world's ambient light, plus what every lamp that sees
+   * it gives, at the end of the last step. What a watcher compares with its threshold (and, one day, a
+   * thief's light gem).
+   */
+  light: number;
+  /**
    * What the game makes it carry at the next step, m/s (stage 2b): the wind, a conveyor belt… It moves
    * it, whatever its mode, and it is emptied after the step: the game says it again on every step it
    * applies.
@@ -373,10 +409,16 @@ export interface Appearance {
    * of the shape, once it loaded. Only for the eyes: nothing of a model enters the simulation.
    */
   model?: string;
+  /** How much it hides what is behind it, from 0 to 1, if it is translucent (stage 3d: a fog bank). */
+  opacity?: number;
 }
 
 /** The components an entity is created with (everything but the id, which the world gives; a body and a character as they are asked for). */
-export type Components = Omit<Entity, 'id' | 'body' | 'character' | 'sensor' | 'mechanism'> & {
+export type Components = Omit<Entity, 'id' | 'body' | 'character' | 'sensor' | 'mechanism' | 'lamp' | 'watcher'> & {
+  /** A lamp: how far it reaches, how bright, and the signal it follows (on: from its first step). */
+  lamp?: Pick<Lamp, 'radius' | 'intensity' | 'signal'>;
+  /** A watcher: how far it sees, the cosine of half its field of view, and how lit it needs things. */
+  watcher?: Pick<Watcher, 'range' | 'cone' | 'threshold'>;
   /** A mechanism: its signal, its time, and a door's hinge or a lift's way (closed: where it is created). */
   mechanism?: Pick<Mechanism, 'signal' | 'seconds' | 'door' | 'lift'>;
   body?: BodySpec;
@@ -405,4 +447,7 @@ export type Event =
    */
   | { type: 'notice'; text: string; player?: number }
   /** A signal changed its value (stage 3c), at the end of the step: what it is now, and what it was. */
-  | { type: 'signalChanged'; signal: string; value: number; was: number };
+  | { type: 'signalChanged'; signal: string; value: number; was: number }
+  /** A watcher began to see a character (stage 3d), or lost it. */
+  | { type: 'seen'; watcher: EntityId; entity: EntityId }
+  | { type: 'lost'; watcher: EntityId; entity: EntityId };

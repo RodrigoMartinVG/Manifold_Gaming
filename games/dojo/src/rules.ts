@@ -132,6 +132,8 @@ export const DOJO_ZONES: ZoneKinds = {
   button: {},
   /** A pressure plate (stage 3c): who is on it, in the level's signals. */
   plate: {},
+  /** A fog bank (stage 3d): it attenuates light and sight through it, by its `opacity` per meter. */
+  fog: { opacity: 1 },
 };
 
 /**
@@ -163,12 +165,19 @@ function currents(world: World) {
  *   (a platform, which the program moves, is not);
  * - `star` (stage 2c): whoever gets there first takes it, and it is gone;
  * - `goal`: the time it took (from when it started), how many times it fell and its stars, once.
+ * And a watcher (stage 3d) tells the character it began to see, or lost.
  * What it keeps lives in the character's runner (`dojo.runner`): it is the world's, so it is hashed, it
  * travels in snapshots, and a replay plays it the same.
  */
 function levelLoop(world: World, events: readonly Event[]) {
   const notice = (player: number, text: string) => world.emit({ type: 'notice', text, player });
   for (const ev of events) {
+    // A watcher (stage 3d): the character it began to see, or lost, is told.
+    if (ev.type === 'seen' || ev.type === 'lost') {
+      const player = world.entities.get(ev.entity)?.character?.player;
+      if (player !== undefined) notice(player, ev.type === 'seen' ? 'the watcher sees you' : 'the watcher lost you');
+      continue;
+    }
     if (ev.type !== 'sensorEntered') continue;
     const zone = world.entities.get(ev.sensor);
     const e = world.entities.get(ev.entity);
