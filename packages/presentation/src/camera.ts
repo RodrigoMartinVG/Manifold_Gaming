@@ -38,6 +38,15 @@ export const CAMERA_COMMANDS = {
   },
 } as const satisfies Record<string, CommandInfo>;
 
+/**
+ * In the air, how far up and down the screen the head can go before the camera follows it: a share
+ * of the way from the screen's center to its top edge, and to its bottom one. On the screen, not in
+ * meters: a band in meters said nothing about what is seen (1.2 m held a step, but not the Dojo's
+ * own jump, 2.1 m: the camera still rose 0.9 m with it); this one holds as much as the lens and the
+ * distance let be seen.
+ */
+const DEAD_ZONE = { above: 0.8, below: 0.6 };
+
 /** Where it starts, and where `camera.reset` brings it without a character. */
 const START = { position: new THREE.Vector3(3.2, 2.4, 4.2), target: new THREE.Vector3(0, 1, 0) };
 /** How close to and how far from what it looks at the wheel or a pinch can take it, in meters. */
@@ -86,6 +95,8 @@ export function mountCamera(
   let mode: CameraMode = 'follow';
   /** The carried turn the aiming camera already turned by (null: none yet, it starts from the one there is). */
   let cameraTurn: THREE.Quaternion | null = null;
+  /** How high (along "up") the leash looks: the head's height, but not a jump's (null: from the head, next frame). */
+  let lookHeight: number | null = null;
   /** When the camera was last turned by hand (a drag, the right stick): `chase` waits a little before coming back. */
   let turnedByHand = -Infinity;
   /** What is left of a drag after letting go, in radians per second (right, down). */
@@ -205,6 +216,7 @@ export function mountCamera(
   /** Behind the character and a little above, looking at its head. Or, without a character, where it started. */
   function reset() {
     drift.x = drift.y = 0;
+    lookHeight = null;
     const hero = page.player();
     if (hero?.transform && hero.character) {
       const up = new THREE.Vector3(...upAt(page.session.world, hero.transform.position));
@@ -229,6 +241,7 @@ export function mountCamera(
       onChange: (v) => {
         mode = v as CameraMode;
         cameraTurn = null;
+        lookHeight = null;
         drift.x = drift.y = 0;
         if (mode !== 'aim' && document.pointerLockElement === canvas) document.exitPointerLock();
       },
@@ -257,6 +270,7 @@ export function mountCamera(
     takesClick,
     welcome(_, m) {
       cameraTurn = null;
+      lookHeight = null;
       if (orbiting && page.player() && (!m.session || o.replaying())) reset();
     },
     frame({ now, dt, alpha, world, hero }) {
@@ -323,6 +337,25 @@ export function mountCamera(
           const offset = camera.position.clone().sub(target);
           const height = offset.dot(up);
           const reach = offset.addScaledVector(up, -height).length();
+          // A VERTICAL DEAD ZONE (stage 2e): a jump does not move the camera up and down with it (the
+          // whole world bounced on the screen). It follows the head's height while the character
+          // stands (smoothly: a step, a ramp), and in the air only when the head would leave a band of
+          // the screen (a long fall, a climb up high). The camera keeps its height `c` above where it
+          // looks and its reach `r` along the ground, so a head `h` above that point is seen
+          // atan((h − c) / r) + atan(c / r) above the screen's center: the band, in meters, is where
+          // that stays within its share of half the field of view.
+          const headHeight = head.dot(up);
+          if (lookHeight === null) lookHeight = headHeight;
+          if (hero.character.grounded) lookHeight += (headHeight - lookHeight) * (1 - Math.exp(-8 * dt));
+          else {
+            const half = THREE.MathUtils.degToRad(camera.fov / 2);
+            const down = Math.atan2(height, reach); // how far down it looks
+            // (Short of a right angle: a camera right above or below would ask for an endless band.)
+            const rise = height + reach * Math.tan(Math.min(half * DEAD_ZONE.above - down, 1.5));
+            const fall = height + reach * Math.tan(Math.max(-half * DEAD_ZONE.below - down, -1.5));
+            lookHeight = THREE.MathUtils.clamp(lookHeight, headHeight - rise, headHeight - fall);
+          }
+          head.addScaledVector(up, lookHeight - headHeight);
           const along = camera.position.clone().sub(head);
           along.addScaledVector(up, -along.dot(up));
           if (along.lengthSq() < 1e-6) along.copy(offset);

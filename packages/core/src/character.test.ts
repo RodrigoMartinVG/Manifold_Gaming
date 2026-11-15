@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, test } from 'vitest';
 import { quat, vec3, type Vec3 } from '@manifold/common';
 import type { Cartridge } from './cartridge';
-import { DEFAULT_MOVEMENT, faceFor, turned } from './character';
+import { DEFAULT_MOVEMENT, faceFor, poseOf, turned } from './character';
 import { NO_INPUT } from './input';
 import { stateHash } from './hash';
 import { initPhysics } from './physics';
@@ -650,6 +650,30 @@ describe('the character (stage 1b)', () => {
     expect(hero.transform!.position[2]).toBeCloseTo(STAND, 1);
     world.dispose();
   });
+});
+
+test('a collision pose per way of moving (stage 2e, for phase 4): the given one in its mode, the body in the rest', () => {
+  const crouched = {
+    shape: { kind: 'capsule' as const, halfHeight: 0.35, radius: 0.3 },
+    offset: [0, 0.1, 0] as Vec3,
+    rotation: quat.identity(),
+  };
+  const world = new World({ seed: 1 });
+  const hero = world.createEntity({
+    transform: { position: [0, 3, 0], rotation: quat.identity() },
+    body: { type: 'character', shape: { kind: 'capsule', halfHeight: 0.5, radius: 0.3 } },
+    character: { player: 1, poses: { air: crouched } },
+  });
+  world.step();
+  expect(hero.character!.mode).toBe('air');
+  expect(poseOf(hero.character!, hero.body!)).toEqual(crouched);
+  // Its own copy: changing what it was given does not change it.
+  crouched.offset[1] = 9;
+  expect(poseOf(hero.character!, hero.body!).offset[1]).toBe(0.1);
+  // Walking, no pose given: its body's shape, centered and upright.
+  hero.character!.mode = 'walk';
+  expect(poseOf(hero.character!, hero.body!)).toEqual({ shape: hero.body!.shape, offset: [0, 0, 0], rotation: [0, 0, 0, 1] });
+  world.dispose();
 });
 
 describe('the players inputs, through the session', () => {

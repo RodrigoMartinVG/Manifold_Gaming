@@ -1,4 +1,3 @@
-import * as THREE from 'three';
 import type { PageMatch } from './match';
 import type { GamePage, Piece } from './page';
 
@@ -7,9 +6,10 @@ import type { GamePage, Piece } from './page';
  * the game is mounted in. Where the character is, ON EVERY FRAME (stage 2c): every 10 frames was too
  * coarse without a GPU, where a frame can take 5 steps, and a whole jump (about 36 steps above a
  * meter) could happen between two readings. The match too (a test that waits for "joined" should not
- * wait ten frames). The rest, every 10 frames: how many frames were drawn, how many meshes are really
- * in the scene (not in a map: a bug of step 0 did not show there), and the other players.
- * (Other pieces write what they own when it happens: `notice`, `replay`, `ghost`, `contacts`, `desyncs`.)
+ * wait ten frames). The rest, every 10 frames: how many frames were drawn, how many entities are really
+ * drawn in the scene (not in a map: a bug of step 0 did not show there), and the other players.
+ * (Other pieces write what they own when it happens: `notice`, `replay`, `ghost`, `contacts`, `desyncs`,
+ * and the bodies `clip`, the animation the player's model plays.)
  */
 export function mountProbe(page: GamePage, match: PageMatch): Piece {
   const data = page.container.dataset;
@@ -25,7 +25,8 @@ export function mountProbe(page: GamePage, match: PageMatch): Piece {
       data.me = String(match.me);
       if (++frames % 10 !== 0) return;
       data.frames = String(frames);
-      data.meshes = String(page.stage.scene.children.filter((x) => x instanceof THREE.Mesh).length);
+      // What is drawn for an entity (a mesh, or a model's copy), and the ghost: not shadows or lines.
+      data.meshes = String(page.stage.scene.children.filter((x) => x.userData.entity !== undefined || x.userData.ghost).length);
       data.checks = String(match.checks);
       data.others = [...world.entities.values()]
         .filter((e) => e.character && e.character.player !== match.me && e.transform)

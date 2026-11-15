@@ -1,7 +1,7 @@
 import { quat, vec3, type Quat, type Vec3 } from '@manifold/common';
 import { gravityAt } from './gravity';
 import { axisOf, isDown, NO_INPUT, vectorOf } from './input';
-import type { Character, CharacterSpec, Entity, ModeName, Movement } from './types';
+import type { Body, Character, CharacterSpec, CollisionPose, Entity, ModeName, Movement } from './types';
 import type { World } from './world';
 
 /**
@@ -45,7 +45,25 @@ export function newCharacter(spec: CharacterSpec): Character {
     carry: [0, 0, 0],
     ground: { velocity: [0, 0, 0], spin: 0 },
     carriedTurn: quat.identity(),
+    ...(spec.poses ? { poses: structuredPoses(spec.poses) } : {}),
   };
+}
+
+/** A copy of the poses a character is given (plain data, its own). */
+const structuredPoses = (poses: Partial<Record<ModeName, CollisionPose>>): Partial<Record<ModeName, CollisionPose>> =>
+  Object.fromEntries(
+    Object.entries(poses).map(([mode, p]) => [
+      mode,
+      { shape: { ...p!.shape }, offset: [...p!.offset], rotation: [...p!.rotation] },
+    ]),
+  ) as Partial<Record<ModeName, CollisionPose>>;
+
+/**
+ * THE SHAPE A CHARACTER'S BODY TAKES NOW (stage 2e, for phase 4): its pose for the mode it is in, if
+ * the game gave one; if not, its body's shape, centered and upright.
+ */
+export function poseOf(c: Character, body: Pick<Body, 'shape'>): CollisionPose {
+  return c.poses?.[c.mode] ?? { shape: body.shape, offset: [0, 0, 0], rotation: quat.identity() };
 }
 
 /**

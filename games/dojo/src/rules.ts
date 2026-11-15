@@ -9,9 +9,11 @@ import {
   type Capabilities,
   type Cartridge,
   type Character,
+  type CollisionPose,
   type Entity,
   type Event,
   type Level,
+  type ModeName,
   type Movement,
   type World,
 } from '@manifold/core';
@@ -60,14 +62,34 @@ const RUNNER = 'dojo.runner';
 /** A character's runner, if it has one. */
 export const runner = (e: Entity) => component<Runner>(e, RUNNER);
 
+/**
+ * What the mannequin's body is in each way of moving where it is not the standing capsule (stage 2e,
+ * for phase 4's blows), from its animations: crouched in the air, its knees up; gliding, tilted 55°
+ * forward. (The controller moves the capsule always.)
+ */
+const POSES: Partial<Record<ModeName, CollisionPose>> = {
+  air: { shape: { kind: 'capsule', halfHeight: 0.35, radius: 0.3 }, offset: [0, 0.1, 0], rotation: quat.identity() },
+  glide: {
+    shape: { kind: 'capsule', halfHeight: 0.5, radius: 0.3 },
+    offset: [0, 0, 0],
+    rotation: quat.fromDegrees([1, 0, 0], -55),
+  },
+};
+
 /** A character: a capsule 1.6 m tall, and its runner for the level's loop. */
 function character(world: World, player: number, at: Vec3, facing: Vec3, color: number, like?: Character) {
   world.createEntity({
     transform: { position: [...at], rotation: quat.identity() },
     body: { type: 'character', shape: { kind: 'capsule', halfHeight: 0.5, radius: 0.3 } },
     // (Like another one, if given: a copy of the numbers it moves with and of what it can do.)
-    character: { player, facing: [...facing], ...(like ? { movement: copyMovement(like.movement), can: { ...like.can } } : {}) },
-    appearance: { shape: 'capsule', size: [0.6, 1.6, 0.6], color },
+    character: {
+      player,
+      facing: [...facing],
+      poses: POSES,
+      ...(like ? { movement: copyMovement(like.movement), can: { ...like.can } } : {}),
+    },
+    // The mannequin (stage 2e: art/mannequin.py), once it loaded; the capsule meanwhile.
+    appearance: { shape: 'capsule', size: [0.6, 1.6, 0.6], color, model: 'dojo.mannequin' },
     game: {
       [RUNNER]: { spawn: [...at], checkpoint: [...at], start: world.tick, finish: -1, falls: 0, stars: 0 } satisfies Runner,
     },

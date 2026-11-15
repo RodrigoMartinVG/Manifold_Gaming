@@ -21,6 +21,6 @@ Each one has: **context** (what problem there was), **decision**, **consequences
 | [0012](0012-the-games.md)               | The games: the classics first, the strange ones after            | Accepted                                                                     |
 | [0013](0013-a-deeper-tutorial.md)       | One tutorial, deeper: the short path stays                       | Accepted                                                                     |
 | [0014](0014-the-execution-profile.md)   | The execution profile: the physics, and who verifies it          | Accepted                                                                     |
-| [0015](0015-art-and-sound.md)           | Where the art and the sound come from: code, scripts, free packs | Accepted                                                                     |
+| [0015](0015-art-and-sound.md)           | Where the art and the sound come from: code, scripts, free packs | Accepted (refined in 2e)                                                     |
 | [0016](0016-the-networking-model.md)    | The networking model: each predicts only its own character       | Accepted                                                                     |
 | [0017](0017-phase-5-scope.md)           | Phase 5's scope: three compact games, of 10 to 15 minutes        | Accepted                                                                     |

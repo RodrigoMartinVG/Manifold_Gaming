@@ -7,6 +7,7 @@ import { LinkButton } from '@astrojs/starlight/components';
 import RoomCards from '../../../components/RoomCards.astro';
 import LegacyDojoLinks from '../../../components/LegacyDojoLinks.astro';
 import ConsoleReference from '../../../components/ConsoleReference.astro';
+import DojoCredits from '../../../components/DojoCredits.astro';
 
 <LegacyDojoLinks />
 
@@ -51,6 +52,12 @@ El Dojo monta [la consola](../consola/) y deja tocar todo: los comandos y las va
 <ConsoleReference of="dojo" />
 
 Qué significan las clases (arranque, mundo, vista) está en [la consola](../consola/#tres-clases-de-opciones).
+
+## De dónde sale lo que se ve
+
+El personaje es un **maniquí**: lo modela y lo anima un guion que corre Blender sin pantalla, nunca a mano ([decisión 0015](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/docs/decisions/0015-art-and-sound.md)). Tiene una animación para cada manera de moverse (quieto, caminar, correr, en el aire, planear, trepar), y la que se ve la elige el estado del personaje en el mundo: la vista lee el mundo, nunca lo escribe. Su sombra, justo debajo, dice dónde va a caer.
+
+<DojoCredits />
 
 ## Por qué es un juego
 

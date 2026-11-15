@@ -1,0 +1,6 @@
+{
+  "mannequin.glb": {
+    "what": "The Dojo's character: a mannequin the capsule's size, with an animation for each way of moving (idle, walk, run, air, glide, climb).",
+    "madeBy": "art/mannequin.py"
+  }
+}

@@ -1,7 +1,9 @@
 import * as THREE from 'three';
 import type { Quat, Vec3 } from '@manifold/common';
-import type { Appearance, Entity, EntityId, World } from '@manifold/core';
+import { upAt, type Appearance, type Entity, type EntityId, type Shape, type World } from '@manifold/core';
 import type { VariableInfo } from '@manifold/commands';
+import { animate, type ModelInstance, type Models } from './models';
+import { own, ownMaterial, release } from './owned';
 import type { GamePage, Piece } from './page';
 
 /** An entity's pose at the previous step: it is drawn halfway between that one and the current one. */
@@ -11,17 +13,23 @@ interface Pose {
 }
 
 export interface Bodies extends Piece {
-  /** Each entity's mesh, by entity (the ones that have an appearance). */
-  readonly meshes: ReadonlyMap<EntityId, THREE.Mesh>;
+  /** What is drawn for each entity that has an appearance: a mesh, or a model's copy (stage 2e). */
+  readonly meshes: ReadonlyMap<EntityId, THREE.Object3D>;
   /** Each character's carried turn at the previous step (stage 2d): the aiming camera turns with it, drawn between steps. */
   readonly previousTurn: ReadonlyMap<EntityId, Quat>;
-  /** A mesh for an appearance (the ghost's, for instance). */
-  meshFor(a: Appearance): THREE.Mesh;
+  /** What is drawn for an appearance (the ghost's, for instance): its model, if it has one and it loaded, or its shape. */
+  meshFor(a: Appearance): { object: THREE.Object3D; model: ModelInstance | null };
   /** The entity whose mesh is under a point of the screen (x and y from −1 to 1), if any. */
   entityAt(x: number, y: number): EntityId | undefined;
 }
 
 const ZONE_COLORS: Record<string, number> = { checkpoint: 0x5ad87a, goal: 0xe0c05a, fall: 0xd85a5a };
+
+/** How far a shape reaches below its center: a standing character's feet. */
+const below = (s: Shape) => (s.kind === 'capsule' ? s.halfHeight + s.radius : s.kind === 'ball' ? s.radius : s.halfExtents[1]);
+/** A shadow's disc lies on +Y; it is turned to the surface it falls on. */
+const FLAT = new THREE.Vector3(0, 1, 0);
+const normal = new THREE.Vector3();
 
 /** What the bodies let people change, as data (the site's console reference reads it). */
 export const BODIES_VARIABLES = {
@@ -46,10 +54,21 @@ export const BODIES_VARIABLES = {
  * THE BODIES: a mesh for every entity with an appearance, drawn between its last two steps (by
  * `alpha`: interpolation), created and removed as the world says; and the level's zones as wire
  * boxes. Two views of their own: `show.wireframe` and `show.sensors`.
+ *
+ * MODELS (stage 2e): an appearance that names a model (`model`) is drawn with a copy of it, once it
+ * loaded (its shape meanwhile), and a character's copy plays the animation its state asks for
+ * (models.ts: `clipFor`). Every character has a soft shadow straight under it, on whatever is there:
+ * to read where it will land.
  */
-export function mountBodies(page: GamePage): Bodies {
+export function mountBodies(page: GamePage, models: Models, o: { timeScale(): number }): Bodies {
   const { scene, camera } = page.stage;
-  const meshes = new Map<EntityId, THREE.Mesh>();
+  const meshes = new Map<EntityId, THREE.Object3D>();
+  /** The model copies, by entity (their animations move on every frame). */
+  const instances = new Map<EntityId, ModelInstance>();
+  /** The shadows under the characters, by entity. */
+  const shadows = new Map<EntityId, THREE.Mesh>();
+  const shadowShape = new THREE.CircleGeometry(0.38, 24).rotateX(-Math.PI / 2);
+  const shadowMaterial = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.35, depthWrite: false });
   const previous = new Map<EntityId, Pose>();
   const previousTurn = new Map<EntityId, Quat>();
   /** The zones, as wire boxes (show.sensors), by entity: they have no appearance, they are only shown on request. */
@@ -77,21 +96,44 @@ export function mountBodies(page: GamePage): Bodies {
   });
 
   /**
-   * A mesh for an appearance. Boxes and spheres are one shared shape, scaled; a capsule is built at
-   * its size (scaling would squash its round ends), with a visor that shows where it looks (−Z).
+   * Its model's copy, if it names one that loaded; if not, its shape. A model's body takes the
+   * appearance's color (each player's), in a material of its own; the rest stays shared.
    */
   const meshFor = (a: Appearance) => {
+    const model = a.model ? models.instance(a.model) : null;
+    if (!model) return { object: shapeFor(a), model: null };
+    let color: THREE.MeshStandardMaterial | null = null;
+    model.object.traverse((o) => {
+      if (!(o instanceof THREE.Mesh) || (o.material as THREE.Material).name !== 'body') return;
+      if (!color) {
+        color = (o.material as THREE.MeshStandardMaterial).clone();
+        color.color.setHex(a.color);
+        color.wireframe = wireframe;
+      }
+      ownMaterial(o, color);
+    });
+    return { object: model.object, model };
+  };
+  /**
+   * A mesh for an appearance's shape. Boxes and spheres are one shared shape, scaled; a capsule is
+   * built at its size (scaling would squash its round ends), with a visor that shows where it looks (−Z).
+   */
+  const shapeFor = (a: Appearance) => {
     const material = new THREE.MeshLambertMaterial({ color: a.color, wireframe });
     if (a.shape !== 'capsule') {
-      const mesh = new THREE.Mesh(geometries[a.shape], material);
+      const mesh = own(new THREE.Mesh(geometries[a.shape], material), { material: true });
       mesh.scale.set(...a.size);
       return mesh;
     }
     const radius = a.size[0] / 2;
-    const mesh = new THREE.Mesh(new THREE.CapsuleGeometry(radius, a.size[1] - a.size[0], 6, 16), material);
-    const visor = new THREE.Mesh(
-      new THREE.BoxGeometry(radius * 1.2, radius * 0.45, radius * 0.5),
-      new THREE.MeshLambertMaterial({ color: 0x1a1714, wireframe }),
+    const capsule = new THREE.CapsuleGeometry(radius, a.size[1] - a.size[0], 6, 16);
+    const mesh = own(new THREE.Mesh(capsule, material), { geometry: true, material: true });
+    const visor = own(
+      new THREE.Mesh(
+        new THREE.BoxGeometry(radius * 1.2, radius * 0.45, radius * 0.5),
+        new THREE.MeshLambertMaterial({ color: 0x1a1714, wireframe }),
+      ),
+      { geometry: true, material: true },
     );
     visor.position.set(0, a.size[1] * 0.28, -radius * 0.85);
     mesh.add(visor);
@@ -117,11 +159,30 @@ export function mountBodies(page: GamePage): Bodies {
     // TWICE, when walking the world and through their `entityCreated` event; the second mesh hid
     // the first one in the map, and the first stayed in the scene, forgotten at the origin.)
     if (!e.appearance || !e.transform || meshes.has(e.id)) return;
-    const mesh = meshFor(e.appearance);
-    scene.add(mesh);
-    meshes.set(e.id, mesh);
+    const { object, model } = meshFor(e.appearance);
+    // Which entity it is, for a click on it and for what the tests count.
+    object.userData.entity = e.id;
+    scene.add(object);
+    meshes.set(e.id, object);
+    if (model) instances.set(e.id, model);
+    if (e.character && !shadows.has(e.id)) {
+      const shadow = new THREE.Mesh(shadowShape, shadowMaterial.clone());
+      shadow.renderOrder = 1;
+      scene.add(shadow);
+      shadows.set(e.id, shadow);
+    }
   };
-  const remove = (id: EntityId) => {
+  // A model that loads after its bodies were drawn with their shapes: they are drawn again, with it.
+  models.onLoad((name) => {
+    const world = page.session.world;
+    for (const [id] of meshes) {
+      const e = world.entities.get(id);
+      if (e?.appearance?.model !== name || instances.has(id)) continue;
+      remove(id, false);
+      create(e);
+    }
+  });
+  const remove = (id: EntityId, all = true) => {
     const zone = zones.get(id);
     if (zone) {
       scene.remove(zone);
@@ -132,14 +193,19 @@ export function mountBodies(page: GamePage): Bodies {
     const mesh = meshes.get(id);
     if (mesh) {
       scene.remove(mesh);
-      mesh.traverse((o) => {
-        if (!(o instanceof THREE.Mesh)) return;
-        (o.material as THREE.Material).dispose();
-        // Shared shapes (boxes, spheres) stay; a capsule's own shape and its visor's go.
-        if (o.geometry !== geometries.box && o.geometry !== geometries.sphere) o.geometry.dispose();
-      });
+      // Only what is its own (owned.ts): not the shared box or sphere, not its model's geometry or materials.
+      release(mesh);
     }
+    instances.get(id)?.mixer.stopAllAction();
+    instances.delete(id);
     meshes.delete(id);
+    if (!all) return;
+    const shadow = shadows.get(id);
+    if (shadow) {
+      scene.remove(shadow);
+      (shadow.material as THREE.Material).dispose();
+      shadows.delete(id);
+    }
     previous.delete(id);
     previousTurn.delete(id);
   };
@@ -163,8 +229,10 @@ export function mountBodies(page: GamePage): Bodies {
     entityAt(x, y) {
       pointer.set(x, y);
       raycaster.setFromCamera(pointer, camera);
-      const hit = raycaster.intersectObjects([...meshes.values()], false)[0];
-      return hit && [...meshes].find(([, mesh]) => mesh === hit.object)?.[0];
+      // (A model is many meshes: the one hit belongs to whichever of them says its entity.)
+      let hit: THREE.Object3D | null = raycaster.intersectObjects([...meshes.values()], true)[0]?.object ?? null;
+      while (hit && hit.userData.entity === undefined) hit = hit.parent;
+      return hit?.userData.entity as EntityId | undefined;
     },
     welcome(session) {
       for (const id of new Set([...meshes.keys(), ...zones.keys()])) remove(id);
@@ -179,13 +247,42 @@ export function mountBodies(page: GamePage): Bodies {
       }
       if (ev.type === 'entityRemoved') remove(ev.id);
     },
-    frame({ world, alpha }) {
+    frame({ world, alpha, dt, hero }) {
       for (const [id, mesh] of meshes) {
         const t = world.entities.get(id)?.transform;
         const before = previous.get(id) ?? t;
         if (!t || !before) continue;
         mesh.position.set(...before.position).lerp(new THREE.Vector3(...t.position), alpha);
         mesh.quaternion.slerpQuaternions(qa.set(...before.rotation), qb.set(...t.rotation), alpha);
+      }
+      // A character's animation, from its state (the view reads the world, never writes it).
+      const time = dt * o.timeScale();
+      for (const [id, model] of instances) {
+        const e = world.entities.get(id);
+        if (e?.character && e.transform) animate(model, e.character, upAt(world, e.transform.position), time);
+      }
+      // For the browser tests (probe.ts): the animation the player's model plays ('' while it is drawn
+      // with its shape), written when it changes.
+      const clip = (hero && instances.get(hero.id)?.playing) || '';
+      if (page.container.dataset.clip !== clip) page.container.dataset.clip = clip;
+      // Its shadow, straight under it ("down" is where the world says): on what a ray down from its
+      // center finds, lying on that surface (a ramp too), smaller and fainter the higher its feet are
+      // (as far as 20 m; beyond, none).
+      for (const [id, shadow] of shadows) {
+        const e = world.entities.get(id);
+        const drawn = meshes.get(id);
+        if (!e?.transform || !drawn) continue;
+        const up = upAt(world, e.transform.position);
+        const from = drawn.position.toArray();
+        const hit = world.castRay(from, [-up[0], -up[1], -up[2]], 20, { skip: id });
+        shadow.visible = hit !== null;
+        if (!hit) continue;
+        const height = Math.max(0, hit.distance - (e.body ? below(e.body.shape) : 0));
+        const [nx, ny, nz] = hit.normal;
+        shadow.position.set(hit.point[0] + nx * 0.01, hit.point[1] + ny * 0.01, hit.point[2] + nz * 0.01);
+        shadow.quaternion.setFromUnitVectors(FLAT, normal.set(nx, ny, nz));
+        shadow.scale.setScalar(1 / (1 + height * 0.25));
+        (shadow.material as THREE.MeshBasicMaterial).opacity = 0.35 / (1 + height * 0.4);
       }
     },
   };

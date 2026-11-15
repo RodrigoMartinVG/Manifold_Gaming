@@ -250,6 +250,23 @@ export interface Character {
    * bot), asks for `faceFor(character, direction)`.
    */
   carriedTurn: Quat;
+  /**
+   * The shape its body takes in each way of moving (stage 2e), where it differs from its body's: what
+   * a shot or a blow will hit (phase 4), not what the controller moves (that is always its body).
+   * Only when the game gives them; for a mode without one, its body (`poseOf`).
+   */
+  poses?: Partial<Record<ModeName, CollisionPose>>;
+}
+
+/**
+ * A COLLISION POSE (stage 2e, for phase 4): a shape, where it is from the character's center, and how
+ * it is turned, in the character's own frame (forward −Z, up +Y). A character crouched in the air is
+ * shorter; one gliding lies almost flat.
+ */
+export interface CollisionPose {
+  shape: Shape;
+  offset: Vec3;
+  rotation: Quat;
 }
 
 /** A character as it is asked for: its player; the rest has defaults (any of its movement's numbers too). */
@@ -264,6 +281,7 @@ export type CharacterSpec = Pick<Character, 'player'> & {
     turn?: number;
   };
   can?: Partial<Capabilities>;
+  poses?: Partial<Record<ModeName, CollisionPose>>;
 };
 
 /**
@@ -295,6 +313,11 @@ export interface Appearance {
   size: Vec3;
   /** 0xRRGGBB */
   color: number;
+  /**
+   * A model, by the name the game gives the presentation (stage 2e: `dojo.mannequin`): drawn instead
+   * of the shape, once it loaded. Only for the eyes: nothing of a model enters the simulation.
+   */
+  model?: string;
 }
 
 /** The components an entity is created with (everything but the id, which the world gives; a body and a character as they are asked for). */

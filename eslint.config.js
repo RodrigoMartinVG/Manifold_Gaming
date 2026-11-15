@@ -18,6 +18,10 @@ const drawing = {
   group: ['three', 'three/*'],
   message: 'This layer does not draw: Three.js belongs to the presentation only (decision 0003).',
 };
+const models = {
+  group: ['**/*.glb', '**/*.glb?*', '**/*.gltf', '**/*.gltf?*'],
+  message: "A model is the presentation's: the simulation names one (`appearance.model`) and never loads it (stage 2e).",
+};
 const presentation = {
   group: ['@manifold/presentation', '@manifold/presentation/*'],
   message: 'The simulation does not know the presentation (decision 0003).',
@@ -122,7 +126,7 @@ export default defineConfig(
     rules: {
       'no-restricted-imports': [
         'error',
-        { patterns: [drawing, { group: ['@manifold/*'], message: 'common depends on no other package.' }] },
+        { patterns: [drawing, models, { group: ['@manifold/*'], message: 'common depends on no other package.' }] },
       ],
     },
   },
@@ -132,13 +136,13 @@ export default defineConfig(
     rules: {
       'no-restricted-imports': [
         'error',
-        { patterns: [drawing, { group: ['@manifold/*'], message: 'commands depends on no other package.' }] },
+        { patterns: [drawing, models, { group: ['@manifold/*'], message: 'commands depends on no other package.' }] },
       ],
     },
   },
   {
     files: ['packages/core/src/**'],
-    rules: { 'no-restricted-imports': ['error', { patterns: [drawing, presentation, games, network] }] },
+    rules: { 'no-restricted-imports': ['error', { patterns: [drawing, models, presentation, games, network] }] },
   },
   {
     // The simulation, the network and a game's rules give the same bits in every browser (stage 1f).
@@ -157,7 +161,7 @@ export default defineConfig(
   {
     // The networking skeleton (stage 1e): no screen, no games; it runs in a page, in a tab, in Node.
     files: ['packages/net/src/**'],
-    rules: { 'no-restricted-imports': ['error', { patterns: [drawing, presentation, games] }] },
+    rules: { 'no-restricted-imports': ['error', { patterns: [drawing, models, presentation, games] }] },
   },
   {
     files: ['packages/presentation/src/**'],
@@ -189,6 +193,7 @@ export default defineConfig(
         {
           patterns: [
             { ...drawing, message: headless },
+            { ...models, message: headless },
             { ...presentation, message: headless },
           ],
         },

@@ -1,0 +1,44 @@
+---
+/**
+ * WHERE WHAT IS SEEN COMES FROM (stage 2e, decision 0015): the Dojo's art files, from their list
+ * (`games/dojo/assets/assets.json`, which a test keeps whole). Made by a script of the repository, or
+ * from outside with its author, its source and its license. The texts are the site's, in Spanish.
+ */
+import list from '@manifold/dojo/assets';
+
+const entries = Object.entries(
+  list as Record<string, { madeBy?: string; source?: string; author?: string; license?: string }>,
+);
+const repository = 'https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/';
+---
+
+<table>
+  <thead>
+    <tr>
+      <th>Archivo</th>
+      <th>De dónde sale</th>
+    </tr>
+  </thead>
+  <tbody>
+    {
+      entries.map(([file, e]) => (
+        <tr data-asset={file}>
+          <td>
+            <code>{file}</code>
+          </td>
+          <td>
+            {e.madeBy ? (
+              <>
+                lo hace un guion de este repositorio, <a href={repository + e.madeBy}>{e.madeBy}</a>, corriendo Blender sin pantalla
+              </>
+            ) : (
+              <>
+                de {e.author} (<a href={e.source}>{e.source}</a>), con licencia {e.license}
+              </>
+            )}
+          </td>
+        </tr>
+      ))
+    }
+  </tbody>
+</table>

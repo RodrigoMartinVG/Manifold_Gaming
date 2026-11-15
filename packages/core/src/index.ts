@@ -9,7 +9,7 @@ export {
   type SessionState,
   type WorldChange,
 } from './session';
-export { DEFAULT_MOVEMENT, faceFor, turned, upAt } from './character';
+export { DEFAULT_MOVEMENT, faceFor, turned, upAt, poseOf } from './character';
 export {
   actionsFor,
   axisOf,
@@ -47,6 +47,7 @@ export type {
   BodySpec,
   Character,
   CharacterSpec,
+  CollisionPose,
   Components,
   Entity,
   Event,

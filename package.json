@@ -23,6 +23,7 @@
     "test:watch": "vitest",
     "perf": "vitest run --config vitest.perf.config.ts",
     "references": "vitest run games/dojo/src/reference.test.ts --update",
+    "art": "${BLENDER:-/Applications/Blender.app/Contents/MacOS/Blender} --background --factory-startup --python art/mannequin.py -- games/dojo/assets/mannequin.glb",
     "e2e": "playwright test",
     "verify": "npm run check && npm run lint && npm run format:check && npm run test && npm run perf",
     "serve:site": "vite preview --outDir site/dist --base /Manifold_Gaming/ --port 4321 --strictPort"

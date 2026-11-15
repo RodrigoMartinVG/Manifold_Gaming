@@ -5,6 +5,7 @@ import { mountCamera } from './camera';
 import { mountConsole, type ConsoleOptions, type GameConsole } from './console';
 import { mountDrive } from './drive';
 import { mountInspect } from './inspect';
+import { loadModels } from './models';
 import { createMatch } from './match';
 import { mountNotices } from './notices';
 import type { Frame, GamePage, Piece } from './page';
@@ -47,6 +48,11 @@ export interface MountOptions {
    * take part in every frame (see `Piece`).
    */
   pieces?: readonly ((page: GamePage) => Piece)[];
+  /**
+   * The game's models (stage 2e), by the name an appearance gives (`model`): where each glTF file is.
+   * An appearance that names one is drawn with it, once it loaded.
+   */
+  models?: Readonly<Record<string, string>>;
 }
 
 export interface Mount {
@@ -135,7 +141,7 @@ export function mount(cartridge: Cartridge, container: HTMLElement, o: MountOpti
 
   // The pieces, in the order they draw (the bodies first, what is drawn on them after, the camera last).
   const playerControls = mountPlayerControls({ blocked: () => gameConsole?.isOpen ?? false, buttons: o.buttons });
-  const bodies = mountBodies(page);
+  const bodies = mountBodies(page, loadModels(o.models), { timeScale: () => (match.paused ? 0 : match.timescale) });
   const replays = mountReplays(page, match, bodies);
   const rig = mountCamera(page, bodies, match, {
     kind: o.camera ?? 'fixed',

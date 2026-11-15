@@ -7,11 +7,14 @@ import {
   replayToText,
   sessionFor,
   stateHash,
+  upAt,
   type Replay,
   type Session,
 } from '@manifold/core';
 import type { Match } from '@manifold/net';
 import type { Bodies } from './bodies';
+import { animate, type ModelInstance } from './models';
+import { ownMaterial, release } from './owned';
 import type { PageMatch } from './match';
 import { hex, type GamePage, type Piece } from './page';
 import { GHOST_PREFIX, REPLAY_PREFIX, replayToFragment } from './replay-link';
@@ -46,40 +49,56 @@ export const REPLAY_COMMANDS = {
  * one, drawn translucent.
  */
 export function mountReplays(page: GamePage, match: PageMatch, bodies: Bodies): Replays {
+  const timeScale = () => (match.paused ? 0 : match.timescale);
   const { container } = page;
   /** The replay the server is playing: its last step and hash. */
   let replaying: Match['replay'] | null = null;
   /** A ghost: another world, born like a replay and fed its inputs, run in step with this one. */
-  let ghost: { replay: Replay; session: Session; player: ReplayPlayer; mesh: THREE.Mesh | null } | null = null;
+  let ghost: {
+    replay: Replay;
+    session: Session;
+    player: ReplayPlayer;
+    mesh: THREE.Object3D | null;
+    model: ModelInstance | null;
+  } | null = null;
 
   /** The server plays the replay: the match starts over like it, and each copy checks its hash at the end. */
   const playNow = (replay: Replay) => match.request({ type: 'play', replay: replayToText(replay) });
 
   function startGhost(replay: Replay) {
     clearGhost();
-    ghost = { replay, session: sessionFor(page.cartridge, replay), player: new ReplayPlayer(replay), mesh: null };
+    ghost = { replay, session: sessionFor(page.cartridge, replay), player: new ReplayPlayer(replay), mesh: null, model: null };
     const body = [...ghost.session.world.entities.values()].find((e) => e.character?.player === 1);
     if (body?.appearance) {
-      // The same look, translucent: a ghost.
-      ghost.mesh = bodies.meshFor(body.appearance);
-      ghost.mesh.traverse((o) => {
-        if (!(o instanceof THREE.Mesh)) return;
-        const m = o.material as THREE.MeshLambertMaterial;
+      // The same look, translucent: a ghost. (Its own materials: a model's are shared by every copy,
+      // and the live character must not turn translucent with it.)
+      const { object, model } = bodies.meshFor(body.appearance);
+      // (What it replaces is freed if it was the copy's own, its color: owned.ts.)
+      const meshes: THREE.Mesh[] = [];
+      object.traverse((o) => o instanceof THREE.Mesh && meshes.push(o));
+      for (const mesh of meshes) {
+        const m = (mesh.material as THREE.Material).clone();
         m.transparent = true;
         m.opacity = 0.35;
         m.depthWrite = false;
-      });
-      page.stage.scene.add(ghost.mesh);
+        ownMaterial(mesh, m);
+      }
+      object.userData.ghost = true;
+      ghost.mesh = object;
+      ghost.model = model;
+      page.stage.scene.add(object);
     }
   }
 
   function clearGhost() {
     if (!ghost) return;
     ghost.session.world.dispose();
-    ghost.mesh?.traverse((o) => {
-      if (o instanceof THREE.Mesh) (o.material as THREE.Material).dispose();
-    });
-    if (ghost.mesh) page.stage.scene.remove(ghost.mesh);
+    ghost.model?.mixer.stopAllAction();
+    if (ghost.mesh) {
+      page.stage.scene.remove(ghost.mesh);
+      // Its own materials and a capsule's own shape, never its model's (before 2e, the capsule's stayed).
+      release(ghost.mesh);
+    }
     ghost = null;
     delete container.dataset.ghost;
   }
@@ -187,14 +206,17 @@ export function mountReplays(page: GamePage, match: PageMatch, bodies: Bodies): 
       );
       replaying = null;
     },
-    // The ghost, where its world has it (its own world: what it pushes does not move here).
-    frame() {
+    // The ghost, where its world has it (its own world: what it pushes does not move here), and
+    // moving as its state asks (stage 2e).
+    frame({ dt }) {
       if (!ghost?.mesh) return;
-      const g = [...ghost.session.world.entities.values()].find((e) => e.character?.player === 1)?.transform;
-      if (g) {
-        ghost.mesh.position.set(...g.position);
-        ghost.mesh.quaternion.set(...g.rotation);
-      }
+      const body = [...ghost.session.world.entities.values()].find((e) => e.character?.player === 1);
+      const g = body?.transform;
+      if (!g) return;
+      ghost.mesh.position.set(...g.position);
+      ghost.mesh.quaternion.set(...g.rotation);
+      if (ghost.model && body.character)
+        animate(ghost.model, body.character, upAt(ghost.session.world, g.position), dt * timeScale());
     },
     afterRender() {
       const body = ghost && [...ghost.session.world.entities.values()].find((e) => e.character?.player === 1);

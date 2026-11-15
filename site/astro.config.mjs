@@ -11,6 +11,8 @@ export default defineConfig({
   site: 'https://rodrigomartinvg.github.io',
   base: '/Manifold_Gaming',
   trailingSlash: 'always',
+  // Models (stage 2e: the Dojo's mannequin): served as files, by their address.
+  vite: { assetsInclude: ['**/*.glb'] },
   integrations: [
     starlight({
       title: 'Manifold Gaming',

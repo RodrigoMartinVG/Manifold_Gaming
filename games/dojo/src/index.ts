@@ -3,6 +3,8 @@ import { initPhysics } from '@manifold/core';
 import { GHOST_PREFIX, mount, REPLAY_PREFIX, replayFromFragment, type InitialRecipe, type Mount } from '@manifold/presentation';
 import { DojoCartridge } from './cartridge';
 import { ROOMS } from './rooms';
+// The mannequin (stage 2e), made by art/mannequin.py: served as a file, by its address.
+import mannequin from '../assets/mannequin.glb?url';
 
 export interface DojoOptions {
   /** The saved room it was entered through (`…/jugar/dojo/rain/`), if any. */
@@ -43,6 +45,8 @@ export async function startDojo(container: HTMLElement, o: DojoOptions = {}): Pr
     camera: 'orbit',
     // Its own button (the cartridge declares it): F, or X on a gamepad.
     buttons: [{ action: 'dojo.throw', keys: ['KeyF'], pad: 2 }],
+    // Its models, by the name its appearances give (stage 2e).
+    models: { 'dojo.mannequin': mannequin },
     console: {
       game: 'dojo',
       rooms: ROOMS,

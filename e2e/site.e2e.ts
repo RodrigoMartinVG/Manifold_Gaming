@@ -351,6 +351,49 @@ test('in the course, the keys drive the character: it walks where the camera loo
   expect(list).toEqual([]);
 });
 
+// ---------------------------------------------------------------- models and animations (stage 2e)
+
+test("in the course, the character is the Dojo's mannequin: its animation follows how it moves, and a jump does not bounce the camera", async ({
+  page,
+}) => {
+  const list = errors(page);
+  await page.goto('jugar/dojo/course/');
+  // The model loaded (through the site's own build, as a visitor gets it), and it stands quiet.
+  await expect.poll(() => page.locator('#game').getAttribute('data-clip'), { timeout: 15_000 }).toBe('idle');
+  await settled(page, 'player');
+  // Everything the page writes from now on, frame by frame: a jump fits between two readings.
+  type Seen = { clip: string; player: number; camera: number };
+  await page.locator('#game').evaluate((el) => {
+    const seen: Seen[] = [];
+    (window as unknown as { seen: Seen[] }).seen = seen;
+    const height = (v: string | undefined) => Number(v?.split(' ')[1]);
+    new MutationObserver(() =>
+      seen.push({ clip: el.dataset.clip!, player: height(el.dataset.player), camera: height(el.dataset.camera) }),
+    ).observe(el, { attributes: true, attributeFilter: ['data-clip', 'data-player', 'data-camera'] });
+  });
+  const seen = () => page.evaluate(() => (window as unknown as { seen: Seen[] }).seen);
+  const last = async () => (await seen()).at(-1)?.clip;
+  // Walking, it walks (or runs); stopping, it is quiet again.
+  await page.keyboard.down('KeyW');
+  await expect
+    .poll(async () => (await seen()).some((s) => s.clip === 'walk' || s.clip === 'run'), { timeout: 20_000 })
+    .toBe(true);
+  await page.keyboard.up('KeyW');
+  await expect.poll(last, { timeout: 20_000 }).toBe('idle');
+  // A jump from standing: in the air, its own animation. The character rises 2 m; the camera does
+  // not go with it (the vertical dead zone: before it, the whole world bounced on the screen).
+  await settled(page, 'player');
+  const from = (await seen()).length;
+  await page.keyboard.press('Space');
+  await expect.poll(async () => (await seen()).slice(from).some((s) => s.clip === 'air'), { timeout: 15_000 }).toBe(true);
+  await expect.poll(last, { timeout: 20_000 }).toBe('idle');
+  const jump = (await seen()).slice(from);
+  const rise = (key: 'player' | 'camera') => Math.max(...jump.map((s) => s[key])) - Math.min(...jump.map((s) => s[key]));
+  expect(rise('player')).toBeGreaterThan(1.5);
+  expect(rise('camera'), 'the camera, during the jump').toBeLessThan(0.1);
+  expect(list).toEqual([]);
+});
+
 test('a link can leave the camera free: the character walks, and the camera stays', async ({ page }) => {
   const list = errors(page);
   // (A recipe runs before the world exists: view.camera must not need anything that comes later.)

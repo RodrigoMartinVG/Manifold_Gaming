@@ -17,5 +17,6 @@
  *  10  stage 2.5b: a game's components by name and nested (`game: { 'dojo.runner': {…} }`)
  *  11  stage 2.5c: directions on the ground (`move`, `face`) in whole degrees, changing only past 1°;
  *      written `@37` in a replay
+ *  12  stage 2e: an appearance may name a model (`model`): the Dojo's characters, its mannequin
  */
-export const SIMULATION_VERSION = 11;
+export const SIMULATION_VERSION = 12;

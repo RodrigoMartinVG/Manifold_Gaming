@@ -6,6 +6,7 @@
   "description": "The Dojo: the first game, there from day one to use the engine from the outside. A lab of rooms to experiment.",
   "exports": {
     ".": "./src/index.ts",
+    "./assets": "./assets/assets.json",
     "./cartridge": "./src/cartridge.ts",
     "./check": "./src/check.ts",
     "./declarations": "./src/declarations.ts",

@@ -44,3 +44,7 @@ Every art or sound file has its entry in a list next to it: where it came from, 
 - **Assets from other games, or of unclear license:** never; neither ripped nor "for testing".
 - **Buying packs:** CC0 packs cover what three compact games need; a paid license would be one more thing to track, for little.
 - **Recorded sound for everything:** files to carry and to license, for sounds (steps, jumps, hits, doors) that synthesis does well.
+
+## Refinement (2026-11-15, stage 2e)
+
+The free pack the table names for characters turned out to be hard to bring in by running something: its best candidate is downloaded through a page that asks for steps in a browser, and its listing does not say whether it brings a character or only the skeleton and its animations. The author chose, for the Dojo's character, the other way this decision allows for its pieces: **a mannequin made and animated by a script** (`art/mannequin.py`, run by Blender without a screen), with one animation per way of moving. Characters may come from either way; a CC0 pack can still replace the mannequin when a game of phase 5 asks for richer movement, through the same normalizing script and the same list. The mannequin keeps the contract the table asks of a pack (the capsule's size, its front at −Z, no root motion, the clips named after the modes, sockets for the hands and the head), and a test reads the file to hold it (`games/dojo/src/assets.test.ts`): whatever replaces it must pass the same test.
