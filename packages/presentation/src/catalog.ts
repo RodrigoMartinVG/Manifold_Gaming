@@ -1,4 +1,5 @@
 import type { CommandInfo, VariableInfo } from '@manifold/commands';
+import { AUDIO_VARIABLES } from './audio';
 import { BODIES_VARIABLES } from './bodies';
 import { CAMERA_COMMANDS, CAMERA_VARIABLES } from './camera';
 import { CONSOLE_COMMANDS } from './console';
@@ -23,6 +24,7 @@ export const PRESENTATION_VARIABLES: readonly VariableInfo[] = [
   ...Object.values(VIEWS_VARIABLES),
   ...Object.values(SIGNALS_VARIABLES),
   ...Object.values(LIGHTS_VARIABLES),
+  ...Object.values(AUDIO_VARIABLES),
   ...Object.values(MATCH_VARIABLES),
   ...Object.values(DRIVE_VARIABLES),
   ...Object.values(CAMERA_VARIABLES),

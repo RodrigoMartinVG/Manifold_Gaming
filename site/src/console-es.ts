@@ -23,6 +23,8 @@ export const CONSOLE_ES: Readonly<Record<string, string>> = {
     'lo que mira cada observador: el borde de su campo de visión, y una línea a cada personaje en él, verde si lo ve',
   'show.signals':
     'las señales: una línea desde cada mecanismo hasta las zonas de donde sale su señal, verde mientras está prendida',
+  'view.volume':
+    'qué tan fuerte se oyen los sonidos, de 0 (nada) a 1: se hacen en el navegador con lo que dice la simulación, sin archivos',
   'view.timescale': 'mostrar el mundo más lento (0.2) o más rápido (2), sin cambiar la física',
   'view.paused': 'el mundo frenado (con `step` avanza de a un paso)',
   'controls.scheme': 'cómo manejan las teclas al personaje ([las dos maneras](../como-se-juega/#las-teclas-de-dos-maneras))',

@@ -333,6 +333,8 @@ export interface Character {
    * thief's light gem).
    */
   light: number;
+  /** How far it has walked on the ground since its last step was heard (stage 3f), in meters. */
+  stride: number;
   /**
    * What the game makes it carry at the next step, m/s (stage 2b): the wind, a conveyor belt… It moves
    * it, whatever its mode, and it is emptied after the step: the game says it again on every step it
@@ -472,4 +474,19 @@ export type Event =
    * world's randomness, for whoever makes fragments of it (the presentation: the same ones in every
    * copy of the match, and none of them in the world).
    */
-  | { type: 'broke'; entity: EntityId; at: Vec3; by: EntityId; energy: number; seed: number };
+  | { type: 'broke'; entity: EntityId; at: Vec3; by: EntityId; energy: number; seed: number }
+  /**
+   * A sound (stage 3f): what made it, where, what kind, on what surface (a material's name, if there is
+   * one), how fast it went (a step, a landing) or how hard (a hit, a break: energy, J), and how far it
+   * is heard (`radius`, m: for phase 4's bots). The presentation synthesizes it from these numbers.
+   */
+  | {
+      type: 'sound';
+      sound: 'step' | 'land' | 'hit' | 'door' | 'lift' | 'break';
+      source: EntityId;
+      at: Vec3;
+      surface: string | null;
+      speed: number;
+      energy: number;
+      radius: number;
+    };

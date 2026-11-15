@@ -2,6 +2,7 @@ import { quat, vec3, type Quat, type Vec3 } from '@manifold/common';
 import { gravityAt } from './gravity';
 import { tractionOf } from './materials';
 import { CHARACTER_GAP, STANDS_ON } from './physics';
+import { STRIDE, stepRadius } from './sound';
 import { axisOf, isDown, NO_INPUT, vectorOf } from './input';
 import type { Body, Character, CharacterSpec, CollisionPose, Entity, ModeName, Movement } from './types';
 import type { World } from './world';
@@ -45,6 +46,7 @@ export function newCharacter(spec: CharacterSpec): Character {
     jumpHeld: false,
     facing: [...(spec.facing ?? [0, 0, -1])],
     light: 0,
+    stride: 0,
     carry: [0, 0, 0],
     ground: { velocity: [0, 0, 0], spin: 0 },
     carriedTurn: quat.identity(),
@@ -421,6 +423,9 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
     } else c.jumpPending--;
   }
 
+  // How fast it was coming down (for the landing's sound, stage 3f).
+  const fell = Math.max(0, -vec3.dot(c.velocity, up));
+
   // 4: the contributions. Gravity changes the velocity (unless the mode holds itself; a mode may
   // slow the fall); what carries it only moves it, this step. Not while it stands, without jumping,
   // on ground it does not slide on (flatter than 30°): its floor holds it, and the controller keeps
@@ -481,4 +486,39 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
   else if (vec3.length(inWorld) > 0.1) c.facing = vec3.normalize(inWorld);
   const position = vec3.add(walked, riding);
   world.physics.setNextPose(body.handle, position, quat.look(c.facing, up));
+
+  // What is heard (stage 3f): a step every stride walked on the ground, on what it stands on (by its
+  // material), louder running; and a landing, by how fast it came down.
+  const floor_ = under ? world.entities.get(under.entity) : undefined;
+  const surface = floor_?.body?.material ?? null;
+  const feet_ = vec3.add(position, vec3.scale(up, -0.8));
+  if (grounded && !wasGrounded && fell > 3)
+    world.emit({
+      type: 'sound',
+      sound: 'land',
+      source: e.id,
+      at: feet_,
+      surface,
+      speed: fell,
+      energy: 0,
+      radius: stepRadius(surface, fell, c.movement.walk.speed),
+    });
+  const along = vec3.length(vec3.onPlane(movement, up));
+  if (grounded && wasGrounded && c.mode === 'walk' && along > 0) {
+    c.stride += along;
+    if (c.stride >= STRIDE) {
+      c.stride -= STRIDE;
+      const speed = along / dt;
+      world.emit({
+        type: 'sound',
+        sound: 'step',
+        source: e.id,
+        at: feet_,
+        surface,
+        speed,
+        energy: 0,
+        radius: stepRadius(surface, speed, c.movement.walk.speed),
+      });
+    }
+  } else if (!grounded) c.stride = STRIDE / 2;
 }

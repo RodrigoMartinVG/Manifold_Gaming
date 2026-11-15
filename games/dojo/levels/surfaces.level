@@ -1,13 +1,16 @@
 # Manifold level 2
-# Surfaces (stage 3b): what a floor is made of, and a zone that carries. An ice rink, where the
+# Surfaces (stage 3b): what a floor is made of, and a zone that carries; and how it sounds (stage 3f). An ice rink, where the
 # character's feet push a twelfth of what they push on stone: it slides, and it takes that much longer
 # to stop. Then a stream across the way: a current that carries whoever stands in it towards the edge.
 title Surfaces
 spawn 0 1 9
 facing 0 0 -1
 
-# The start: stone, as every box that says nothing.
-box 0 -0.5 8      4 0.5 3     color #6f6a62  name start
+# The start, in three floors that sound different under the feet (stage 3f): wood on the left, stone in
+# the middle (as every box that says nothing), metal on the right.
+box -2.75 -0.5 8  1.25 0.5 3  material wood  color #8a6a42  name start_wood
+box 0 -0.5 8      1.5 0.5 3   color #6f6a62  name start
+box 2.75 -0.5 8   1.25 0.5 3  material metal  color #7a7e84  name start_metal
 
 # The rink: ice, 12 m long. Three posts of stone on it, to slide into (or around).
 box 0 -0.5 -1     4 0.5 6     material ice  color #c8dde6  name rink

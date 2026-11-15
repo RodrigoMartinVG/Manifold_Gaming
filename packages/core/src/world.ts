@@ -4,6 +4,7 @@ import { pressed } from './input';
 import { COMPONENT_NAME } from './components';
 import { EARTH, gravityAt } from './gravity';
 import { MATERIAL_NAME, MATERIALS, materialProblem, type Material } from './materials';
+import { HIT_HEARD, hitRadius } from './sound';
 import { PHYSICS, type PhysicsBackend, type PhysicsHit } from './physics';
 import { VERIFIED, type Profile } from './profile';
 import type {
@@ -562,10 +563,7 @@ export class World {
     },
     physics: () => this.physics.step(),
     breaks: () => this.shatter(),
-    readBack: () => {
-      for (const e of this.entities.values())
-        if (e.body && e.transform && e.body.type !== 'fixed') this.physics.read(e.body.handle, e.transform, e.body);
-    },
+    readBack: () => this.readBack(),
     zones: () => this.sense(),
     light: () => this.illuminate(),
     signals: () => this.compute(),
@@ -609,6 +607,17 @@ export class World {
       m.from = progressOf(m, this.tick - 1);
       m.since = this.tick - 1;
       m.toward = want;
+      // Heard when it starts to move (stage 3f): a door creaks, a lift hums, 12 m around.
+      this.emit({
+        type: 'sound',
+        sound: m.door ? 'door' : 'lift',
+        source: e.id,
+        at: [...e.transform!.position],
+        surface: e.body?.material ?? null,
+        speed: 1 / m.seconds,
+        energy: 0,
+        radius: 12,
+      });
     }
     const target = mechanismAt(m, progressOf(m, this.tick));
     const body = e.body!;
@@ -616,6 +625,38 @@ export class World {
     let turn = quat.multiply(target.rotation, quat.conjugate(e.transform!.rotation));
     if (turn[3] < 0) turn = [-turn[0], -turn[1], -turn[2], -turn[3]];
     body.angularVelocity = [(2 * turn[0]) / STEP, (2 * turn[1]) / STEP, (2 * turn[2]) / STEP];
+  }
+
+  /**
+   * READING BACK every moving body's pose and velocities. And, for what the physics moves, a hit, heard
+   * (stage 3f): how much its velocity changed in the step beyond what gravity gave it is what something
+   * did to it; half its mass times that change squared, the energy of the hit. From what the world
+   * already has (the velocity before, the one after): the same in every copy, and after a snapshot.
+   */
+  private readBack() {
+    const g = this.uniformGravity();
+    for (const e of this.entities.values()) {
+      if (!e.body || !e.transform || e.body.type === 'fixed') continue;
+      const before: Vec3 = [...e.body.linearVelocity];
+      this.physics.read(e.body.handle, e.transform, e.body);
+      if (e.body.type !== 'dynamic') continue;
+      const change = vec3.sub(vec3.sub(e.body.linearVelocity, before), vec3.scale(g, STEP));
+      const energy = 0.5 * this.physics.massOf(e.body.handle) * vec3.dot(change, change);
+      if (energy < HIT_HEARD) continue;
+      // On what: the first thing it touches (its material), or its own.
+      const other = this.physics.touching(e.body.handle)[0];
+      const against = other === undefined ? undefined : [...this.entities.values()].find((x) => x.body?.handle === other);
+      this.emit({
+        type: 'sound',
+        sound: 'hit',
+        source: e.id,
+        at: [...e.transform.position],
+        surface: against?.body?.material ?? e.body.material ?? null,
+        speed: vec3.length(before),
+        energy,
+        radius: hitRadius(energy),
+      });
+    }
   }
 
   /**
@@ -660,6 +701,7 @@ export class World {
         : e.body?.shape.kind === 'ball'
           ? [e.body.shape.radius, e.body.shape.radius, e.body.shape.radius]
           : [0.1, 0.1, 0.1];
+    const material = e.body?.material ?? null;
     if (e.body) {
       this.physics.removeBody(e.body.handle);
       delete e.body;
@@ -689,6 +731,16 @@ export class World {
       });
     }
     this.emit({ type: 'broke', entity: e.id, at, by, energy, seed });
+    this.emit({
+      type: 'sound',
+      sound: 'break',
+      source: e.id,
+      at,
+      surface: e.lamp ? 'glass' : material,
+      speed: 0,
+      energy,
+      radius: Math.max(15, hitRadius(energy)),
+    });
     // A box that broke is gone but for its pieces; a lamp stays, broken (it is still a lamp, dark).
     if (!e.lamp) this.removeEntity(e.id);
   }

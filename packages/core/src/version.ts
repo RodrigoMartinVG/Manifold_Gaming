@@ -33,5 +33,7 @@
  *      and watchers that see by it (their phase, before the signals'); zones that attenuate
  *  19  stage 3e: what breaks: a threshold by the energy of a hit, its phase after the physics', a few
  *      large pieces in the hash, and the break as an event with a seed
+ *  20  stage 3f: what is heard: a character's stride (in the hash), and sounds as events, steps,
+ *      landings, hits, doors, lifts and breaks, with a hearing radius
  */
-export const SIMULATION_VERSION = 19;
+export const SIMULATION_VERSION = 20;

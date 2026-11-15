@@ -1,5 +1,6 @@
 # Surfaces: ice that slides, a current that carries
-# What a floor is made of, since stage 3b. On the rink the character's feet push a twelfth of what
+# What a floor is made of, since stage 3b, and how it sounds, since 3f: the start is wood, stone and
+# metal, side by side. On the rink the character's feet push a twelfth of what
 # they push on stone: it slides, and stopping takes that long too. Past it, a stream whose current
 # carries it towards the edge while it stands in it: cross it walking a little upstream, or jump over
 # it. `inspect stream` shows its flow, `inspect rink` what it is made of.

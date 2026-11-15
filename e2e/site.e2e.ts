@@ -261,7 +261,7 @@ test('a level names its things, and the console finds them by name (stage 3b)', 
   await page.keyboard.press('Backquote');
   // With nothing, how many there are, and their names.
   await typeInConsole(page, 'inspect');
-  await expect(consoleLog(page)).toContainText('Named: start, rink, stream_bed, far_side, stream.');
+  await expect(consoleLog(page)).toContainText('Named: start_wood, start, start_metal, rink, stream_bed, far_side, stream.');
   // A zone with what it carries, and a box with what it is made of.
   await typeInConsole(page, 'inspect stream');
   await expect(consoleLog(page)).toContainText('(stream), at step');
@@ -343,6 +343,29 @@ for (const [room, draws, triangles] of [
     expect(drawn.triangles, `triangles (${JSON.stringify(drawn)})`).toBeLessThanOrEqual(triangles);
   });
 
+test('the sound (stage 3f): steps on metal and on wood are made in the browser, each its own, without errors', async ({
+  page,
+}) => {
+  const list = errors(page);
+  await page.goto('jugar/dojo/surfaces/');
+  await expect.poll(() => page.locator('#game').getAttribute('data-player'), { timeout: 20_000 }).toBeTruthy();
+  const walkOn = async (x: number, surface: string) => {
+    await page.keyboard.press('Backquote');
+    await typeInConsole(page, `dojo.goto ${x} 1 10`);
+    await page.keyboard.press('Escape');
+    await afterSteps(page, 30);
+    await page.keyboard.down('KeyW');
+    await expect.poll(() => page.locator('#game').getAttribute('data-sound'), { timeout: 15_000 }).toBe(`step ${surface}`);
+    await page.keyboard.up('KeyW');
+  };
+  // (The keys pressed are what lets the browser start the sound.)
+  await walkOn(2.75, 'metal');
+  await walkOn(-2.75, 'wood');
+  // (Each walk stops at its first step heard: two at least.)
+  expect(Number(await page.locator('#game').getAttribute('data-sounds'))).toBeGreaterThanOrEqual(2);
+  expect(list).toEqual([]);
+});
+
 test('the wheel gets the camera closer, and the right button moves it sideways', async ({ page }) => {
   const list = errors(page);
   await page.setViewportSize({ width: 1280, height: 800 });
@@ -384,6 +407,7 @@ const VIEW_VALUES: Record<string, string> = {
   'show.vision': 'on',
   'show.stats': 'on',
   'view.timescale': '0.5',
+  'view.volume': '0.3',
   'view.paused': 'on',
   'controls.scheme': 'tank',
   'view.camera': 'aim',

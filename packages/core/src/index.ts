@@ -14,6 +14,7 @@ export {
   progressOf,
 } from './world';
 export { FULL_GRIP, MATERIAL_NAME, MATERIALS, materialProblem, tractionOf, type Material } from './materials';
+export { HIT_HEARD, hitRadius, STEP_HEARD, stepRadius, STRIDE } from './sound';
 export {
   Session,
   declareCore,
