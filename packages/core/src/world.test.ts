@@ -159,9 +159,73 @@ describe('spatial queries through the world (stage 2.5b)', () => {
     world.dispose();
   });
 
-  test("a body's material is kept with it (the game's: the engine does not read it)", () => {
+  test("a body's material is kept with it: the game reads its name (the sound of a step), and since 3b its friction and bounce are the material's", () => {
     const { world, floor } = scene();
     expect(floor.body!.material).toBe('stone');
+    expect([floor.body!.friction, floor.body!.restitution]).toEqual([0.6, 0.2]);
+    world.dispose();
+  });
+});
+
+describe('names and materials (stage 3b)', () => {
+  const at = { transform: { position: [0, 0, 0] as [number, number, number], rotation: quat.identity() } };
+
+  test('an entity found by its name; a name names one entity, and is free again when it is gone', () => {
+    const world = new World({ seed: 1 });
+    const door = world.createEntity({ ...at, name: 'door_north' });
+    expect(world.named('door_north')).toBe(door);
+    expect(world.named('door_south')).toBeUndefined();
+    expect(() => world.createEntity({ ...at, name: 'door_north' })).toThrow(/"door_north" is already another entity's name/);
+    expect(() => world.createEntity({ ...at, name: 'Door North' })).toThrow(/is not a name/);
+    world.removeEntity(door.id);
+    expect(() => world.createEntity({ ...at, name: 'door_north' })).not.toThrow();
+    world.dispose();
+  });
+
+  test("a body takes its material's friction and bounce, unless they are given; one the world does not know is an error", () => {
+    const world = new World({ seed: 1 });
+    const box = { kind: 'box' as const, halfExtents: [1, 1, 1] as [number, number, number] };
+    const ice = world.createEntity({ ...at, body: { type: 'fixed', shape: box, material: 'ice' } });
+    expect([ice.body!.friction, ice.body!.restitution]).toEqual([0.05, 0.05]);
+    const given = world.createEntity({ ...at, body: { type: 'fixed', shape: box, material: 'ice', friction: 0.3 } });
+    expect([given.body!.friction, given.body!.restitution]).toEqual([0.3, 0.05]);
+    // Nothing said: stone's numbers, and no material.
+    const plain = world.createEntity({ ...at, body: { type: 'fixed', shape: box } });
+    expect([plain.body!.friction, plain.body!.restitution, plain.body!.material]).toEqual([0.6, 0.2, undefined]);
+    expect(() => world.createEntity({ ...at, body: { type: 'fixed', shape: box, material: 'lava' } })).toThrow(
+      /no material "lava" in this world \(stone, wood, metal, glass, ice\)/,
+    );
+    world.dispose();
+  });
+
+  test("a world's materials: the engine's and those added, in its hash and in its snapshots; one added again with other numbers is an error", () => {
+    const world = new World({ seed: 1 });
+    expect(Object.keys(world.materials)).toEqual(['stone', 'wood', 'metal', 'glass', 'ice']);
+    const before = stateHash(world);
+    world.addMaterial('oil', { friction: 0.02, bounce: 0, density: 900, drag: 0.4 });
+    expect(stateHash(world)).not.toBe(before);
+    // The same again is nothing new; with other numbers, the bodies made of it would not agree.
+    expect(() => world.addMaterial('oil', { friction: 0.02, bounce: 0, density: 900, drag: 0.4 })).not.toThrow();
+    expect(() => world.addMaterial('oil', { friction: 0.5, bounce: 0, density: 900, drag: 0.4 })).toThrow(/already this world's/);
+    expect(() => world.addMaterial('tar', { friction: -1, bounce: 0, density: 900, drag: 0 })).toThrow(/its friction must be/);
+    const back = World.restore(world.snapshot());
+    expect(back.materials.oil).toEqual({ friction: 0.02, bounce: 0, density: 900, drag: 0.4 });
+    expect(stateHash(back)).toBe(stateHash(world));
+    // The engine's table is not touched by a world's additions.
+    const fresh = new World({ seed: 1 });
+    expect(fresh.materials.oil).toBeUndefined();
+    fresh.dispose();
+    world.dispose();
+    back.dispose();
+  });
+
+  test('a zone keeps what it carries, as its own copy', () => {
+    const world = new World({ seed: 1 });
+    const flow = [3, 0, 0];
+    const zone = world.createEntity({ ...at, sensor: { kind: 'current', half: [1, 1, 1], params: { flow } } });
+    flow[0] = 9;
+    expect(zone.sensor!.params).toEqual({ flow: [3, 0, 0] });
+    expect(world.createEntity({ ...at, sensor: { kind: 'goal', half: [1, 1, 1] } }).sensor!.params).toEqual({});
     world.dispose();
   });
 });

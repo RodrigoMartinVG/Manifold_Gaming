@@ -61,6 +61,12 @@ export interface QueryOptions {
 /** The thin gap a character keeps between its capsule and what it touches (Rapier's advice: avoid getting stuck). */
 export const CHARACTER_GAP = 0.02;
 
+/**
+ * The steepest ground a character stands on without sliding, as the cosine of its slope: 30°
+ * (`CHARACTER.minSlide`), as √3 / 2 (a square root gives the same bits everywhere; a cosine might not).
+ */
+export const STANDS_ON = Math.sqrt(3) / 2;
+
 /** How characters move (stage 1b): what they climb, what they snap to, what they push. */
 const CHARACTER = {
   offset: CHARACTER_GAP,
@@ -71,7 +77,7 @@ const CHARACTER = {
   snapToGround: 0.3,
   /** Slopes it walks up; steeper ones, it slides down. (Radians: π/180 per degree.) */
   maxClimb: (50 * Math.PI) / 180,
-  minSlide: (30 * Math.PI) / 180,
+  minSlide: (30 * Math.PI) / 180, // its cosine is STANDS_ON
 };
 
 /**

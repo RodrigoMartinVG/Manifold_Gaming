@@ -90,6 +90,12 @@ export interface Gait {
   climbAngle: number;
   /** A gesture playing: which, since when (s), and how strong. */
   gesture: { clip: 'flip' | 'land'; time: number; strength: number } | null;
+  /**
+   * How many gestures have started, and the last one (stage 3b): what the browser tests read. The
+   * animation that weighs most, read frame by frame, could miss a landing: it lasts 0.3 s and comes in
+   * from nothing, and at a few frames per second (WebGL on the CPU, a loaded machine) no frame showed it.
+   */
+  started: { count: number; clip: 'flip' | 'land' | null };
   /** How long each gesture lasts (s): its animation's length, from the model. */
   lengths: { flip: number; land: number };
   last: { mode: ModeName | null; airJumps: number; vertical: number };
@@ -106,6 +112,7 @@ export function newGait(lengths: { flip: number; land: number } = { flip: 0.45, 
     angle: 0,
     climbAngle: 0,
     gesture: null,
+    started: { count: 0, clip: null },
     lengths,
     last: { mode: null, airJumps: 0, vertical: 0 },
   };
@@ -211,10 +218,13 @@ export function advance(g: Gait, r: Reading, dt: number) {
 
   // The gestures. A jump in the air (it had one more a moment ago, and it is not standing): a
   // somersault. Landing from a fall faster than a jump's: its weight, stronger the harder it came down.
-  if (r.airJumps < g.last.airJumps && !r.grounded && r.mode !== 'climb') g.gesture = { clip: 'flip', time: 0, strength: 1 };
-  else if (r.grounded && (g.last.mode === 'air' || g.last.mode === 'glide') && g.last.vertical < -HARD_LANDING)
+  if (r.airJumps < g.last.airJumps && !r.grounded && r.mode !== 'climb') {
+    g.gesture = { clip: 'flip', time: 0, strength: 1 };
+    g.started = { count: g.started.count + 1, clip: 'flip' };
+  } else if (r.grounded && (g.last.mode === 'air' || g.last.mode === 'glide') && g.last.vertical < -HARD_LANDING) {
     g.gesture = { clip: 'land', time: 0, strength: Math.max(0.35, clamp01((-g.last.vertical - HARD_LANDING) / 5)) };
-  else if (g.gesture) {
+    g.started = { count: g.started.count + 1, clip: 'land' };
+  } else if (g.gesture) {
     g.gesture.time += dt;
     if (g.gesture.time >= g.lengths[g.gesture.clip]) g.gesture = null;
   }

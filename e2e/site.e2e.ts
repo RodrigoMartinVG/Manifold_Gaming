@@ -48,13 +48,14 @@ test("the home page's showcase lights up and its simulation advances", async ({ 
   expect(list).toEqual([]);
 });
 
-for (const [address, cubes] of [
-  ['jugar/dojo/empty/', 1],
-  ['jugar/dojo/empty/#recipe=dojo.cubes+20;seed+3', 21],
+// What is drawn in the empty Dojo: the big cube, the floor (its grid, since stage 3b) and the cubes.
+for (const [address, drawn] of [
+  ['jugar/dojo/empty/', 2],
+  ['jugar/dojo/empty/#recipe=dojo.cubes+20;seed+3', 22],
   // An old link (before 2026-11-14 the empty Dojo was `/jugar/dojo/`): it goes to the empty room, recipe and all.
-  ['jugar/dojo/#recipe=dojo.cubes+20;seed+3', 21],
+  ['jugar/dojo/#recipe=dojo.cubes+20;seed+3', 22],
 ] as const) {
-  test(`the Dojo draws without errors, one mesh per cube (${address})`, async ({ page }) => {
+  test(`the Dojo draws without errors, one thing drawn per entity (${address})`, async ({ page }) => {
     const list = errors(page);
     await page.goto(address);
     await expect(page.locator('#game canvas')).toBeVisible();
@@ -63,7 +64,7 @@ for (const [address, cubes] of [
       .poll(async () => Number(await page.locator('#game').getAttribute('data-frames')), { timeout: 15_000 })
       .toBeGreaterThanOrEqual(30);
     // One mesh per entity, not one more (in step 0, every cube was drawn twice).
-    expect(Number(await page.locator('#game').getAttribute('data-meshes'))).toBe(cubes);
+    expect(Number(await page.locator('#game').getAttribute('data-meshes'))).toBe(drawn);
     expect(list).toEqual([]);
   });
 }
@@ -86,7 +87,7 @@ async function typeInConsole(page: Page, ...lines: string[]) {
 // declares exactly what the tables list, nothing missing and nothing extra.
 test('the console page and the Dojo page list exactly the commands and variables the Dojo declares', async ({ page }) => {
   await page.goto('jugar/dojo/empty/');
-  await expect.poll(() => meshes(page), { timeout: 15_000 }).toBe(1);
+  await expect.poll(() => meshes(page), { timeout: 15_000 }).toBe(2);
   await page.keyboard.press('Backquote');
   await typeInConsole(page, 'help', 'vars');
   const log = await consoleLog(page).innerText();
@@ -111,16 +112,16 @@ test('the console page and the Dojo page list exactly the commands and variables
 test("the Dojo's console opens with the º key and changes the world", async ({ page }) => {
   const list = errors(page);
   await page.goto('jugar/dojo/empty/');
-  await expect.poll(() => meshes(page), { timeout: 15_000 }).toBe(1);
+  await expect.poll(() => meshes(page), { timeout: 15_000 }).toBe(2);
   await page.keyboard.press('Backquote');
   await expect(page.locator('.mg-console')).toHaveAttribute('data-open', 'true');
 
   // Startup: the world starts over with 20 more cubes.
   await typeInConsole(page, 'dojo.cubes 20');
-  await expect.poll(() => meshes(page)).toBe(21);
+  await expect.poll(() => meshes(page)).toBe(22);
   // World: a new cube, at the next step.
   await typeInConsole(page, 'dojo.spawn 0 2 0');
-  await expect.poll(() => meshes(page)).toBe(22);
+  await expect.poll(() => meshes(page)).toBe(23);
   // A misspelled name suggests the similar one.
   await typeInConsole(page, 'dojo.cube 3');
   // The whole line, corrected, as a button: a click puts it in the line.
@@ -141,11 +142,13 @@ function dojoRooms() {
     .filter((f) => f.endsWith('.txt'))
     .map((f) => {
       const text = readFileSync(path.join(folder, f), 'utf8');
-      // The level it builds, if any: each of its boxes and stars is drawn (zones are not, unless asked).
+      // The level it builds, if any: each of its boxes and stars is drawn (zones are not, unless asked;
+      // nor, since stage 3b, a hidden box).
       const level = text.match(/^dojo\.level\s+(\S+)/m)?.[1];
       const pieces = level
-        ? readFileSync(path.join(process.cwd(), `games/dojo/levels/${level}.level`), 'utf8').match(/^(box|sensor star)\s/gm)!
-            .length
+        ? readFileSync(path.join(process.cwd(), `games/dojo/levels/${level}.level`), 'utf8')
+            .split('\n')
+            .filter((line) => /^sensor star\s/.test(line) || (/^box\s/.test(line) && !/\shidden(\s|$)/.test(line))).length
         : 0;
       return {
         name: f.replace(/\.txt$/, ''),
@@ -175,7 +178,7 @@ test('a link with the recipe inside: it applies what it understands, reports the
 }) => {
   const list = errors(page);
   await page.goto('jugar/dojo/empty/#recipe=dojo.cubes+5;startup+save;made.up+3');
-  await expect.poll(() => meshes(page), { timeout: 15_000 }).toBe(6);
+  await expect.poll(() => meshes(page), { timeout: 15_000 }).toBe(7);
   await page.keyboard.press('Backquote');
   await expect(consoleLog(page)).toContainText("the link's recipe: 2 lines were not understood");
   await expect(consoleLog(page)).toContainText('"startup" cannot be used in a recipe');
@@ -189,7 +192,7 @@ test('the startup recipe and the key bindings are saved, and hold the next time'
   await typeInConsole(page, 'dojo.cubes 4', 'startup save', 'bind t toggle show.wireframe');
   await page.reload();
   // It is born with the startup recipe...
-  await expect.poll(() => meshes(page), { timeout: 15_000 }).toBe(5);
+  await expect.poll(() => meshes(page), { timeout: 15_000 }).toBe(6);
   // ...and the binding works with the console closed. (The click goes to an empty corner: a click on an
   // object would inspect it, and open the console.)
   await page.locator('#game canvas').click({ position: { x: 40, y: 40 } });
@@ -203,13 +206,13 @@ test('the startup recipe and the key bindings are saved, and hold the next time'
 
 test("help's examples are buttons: a click puts one in the line, and Enter runs it", async ({ page }) => {
   await page.goto('jugar/dojo/empty/');
-  await expect.poll(() => meshes(page), { timeout: 15_000 }).toBe(1);
+  await expect.poll(() => meshes(page), { timeout: 15_000 }).toBe(2);
   await page.keyboard.press('Backquote');
   await typeInConsole(page, 'help');
   await consoleLog(page).getByRole('button', { name: 'dojo.spawn 0 5 0' }).click();
   await expect(page.locator('.mg-console input')).toHaveValue('dojo.spawn 0 5 0 ');
   await page.locator('.mg-console input').press('Enter');
-  await expect.poll(() => meshes(page)).toBe(2);
+  await expect.poll(() => meshes(page)).toBe(3);
   // A suggestion is a button too, with the whole line corrected.
   await typeInConsole(page, 'show.phisics on');
   // (The last one: help's examples have one with the same text.)
@@ -242,13 +245,32 @@ test('the free camera turns with a drag, camera.reset brings it back, and a clic
   // The camera looks at the big cube: a click in the middle of the screen inspects it.
   await page.mouse.click(640, 400);
   await expect(page.locator('.mg-console')).toHaveAttribute('data-open', 'true');
-  await expect(consoleLog(page)).toContainText('entity 1, at step');
+  await expect(consoleLog(page)).toContainText('entity 1 (cube), at step');
   await expect(consoleLog(page)).toContainText('body');
   await expect(consoleLog(page)).toContainText('type kinematic');
   // inspect with no id counts the entities; the stats show the physics.
   await typeInConsole(page, 'inspect', 'show.stats on');
   await expect(consoleLog(page)).toContainText('2 entities: 1 kinematic, 1 fixed');
   await expect(page.locator('.mg-stats')).toContainText('ms per step');
+});
+
+test('a level names its things, and the console finds them by name (stage 3b)', async ({ page }) => {
+  const list = errors(page);
+  await page.goto('jugar/dojo/surfaces/');
+  await expect.poll(() => page.locator('#game').getAttribute('data-player'), { timeout: 20_000 }).toBeTruthy();
+  await page.keyboard.press('Backquote');
+  // With nothing, how many there are, and their names.
+  await typeInConsole(page, 'inspect');
+  await expect(consoleLog(page)).toContainText('Named: start, rink, stream_bed, far_side, stream.');
+  // A zone with what it carries, and a box with what it is made of.
+  await typeInConsole(page, 'inspect stream');
+  await expect(consoleLog(page)).toContainText('(stream), at step');
+  await expect(consoleLog(page)).toContainText('flow 3 0 0');
+  await typeInConsole(page, 'inspect rink');
+  await expect(consoleLog(page)).toContainText('material ice');
+  await typeInConsole(page, 'inspect river');
+  await expect(consoleLog(page)).toContainText('no entity named "river"');
+  expect(list).toEqual([]);
 });
 
 test('the wheel gets the camera closer, and the right button moves it sideways', async ({ page }) => {
@@ -321,14 +343,14 @@ test('a link can bring every view variable at once: the page is built, and each 
 
 test('reset puts everything back to its default value, and vars shows it by scope', async ({ page }) => {
   await page.goto('jugar/dojo/empty/');
-  await expect.poll(() => meshes(page), { timeout: 15_000 }).toBe(1);
+  await expect.poll(() => meshes(page), { timeout: 15_000 }).toBe(2);
   await page.keyboard.press('Backquote');
   await typeInConsole(page, 'dojo.cubes 5', 'show.axes on', 'vars');
   await expect(consoleLog(page)).toContainText('startup: changing them restarts the world');
   await expect(consoleLog(page)).toContainText('(changed; default 0)');
-  await expect.poll(() => meshes(page)).toBe(6);
+  await expect.poll(() => meshes(page)).toBe(7);
   await typeInConsole(page, 'reset', 'changed');
-  await expect.poll(() => meshes(page)).toBe(1);
+  await expect.poll(() => meshes(page)).toBe(2);
   await expect(consoleLog(page)).toContainText('nothing changed: everything is at its default value');
 });
 
@@ -461,25 +483,31 @@ test('a jump in the air is a somersault, and coming down from high up, the landi
   await page.goto('jugar/dojo/course/#recipe=dojo.doublejump+on');
   await expect.poll(() => page.locator('#game').getAttribute('data-clip'), { timeout: 15_000 }).toBe('idle');
   await settled(page, 'player');
-  // Every animation the page says it plays, in order (a somersault lasts less than half a second).
+  // Every animation the page says it plays, in order; and every gesture it starts (stage 3b: a landing
+  // lasts 0.3 s and comes in from nothing, and at a few frames per second it never weighed most in a
+  // frame: the test failed one time in three).
   await page.locator('#game').evaluate((el) => {
     const seen: string[] = [];
-    (window as unknown as { seen: string[] }).seen = seen;
+    const gestures: string[] = [];
+    (window as unknown as { seen: string[]; gestures: string[] }).seen = seen;
+    (window as unknown as { seen: string[]; gestures: string[] }).gestures = gestures;
     new MutationObserver(() => {
       if (seen.at(-1) !== el.dataset.clip) seen.push(el.dataset.clip!);
-    }).observe(el, { attributes: true, attributeFilter: ['data-clip'] });
+      const gesture = el.dataset.gesture?.split(' ')[1];
+      if (gesture && el.dataset.gesture !== gestures.at(-1)) gestures.push(el.dataset.gesture!);
+    }).observe(el, { attributes: true, attributeFilter: ['data-clip', 'data-gesture'] });
   });
   const seen = () => page.evaluate(() => (window as unknown as { seen: string[] }).seen);
+  const gestures = () => page.evaluate(() => (window as unknown as { gestures: string[] }).gestures.map((g) => g.split(' ')[1]));
   // A jump, and at its top (rising no more: falling), a second one in the air.
   await page.keyboard.press('Space');
   await expect.poll(async () => (await seen()).includes('fall'), { timeout: 15_000 }).toBe(true);
   await page.keyboard.press('Space');
-  await expect.poll(async () => (await seen()).includes('flip'), { timeout: 15_000 }).toBe(true);
+  await expect.poll(async () => (await gestures()).includes('flip'), { timeout: 15_000 }).toBe(true);
   // Down from 4.7 m (about 9 m/s): the landing, over everything else; then quiet.
-  await expect.poll(async () => (await seen()).includes('land'), { timeout: 20_000 }).toBe(true);
+  await expect.poll(async () => (await gestures()).includes('land'), { timeout: 20_000 }).toBe(true);
   await expect.poll(async () => (await seen()).at(-1), { timeout: 20_000 }).toBe('idle');
-  const order = await seen();
-  expect(order.indexOf('flip'), order.join(' → ')).toBeLessThan(order.indexOf('land'));
+  expect(await gestures()).toEqual(['flip', 'land']);
   expect(list).toEqual([]);
 });
 

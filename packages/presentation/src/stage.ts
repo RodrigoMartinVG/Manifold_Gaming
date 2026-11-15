@@ -2,8 +2,9 @@ import * as THREE from 'three';
 import type { Stage } from './page';
 
 /**
- * THE STAGE: the renderer, the scene with its lights and its grid, and the camera, fitted to the
- * element it is in (and refitted when it changes size). Where the camera goes is the camera's piece.
+ * THE STAGE: the renderer, the scene with its lights, and the camera, fitted to the element it is in
+ * (and refitted when it changes size). Where the camera goes is the camera's piece. (Until stage 3b
+ * it drew a grid too, 20 m square, under any level; now a floor is drawn as one, if it says so.)
  */
 export function createStage(container: HTMLElement): Stage {
   // 1× resolution (an integrated GPU, like the Iris Plus, struggles with 2×: four times the pixels).
@@ -17,7 +18,6 @@ export function createStage(container: HTMLElement): Stage {
   const sun = new THREE.DirectionalLight(0xfff2e0, 1.8);
   sun.position.set(4, 8, 3);
   scene.add(sun);
-  scene.add(new THREE.GridHelper(20, 20, 0x3a4050, 0x262a33));
 
   const fitSize = () => {
     const width = Math.max(1, container.clientWidth);

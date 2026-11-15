@@ -192,8 +192,9 @@ describe('the character (stage 1b)', () => {
     push.world.dispose();
   });
 
-  test('a jump next to a wall, or while a spinning cube drags it, reaches its full height; a ceiling stops it', () => {
-    const highestJump = (o: { boxes?: [Vec3, Vec3][]; spinner?: boolean; walk?: Vec3 }) => {
+  test('a jump next to a wall reaches its full height, and one while a spinning cube drags it is not cut short; a ceiling stops it', () => {
+    /** How high it gets, and whether its velocity up was ever cut while rising (a ceiling, true or false). */
+    const jump = (o: { boxes?: [Vec3, Vec3][]; spinner?: boolean; walk?: Vec3 }) => {
       const { world, hero } = setUp({ at: [0, 1.5, 3], boxes: o.boxes });
       if (o.spinner)
         world.createEntity({
@@ -204,37 +205,46 @@ describe('the character (stage 1b)', () => {
       // Walk into the wall (or the cube) and press jump while touching it.
       run(world, 50, () => input(o.walk ?? [0, 0, -1]));
       let highest = 0;
+      let cut = false;
+      let rising = -1;
       run(world, 60, (step) => {
         highest = Math.max(highest, y(hero));
+        const vUp = hero.character!.velocity[1];
+        // Rising, its velocity up goes down by g × the step, each step, past the top.
+        if (rising > 0 && Math.abs(rising - 9.81 * STEP - vUp) > 1e-6) cut = true;
+        rising = vUp;
         return input([0, 0, 0], step < 3);
       });
       world.dispose();
-      return highest - STAND;
+      return { height: highest - STAND, cut };
     };
     // A wall right in front: z from 1.6 to 2.
-    expect(
-      highestJump({
-        boxes: [
-          [
-            [0, 2, 1.8],
-            [2, 2, 0.2],
-          ],
+    const wall = jump({
+      boxes: [
+        [
+          [0, 2, 1.8],
+          [2, 2, 0.2],
         ],
-      }),
-    ).toBeGreaterThan(2);
-    expect(highestJump({ spinner: true })).toBeGreaterThan(2);
+      ],
+    });
+    expect(wall.cut).toBe(false);
+    expect(wall.height).toBeGreaterThan(2);
+    // A spinning cube: whatever height its turning lets it reach (stage 3b: walking into it without
+    // stopping a step now and then, it jumps from closer, and the cube's corners take some), never
+    // taken for a ceiling.
+    expect(jump({ spinner: true }).cut).toBe(false);
     // A ceiling 1 m above its head (a slab whose bottom is at 2.6 m): it stops there.
-    expect(
-      highestJump({
-        boxes: [
-          [
-            [0, 2.8, 3],
-            [2, 0.2, 2],
-          ],
+    const ceiling = jump({
+      boxes: [
+        [
+          [0, 2.8, 3],
+          [2, 0.2, 2],
         ],
-        walk: [0, 0, 0],
-      }),
-    ).toBeLessThan(1.1);
+      ],
+      walk: [0, 0, 0],
+    });
+    expect(ceiling.cut).toBe(true);
+    expect(ceiling.height).toBeLessThan(1.1);
   });
 
   test('told where to look, it looks there and walks sideways without turning (the aim)', () => {
@@ -975,5 +985,123 @@ describe('what the program moves, made solid (stage 3a)', () => {
     const dot = Math.abs(r[0] * expected[0] + r[1] * expected[1] + r[2] * expected[2] + r[3] * expected[3]);
     world.dispose();
     expect(dot).toBeGreaterThan(1 - 1e-9);
+  });
+});
+
+describe("what the floor is made of (stage 3b): a character's feet push as much as its friction lets them", () => {
+  /** A character on a floor of a material (or a friction), walking along −Z at full speed, then let go. */
+  function onFloor(floor: { material?: string; friction?: number }) {
+    const world = new World({ seed: 1 });
+    world.createEntity({
+      transform: { position: [0, -0.5, 0], rotation: quat.identity() },
+      body: { type: 'fixed', shape: { kind: 'box', halfExtents: [40, 0.5, 40] }, ...floor },
+    });
+    const hero = world.createEntity({
+      transform: { position: [0, STAND + 0.02, 30], rotation: quat.identity() },
+      body: { type: 'character', shape: { kind: 'capsule', halfHeight: 0.5, radius: 0.3 } },
+      character: { player: 1 },
+    });
+    run(world, 10);
+    // Along the ground (standing, its velocity up is not 0: the controller holds it on the floor).
+    const speed = () => Math.hypot(hero.character!.velocity[0], hero.character!.velocity[2]);
+    // From standing still: its speed after half a second of walking.
+    run(world, 30, () => input([0, 0, -1]));
+    const afterHalfASecond = speed();
+    run(world, 120, () => input([0, 0, -1]));
+    const full = speed();
+    // Let go: how many steps, and how far, until it stops.
+    const from = hero.transform!.position[2];
+    let steps = 0;
+    while (speed() > 0 && steps < 600) {
+      run(world, 1, () => input());
+      steps++;
+    }
+    const slid = from - hero.transform!.position[2];
+    world.dispose();
+    return { afterHalfASecond, full, steps, slid };
+  }
+
+  test('on ice it slides: a twelfth of the push, so it takes twelve times longer to get going and to stop', () => {
+    const stone = onFloor({ material: 'stone' });
+    const ice = onFloor({ material: 'ice' });
+    // On stone, at full speed in a tenth of a second; on ice, 50 × 0.05/0.6 = 4.17 m/s² for half a second.
+    expect(stone.afterHalfASecond).toBeCloseTo(DEFAULT_MOVEMENT.walk.speed, 6);
+    expect(ice.afterHalfASecond).toBeCloseTo(50 * (0.05 / 0.6) * 0.5, 3);
+    // Both get to the same speed: the floor changes the push, not how fast its feet go.
+    expect(ice.full).toBeCloseTo(stone.full, 6);
+    // Let go: on stone it stops in 6 steps, 0.17 m on; on ice in 65, 2.39 m on (v² / 2a, by steps).
+    expect(stone.steps).toBe(6);
+    expect(ice.steps).toBe(65);
+    expect(stone.slid).toBeCloseTo(0.167, 2);
+    expect(ice.slid).toBeCloseTo(2.39, 2);
+  });
+
+  test('a floor that holds more than stone holds the same: feet do not walk faster on rubber; one that says nothing is stone', () => {
+    const stone = onFloor({ material: 'stone' });
+    expect(onFloor({ friction: 1.2 })).toEqual(stone);
+    expect(onFloor({})).toEqual(stone);
+  });
+});
+
+describe('standing, held by its floor (stage 3b)', () => {
+  test('walking on a flat floor, it moves on every step (before, 2 to 6 steps in a hundred it did not move at all)', () => {
+    /** Dropped onto a floor, then walking: the steps on which it moved less than half of what it was asked. */
+    const stalls = (material: string, from: number, move: Vec3) => {
+      const world = new World({ seed: 1 });
+      world.createEntity({
+        transform: { position: [0, -0.5, 0], rotation: quat.identity() },
+        body: { type: 'fixed', shape: { kind: 'box', halfExtents: [40, 0.5, 40] }, material },
+      });
+      const hero = world.createEntity({
+        transform: { position: [20, from, 20], rotation: quat.identity() },
+        body: { type: 'character', shape: { kind: 'capsule', halfHeight: 0.5, radius: 0.3 } },
+        character: { player: 1 },
+      });
+      for (let i = 0; i < 200 && !hero.character!.grounded; i++) world.step();
+      let count = 0;
+      let last = [...hero.transform!.position];
+      run(world, 400, (step) => {
+        const p = hero.transform!.position;
+        const asked = Math.hypot(hero.character!.velocity[0], hero.character!.velocity[2]) * STEP;
+        if (step > 5 && Math.hypot(p[0] - last[0]!, p[2] - last[2]!) < asked / 2) count++;
+        last = [...p];
+        return input(move);
+      });
+      world.dispose();
+      return count;
+    };
+    // Pushed into its floor on every step, it sank into the controller's thin gap, and stuck there: 14,
+    // 10, 23 and 8 such steps of these 400.
+    expect([
+      stalls('stone', 1.5, [-1, 0, 0]),
+      stalls('ice', 1.5, [0, 0, -1]),
+      stalls('stone', 1.2, [-0.7, 0, -0.7]),
+      stalls('stone', STAND + 0.02, [-1, 0, 0]),
+    ]).toEqual([0, 0, 0, 0]);
+  });
+
+  test('on a slope steeper than 30° it still slides down, standing still; on one of 18° it stays', () => {
+    /** Put on a slope of so many degrees (around x), standing still for two seconds: how far down it went. */
+    const slid = (degrees: number) => {
+      const world = new World({ seed: 1 });
+      world.createEntity({
+        transform: { position: [0, 0, 0], rotation: quat.fromDegrees([1, 0, 0], degrees) },
+        body: { type: 'fixed', shape: { kind: 'box', halfExtents: [3, 0.1, 8] } },
+      });
+      const hero = world.createEntity({
+        transform: { position: [0, 1.2, 0], rotation: quat.identity() },
+        body: { type: 'character', shape: { kind: 'capsule', halfHeight: 0.5, radius: 0.3 } },
+        character: { player: 1 },
+      });
+      run(world, 30, () => input());
+      const from = y(hero);
+      run(world, 120, () => input());
+      world.dispose();
+      return from - y(hero);
+    };
+    expect(slid(18)).toBeLessThan(0.01);
+    // Slowly (14 cm in two seconds, as before this stage): one step of gravity at a time, since it keeps
+    // no speed while it touches the ground. Written down for later.
+    expect(slid(40)).toBeGreaterThan(0.1);
   });
 });

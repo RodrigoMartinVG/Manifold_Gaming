@@ -119,9 +119,23 @@ describe('how the model moves (stage 2e2)', () => {
     advance(g, reading({ mode: 'air', grounded: false, vertical: -8, airJumps: 0 }), 1 / 60);
     advance(g, reading({ airJumps: 1 }), 1 / 60);
     expect(g.gesture).toMatchObject({ clip: 'land', strength: 0.8 });
+    // Each one counted as it starts (what the browser tests read), however few frames show it.
+    expect(g.started).toEqual({ count: 2, clip: 'land' });
     const hop = newGait();
     advance(hop, reading({ mode: 'air', grounded: false, vertical: -2 }), 1 / 60);
     advance(hop, reading(), 1 / 60);
     expect(hop.gesture).toBeNull();
+    expect(hop.started).toEqual({ count: 0, clip: null });
+  });
+
+  test('a landing seen at three frames per second still starts, and is counted (stage 3b)', () => {
+    // Its weight comes in from nothing, and its 0.3 s are over by the next frame: it never weighs most.
+    const g = newGait({ flip: 0.4, land: 0.3 });
+    advance(g, reading({ mode: 'air', grounded: false, vertical: -9, airJumps: 0 }), 1 / 3);
+    advance(g, reading({ airJumps: 1 }), 1 / 3);
+    expect(finalWeights(g).land).toBe(0);
+    advance(g, reading({ airJumps: 1 }), 1 / 3);
+    expect(g.gesture).toBeNull();
+    expect(g.started).toEqual({ count: 1, clip: 'land' });
   });
 });

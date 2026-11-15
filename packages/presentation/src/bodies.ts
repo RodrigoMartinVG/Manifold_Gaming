@@ -121,9 +121,11 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
   };
   /**
    * A mesh for an appearance's shape. Boxes and spheres are one shared shape, scaled; a capsule is
-   * built at its size (scaling would squash its round ends), with a visor that shows where it looks (−Z).
+   * built at its size (scaling would squash its round ends), with a visor that shows where it looks
+   * (−Z); a grid, its lines (stage 3b).
    */
-  const shapeFor = (a: Appearance) => {
+  const shapeFor = (a: Appearance): THREE.Object3D => {
+    if (a.shape === 'grid') return gridFor(a);
     const material = new THREE.MeshLambertMaterial({ color: a.color, wireframe });
     if (a.shape !== 'capsule') {
       const mesh = own(new THREE.Mesh(geometries[a.shape], material), { material: true });
@@ -143,6 +145,41 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
     visor.position.set(0, a.size[1] * 0.28, -radius * 0.85);
     mesh.add(visor);
     return mesh;
+  };
+
+  /**
+   * A GRID (stage 3b): lines a meter apart over the top of a box of the appearance's size, in its
+   * color; the two through its center, a little lighter. The Dojo's floor is drawn so (before, the
+   * stage drew one, 20 m square, under any level: in the plane of a level's floor at y = 0, its lines
+   * fought with it). A line every meter from the center out, as far as the edges, and the edges.
+   */
+  const gridFor = (a: Appearance) => {
+    const [sx, sy, sz] = a.size;
+    const top = sy / 2;
+    const points: number[] = [];
+    const colors: number[] = [];
+    const line = new THREE.Color(a.color);
+    const middle = line.clone().lerp(new THREE.Color(0xffffff), 0.1);
+    /** Where the lines go along one side: every meter from the center out, and the two edges. */
+    const marks = (size: number) => {
+      const half = size / 2;
+      const out = new Set<number>([-half, half]);
+      for (let m = 0; m < half; m++) out.add(m).add(-m);
+      return [...out].sort((p, q) => p - q);
+    };
+    const add = (x0: number, z0: number, x1: number, z1: number, color: THREE.Color) => {
+      points.push(x0, top, z0, x1, top, z1);
+      colors.push(color.r, color.g, color.b, color.r, color.g, color.b);
+    };
+    for (const x of marks(sx)) add(x, -sz / 2, x, sz / 2, x === 0 ? middle : line);
+    for (const z of marks(sz)) add(-sx / 2, z, sx / 2, z, z === 0 ? middle : line);
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(points, 3));
+    geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    return own(new THREE.LineSegments(geometry, new THREE.LineBasicMaterial({ vertexColors: true })), {
+      geometry: true,
+      material: true,
+    });
   };
 
   const createZone = (e: Entity) => {
@@ -289,6 +326,11 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
       // it is drawn with its shape), written when it changes.
       const clip = (hero && instances.get(hero.id)?.playing) || '';
       if (page.container.dataset.clip !== clip) page.container.dataset.clip = clip;
+      // And each gesture as it starts (stage 3b), numbered: a landing is 0.3 s, and at a few frames per
+      // second it may never weigh most in any frame, but it started.
+      const started = hero ? instances.get(hero.id)?.gait.started : undefined;
+      const gesture = started?.clip ? `${started.count} ${started.clip}` : '';
+      if (page.container.dataset.gesture !== gesture) page.container.dataset.gesture = gesture;
       // Its shadow, straight under it ("down" is where the world says): on what a ray down from its
       // center finds, lying on that surface (a ramp too), smaller and fainter the higher its feet are
       // (as far as 20 m; beyond, none).

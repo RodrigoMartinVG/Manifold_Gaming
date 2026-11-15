@@ -6,7 +6,8 @@ import { Client, localPair, Server, type Channel, type ToClient, type ToServer }
 
 /**
  * THE PERFORMANCE BUDGETS (stage 2.5a), in the Dojo's stress room: the course with 200 cubes falling
- * on it (215 bodies). What a step, the hash and a snapshot cost, and what the second copy that
+ * on it (214 bodies: 215 until stage 3b, when a level began to bring its whole ground, and the Dojo's
+ * big cube stayed in the room without one). What a step, the hash and a snapshot cost, and what the second copy that
  * verifies costs when playing alone.
  *
  * MEASURED AGAINST RAPIER, NOT AGAINST THE CLOCK. A budget in milliseconds holds on one machine and
@@ -109,9 +110,9 @@ describe('the performance budgets (stage 2.5a), in the stress room', () => {
   const said = (k: 'engine' | 'hash' | 'take' | 'restore') =>
     `${ms(t.ms[k])}, Rapier's step ${ms(t.ms.rapier)}: ${t.ratio[k].toFixed(2)} times`;
 
-  test('the scene is the stress one: 215 bodies', () => {
+  test('the scene is the stress one: 214 bodies', () => {
     const w = World.restore(snap);
-    expect(w.physics.bodyCount).toBe(215);
+    expect(w.physics.bodyCount).toBe(214);
     w.dispose();
   });
 

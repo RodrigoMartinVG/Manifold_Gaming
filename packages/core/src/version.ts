@@ -22,5 +22,8 @@
  *      for the wall's top); and in the Dojo, the void takes what the physics moves, not a platform
  *  14  stage 3a: a platform is found by its edge too (caught there, a character gets on), and its carry
  *      is swept through what is in the way (a beam stops it)
+ *  15  stage 3b: the world's materials (in the hash and snapshots), a body's friction from its own; a
+ *      character's feet push as much as the floor's friction lets them (on ice, it slides); entities
+ *      with names, zones with parameters; and in the Dojo, a level brings its whole ground
  */
-export const SIMULATION_VERSION = 14;
+export const SIMULATION_VERSION = 15;

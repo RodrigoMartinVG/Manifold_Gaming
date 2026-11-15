@@ -1,0 +1,30 @@
+# Manifold level 2
+# Surfaces (stage 3b): what a floor is made of, and a zone that carries. An ice rink, where the
+# character's feet push a twelfth of what they push on stone: it slides, and it takes that much longer
+# to stop. Then a stream across the way: a current that carries whoever is in it towards the edge.
+title Surfaces
+spawn 0 1 9
+facing 0 0 -1
+
+# The start: stone, as every box that says nothing.
+box 0 -0.5 8      4 0.5 3     color #6f6a62  name start
+
+# The rink: ice, 12 m long. Three posts of stone on it, to slide into (or around).
+box 0 -0.5 -1     4 0.5 6     material ice  color #c8dde6  name rink
+box -2 0.6 0      0.3 0.6 0.3  color #5a4a38
+box 2 0.6 -2      0.3 0.6 0.3  color #5a4a38
+box 0 0.6 -4.5    0.3 0.6 0.3  color #5a4a38
+
+# Stone again, with a checkpoint; the stream, 4 m wide, whose current carries 3 m/s to the right
+# (high enough to carry a jump over it too, and on past the edge: it carries, it does not push, so
+# ending at the edge it would leave whoever it carried standing there); and the far side, with the
+# goal. Walking at 4.5 m/s, to cross it straight a character walks upstream, a little to the left.
+box 0 -0.5 -8.5   4 0.5 1.5   color #6f6a62
+box 0 -0.5 -12    4 0.5 2     color #3d6a8a  name stream_bed
+box 0 -0.5 -16    4 0.5 2     color #6f6a62  name far_side
+sensor current     2 2.5 -12    6 2.5 2      flow 3 0 0  name stream
+sensor checkpoint  0 0.8 -8.5   3.5 0.8 1.2
+sensor goal        0 0.8 -16.5  3 0.8 1.2
+
+# The void under it all.
+sensor fall        0 -6 -4      30 3 30

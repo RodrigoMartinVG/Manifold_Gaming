@@ -2,6 +2,7 @@ import { Random, quat, vec3, type Quat, type Vec3 } from '@manifold/common';
 import { moveCharacter, newCharacter } from './character';
 import { COMPONENT_NAME } from './components';
 import { EARTH, gravityAt } from './gravity';
+import { MATERIAL_NAME, MATERIALS, materialProblem, type Material } from './materials';
 import { PHYSICS, type PhysicsBackend, type PhysicsHit } from './physics';
 import { VERIFIED, type Profile } from './profile';
 import type { CollisionGroups, Components, Entity, Event, EntityId, GravityField, PlayerInput, Shape } from './types';
@@ -28,6 +29,9 @@ export interface Query {
   groups?: CollisionGroups;
 }
 
+/** An entity's name (stage 3b): one word, lowercase, digits and _ (`door_north`, `cube`). */
+export const ENTITY_NAME = /^[a-z][a-z0-9_]*$/;
+
 /** The fixed step: the simulation always advances 1/60 of a second, whatever the frame rate. */
 export const STEP = 1 / 60;
 
@@ -40,11 +44,14 @@ export interface WorldOptions {
   physics?: Uint8Array;
   /** How it runs (stage 2.5b): its physics, and who verifies it. Without it, `VERIFIED`. */
   profile?: Profile;
+  /** Its materials (stage 3b): without them, the engine's (`MATERIALS`). */
+  materials?: Record<string, Material>;
 }
 
 /**
  * A SNAPSHOT OF A WORLD (stage 1d, as decision 0004 defined it): everything it is, at the end of a
- * step. Its clock and its id counter, its randomness's state, its gravity, its players' inputs (and
+ * step. Its clock and its id counter, its randomness's state, its gravity, its materials (stage 3b),
+ * its players' inputs (and
  * the previous step's), its entities (plain data: copied as they are), and Rapier's own snapshot of
  * its physics, which also keeps what is not in the entities: the contacts, and what the solver
  * carries from one step to the next. Restored, it goes on exactly as the original would have
@@ -59,6 +66,7 @@ export interface WorldSnapshot {
   readonly lastId: number;
   readonly random: readonly [number, number, number, number];
   readonly gravity: GravityField;
+  readonly materials: Readonly<Record<string, Material>>;
   readonly inputs: readonly [number, PlayerInput][];
   readonly lastInputs: readonly [number, PlayerInput][];
   readonly players: readonly number[];
@@ -143,6 +151,12 @@ export class World {
   readonly players = new Set<number>();
   /** Its gravity field: data, like the rest of its state (decision 0012). */
   private field: GravityField;
+  /**
+   * WHAT ITS THINGS CAN BE MADE OF (stage 3b), by name: the engine's (`MATERIALS`) and those a level
+   * declares (`addMaterial`). Data, like the rest: hashed, and in snapshots. A body names one
+   * (`body.material`) and takes its friction and bounce when it is created.
+   */
+  private readonly table: Record<string, Material>;
   /** How it runs (stage 2.5b, decision 0014): its physics, and who verifies it. */
   readonly profile: Profile;
   /**
@@ -155,6 +169,7 @@ export class World {
   constructor(o: WorldOptions) {
     this.random = new Random(o.seed);
     this.field = o.gravity ?? EARTH;
+    this.table = copyData(o.materials ?? (MATERIALS as Record<string, Material>));
     this.profile = o.profile ?? VERIFIED;
     this.physics = PHYSICS[this.profile.physics](this.uniformGravity(), STEP, o.physics);
   }
@@ -183,6 +198,7 @@ export class World {
       lastId: this.lastId,
       random: [...this.random.state],
       gravity: copyData(this.field),
+      materials: copyData(this.table),
       inputs: copyData([...this.inputs]),
       lastInputs: copyData([...this.lastInputs]),
       players: [...this.players],
@@ -198,7 +214,13 @@ export class World {
   static restore(s: WorldSnapshot): World {
     if (s.version !== SIMULATION_VERSION)
       throw new Error(`A snapshot of version ${s.version}, and this engine is version ${SIMULATION_VERSION}.`);
-    const world = new World({ seed: 0, gravity: copyData(s.gravity), physics: s.physics, profile: s.profile });
+    const world = new World({
+      seed: 0,
+      gravity: copyData(s.gravity),
+      materials: copyData(s.materials) as Record<string, Material>,
+      physics: s.physics,
+      profile: s.profile,
+    });
     world.tick = s.tick;
     world.lastId = s.lastId;
     world.random.restore(s.random);
@@ -218,6 +240,31 @@ export class World {
     this.physics.setGravity(this.uniformGravity());
   }
 
+  /** Its materials, by name (read only: `addMaterial` adds one). */
+  get materials(): Readonly<Record<string, Readonly<Material>>> {
+    return this.table;
+  }
+
+  /**
+   * A material more (stage 3b: those a level declares). A name it already has, with other numbers, is
+   * an error: the bodies made of it took the old ones, and would not agree with the new.
+   */
+  addMaterial(name: string, m: Material) {
+    if (!MATERIAL_NAME.test(name)) throw new Error(`"${name}" is not a material's name: one word in lowercase, like \`ice\``);
+    const problem = materialProblem(m);
+    if (problem) throw new Error(`the material "${name}": ${problem}`);
+    const had = this.table[name];
+    if (had && (had.friction !== m.friction || had.bounce !== m.bounce || had.density !== m.density || had.drag !== m.drag))
+      throw new Error(`the material "${name}" is already this world's, with other numbers`);
+    this.table[name] = { friction: m.friction, bounce: m.bounce, density: m.density, drag: m.drag };
+  }
+
+  /** The entity with this name, if there is one (stage 3b). */
+  named(name: string): Entity | undefined {
+    for (const e of this.entities.values()) if (e.name === name) return e;
+    return undefined;
+  }
+
   /** The uniform field is handed to the physics as is (the planets of phase 7 will push each body instead). */
   private uniformGravity() {
     return gravityAt(this.field, [0, 0, 0]);
@@ -230,15 +277,29 @@ export class World {
         throw new Error(
           `"${name}" is not a game component's name: it goes with its game, \`<game>.<component>\`, like \`dojo.runner\``,
         );
+    // A name names one entity in its world (stage 3b): two with one name, and `inspect` or a signal
+    // would find either.
+    if (rest.name !== undefined) {
+      if (!ENTITY_NAME.test(rest.name)) throw new Error(`"${rest.name}" is not a name: one word, like \`door_north\``);
+      if (this.named(rest.name)) throw new Error(`"${rest.name}" is already another entity's name`);
+    }
+    // Made of a material it does not know, its friction would be a guess (stage 3b).
+    const material = body?.material === undefined ? undefined : this.table[body.material];
+    if (body?.material !== undefined && !material)
+      throw new Error(`no material "${body.material}" in this world (${Object.keys(this.table).join(', ')})`);
     const entity: Entity = { id: ++this.lastId, ...rest };
     if (mover) entity.mover = { from: [...mover.from], to: [...mover.to], seconds: mover.seconds };
     if (sensor) {
       if (!entity.transform) throw new Error('A zone needs a transform: where is it?');
-      entity.sensor = { kind: sensor.kind, half: [...sensor.half], inside: [] };
+      const params = Object.fromEntries(Object.entries(sensor.params ?? {}).map(([k, v]) => [k, [...v]]));
+      entity.sensor = { kind: sensor.kind, half: [...sensor.half], inside: [], params };
     }
     if (body) {
       if (!entity.transform) throw new Error('A body needs a transform: where is it?');
-      entity.body = this.physics.addBody(body, entity.transform);
+      const spec = material
+        ? { ...body, friction: body.friction ?? material.friction, restitution: body.restitution ?? material.bounce }
+        : body;
+      entity.body = this.physics.addBody(spec, entity.transform);
     }
     if (character) {
       if (entity.body?.type !== 'character') throw new Error("A character needs a body of type 'character'.");

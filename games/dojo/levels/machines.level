@@ -1,13 +1,15 @@
-# Manifold level 1
+# Manifold level 2
 # The machines (phase 3): what the program moves, and later what signals move (doors, elevators).
-# It starts on the Dojo's own floor (20 m square around the big cube, at y = 0), and its pit begins
-# where that floor ends (z = −10). Stage 3a: a ferry that leaves from the pit's edge, level with the
-# floor (late, the character catches its edge and gets on: before 3a it was dragged along on it),
-# and a platform that passes under a low beam (whoever rides it, the beam stops: before 3a the carry
-# took it into the beam).
+# Stage 3a: a ferry that leaves from a pit's edge, level with the floor (late, the character catches
+# its edge and gets on: before 3a it was dragged along on it), and a platform that passes under a low
+# beam (whoever rides it, the beam stops: before 3a the carry took it into the beam).
 title The machines
 spawn 3 1 6
 facing 0 0 -1
+
+# The start, its top at y = 0, as far as the pit (z = −10). (Until stage 3b the room started on the
+# Dojo's own floor, which the Dojo built in every room.)
+box 3 -0.5 -1     6 0.5 9     color #6f6a62  name start
 
 # The ferry: level with both floors, 3 m long, across the 9 m pit and back, at the circuit's speed:
 # 2.4 m/s (6 m in 2.5 s each way), from one edge to the other. At 2 m/s a late character got on even

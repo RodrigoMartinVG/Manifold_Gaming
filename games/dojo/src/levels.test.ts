@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest';
-import type { LevelBox } from '@manifold/core';
+import { levelFromText, levelToText, type LevelBox } from '@manifold/core';
 import { LEVELS } from './levels';
+import { DOJO_ZONES } from './rules';
 
 /**
  * THE DOJO'S LEVELS, DRAWN WITHOUT FLICKER (stage 3a). Two boxes whose faces lie in the same plane,
@@ -8,7 +9,8 @@ import { LEVELS } from './levels';
  * is in front, and picks one or the other from pixel to pixel (z-fighting). The machines room had it:
  * its ferry's run ended 3 m inside the floor across the pit, its top at the same height (the author
  * saw it). Faces that only touch, or face each other, are fine. A box that moves counts with all the
- * room it sweeps; a turned or spinning one is left out (its faces are not along the axes).
+ * room it sweeps; a turned or spinning one is left out (its faces are not along the axes), and so is
+ * a hidden one (stage 3b: it is not drawn). A grid counts: its lines lie in the plane of its top.
  */
 const EPSILON = 1e-4;
 
@@ -28,7 +30,7 @@ const overlap = (a: [number, number], b: [number, number]) => Math.max(0, Math.m
 /** Faces of two boxes in the same plane, facing the same way, overlapping with some area: a description of each. */
 function flickering(boxes: LevelBox[]): string[] {
   const found: string[] = [];
-  const straight = boxes.map((b, i) => ({ b, i })).filter(({ b }) => !b.turn && !b.spin);
+  const straight = boxes.map((b, i) => ({ b, i })).filter(({ b }) => !b.turn && !b.spin && b.look !== 'hidden');
   for (let p = 0; p < straight.length; p++)
     for (let q = p + 1; q < straight.length; q++) {
       const [A, B] = [straight[p]!, straight[q]!];
@@ -51,21 +53,29 @@ function flickering(boxes: LevelBox[]): string[] {
 }
 
 describe("the Dojo's levels (stage 3a)", () => {
-  for (const [name, level] of Object.entries(LEVELS))
+  for (const [name, level] of Object.entries(LEVELS)) {
     test(`${name}: no two faces in the same plane overlap (they would flicker)`, () => {
       expect(flickering(level.boxes)).toEqual([]);
     });
+    // Stage 3b: written in the format's latest version and read again, it is the same level.
+    test(`${name}: written as text and read again, the same`, () => {
+      expect(levelFromText(levelToText(level), { zones: DOJO_ZONES })).toEqual(level);
+    });
+  }
 
   test('the check finds what it is for: the machines room as it was, its ferry running into the floor', () => {
-    const ferry: LevelBox = {
-      center: [3, -0.15, -11.5],
-      half: [1.5, 0.15, 1.5],
+    const box = {
+      name: null,
       turn: null,
       color: 0,
-      move: { by: [0, 0, -6], seconds: 2.5 },
+      look: 'solid',
+      material: null,
+      groups: null,
+      move: null,
       spin: null,
-    };
-    const floor: LevelBox = { center: [3, -0.5, -22], half: [6, 0.5, 6], turn: null, color: 0, move: null, spin: null };
+    } as const;
+    const ferry: LevelBox = { ...box, center: [3, -0.15, -11.5], half: [1.5, 0.15, 1.5], move: { by: [0, 0, -6], seconds: 2.5 } };
+    const floor: LevelBox = { ...box, center: [3, -0.5, -22], half: [6, 0.5, 6] };
     expect(flickering([ferry, floor])).toEqual(['boxes 1 and 2: their high y faces, at 0']);
     expect(flickering([ferry, { ...floor, center: [3, -0.5, -25] }])).toEqual([]);
   });

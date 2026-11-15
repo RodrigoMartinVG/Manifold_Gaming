@@ -61,4 +61,14 @@ describe('who frees what (stage 2e)', () => {
     expect(freed.has(box), 'the shared box').toBe(false);
     expect(freed.size).toBe(3);
   });
+
+  test("a grid's lines free their own geometry and material too (stage 3b: before, only meshes were freed)", () => {
+    const grid = own(new THREE.LineSegments(new THREE.BufferGeometry(), new THREE.LineBasicMaterial()), {
+      geometry: true,
+      material: true,
+    });
+    const freed = watch(grid.geometry, grid.material as THREE.Material);
+    release(grid);
+    expect(freed.size).toBe(2);
+  });
 });

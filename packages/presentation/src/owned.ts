@@ -9,8 +9,12 @@ import * as THREE from 'three';
  * So each mesh says what is its own (`userData.ownGeometry`, `userData.ownMaterial`), marked where it
  * is made, and only that is freed with it. A mesh that says nothing owns nothing: a model's copy is
  * born like that, and becomes the owner only of what is made for it (its color, a ghost's look).
+ * (Lines too, since stage 3b: a grid is drawn with them, and they have a geometry and a material.)
  */
-export function own(mesh: THREE.Mesh, what: { geometry?: boolean; material?: boolean }): THREE.Mesh {
+type Drawn = THREE.Mesh | THREE.Line;
+const isDrawn = (o: THREE.Object3D): o is Drawn => o instanceof THREE.Mesh || o instanceof THREE.Line;
+
+export function own<T extends Drawn>(mesh: T, what: { geometry?: boolean; material?: boolean }): T {
   if (what.geometry) mesh.userData.ownGeometry = true;
   if (what.material) mesh.userData.ownMaterial = true;
   return mesh;
@@ -27,7 +31,7 @@ export function ownMaterial(mesh: THREE.Mesh, material: THREE.Material) {
 export function release(object: THREE.Object3D) {
   const owned = new Set<THREE.Material | THREE.BufferGeometry>();
   object.traverse((o) => {
-    if (!(o instanceof THREE.Mesh)) return;
+    if (!isDrawn(o)) return;
     if (o.userData.ownMaterial) for (const m of [o.material].flat()) owned.add(m);
     if (o.userData.ownGeometry) owned.add(o.geometry);
   });

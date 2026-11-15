@@ -67,6 +67,8 @@ export function stateHash(world: World): number {
   number(world.lastEntityId);
   for (const n of world.random.state) number(n);
   value(world.gravity);
+  // Its materials (stage 3b): a level's ice is part of what the world is.
+  value(world.materials);
   // Who is in the match (stage 1e).
   number(world.players.size);
   for (const player of [...world.players].sort((a, b) => a - b)) number(player);

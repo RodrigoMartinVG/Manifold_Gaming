@@ -1,10 +1,14 @@
-# Manifold level 1
+# Manifold level 2
 # The course: a small classic level, to drive the character. Steps climbed by walking, a ramp,
 # platforms at growing heights reached by jumping, and a wall too high to climb. Falling off the
 # floor brings the character back to its last checkpoint; the goal is on the highest platform.
 title The course
 spawn 0 1 6
 facing 0 0 -1
+
+# Its floor: 20 m square, its top at y = 0, drawn as a grid, the Dojo's floor. (Until stage 3b the
+# Dojo built its own floor, and its big cube, in every room: the course was laid out on them.)
+box 0 -0.5 0   10 0.5 10   grid  name floor
 
 # Three steps of 30 cm, climbed by walking.
 box 4 0.15 3   1 0.15 1   color #6f6a62

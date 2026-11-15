@@ -241,3 +241,112 @@ describe('moving platforms (stage 2d)', () => {
     world.dispose();
   });
 });
+
+describe('the level format, version 2 (stage 3b)', () => {
+  const V2 = `# Manifold level 2
+title Everything format 2 says
+spawn 0 1 6
+facing 0 0 -1
+material oil  friction 0.02  bounce 0  density 900  drag 0.4
+box 0 -0.5 0  10 0.5 10  grid  name floor
+box 0 0.1 -4  2 0.1 2  material ice  color #c8dde6  name rink
+box 3 0.1 -4  1 0.1 1  material oil  hidden
+box 0 1 -8  2 1 0.2  group 2 3  meets 1
+sensor current  0 1 -12  4 1 2  flow 3 0 0  name stream
+sensor fog  0 2 -20  4 2 4  rotate y 30  opacity 0.2  color 0.8 0.8 0.9
+`;
+
+  test('names, materials, how a box is drawn, its groups, and what a zone carries: read, and written back the same', () => {
+    const level = levelFromText(V2);
+    expect(level.materials).toEqual({ oil: { friction: 0.02, bounce: 0, density: 900, drag: 0.4 } });
+    const [floor, rink, slick, wall] = level.boxes;
+    expect([floor!.name, floor!.look]).toEqual(['floor', 'grid']);
+    expect([rink!.name, rink!.material, rink!.color]).toEqual(['rink', 'ice', 0xc8dde6]);
+    expect([slick!.material, slick!.look]).toEqual(['oil', 'hidden']);
+    // Groups 2 and 3 (bits 1 and 2), meeting only group 1; a box that says nothing, all of them.
+    expect(wall!.groups).toEqual({ member: 0b110, filter: 0b1 });
+    expect(floor!.groups).toBeNull();
+    const [stream, fog] = level.sensors;
+    expect([stream!.name, stream!.params]).toEqual(['stream', { flow: [3, 0, 0] }]);
+    // A parameter's name may be any word (a fog's `color` is three numbers: the format does not read it).
+    expect(fog!.params).toEqual({ opacity: [0.2], color: [0.8, 0.8, 0.9] });
+    expect(levelFromText(levelToText(level))).toEqual(level);
+  });
+
+  test('a level of format 1 is still read, as what it says; what only format 2 says is an error in it, with its line', () => {
+    const level = levelFromText(TEXT);
+    expect(level.boxes.map((b) => [b.name, b.look, b.material, b.groups])).toEqual([
+      [null, 'solid', null, null],
+      [null, 'solid', null, null],
+    ]);
+    expect(level.sensors[0]!.params).toEqual({});
+    const v1 = (line: string) => () => levelFromText(`# Manifold level 1\ntitle x\n${line}\n`);
+    expect(v1('box 0 0 0  1 1 1  name a')).toThrow(/line 3: "name" is format 2: this level says format 1/);
+    expect(v1('box 0 0 0  1 1 1  material ice')).toThrow(/line 3: "material" is format 2/);
+    expect(v1('box 0 0 0  1 1 1  grid')).toThrow(/line 3: "grid" is format 2/);
+    expect(v1('material oil friction 0 bounce 0 density 1 drag 0')).toThrow(/line 3: "material" is format 2/);
+    expect(v1('sensor current 0 0 0  1 1 1  flow 1 0 0')).toThrow(/line 3: "flow": a zone carries what it says from format 2 on/);
+    expect(() => levelFromText('# Manifold level 3\n')).toThrow(/line 1: a level of format 3: this engine reads formats 1 to 2/);
+  });
+
+  test('what format 2 does not allow says which line, and why', () => {
+    const bad = (lines: string) => () => levelFromText(`# Manifold level 2\ntitle x\n${lines}\n`);
+    // Materials: one the level does not have (declared below counts), the engine's again, incomplete, impossible.
+    expect(bad('box 0 0 0  1 1 1  material lava')).toThrow(/line 3: no material "lava"/);
+    expect(() =>
+      levelFromText(`# Manifold level 2\nbox 0 0 0  1 1 1  material oil\nmaterial oil  friction 0 bounce 0 density 900 drag 0\n`),
+    ).not.toThrow();
+    expect(bad('material ice  friction 0 bounce 0 density 900 drag 0')).toThrow(/line 3: "ice" is the engine's/);
+    expect(bad('material oil  friction 0.1 bounce 0')).toThrow(/line 3: a material needs its density, drag/);
+    expect(bad('material oil  friction 0.1 bounce 2 density 1 drag 0')).toThrow(
+      /line 3: the material "oil": its bounce goes from 0 to 1/,
+    );
+    expect(bad('material oil  friction 0.1 bounce 0 density 0 drag 0')).toThrow(/its density must be more than 0/);
+    expect(bad('material oil  friction 0 bounce 0 density 1 drag 0\nmaterial oil  friction 0 bounce 0 density 1 drag 0')).toThrow(
+      /line 4: the material "oil" twice \(the first, on line 3\)/,
+    );
+    // Names: one word, once in a level, for a box or a zone.
+    expect(bad('box 0 0 0  1 1 1  name Door')).toThrow(/line 3: "Door" is not a name/);
+    expect(bad('box 0 0 0  1 1 1  name door\nsensor goal 0 0 0  1 1 1  name door')).toThrow(
+      /line 4: the name "door" twice in a level \(the first, on line 3\)/,
+    );
+    // How it is drawn: a grid or hidden, not both, and with no color of its own.
+    expect(bad('box 0 0 0  1 1 1  grid hidden')).toThrow(/line 3: a box is drawn as a grid or not at all/);
+    expect(bad('box 0 0 0  1 1 1  hidden  color #ffffff')).toThrow(/line 3: a hidden box has no color of its own/);
+    // Groups: 1 to 16, each once, at least one.
+    expect(bad('box 0 0 0  1 1 1  group 17')).toThrow(/line 3: 17 is not a collision group/);
+    expect(bad('box 0 0 0  1 1 1  group 2 2')).toThrow(/line 3: the group 2 twice/);
+    expect(bad('box 0 0 0  1 1 1  meets')).toThrow(/line 3: "meets" needs which groups/);
+    // A zone's parameter: a word with its numbers, not one of the format's own words.
+    expect(bad('sensor goal 0 0 0  1 1 1  flow')).toThrow(/line 3: "flow" needs its numbers/);
+    expect(bad('sensor goal 0 0 0  1 1 1  material 1')).toThrow(/line 3: "material" is not something a zone carries/);
+  });
+
+  test("given the game's zones, a zone it does not have, or a parameter missing, extra or of another size, is an error with its line", () => {
+    const zones = { goal: {}, current: { flow: 3 } };
+    const read = (line: string) => () => levelFromText(`# Manifold level 2\n${line}\n`, { zones });
+    expect(read('sensor current 0 0 0  1 1 1  flow 3 0 0')).not.toThrow();
+    expect(read('sensor chekpoint 0 0 0  1 1 1')).toThrow(/line 2: "chekpoint" is not a zone of this game \(goal, current\)/);
+    expect(read('sensor current 0 0 0  1 1 1')).toThrow(/line 2: a current needs its flow \(3 numbers\)/);
+    expect(read('sensor current 0 0 0  1 1 1  flow 3 0')).toThrow(/line 2: "flow" takes 3 numbers/);
+    expect(read('sensor current 0 0 0  1 1 1  flow 3 0 0  speed 2')).toThrow(/line 2: a current carries no "speed" \(flow\)/);
+    expect(read('sensor goal 0 0 0  1 1 1  flow 3 0 0')).toThrow(/line 2: a goal carries no "flow" \(it carries nothing\)/);
+  });
+
+  test('built into a world: its materials, its names, its bodies made of them, drawn as they say, and its zones with what they carry', () => {
+    const world = new World({ seed: 1 });
+    buildLevel(world, levelFromText(V2));
+    expect(world.materials.oil).toEqual({ friction: 0.02, bounce: 0, density: 900, drag: 0.4 });
+    const floor = world.named('floor')!;
+    expect(floor.appearance).toEqual({ shape: 'grid', size: [20, 1, 20], color: 0x262a33 });
+    // Made of ice: its friction and bounce, ice's.
+    const rink = world.named('rink')!;
+    expect([rink.body!.material, rink.body!.friction, rink.body!.restitution]).toEqual(['ice', 0.05, 0.05]);
+    // Hidden: a body, and nothing drawn.
+    const slick = [...world.entities.values()].find((e) => e.body?.material === 'oil')!;
+    expect([slick.body!.friction, slick.appearance]).toEqual([0.02, undefined]);
+    expect([...world.entities.values()].find((e) => e.body?.groups)!.body!.groups).toEqual({ member: 0b110, filter: 0b1 });
+    expect(world.named('stream')!.sensor!.params).toEqual({ flow: [3, 0, 0] });
+    world.dispose();
+  });
+});

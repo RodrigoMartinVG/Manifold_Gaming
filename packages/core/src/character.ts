@@ -1,6 +1,7 @@
 import { quat, vec3, type Quat, type Vec3 } from '@manifold/common';
 import { gravityAt } from './gravity';
-import { CHARACTER_GAP } from './physics';
+import { tractionOf } from './materials';
+import { CHARACTER_GAP, STANDS_ON } from './physics';
 import { axisOf, isDown, NO_INPUT, vectorOf } from './input';
 import type { Body, Character, CharacterSpec, CollisionPose, Entity, ModeName, Movement } from './types';
 import type { World } from './world';
@@ -75,8 +76,11 @@ export function poseOf(c: Character, body: Pick<Body, 'shape'>): CollisionPose {
  * (gliding) says how fast it can fall at most.
  */
 interface Mode {
-  /** The velocity along the ground at the end of this step, from the one it has, the one asked for and the direction asked. */
-  steer(c: Character, now: Vec3, wanted: Vec3, move: Vec3, dt: number): Vec3;
+  /**
+   * The velocity along the ground at the end of this step, from the one it has, the one asked for and
+   * the direction asked; and how much what it stands on lets its feet push (`traction`, 0 to 1).
+   */
+  steer(c: Character, now: Vec3, wanted: Vec3, move: Vec3, dt: number, traction: number): Vec3;
   /** If it holds itself against gravity: its own velocity up. */
   holds?(c: Character, move: Vec3): number;
   /** If it slows the fall: the fastest it falls, m/s. */
@@ -92,8 +96,9 @@ const approach = (now: Vec3, wanted: Vec3, most: number): Vec3 => {
 const isZero = (v: Vec3) => v[0] === 0 && v[1] === 0 && v[2] === 0;
 
 const MODES: Record<ModeName, Mode> = {
-  // On the ground: towards what is asked, quickly (its feet push against the floor).
-  walk: { steer: (c, now, wanted, _move, dt) => approach(now, wanted, c.movement.walk.acceleration * dt) },
+  // On the ground: towards what is asked, quickly (its feet push against the floor), as much as the
+  // floor lets them (stage 3b: on ice, it slides).
+  walk: { steer: (c, now, wanted, _move, dt, traction) => approach(now, wanted, c.movement.walk.acceleration * traction * dt) },
   // In the air: the same, but with what the game allows to steer (0: the jump's arc cannot change).
   air: { steer: (c, now, wanted, _move, dt) => approach(now, wanted, c.movement.air.control * dt) },
   // Gliding (stage 2c): it steers more, and it falls slowly.
@@ -227,7 +232,8 @@ function topAhead(world: World, e: Entity, feet: Vec3, wall: Vec3, up: Vec3): bo
  * WHAT A CHARACTER STANDS ON (stage 2.5b): its own capsule, a little thinner (90% of its radius,
  * with its bottom where it is, so a wall brushing its sides does not count), moved down from where
  * it is, as far as the controller keeps it on the ground: the first thing it would touch whose
- * surface faces up. The entity, and, if the program moves it (a platform), how it moves. Bodies the
+ * surface faces up. The entity, the surface's normal there (stage 3b), and, if the program moves it
+ * (a platform), how it moves. Bodies the
  * physics moves (a cube) are not platforms: standing on one, it stands on nothing that carries it.
  *
  * Before, a ray from its center: on a platform's edge, with its center already beyond it and the round
@@ -238,7 +244,7 @@ function standingOn(
   world: World,
   e: Entity,
   up: Vec3,
-): { entity: number; moves: { linear: Vec3; angular: Vec3; center: Vec3 } | null } | null {
+): { entity: number; normal: Vec3; moves: { linear: Vec3; angular: Vec3; center: Vec3 } | null } | null {
   const shape = e.body!.shape;
   if (shape.kind !== 'capsule') return null;
   const radius = shape.radius * 0.9;
@@ -250,7 +256,7 @@ function standingOn(
     if (!hit || vec3.dot(hit.normal, up) < 0.5) return null;
     const body = world.entities.get(hit.entity)?.body;
     const motion = body ? world.physics.motionOf(body.handle) : null;
-    return { entity: hit.entity, moves: motion?.kinematic ? motion : null };
+    return { entity: hit.entity, normal: hit.normal, moves: motion?.kinematic ? motion : null };
   };
   const thin = found(cast(thinner));
   if (thin?.moves) return thin;
@@ -346,10 +352,18 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
     const towards = isZero(c.wall) ? (vec3.length(move) > 0.1 ? vec3.normalize(move) : null) : c.wall;
     c.wall = towards ? wallAhead(world, e, feet, towards, 0.55, up) : [0, 0, 0];
   } else c.wall = [0, 0, 0];
+  // What it stands on (stage 2d; with its whole capsule since 2.5b), if it stands: below, what moves
+  // carries it; here, its surface's friction decides how much its feet push (stage 3b: the floor's
+  // material). On nothing found, or on what the physics moves (a cube), they hold.
+  const here = e.transform!.position;
+  const wasGrounded = c.grounded;
+  const under = c.grounded ? standingOn(world, e, up) : null;
+  const floor = under ? world.entities.get(under.entity)?.body : undefined;
+  const traction = floor ? tractionOf(floor.friction) : 1;
   const before = c.mode;
   c.mode = modeFor(c, move, jumping, vUp);
   let mode = MODES[c.mode];
-  vH = mode.steer(c, vH, wanted, move, dt);
+  vH = mode.steer(c, vH, wanted, move, dt, traction);
   // The top of a wall: it was climbing and the wall ended under its feet. A hop up and over, so it gets
   // onto it: up, and towards the wall it climbed at its climbing speed (closing phase 2: the hop was
   // only up, and with no control in the air nothing took it over the edge; it fell back beside the
@@ -360,14 +374,10 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
     vH = vec3.add(vH, vec3.scale(climbed, c.movement.climb.speed));
   }
 
-  // What it stands on (stage 2d; with its whole capsule since 2.5b), if it stands: if it moves, how it
-  // moves in this step. It carries it (after the controller, below), it turns it with it, and a jump
-  // keeps its velocity. Stepping from something that moves onto something still, standing all the
-  // time (down the 30 cm of the course's ferry), it keeps that velocity, as walking off an edge does:
-  // the walk steers it from there (before, it stopped dead).
-  const here = e.transform!.position;
-  const wasGrounded = c.grounded;
-  const under = c.grounded ? standingOn(world, e, up) : null;
+  // What it stands on, if it moves: how it moves in this step. It carries it (after the controller,
+  // below), it turns it with it, and a jump keeps its velocity. Stepping from something that moves
+  // onto something still, standing all the time (down the 30 cm of the course's ferry), it keeps that
+  // velocity, as walking off an edge does: the walk steers it from there (before, it stopped dead).
   const ride = under?.moves ? carriedBy(under.moves, here, dt) : null;
   if (under?.moves && ride) c.ground = { velocity: ride.velocity, spin: vec3.dot(under.moves.angular, up) };
   else {
@@ -411,8 +421,15 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
   }
 
   // 4: the contributions. Gravity changes the velocity (unless the mode holds itself; a mode may
-  // slow the fall); what carries it only moves it, this step.
+  // slow the fall); what carries it only moves it, this step. Not while it stands, without jumping,
+  // on ground it does not slide on (flatter than 30°): its floor holds it, and the controller keeps
+  // it on it, down a step too (snapping). Pushed into its floor on every step (stage 3b found it), it
+  // sank into the thin gap the controller keeps (CHARACTER_GAP); from there, a move along the floor met
+  // the floor at once, and it did not move at all for a step or two: 2 to 6 steps in a hundred,
+  // walking on a flat floor. On a steeper slope, or a round bottom on an edge, gravity goes on
+  // pulling: it is what makes it slide off them.
   if (mode.holds) vUp = mode.holds(c, move);
+  else if (c.grounded && !leapt && vUp <= 0 && under && vec3.dot(under.normal, up) >= STANDS_ON) vUp = 0;
   else {
     vUp -= gravity * dt;
     const fall = mode.fall?.(c);

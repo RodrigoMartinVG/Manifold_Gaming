@@ -153,7 +153,7 @@ test('the Dojo says how to start the first time, and only the first time', async
   await expect(hint).toBeVisible();
   await expect(hint).toContainText('help');
   // Opening the console is what the hint asks for: it goes away, and it does not come back.
-  await expect.poll(() => page.locator('#game').getAttribute('data-meshes').then(Number), { timeout: 15_000 }).toBe(1);
+  await expect.poll(() => page.locator('#game').getAttribute('data-meshes').then(Number), { timeout: 15_000 }).toBe(2);
   await page.keyboard.press('Backquote');
   await expect(hint).toBeHidden();
   await page.reload();

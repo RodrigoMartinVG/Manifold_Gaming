@@ -9,7 +9,8 @@ import type { GamePage, Piece } from './page';
  * wait ten frames). The rest, every 10 frames: how many frames were drawn, how many entities are really
  * drawn in the scene (not in a map: a bug of step 0 did not show there), and the other players.
  * (Other pieces write what they own when it happens: `notice`, `replay`, `ghost`, `contacts`, `desyncs`,
- * and the bodies `clip`, the animation the player's model plays.)
+ * and the bodies `clip`, the animation the player's model plays, and `gesture`, the last gesture it
+ * started, numbered.)
  */
 export function mountProbe(page: GamePage, match: PageMatch): Piece {
   const data = page.container.dataset;

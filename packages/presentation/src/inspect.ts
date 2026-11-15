@@ -8,13 +8,13 @@ export const INSPECT_COMMANDS = {
   inspect: {
     name: 'inspect',
     description:
-      'What an entity is made of: its components, with their numbers (a click on an object does it too). Its id, or `me` (your character) or `it` (the last one inspected or clicked). With nothing: how many entities there are.',
+      'What an entity is made of: its components, with their numbers (a click on an object does it too). Its id, its name (a level gives names: `inspect floor`), `me` (your character) or `it` (the last one inspected or clicked). With nothing: how many entities there are, and their names.',
     args: [{ name: 'id', type: { kind: 'text' }, optional: true }],
   },
   watch: {
     name: 'watch',
     description:
-      'Pins an entity on the screen, its values updated while you play (the console can be closed): `watch me`, or what to show, `watch me character.mode character.ground`. Its id, `me` or `it`. `watch clear` takes them all away; with nothing, what is watched.',
+      'Pins an entity on the screen, its values updated while you play (the console can be closed): `watch me`, or what to show, `watch me character.mode character.ground`. Its id, its name, `me` or `it`. `watch clear` takes them all away; with nothing, what is watched.',
     args: [
       { name: 'entity', type: { kind: 'text' }, optional: true },
       { name: 'what', type: { kind: 'rest' }, optional: true },
@@ -25,8 +25,9 @@ export const INSPECT_COMMANDS = {
 /**
  * LOOKING INSIDE THE WORLD: `inspect` (what an entity is made of), `watch` (entities pinned on the
  * screen, their values updated while playing, stage 2d) and, if the game wants it (a lab's), a click
- * on an object inspects it in the console. An entity is named by its id, `me` (this page's player's
- * character) or `it` (the last one inspected, clicked or watched).
+ * on an object inspects it in the console. An entity is named by its id, its name (stage 3b: a
+ * level's `name door_north`), `me` (this page's player's character) or `it` (the last one inspected,
+ * clicked or watched).
  */
 export function mountInspect(
   page: GamePage,
@@ -55,7 +56,7 @@ export function mountInspect(
   const watched: { id: number; paths: string[] }[] = [];
   /** The last entity inspected, clicked or watched: what `it` names. */
   let it: number | null = null;
-  /** An entity by what is typed: its id, `me` or `it`; or why not. */
+  /** An entity by what is typed: its id, its name, `me` or `it`; or why not. */
   const entityNamed = (word: string): number | string => {
     const world = page.session.world;
     if (word === 'me') {
@@ -63,9 +64,13 @@ export function mountInspect(
       return mine ? mine.id : 'you have no character here (`me` is your character: try a room with one, like `load course`)';
     }
     if (word === 'it') return it ?? 'nothing inspected yet: click an object, or `inspect` an id (`it` is the last one)';
-    const id = Number(word);
-    if (!Number.isInteger(id) || id < 1) return `"${word}" is not an entity: an id (a whole number), \`me\` or \`it\``;
-    return world.entities.has(id) ? id : `no entity ${id} (there are ${world.entities.size}: \`inspect\` counts them)`;
+    if (/^\d+$/.test(word)) {
+      const id = Number(word);
+      return world.entities.has(id) ? id : `no entity ${id} (there are ${world.entities.size}: \`inspect\` counts them)`;
+    }
+    const named = world.named(word);
+    if (named) return named.id;
+    return `no entity named "${word}": an id (a whole number), a name, \`me\` or \`it\` (\`inspect\` lists the names)`;
   };
 
   page.registry.declareCommand({
@@ -156,8 +161,8 @@ function describeValue(v: unknown, key = ''): string {
 function inspectEntity(world: World, id: number): string {
   const e = world.entities.get(id);
   if (!e) return `no entity ${id} (there are ${world.entities.size}: \`inspect\` counts them)`;
-  const lines = [`entity ${id}, at step ${world.tick}`];
-  for (const [k, v] of Object.entries(e)) if (k !== 'id') lines.push(`  ${k.padEnd(11)}${describeValue(v)}`);
+  const lines = [`entity ${id}${e.name ? ` (${e.name})` : ''}, at step ${world.tick}`];
+  for (const [k, v] of Object.entries(e)) if (k !== 'id' && k !== 'name') lines.push(`  ${k.padEnd(11)}${describeValue(v)}`);
   return lines.join('\n');
 }
 
@@ -180,7 +185,7 @@ function describeWatched(world: World, id: number, paths: readonly string[]): st
       .split('.')
       .reduce<unknown>((at, key) => (at && typeof at === 'object' ? (at as Record<string, unknown>)[key] : undefined), e);
   return [
-    `entity ${id} · step ${world.tick}`,
+    `entity ${id}${e.name ? ` (${e.name})` : ''} · step ${world.tick}`,
     ...shown.map((path) => {
       const value = valueAt(path);
       return `  ${path} ${value === undefined ? '(none)' : describeValue(value, path.split('.').pop())}`;
@@ -196,5 +201,7 @@ function countEntities(world: World): string {
     kinds.set(kind, (kinds.get(kind) ?? 0) + 1);
   }
   const parts = [...kinds].map(([k, n]) => `${n} ${k}`).join(', ');
-  return `${world.entities.size} entities: ${parts}. A click on an object inspects it, or \`inspect 1\`.`;
+  const names = [...world.entities.values()].flatMap((e) => (e.name ? [e.name] : []));
+  const named = names.length ? ` Named: ${names.join(', ')}.` : '';
+  return `${world.entities.size} entities: ${parts}.${named} A click on an object inspects it, or \`inspect 1\`.`;
 }

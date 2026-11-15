@@ -3,6 +3,7 @@ import {
   buildLevel,
   component,
   DEFAULT_MOVEMENT,
+  GRID_COLOR,
   pressed,
   STEP,
   upAt,
@@ -16,6 +17,7 @@ import {
   type ModeName,
   type Movement,
   type World,
+  type ZoneKinds,
 } from '@manifold/core';
 
 /** The big cube's spin at the start (a tilted axis: so it shows that it spins in 3D, not just "turns"). */
@@ -112,6 +114,37 @@ function buildDojoLevel(world: World, level: Level) {
     star.spin = { angularVelocity: [0.4, 2, 0.3] };
   }
   character(world, 1, level.spawn, level.facing, 0x93d9c9);
+}
+
+/**
+ * THE DOJO'S ZONES, and what each one carries (stage 3b): its levels are read with them, so a zone of
+ * another kind, or a current without its flow, is an error with its line (before, a `chekpoint` was
+ * read, and did nothing).
+ */
+export const DOJO_ZONES: ZoneKinds = {
+  checkpoint: {},
+  fall: {},
+  star: {},
+  goal: {},
+  /** It carries whoever is in it along its `flow` (m/s, x y z, in the world's axes). */
+  current: { flow: 3 },
+};
+
+/**
+ * CURRENTS (stage 3b): a character whose center is in a `current` zone is carried along its flow, on
+ * every step it is there. One more contribution to its movement, the one the wind or a conveyor belt
+ * would be (stage 2b's `carry`), whatever its mode: walking against it, it advances less; across it,
+ * it drifts. (What the physics moves is not carried yet: that is the fluids', in the idea bank.)
+ */
+function currents(world: World) {
+  for (const zone of world.entities.values()) {
+    if (zone.sensor?.kind !== 'current') continue;
+    const flow = zone.sensor.params.flow as Vec3;
+    for (const id of zone.sensor.inside) {
+      const c = world.entities.get(id)?.character;
+      if (c) c.carry = vec3.add(c.carry, flow);
+    }
+  }
 }
 
 /**
@@ -222,7 +255,8 @@ function joinedPlayers(world: World) {
 /**
  * THE DOJO'S CARTRIDGE: the first game, the engine's lab. A floor, a big cube that spins (a
  * kinematic body: it pushes what it touches), small cubes that fall from the world's randomness, and
- * balls on demand. It tests what matters: that a game, from OUTSIDE the engine, puts things in a
+ * balls on demand. Or a level, which brings its whole ground (stage 3b: before, the floor and the big
+ * cube were built in every room, and the circuit's first jump had that floor under it). It tests what matters: that a game, from OUTSIDE the engine, puts things in a
  * world that the simulation runs (with its physics) and the presentation draws.
  *
  * What the Dojo lets people change it DECLARES (decision 0010), each thing with its scope:
@@ -256,7 +290,7 @@ export function createDojo(levels: Readonly<Record<string, Level>>): Cartridge {
       registry.declareVariable({
         name: 'dojo.level',
         description:
-          'What there is on the floor: `empty`, or a level from `games/dojo/levels/`, like `course`: a small classic level with a character to drive (WASD or the arrows, Space to jump, Shift to run), checkpoints and a goal.',
+          'What the room is: `empty` (a floor and the big cube), or a level from `games/dojo/levels/`, which brings its whole ground, like `course`: a small classic level with a character to drive (WASD or the arrows, Space to jump, Shift to run), checkpoints and a goal.',
         scope: 'startup',
         type: { kind: 'option', options: ['empty', ...Object.keys(levels)] },
         default: 'empty',
@@ -297,13 +331,14 @@ export function createDojo(levels: Readonly<Record<string, Level>>): Cartridge {
       });
       registry.declareVariable({
         name: 'dojo.spin',
-        description: 'How the big cube spins: radians per second around each axis (x y z).',
+        description: 'How the big cube spins (in the Dojo without a level): radians per second around each axis (x y z).',
         scope: 'world',
         type: { kind: 'vector' },
         default: START_SPIN,
         onWorld(world, value) {
-          // The big cube is the world's first entity (id 1): `onStart` creates it, before anything else.
-          const cube = world.entities.get(1);
+          // The big cube, by its name (stage 3b; before, by being the world's first entity, which in a
+          // room with a level is the level's first box).
+          const cube = world.named('cube');
           if (cube?.spin) cube.spin.angularVelocity = [...(value as Vec3)];
         },
       });
@@ -327,6 +362,10 @@ export function createDojo(levels: Readonly<Record<string, Level>>): Cartridge {
       });
     },
 
+    beforeStep(world) {
+      currents(world);
+    },
+
     onStep(world, events) {
       joinedPlayers(world);
       levelLoop(world, events);
@@ -340,21 +379,25 @@ export function createDojo(levels: Readonly<Record<string, Level>>): Cartridge {
     },
 
     onStart(world, registry) {
-      // The big cube goes first: it is entity 1, the one `dojo.spin` turns.
-      world.createEntity({
-        transform: { position: [0, 1, 0], rotation: quat.identity() },
-        spin: { angularVelocity: [...START_SPIN] },
-        body: { type: 'kinematic', shape: { kind: 'box', halfExtents: [0.5, 0.5, 0.5] } },
-        appearance: { shape: 'box', size: [1, 1, 1], color: 0xe0a040 },
-      });
-      // The floor: a fixed body whose top is at y = 0, under the grid. It has no appearance: the grid is
-      // what is seen.
-      world.createEntity({
-        transform: { position: [0, -0.5, 0], rotation: quat.identity() },
-        body: { type: 'fixed', shape: { kind: 'box', halfExtents: [10, 0.5, 10] } },
-      });
       const level = levels[String(registry.value('dojo.level'))];
       if (level) buildDojoLevel(world, level);
+      else {
+        // Without a level: the big cube, the one `dojo.spin` turns, and the floor, 20 m square with its
+        // top at y = 0, drawn as a grid (stage 3b: before, the stage drew the grid, under any level).
+        world.createEntity({
+          name: 'cube',
+          transform: { position: [0, 1, 0], rotation: quat.identity() },
+          spin: { angularVelocity: [...START_SPIN] },
+          body: { type: 'kinematic', shape: { kind: 'box', halfExtents: [0.5, 0.5, 0.5] } },
+          appearance: { shape: 'box', size: [1, 1, 1], color: 0xe0a040 },
+        });
+        world.createEntity({
+          name: 'floor',
+          transform: { position: [0, -0.5, 0], rotation: quat.identity() },
+          body: { type: 'fixed', shape: { kind: 'box', halfExtents: [10, 0.5, 10] } },
+          appearance: { shape: 'grid', size: [20, 1, 20], color: GRID_COLOR },
+        });
+      }
       const cubes = Number(registry.value('dojo.cubes'));
       for (let i = 0; i < cubes; i++) randomCube(world);
     },

@@ -6,7 +6,6 @@
 # thin pillar (climb it straight), and on an islet far out (glide running).
 seed 3
 dojo.level circuit
-dojo.cubes 4
 dojo.climb on
 dojo.glide on
 dojo.doublejump on

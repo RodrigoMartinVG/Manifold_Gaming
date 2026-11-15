@@ -1,4 +1,16 @@
-export { copyData, World, STEP, type WorldOptions, type WorldSnapshot, PHASES, type Phase, type Hit, type Query } from './world';
+export {
+  copyData,
+  ENTITY_NAME,
+  World,
+  STEP,
+  type WorldOptions,
+  type WorldSnapshot,
+  PHASES,
+  type Phase,
+  type Hit,
+  type Query,
+} from './world';
+export { FULL_GRIP, MATERIAL_NAME, MATERIALS, materialProblem, tractionOf, type Material } from './materials';
 export {
   Session,
   declareCore,
@@ -26,14 +38,18 @@ export {
 export { SIMULATION_VERSION } from './version';
 export {
   buildLevel,
+  GRID_COLOR,
   LEVEL_FORMAT,
   levelFromText,
   levelToText,
   turnOf,
   type Level,
   type LevelBox,
+  type LevelOptions,
   type LevelSensor,
+  type Look,
   type Turn,
+  type ZoneKinds,
 } from './level';
 export { playReplay, replayFromText, replayOf, ReplayPlayer, replayToText, sessionFor, type Replay } from './replay';
 export { Clock } from './clock';

@@ -13,6 +13,11 @@ export type EntityId = number;
  */
 export interface Entity {
   readonly id: EntityId;
+  /**
+   * Its name (stage 3b), if it has one: one word (`door_north`), the only one with it in its world.
+   * What the console finds it by (`inspect door_north`), and what signals will join (3c).
+   */
+  name?: string;
   transform?: Transform;
   spin?: Spin;
   body?: Body;
@@ -47,6 +52,12 @@ export interface Sensor {
   half: Vec3;
   /** Who is inside now, by id, in the order they came in. */
   inside: EntityId[];
+  /**
+   * What it carries besides its kind (stage 3b), by name, each a list of numbers: a current's `flow`
+   * (m/s, x y z), a medium's `density`, a fog's opacity per meter. A river, a fog bank or a jet of
+   * steam is a zone with data, not a new kind of thing. Like `kind`, the game's to read.
+   */
+  params: Record<string, number[]>;
 }
 
 /**
@@ -114,8 +125,9 @@ export interface Body {
   /** Which bodies it meets (stage 2.5b); without it, all of them. */
   groups?: CollisionGroups;
   /**
-   * What it is made of (stage 2.5b): `wood`, `metal`, `glass`… A name the game gives and reads (the
-   * sound of steps and hits, what breaks how, phase 3); the engine does not read it.
+   * What it is made of (stage 2.5b): `wood`, `metal`, `glass`… One of its world's materials (stage
+   * 3b: `World.materials`), whose friction and bounce it takes when it is created, unless they are
+   * given; and a name the game reads (the sound of steps and hits, what breaks how).
    */
   material?: string;
   /** Given by the world when the entity is created. */
@@ -306,10 +318,11 @@ export type PlayerInput = Readonly<Record<string, InputValue>>;
 /** How it looks, as DATA (the presentation decides which material, depending on quality). */
 export interface Appearance {
   /**
-   * A box of `size`, a sphere whose diameter is `size` (all three the same), or a capsule `size[1]`
-   * tall and `size[0]` wide.
+   * A box of `size`, a sphere whose diameter is `size` (all three the same), a capsule `size[1]`
+   * tall and `size[0]` wide, or (stage 3b) a grid: lines a meter apart over the top of a box of
+   * `size`, as the Dojo's floor is drawn (its color, the lines').
    */
-  shape: 'box' | 'sphere' | 'capsule';
+  shape: 'box' | 'sphere' | 'capsule' | 'grid';
   size: Vec3;
   /** 0xRRGGBB */
   color: number;
@@ -324,8 +337,8 @@ export interface Appearance {
 export type Components = Omit<Entity, 'id' | 'body' | 'character' | 'sensor'> & {
   body?: BodySpec;
   character?: CharacterSpec;
-  /** A zone: what it is for, and half its size (who is inside starts empty). */
-  sensor?: Pick<Sensor, 'kind' | 'half'>;
+  /** A zone: what it is for, half its size, and what it carries (who is inside starts empty). */
+  sensor?: Pick<Sensor, 'kind' | 'half'> & { params?: Sensor['params'] };
 };
 
 /**

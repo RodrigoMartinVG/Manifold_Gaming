@@ -78,8 +78,8 @@ test('show.physics draws what the physics sees, without breaking anything', asyn
   await page.keyboard.press('Backquote');
   await typeInConsole(page, 'show.physics', 'dojo.spawn 2 4 2');
   await expect(page.locator('.mg-console-log')).toContainText('show.physics = on');
-  // The ball enters at the next step: one more mesh (the floor has none: the grid is what is seen).
-  await expect.poll(() => page.locator('#game').getAttribute('data-meshes').then(Number)).toBe(7);
+  // The ball enters at the next step: one more (the big cube, the floor's grid, 5 cubes, and the ball).
+  await expect.poll(() => page.locator('#game').getAttribute('data-meshes').then(Number)).toBe(8);
   expect(errors).toEqual([]);
 });
 
