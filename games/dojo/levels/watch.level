@@ -1,7 +1,8 @@
-# Manifold level 4
+# Manifold level 5
 # The watcher (stage 3d): the light is the simulation's. A dark hall, four pools of light, a low fog
 # bank and an eye at the far end that looks down the hall with that light: walking into a pool, it
-# sees you; into the dark, behind the pillar or into the fog, it loses you. One lamp has a switch.
+# sees you; into the dark, behind the pillar or into the fog, it loses you. One lamp has a switch, and
+# one breaks (stage 3e): the phase's demonstration.
 title The watcher
 spawn 0 1 10
 facing 0 0 -1
@@ -15,8 +16,10 @@ box 0 -0.5 0      6 0.5 12      color #6f6a62  name floor
 box 0 1 -11       0.3 1 0.3     color #4a4440
 watcher 0 2.4 -11  24 70 0.35  rotate y 180  name eye
 
-# A pool on the left, near the start.
-lamp -4 3 3       4 1           name lamp_near
+# A pool on the left, near the start, from a lamp on a post at chest height (stage 3e): a ball thrown
+# at it (F) breaks it, its light goes out, and the eye that saw you there loses you.
+lamp -4 1.5 2     4 1           breaks 0.3  model dojo.lamp  name lamp_near
+box -4 0.66 2     0.06 0.66 0.06  color #4a4440
 
 # A pool on the right, past the middle, on a switch: the post on the left by the start, E in front of it.
 lamp 3 3 -3       4 1           signal switch  name lamp_switch

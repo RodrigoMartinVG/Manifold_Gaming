@@ -83,6 +83,7 @@ export type {
   Mover,
   Movement,
   PlayerInput,
+  Breakable,
   Lamp,
   Mechanism,
   Sensor,

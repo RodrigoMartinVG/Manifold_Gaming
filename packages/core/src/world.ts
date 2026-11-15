@@ -184,6 +184,8 @@ export function copyData<T>(x: T): T {
  *      that takes it where it has to be at its end, stage 2d);
  *   3. characters: each one decides where it can go, with what its player asks for (character.ts);
  *   4. physics: Rapier advances one step (gravity, collisions, bounces; the characters move);
+ *   4b. breaks: what a hit with enough energy touched breaks (stage 3e), read with the velocities the
+ *      bodies came with, before the next phase reads the ones the hit left;
  *   5. readBack: every moving body's pose and velocities go to its components;
  *   6. zones: who came into each zone, and who left (stage 2a);
  *   7. light: every lamp on or off as its signal was, how lit every character is, and who every watcher
@@ -195,7 +197,7 @@ export function copyData<T>(x: T): T {
  * (`Cartridge.beforeStep`: what these phases will use at this step: a bot's inputs, a mechanism's
  * target, what a character carries) and after (`Cartridge.onStep`: its rules, on the step's events).
  */
-export const PHASES = ['spin', 'kinematics', 'characters', 'physics', 'readBack', 'zones', 'light', 'signals'] as const;
+export const PHASES = ['spin', 'kinematics', 'characters', 'physics', 'breaks', 'readBack', 'zones', 'light', 'signals'] as const;
 export type Phase = (typeof PHASES)[number];
 
 export class World {
@@ -414,7 +416,7 @@ export class World {
   }
 
   createEntity(components: Components): Entity {
-    const { body, character, sensor, mover, mechanism, lamp, watcher, ...rest } = components;
+    const { body, character, sensor, mover, mechanism, lamp, watcher, breakable, ...rest } = components;
     for (const name of Object.keys(rest.game ?? {}))
       if (!COMPONENT_NAME.test(name))
         throw new Error(
@@ -432,6 +434,10 @@ export class World {
       throw new Error(`no material "${body.material}" in this world (${Object.keys(this.table).join(', ')})`);
     const entity: Entity = { id: ++this.lastId, ...rest };
     if (mover) entity.mover = { from: [...mover.from], to: [...mover.to], seconds: mover.seconds };
+    if (breakable) {
+      if (!(breakable.threshold >= 0)) throw new Error('What breaks it is an energy, 0 or more');
+      entity.breakable = { threshold: breakable.threshold, broken: false };
+    }
     if (lamp) {
       if (!entity.transform) throw new Error('A lamp needs a transform: where is it?');
       if (!(lamp.radius > 0) || !(lamp.intensity >= 0))
@@ -555,6 +561,7 @@ export class World {
       for (const e of this.entities.values()) if (e.character && e.body?.type === 'character') moveCharacter(this, e, STEP);
     },
     physics: () => this.physics.step(),
+    breaks: () => this.shatter(),
     readBack: () => {
       for (const e of this.entities.values())
         if (e.body && e.transform && e.body.type !== 'fixed') this.physics.read(e.body.handle, e.transform, e.body);
@@ -609,6 +616,81 @@ export class World {
     let turn = quat.multiply(target.rotation, quat.conjugate(e.transform!.rotation));
     if (turn[3] < 0) turn = [-turn[0], -turn[1], -turn[2], -turn[3]];
     body.angularVelocity = [(2 * turn[0]) / STEP, (2 * turn[1]) / STEP, (2 * turn[2]) / STEP];
+  }
+
+  /**
+   * BREAKS SYSTEM (stage 3e): for every whole breakable with a body, what the physics moves that touches
+   * it now, and with how much energy it came: half its mass times its speed squared, its speed as it was
+   * before this step (its component still has it: it is read back after this phase). The first hit at
+   * least its threshold breaks it (`breakApart`).
+   */
+  private shatter() {
+    for (const e of [...this.entities.values()]) {
+      const b = e.breakable;
+      if (!b || b.broken || !e.body) continue;
+      for (const handle of this.physics.touching(e.body.handle)) {
+        const other = [...this.entities.values()].find((x) => x.body?.handle === handle);
+        if (other?.body?.type !== 'dynamic') continue;
+        const v = other.body.linearVelocity;
+        const energy = 0.5 * this.physics.massOf(handle) * vec3.dot(v, v);
+        if (energy >= b.threshold) {
+          this.breakApart(e, other.id, energy);
+          break;
+        }
+      }
+    }
+  }
+
+  /**
+   * Breaks something (stage 3e; the console or a game may, too): it is broken (a lamp gives no light),
+   * its body goes (it stops colliding), a few large pieces the physics moves fly from where it was
+   * (in the hash: they are the world's), and the break is an event with a seed for the fragments. The
+   * pieces: as many as its size asks for (one per 0.2 m of its largest side, 2 at least, 6 at most), a
+   * cube a third of its smallest side, out at 1 to 3 m/s from the world's randomness.
+   */
+  breakApart(e: Entity, by: EntityId, energy: number) {
+    const b = e.breakable;
+    if (!b || b.broken || !e.transform) return;
+    b.broken = true;
+    const at: Vec3 = [...e.transform.position];
+    const seed = this.random.uint32();
+    const half: Vec3 =
+      e.body?.shape.kind === 'box'
+        ? e.body.shape.halfExtents
+        : e.body?.shape.kind === 'ball'
+          ? [e.body.shape.radius, e.body.shape.radius, e.body.shape.radius]
+          : [0.1, 0.1, 0.1];
+    if (e.body) {
+      this.physics.removeBody(e.body.handle);
+      delete e.body;
+    }
+    const pieces = Math.max(2, Math.min(6, Math.round((2 * Math.max(...half)) / 0.2)));
+    const side = Math.max(0.04, (2 * Math.min(...half)) / 3);
+    const color = e.appearance?.color ?? 0x8a8a8a;
+    for (let i = 0; i < pieces; i++) {
+      const out: Vec3 = [this.random.between(-1, 1), this.random.between(0.2, 1), this.random.between(-1, 1)];
+      const speed = this.random.between(1, 3) / Math.max(1e-9, vec3.length(out));
+      this.createEntity({
+        transform: {
+          position: vec3.add(at, [
+            this.random.between(-half[0], half[0]),
+            this.random.between(-half[1], half[1]),
+            this.random.between(-half[2], half[2]),
+          ]),
+          rotation: quat.identity(),
+        },
+        body: {
+          type: 'dynamic',
+          shape: { kind: 'box', halfExtents: [side / 2, side / 2, side / 2] },
+          linearVelocity: vec3.scale(out, speed),
+          angularVelocity: [this.random.between(-6, 6), this.random.between(-6, 6), this.random.between(-6, 6)],
+        },
+        appearance: { shape: 'box', size: [side, side, side], color },
+      });
+    }
+    this.emit({ type: 'broke', entity: e.id, at, by, energy, seed });
+    // A box that broke is gone but for its pieces; a lamp stays, broken (it is still a lamp, dark).
+    if (!e.lamp) this.removeEntity(e.id);
   }
 
   /**
@@ -677,7 +759,8 @@ export class World {
    * sees is an event (`seen`, `lost`).
    */
   private illuminate() {
-    for (const e of this.entities.values()) if (e.lamp) e.lamp.on = e.lamp.signal === null || this.signal(e.lamp.signal) !== 0;
+    for (const e of this.entities.values())
+      if (e.lamp) e.lamp.on = !e.breakable?.broken && (e.lamp.signal === null || this.signal(e.lamp.signal) !== 0);
     const lamps = this.lampsOn();
     const fogs = this.attenuators();
     const characters: Entity[] = [];

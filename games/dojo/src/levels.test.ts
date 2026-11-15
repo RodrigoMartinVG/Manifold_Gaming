@@ -77,6 +77,7 @@ describe("the Dojo's levels (stage 3a)", () => {
       door: null,
       lift: null,
       model: null,
+      breaks: null,
     } as const;
     const ferry: LevelBox = { ...box, center: [3, -0.15, -11.5], half: [1.5, 0.15, 1.5], move: { by: [0, 0, -6], seconds: 2.5 } };
     const floor: LevelBox = { ...box, center: [3, -0.5, -22], half: [6, 0.5, 6] };

@@ -55,6 +55,27 @@ describe('the watcher (stage 3d): seen in the light, lost in the dark', () => {
     expect(inFog.seen).toBe(false);
   });
 
+  test("the phase's demonstration (stage 3e): a ball thrown at the lamp breaks it, its light goes out, and the watcher loses you", () => {
+    const w = watch();
+    const broke: number[] = [];
+    // In the near pool, 2.5 m from its lamp's post, looking at it: seen.
+    expect(w.at(-4, 4.5)).toMatchObject({ seen: true });
+    w.step({ ...NO_INPUT, move: [0, 0, -0.2] });
+    w.step(NO_INPUT, 10);
+    // F: a ball, forward and a little up, at the lamp.
+    for (let i = 0; i < 40; i++) {
+      w.step({ ...NO_INPUT, 'dojo.throw': i === 0 });
+      for (const ev of w.session.world.stepEvents) if (ev.type === 'broke') broke.push(ev.entity);
+    }
+    const lamp = w.session.world.named('lamp_near')!;
+    expect(broke).toEqual([lamp.id]);
+    expect(lamp.breakable!.broken).toBe(true);
+    expect(lamp.lamp!.on).toBe(false);
+    expect(w.me().character!.light).toBeCloseTo(0.08, 6);
+    expect(w.session.world.signal('spotted')).toBe(0);
+    expect(w.notices.slice(-2)).toEqual(['the watcher sees you', 'the watcher lost you']);
+  });
+
   test('the switch: E at the post lights the pool on the right, and there it sees you', () => {
     const w = watch();
     expect(w.at(3, -3)).toMatchObject({ seen: false });

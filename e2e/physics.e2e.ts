@@ -116,6 +116,37 @@ test('a run driven with the keys, as a replay link: Node plays it to the same ha
   await expect(page.locator('#game')).toHaveAttribute('data-replay', 'same', { timeout: 90_000 });
 });
 
+// Stage 3e: the phase's demonstration, in a browser: what breaks is in the world (the lamp, its pieces,
+// the break), and its fragments are not (a physics of the presentation's): the replay plays in Node to
+// the same hash while the fragments are still flying on the page.
+test("the phase's demonstration: a ball breaks the lamp, the watcher loses you, fragments fly, and Node gives the same hash", async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  await page.goto('jugar/dojo/watch/');
+  await expect.poll(async () => (await position(page, 'player')).length, { timeout: 20_000 }).toBe(3);
+  await page.keyboard.press('Backquote');
+  await typeInConsole(page, 'dojo.goto -4 1 4.5');
+  await page.keyboard.press('Escape');
+  await expect.poll(() => page.locator('#game').getAttribute('data-seen'), { timeout: 15_000 }).toBe('1');
+  // F: a ball at the lamp on its post.
+  await page.keyboard.press('KeyF');
+  await expect
+    .poll(() => page.locator('#game').getAttribute('data-fragments').then(Number), { timeout: 15_000 })
+    .toBeGreaterThan(0);
+  await expect.poll(() => page.locator('#game').getAttribute('data-seen'), { timeout: 15_000 }).toBe('0');
+  const { text } = await exportReplay(page);
+  expect(
+    Number(await page.locator('#game').getAttribute('data-fragments')),
+    'still flying when the replay was taken',
+  ).toBeGreaterThan(0);
+  await initPhysics();
+  const { session, same } = playReplay(DojoCartridge, replayFromText(text));
+  expect(same).toBe(true);
+  expect(session.world.named('lamp_near')!.breakable!.broken).toBe(true);
+  session.world.dispose();
+});
+
 // Stage 2d: standing on a platform takes another way through the physics (while the controller
 // computes, the platform is fixed for it; then it is kinematic again, with its velocities). That way,
 // too, must give the same bits in every browser.

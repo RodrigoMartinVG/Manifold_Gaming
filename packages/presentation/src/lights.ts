@@ -93,11 +93,18 @@ export function mountLights(page: GamePage, bodies: Bodies): Piece {
     },
     frame({ world, hero }) {
       page.stage.daylight(world.ambient);
-      const glow = (id: EntityId, color: number) =>
-        bodies.meshes.get(id)?.traverse((o) => {
+      // What glows: a model's `glass` (stage 3e: the lamp's bulb), if it has one; if not, all of it.
+      const glow = (id: EntityId, color: number) => {
+        const drawn = bodies.meshes.get(id);
+        if (!drawn) return;
+        const parts: THREE.MeshLambertMaterial[] = [];
+        drawn.traverse((o) => {
           const m = (o as THREE.Mesh).material as THREE.MeshLambertMaterial | undefined;
-          if (m && 'emissive' in m && m.emissive.getHex() !== color) m.emissive.setHex(color);
+          if (m && 'emissive' in m) parts.push(m);
         });
+        const glass = parts.filter((m) => m.name === 'glass');
+        for (const m of glass.length ? glass : parts) if (m.emissive.getHex() !== color) m.emissive.setHex(color);
+      };
       for (const e of world.entities.values()) {
         if (e.lamp && e.transform) {
           let light = lamps.get(e.id);

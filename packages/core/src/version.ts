@@ -31,5 +31,7 @@
  *      step; mechanisms, doors and lifts, that follow them; the character's `use`
  *  18  stage 3d: the light, the simulation's: the world's ambient, lamps, how lit every character is,
  *      and watchers that see by it (their phase, before the signals'); zones that attenuate
+ *  19  stage 3e: what breaks: a threshold by the energy of a hit, its phase after the physics', a few
+ *      large pieces in the hash, and the break as an event with a seed
  */
-export const SIMULATION_VERSION = 18;
+export const SIMULATION_VERSION = 19;

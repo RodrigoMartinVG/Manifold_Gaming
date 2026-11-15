@@ -107,6 +107,10 @@ export interface PhysicsBackend {
   readonly bodyCount: number;
   debugLines(): { vertices: Float32Array; colors: Float32Array };
   contacts(): { points: number[]; normals: number[] };
+  /** The bodies touching this one now (stage 3e), by handle, in order: with at least one contact the solver uses. */
+  touching(handle: number): number[];
+  /** A body's mass (stage 3e): what the physics gives it from its shape and density (0 if it moves only as told). */
+  massOf(handle: number): number;
   dispose(): void;
 }
 
@@ -417,6 +421,26 @@ export class RapierPhysics implements PhysicsBackend {
       });
     });
     return { points, normals };
+  }
+
+  touching(handle: number): number[] {
+    const rigid = this.world.getRigidBody(handle);
+    const collider = rigid?.collider(0);
+    if (!collider) return [];
+    const out: number[] = [];
+    this.world.contactPairsWith(collider, (other) => {
+      let solid = false;
+      this.world.contactPair(collider, other, (manifold) => {
+        if (manifold.numSolverContacts() > 0) solid = true;
+      });
+      const body = other.parent();
+      if (solid && body && !out.includes(body.handle)) out.push(body.handle);
+    });
+    return out.sort((a, b) => a - b);
+  }
+
+  massOf(handle: number): number {
+    return this.world.getRigidBody(handle)?.mass() ?? 0;
   }
 
   /** Frees the physics' memory (WebAssembly's, which the garbage collector does not see). */

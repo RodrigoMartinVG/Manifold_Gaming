@@ -6,5 +6,9 @@
   "door.glb": {
     "what": "The Dojo's door: 1.2 m wide, 2.2 m high and 0.12 m thick, the box a level gives a door, its origin at the slab's center (the simulation turns it around its hinge). Hinges on its left edge, a handle on each face, two panels sunk into each.",
     "madeBy": "art/door.py"
+  },
+  "lamp.glb": {
+    "what": "The Dojo's lamp, whole and broken in one model: a bulb 0.3 m across under a metal cap, in a cage of four bars; the node `whole` has the bulb (its material, `glass`, glows while the lamp is on) and `broken` a few shards left in the socket. Its origin at the bulb's center.",
+    "madeBy": "art/lamp.py"
   }
 }

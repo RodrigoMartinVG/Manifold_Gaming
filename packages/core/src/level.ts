@@ -61,11 +61,18 @@ import { ENTITY_NAME, type World } from './world';
  *   sensor fog  0 1 -6  3 1 1  opacity 0.8    a zone with an opacity (per meter) attenuates light and
  *                                             sight through it, whatever its kind
  *
+ * Format 5 (stage 3e) adds what breaks:
+ *
+ *   lamp -4 1.5 2  4 1  breaks 0.4  model dojo.lamp
+ *                                             a lamp a hit of 0.4 J breaks (it gets a small body, to be
+ *                                             hit), drawn with a model the game has
+ *   box 2 0.5 -3  0.5 0.5 0.5  breaks 3       a box a hit of 3 J breaks into pieces
+ *
  * The turns are written in degrees, as a person thinks them, and become quaternions with our own sine
  * and cosine (`quat.fromDegrees`): the browser's would give other bits in another browser, and the
  * world must be born the same everywhere.
  */
-export const LEVEL_FORMAT = 4;
+export const LEVEL_FORMAT = 5;
 const HEADER = '# Manifold level';
 
 /** A turn around one of the axes, as it is written. */
@@ -88,6 +95,8 @@ export interface LevelBox {
   look: Look;
   /** A model the game has, drawn instead of the box, at its size (format 3: `dojo.door`). */
   model: string | null;
+  /** The energy of a hit that breaks it (format 5), in joules, if it breaks. */
+  breaks: number | null;
   /** What it is made of (format 2), if it is said: the engine's materials or the level's. */
   material: string | null;
   /** Which collision groups it is in and meets (format 2), if it is said: if not, all. */
@@ -109,6 +118,9 @@ export interface LevelLamp {
   radius: number;
   intensity: number;
   signal: string | null;
+  /** The energy of a hit that breaks it (format 5), if it breaks; and a model it is drawn with. */
+  breaks: number | null;
+  model: string | null;
 }
 
 /** A watcher (format 4): where, turned how, how far it sees, its field of view, how lit things must look. */
@@ -196,6 +208,7 @@ const SINCE: Record<string, number> = {
   ambient: 4,
   lamp: 4,
   watcher: 4,
+  breaks: 5,
 };
 /** How many signals or zones each kind of signal reads (−1: one or more), as the world says. */
 const READS: Record<SignalOp, number> = { input: 0, zone: 1, used: 1, seen: 1, any: -1, all: -1, not: 1, toggle: 1, latch: 2 };
@@ -248,6 +261,18 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
       const from = SINCE[word];
       if (from !== undefined && format < from)
         fail(n, `"${word}" is format ${from}: this level says format ${format} (its first line)`);
+    };
+    /** A model's name, as the game gives it (`dojo.door`). */
+    const modelName = (): string => {
+      const model = words[at++] ?? '';
+      if (!/^[a-z][a-z0-9_.-]*$/.test(model)) fail(n, `"${model}" is not a model's name (like dojo.door)`);
+      return model;
+    };
+    /** The energy of a hit that breaks something, in joules: 0 or more. */
+    const energy = (): number => {
+      const joules = number();
+      if (joules < 0) fail(n, 'what breaks it is an energy, 0 or more');
+      return joules;
     };
     /** A signal's name, as a mechanism or a signal names it. */
     const signalName = (): string => {
@@ -317,6 +342,7 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
         door: null as LevelBox['door'],
         lift: null as LevelBox['lift'],
         model: null as string | null,
+        breaks: null as number | null,
       };
       /** How long a mechanism takes, more than 0, and the signal it follows. */
       const timeAndSignal = () => {
@@ -361,9 +387,9 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
           const by = vector();
           box.lift = { by, ...timeAndSignal() };
         } else if (word === 'model') {
-          const model = words[at++] ?? '';
-          if (!/^[a-z][a-z0-9_.-]*$/.test(model)) fail(n, `"${model}" is not a model's name (like dojo.door)`);
-          box.model = model;
+          box.model = modelName();
+        } else if (word === 'breaks') {
+          box.breaks = energy();
         } else fail(n, `"${word}" is not understood here`);
       }
       // What the program moves, one way at a time: a platform that comes and goes, one that turns, or a
@@ -409,18 +435,23 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
         if (intensity < 0) fail(n, "a lamp's intensity is 0 or more");
         let signal: string | null = null;
         let name: string | null = null;
+        let breaks: number | null = null;
+        let model: string | null = null;
         const seen = new Set<string>();
         while (at < words.length) {
           const word = words[at++]!;
           if (seen.has(word)) fail(n, `"${word}" twice on one line`);
           seen.add(word);
+          since(word);
           if (word === 'signal') {
             signal = signalName();
             followed.push({ signal, line: n });
           } else if (word === 'name') name = aName();
-          else fail(n, `"${word}" is not understood here (signal, name)`);
+          else if (word === 'breaks') breaks = energy();
+          else if (word === 'model') model = modelName();
+          else fail(n, `"${word}" is not understood here (signal, name, breaks, model)`);
         }
-        level.lamps.push({ name, center, radius, intensity, signal });
+        level.lamps.push({ name, center, radius, intensity, signal, breaks, model });
         break;
       }
       case 'watcher': {
@@ -483,6 +514,7 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
           color: b.color,
           look: b.look,
           model: b.model,
+          breaks: b.breaks,
           material: b.material,
           groups,
           move: b.move,
@@ -609,6 +641,7 @@ export function levelToText(level: Level): string {
     (b.groups && b.groups.filter !== ALL_GROUPS ? `  meets ${groupList(b.groups.filter)}` : '') +
     (b.look === 'solid' ? `  color #${b.color.toString(16).padStart(6, '0')}` : `  ${b.look}`) +
     (b.model ? `  model ${b.model}` : '') +
+    (b.breaks !== null ? `  breaks ${b.breaks}` : '') +
     (b.name ? `  name ${b.name}` : '');
   const sensorText = (s: LevelSensor) =>
     `sensor ${s.kind}  ${numbersText(s.center)}  ${numbersText(s.half)}${turnText(s.turn)}` +
@@ -632,6 +665,8 @@ export function levelToText(level: Level): string {
         (l) =>
           `lamp ${numbersText(l.center)}  ${l.radius} ${l.intensity}` +
           (l.signal ? `  signal ${l.signal}` : '') +
+          (l.breaks !== null ? `  breaks ${l.breaks}` : '') +
+          (l.model ? `  model ${l.model}` : '') +
           (l.name ? `  name ${l.name}` : ''),
       ),
       ...level.watchers.map(
@@ -686,6 +721,7 @@ export function buildLevel(world: World, level: Level) {
           }
         : {}),
       ...(b.lift ? { mechanism: { signal: b.lift.signal, seconds: b.lift.seconds, lift: { by: [...b.lift.by] } } } : {}),
+      ...(b.breaks !== null ? { breakable: { threshold: b.breaks } } : {}),
     });
   }
   for (const s of level.sensors) {
@@ -716,7 +752,11 @@ export function buildLevel(world: World, level: Level) {
       ...(l.name ? { name: l.name } : {}),
       transform: { position: [...l.center], rotation: quat.identity() },
       lamp: { radius: l.radius, intensity: l.intensity, signal: l.signal },
-      appearance: { shape: 'sphere', size: [0.3, 0.3, 0.3], color: LAMP_COLOR },
+      appearance: { shape: 'sphere', size: [0.3, 0.3, 0.3], color: LAMP_COLOR, ...(l.model ? { model: l.model } : {}) },
+      // One that breaks has a small body, to be hit (its light's rays leave it out: lightAt).
+      ...(l.breaks !== null
+        ? { body: { type: 'fixed' as const, shape: { kind: 'ball' as const, radius: 0.15 } }, breakable: { threshold: l.breaks } }
+        : {}),
     });
   for (const w of level.watchers)
     world.createEntity({

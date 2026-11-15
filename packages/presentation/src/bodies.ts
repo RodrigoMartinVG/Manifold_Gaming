@@ -302,6 +302,15 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
         const t = e?.transform;
         const before = previous.get(id) ?? t;
         if (!e || !t || !before) continue;
+        // What breaks, drawn whole or broken (stage 3e): a model with both (the lamp) shows one.
+        if (e.breakable) {
+          const whole = mesh.getObjectByName('whole');
+          const broken = mesh.getObjectByName('broken');
+          if (whole && broken) {
+            whole.visible = !e.breakable.broken;
+            broken.visible = e.breakable.broken;
+          }
+        }
         mesh.position.set(...before.position).lerp(new THREE.Vector3(...t.position), alpha);
         const target = qt.slerpQuaternions(qa.set(...before.rotation), qb.set(...t.rotation), alpha);
         if (!e.character) {

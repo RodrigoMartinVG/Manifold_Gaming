@@ -286,7 +286,7 @@ sensor fog  0 2 -20  4 2 4  rotate y 30  opacity 0.2  color 0.8 0.8 0.9
     expect(v1('box 0 0 0  1 1 1  grid')).toThrow(/line 3: "grid" is format 2/);
     expect(v1('material oil friction 0 bounce 0 density 1 drag 0')).toThrow(/line 3: "material" is format 2/);
     expect(v1('sensor current 0 0 0  1 1 1  flow 1 0 0')).toThrow(/line 3: "flow": a zone carries what it says from format 2 on/);
-    expect(() => levelFromText('# Manifold level 5\n')).toThrow(/line 1: a level of format 5: this engine reads formats 1 to 4/);
+    expect(() => levelFromText('# Manifold level 6\n')).toThrow(/line 1: a level of format 6: this engine reads formats 1 to 5/);
   });
 
   test('what format 2 does not allow says which line, and why', () => {
@@ -454,8 +454,8 @@ signal spotted  seen eye
     const level = levelFromText(V4);
     expect(level.ambient).toBe(0.1);
     expect(level.lamps).toEqual([
-      { name: 'lamp', center: [0, 3, 0], radius: 6, intensity: 1, signal: 'lights' },
-      { name: null, center: [5, 2, 5], radius: 3, intensity: 0.5, signal: null },
+      { name: 'lamp', center: [0, 3, 0], radius: 6, intensity: 1, signal: 'lights', breaks: null, model: null },
+      { name: null, center: [5, 2, 5], radius: 3, intensity: 0.5, signal: null, breaks: null, model: null },
     ]);
     expect(level.watchers).toEqual([
       { name: 'eye', center: [0, 2, -10], turn: { axis: 'y', degrees: 180 }, range: 20, degrees: 90, threshold: 0.3 },
@@ -470,7 +470,9 @@ signal spotted  seen eye
     expect(bad('ambient 0.1\nambient 0.2')).toThrow(/line 3: "ambient" twice in a level \(the first, on line 2\)/);
     expect(bad('lamp 0 3 0  0 1')).toThrow(/line 2: a lamp's radius must be more than 0/);
     expect(bad('lamp 0 3 0  6 1  signal nothing')).toThrow(/line 2: no signal "nothing" in the level/);
-    expect(bad('lamp 0 3 0  6 1  rotate y 90')).toThrow(/line 2: "rotate" is not understood here \(signal, name\)/);
+    expect(bad('lamp 0 3 0  6 1  rotate y 90')).toThrow(
+      /line 2: "rotate" is not understood here \(signal, name, breaks, model\)/,
+    );
     expect(bad('watcher 0 2 0  10 400 0.3')).toThrow(/line 2: a watcher's field of view is more than 0 degrees, and 360 at most/);
     expect(bad('signal spotted seen nobody')).toThrow(/line 2: no watcher named "nobody" in the level/);
     expect(() => levelFromText('# Manifold level 3\nlamp 0 3 0  6 1\n')).toThrow(

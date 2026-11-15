@@ -14,6 +14,7 @@ import { mountProbe } from './probe';
 import { mountReplays } from './replays';
 import { createStage } from './stage';
 import { mountStats } from './stats';
+import { mountDebris } from './debris';
 import { mountLights } from './lights';
 import { mountSignals } from './signals';
 import { mountViews } from './views';
@@ -155,6 +156,7 @@ export function mount(cartridge: Cartridge, container: HTMLElement, o: MountOpti
     mountViews(page, bodies),
     mountSignals(page, bodies),
     mountLights(page, bodies),
+    mountDebris(page, { timeScale: () => (match.paused ? 0 : match.timescale) }),
     replays,
     mountStats(page, match),
     mountNotices(page),

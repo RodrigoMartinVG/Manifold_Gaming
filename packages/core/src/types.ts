@@ -29,6 +29,20 @@ export interface Entity {
   mechanism?: Mechanism;
   lamp?: Lamp;
   watcher?: Watcher;
+  breakable?: Breakable;
+}
+
+/**
+ * WHAT BREAKS (stage 3e), in layers. Here, in the core and in the hash: whether it is broken, and the
+ * energy a hit needs to break it (`threshold`, in joules: half the mass times the speed squared of
+ * what the physics moves, as it came against it); and, broken, a few large pieces the physics moves.
+ * The break is an event with a seed from the world's randomness (`broke`): the presentation makes its
+ * fragments from it, in a physics of its own that nobody hashes. Broken, a lamp gives no light, and
+ * what it was stops colliding.
+ */
+export interface Breakable {
+  threshold: number;
+  broken: boolean;
 }
 
 /**
@@ -414,7 +428,9 @@ export interface Appearance {
 }
 
 /** The components an entity is created with (everything but the id, which the world gives; a body and a character as they are asked for). */
-export type Components = Omit<Entity, 'id' | 'body' | 'character' | 'sensor' | 'mechanism' | 'lamp' | 'watcher'> & {
+export type Components = Omit<Entity, 'id' | 'body' | 'character' | 'sensor' | 'mechanism' | 'lamp' | 'watcher' | 'breakable'> & {
+  /** What breaks it: the energy of a hit, in joules (it starts whole). */
+  breakable?: Pick<Breakable, 'threshold'>;
   /** A lamp: how far it reaches, how bright, and the signal it follows (on: from its first step). */
   lamp?: Pick<Lamp, 'radius' | 'intensity' | 'signal'>;
   /** A watcher: how far it sees, the cosine of half its field of view, and how lit it needs things. */
@@ -450,4 +466,10 @@ export type Event =
   | { type: 'signalChanged'; signal: string; value: number; was: number }
   /** A watcher began to see a character (stage 3d), or lost it. */
   | { type: 'seen'; watcher: EntityId; entity: EntityId }
-  | { type: 'lost'; watcher: EntityId; entity: EntityId };
+  | { type: 'lost'; watcher: EntityId; entity: EntityId }
+  /**
+   * Something broke (stage 3e): what, where, what hit it, with how much energy, and a seed from the
+   * world's randomness, for whoever makes fragments of it (the presentation: the same ones in every
+   * copy of the match, and none of them in the world).
+   */
+  | { type: 'broke'; entity: EntityId; at: Vec3; by: EntityId; energy: number; seed: number };
