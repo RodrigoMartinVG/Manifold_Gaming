@@ -1,0 +1,117 @@
+---
+/**
+ * THE SAME HASH, IN THIS BROWSER (stage 2.5a): plays the Dojo's reference replays here, without
+ * drawing anything, and compares each final hash with the one Node gave when it was recorded. It is
+ * the determinism check the browser tests run in Chromium, Firefox and WebKit (it needs no WebGL),
+ * shown to whoever opens the page. The texts are the site's, in Spanish.
+ */
+---
+
+<div class="same-hash not-content" data-state="waiting">
+  <p class="same-hash-status" aria-live="polite">Cargando la simulación…</p>
+  <table>
+    <thead>
+      <tr>
+        <th>Repetición</th>
+        <th>Pasos</th>
+        <th>Huella al grabarla (Node)</th>
+        <th>Huella en tu navegador</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<script>
+  import { checkReferences, type CheckResult } from '@manifold/dojo/check';
+
+  const box = document.querySelector<HTMLElement>('.same-hash')!;
+  const status = box.querySelector<HTMLElement>('.same-hash-status')!;
+  const body = box.querySelector('tbody')!;
+  const hex = (n: number) => n.toString(16).padStart(8, '0');
+  const label = (name: string) => name.replace(/^phase-/, 'Fase ');
+  const rows = new Map<string, HTMLTableCellElement[]>();
+
+  /** The row of a replay (made the first time it is mentioned). */
+  function row(name: string) {
+    let cells = rows.get(name);
+    if (!cells) {
+      const tr = body.insertRow();
+      cells = Array.from({ length: 5 }, () => tr.insertCell());
+      cells[0]!.textContent = label(name);
+      rows.set(name, cells);
+    }
+    return cells;
+  }
+
+  function show(r: CheckResult) {
+    const [, steps, expected, got, verdict] = row(r.name);
+    steps!.textContent = r.steps.toLocaleString('es');
+    expected!.innerHTML = `<code>${hex(r.expected)}</code>`;
+    got!.innerHTML = `<code>${hex(r.got)}</code>`;
+    verdict!.textContent = r.same ? '✓ la misma' : '✗ otra';
+    verdict!.className = r.same ? 'same' : 'other';
+  }
+
+  box.dataset.state = 'running';
+  const start = performance.now();
+  checkReferences({
+    onProgress(name, step, steps) {
+      row(name)[1]!.textContent = `${step.toLocaleString('es')} de ${steps.toLocaleString('es')}`;
+      status.textContent = `Jugando ${label(name)}: paso ${step.toLocaleString('es')} de ${steps.toLocaleString('es')}…`;
+    },
+  })
+    .then((results) => {
+      results.forEach(show);
+      const same = results.filter((r) => r.same).length;
+      const seconds = ((performance.now() - start) / 1000).toFixed(1);
+      status.textContent =
+        same === results.length
+          ? `Las ${results.length} dan la misma huella que en Node: tu navegador simuló exactamente lo mismo, bit por bit (en ${seconds} s).`
+          : `${results.length - same} de ${results.length} dan otra huella: tu navegador simuló otra cosa. Es un error del motor, y nos sirve saberlo.`;
+      box.dataset.same = String(same);
+      box.dataset.total = String(results.length);
+      box.dataset.state = 'done';
+    })
+    .catch((error: unknown) => {
+      status.textContent = `No se pudo jugar: ${error instanceof Error ? error.message : String(error)}`;
+      box.dataset.state = 'error';
+    });
+</script>
+
+<style>
+  .same-hash {
+    margin: 1.5rem 0;
+  }
+  .same-hash-status {
+    font-weight: 600;
+  }
+  .same-hash table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0.75rem;
+    font-size: var(--sl-text-sm);
+  }
+  .same-hash th,
+  .same-hash td {
+    padding: 0.4rem 0.6rem;
+    border-bottom: 1px solid var(--sl-color-hairline);
+    text-align: left;
+  }
+  .same-hash :global(td.same) {
+    color: var(--sl-color-green-high);
+    white-space: nowrap;
+  }
+  .same-hash :global(td.other) {
+    color: var(--sl-color-red-high);
+    white-space: nowrap;
+  }
+  @media (max-width: 40rem) {
+    /* On a phone, the hashes are what does not fit: the one recorded is said in the verdict anyway. */
+    .same-hash th:nth-child(3),
+    .same-hash :global(td:nth-child(3)) {
+      display: none;
+    }
+  }
+</style>

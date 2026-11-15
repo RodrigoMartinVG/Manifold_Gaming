@@ -44,7 +44,8 @@ export default defineConfig({
       // The whole site's sidebar; each page shows only its section's part (src/route-data.ts).
       sidebar: [
         // Jugar: the games first (each one with its page), then what every game shares: the
-        // character's controls and the console, which is the engine's, not one game's.
+        // character's controls, the console, which is the engine's, not one game's, and the same hash
+        // (the reference replays played in this browser).
         {
           label: 'Jugar',
           items: [
@@ -55,6 +56,7 @@ export default defineConfig({
               items: [
                 { label: 'Cómo se juega', link: '/jugar/como-se-juega/' },
                 { label: 'La consola', link: '/jugar/consola/' },
+                { label: 'La misma huella', link: '/jugar/la-misma-huella/' },
               ],
             },
           ],

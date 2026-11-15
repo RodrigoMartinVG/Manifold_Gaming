@@ -21,6 +21,7 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "test:watch": "vitest",
+    "references": "vitest run games/dojo/src/reference.test.ts --update",
     "e2e": "playwright test",
     "verify": "npm run check && npm run lint && npm run format:check && npm run test",
     "serve:site": "vite preview --outDir site/dist --base /Manifold_Gaming/ --port 4321 --strictPort"

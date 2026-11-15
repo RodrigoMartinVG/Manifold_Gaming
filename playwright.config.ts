@@ -2,6 +2,9 @@ import { defineConfig, devices } from '@playwright/test';
 
 const BASE = 'http://localhost:4321/Manifold_Gaming/';
 
+/** What Firefox and WebKit run: the determinism check always; the physics tests, which draw, locally. */
+const alsoDrawing = process.env.CI ? ['determinism.e2e.ts'] : ['determinism.e2e.ts', 'physics.e2e.ts'];
+
 /**
  * The tests IN A REAL BROWSER (decision 0001): the site built as it is published, every page opens
  * without errors and the Dojo draws. It is V1's lesson (step 14): a change in the start-up broke
@@ -16,7 +19,11 @@ export default defineConfig({
   // showcase). The tests that play a match and replay it in Node ask for more.
   timeout: 90_000,
   forbidOnly: !!process.env.CI,
+  // In continuous integration a failed test runs once more, to tell a test that fails from one that
+  // fails sometimes; but one that passes only the second time fails the run too: it is reported, not
+  // hidden (behind each one there was a cause, as the review at the end of stage 2d found).
   retries: process.env.CI ? 1 : 0,
+  failOnFlakyTests: !!process.env.CI,
   reporter: process.env.CI ? 'github' : 'list',
   use: {
     baseURL: BASE,
@@ -31,11 +38,12 @@ export default defineConfig({
         launchOptions: { args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] },
       },
     },
-    // Determinism across JavaScript engines (decision 0012): the physics test also runs in Firefox
-    // (SpiderMonkey) and WebKit (JavaScriptCore, Safari's). Locally, before pushing: continuous
-    // integration runs Chromium only (\`--project=chromium\`) until these browsers' WebGL is checked there.
-    { name: 'firefox', testMatch: 'physics.e2e.ts', use: { ...devices['Desktop Firefox'] } },
-    { name: 'webkit', testMatch: 'physics.e2e.ts', use: { ...devices['Desktop Safari'] } },
+    // Determinism across JavaScript engines (decision 0012): Firefox (SpiderMonkey) and WebKit
+    // (JavaScriptCore, Safari's) run the determinism check, which needs no WebGL (the reference
+    // replays played without drawing), also in continuous integration; and the physics tests, which
+    // draw, only locally, before pushing, until these browsers' WebGL is checked on Linux.
+    { name: 'firefox', testMatch: alsoDrawing, use: { ...devices['Desktop Firefox'] } },
+    { name: 'webkit', testMatch: alsoDrawing, use: { ...devices['Desktop Safari'] } },
   ],
   webServer: {
     // (Vite's server and not `astro preview`: outside a terminal, Astro 7 goes to the background

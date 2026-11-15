@@ -91,10 +91,10 @@ test('each section has its own sidebar, and previous/next never leave it', async
   await page.goto('bitacora/etapa-0/');
   await expect(page.locator('.pagination-links a[rel="prev"]')).toHaveAttribute('href', /\/bitacora\/$/);
 
-  // Jugar: the games first, then what they all share (the controls, the console).
+  // Jugar: the games first, then what they all share (the controls, the console, the same hash).
   await page.goto('jugar/');
   const paths = await sidebarLinks('jugar').evaluateAll((as) => as.map((a) => (a as HTMLAnchorElement).pathname));
-  for (const p of ['jugar/', 'jugar/dojo/', 'jugar/como-se-juega/', 'jugar/consola/'])
+  for (const p of ['jugar/', 'jugar/dojo/', 'jugar/como-se-juega/', 'jugar/consola/', 'jugar/la-misma-huella/'])
     expect(
       paths.some((x) => x.endsWith(`/${p}`)),
       p,

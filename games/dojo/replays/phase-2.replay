@@ -1,0 +1,46 @@
+# Manifold replay 8
+# Phase 2: the course with every capability: a checkpoint, falls, three stars, the goal, both platforms.
+# A reference replay (stage 2.5a): playing it must end with the hash on its last line. A refactor
+# keeps it bit for bit. Recorded by games/dojo/src/reference.test.ts; recorded again (npm run
+# references) only when the simulation changes on purpose, with SIMULATION_VERSION.
+game dojo
+birth seed 2
+birth dojo.cubes 6
+birth dojo.level course
+birth dojo.climb on
+birth dojo.glide on
+birth dojo.doublejump on
+change 31 dojo.goto 0 2 -4
+input 61 1 move -1 0 0
+input 240 1
+change 361 dojo.goto 6 1 2
+input 361 1 move 1 0 0
+input 560 1
+change 661 dojo.goto -3.5 4.5 -7
+input 661 1 move -1 0 0
+input 662 1 move -1 0 0 jump
+change 961 dojo.goto -3 4.5 -7
+input 961 1
+input 980 1 jump
+input 981 1
+input 1020 1 jump
+input 1021 1
+change 1101 dojo.goto -4.8 0.9 7
+input 1101 1 face 0 0 -1
+input 1251 1 move 0 0 -0.5
+input 1280 1 move 0 0 -0.5 jump
+input 1281 1 move 0 0 -0.5
+change 1341 dojo.goto 15.7 1.2 6
+input 1341 1
+input 1541 1 move 0 0 1
+input 1600 1
+change 1741 dojo.air 0
+input 1745 1 jump
+input 1746 1
+input 1749 1 move 1 0 0
+change 1831 dojo.air 14
+change 1831 dojo.glide off
+input 1831 1
+input 1835 1 jump
+input 1890 1
+end 1920 15952df7
