@@ -44,7 +44,7 @@ interface Body extends Orbit {
 }
 
 export interface ShowcaseOptions {
-  /** Called every 10 frames with the simulation's step number. */
+  /** Called every 10 frames with the simulation's step number (for the plate: a number that changes on every frame cannot be read). */
   onStep?: (step: number) => void;
 }
 
@@ -260,6 +260,7 @@ export function startShowcase(view: HTMLElement, options: ShowcaseOptions = {}):
   // A few seconds of simulation before showing anything: so the trails are already drawn.
   for (let i = 0; i < TRAIL_LENGTH; i++) advance();
   draw(1);
+  view.dataset.step = String(step);
 
   // ---------- The loop: only while the showcase is in view ----------
   const frame = (now: number) => {
@@ -280,10 +281,12 @@ export function startShowcase(view: HTMLElement, options: ShowcaseOptions = {}):
     tilt += (wantedTilt - tilt) * Math.min(1, dt * 3);
     placeCamera();
     draw(accumulator / STEP);
-    if (++frames % 10 === 0) {
-      view.dataset.frames = String(frames);
-      options.onStep?.(step);
-    }
+    // On every frame, what it drew and where the simulation is: two attributes, for whoever checks
+    // that it runs (the browser tests ask for progress, not for a frame rate: without a GPU, with
+    // other pages drawing alongside, it may draw less than one frame per second).
+    view.dataset.frames = String(++frames);
+    view.dataset.step = String(step);
+    if (frames % 10 === 0) options.onStep?.(step);
   };
   const keepGoing = (yes: boolean) => {
     if (yes === running || still) return;

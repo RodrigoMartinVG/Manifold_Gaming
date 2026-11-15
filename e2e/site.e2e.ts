@@ -29,17 +29,22 @@ test('the home page opens and leads to the Dojo, the tutorial and the project', 
 test("the home page's showcase lights up and its simulation advances", async ({ page }) => {
   const list = errors(page);
   await page.goto('./');
-  // Three.js arrives after the page (dynamic import): the showcase goes from "loading" to "ready".
-  // With a GPU it takes less than 1 s; without one (as in continuous integration) about 3 s, and
-  // with another test running alongside, more than 15 s once in a while. Hence the margin.
+  // Three.js arrives after the page (dynamic import): the showcase goes from "loading" to "ready"
+  // once it drew its first frame. With a GPU it takes less than 1 s; without one (as in continuous
+  // integration) about 3 s, and with another test running alongside, more than 15 s once in a while.
   await expect(page.locator('.showcase')).toHaveAttribute('data-state', 'ready', { timeout: 40_000 });
-  await expect
-    .poll(async () => Number(await page.locator('.showcase-window').getAttribute('data-frames')), { timeout: 15_000 })
-    .toBeGreaterThanOrEqual(30);
-  // The plate shows the simulation's step, and it keeps going up.
-  const step = async () => Number((await page.locator('.showcase-step b').textContent())?.replace(/\D/g, ''));
-  const before = await step();
-  await expect.poll(step).toBeGreaterThan(before);
+  // Then it has to keep DRAWING and its simulation to ADVANCE: progress, not a frame rate. Without a
+  // GPU, with other tests drawing alongside, it drew 10 frames in 15 s (it used to be asked for 30,
+  // and failed there). The showcase writes its frames and its step on every frame.
+  const view = page.locator('.showcase-window');
+  const read = async (name: 'frames' | 'step') => Number(await view.getAttribute(`data-${name}`));
+  const [frames, step] = [await read('frames'), await read('step')];
+  await expect.poll(() => read('frames')).toBeGreaterThanOrEqual(frames + 3);
+  await expect.poll(() => read('step')).toBeGreaterThan(step); // (a frame shorter than a step takes none)
+  // The plate shows a step the simulation went through (it is written every 10 frames, to be read).
+  const plate = Number((await page.locator('.showcase-step b').textContent())?.replace(/\D/g, ''));
+  expect(plate).toBeGreaterThan(0);
+  expect(plate).toBeLessThanOrEqual(await read('step'));
   expect(list).toEqual([]);
 });
 
