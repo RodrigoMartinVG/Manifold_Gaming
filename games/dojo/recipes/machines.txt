@@ -1,0 +1,7 @@
+# The machines: what the program moves
+# Where phase 3's machines come in, one stage at a time. Since 3a: a ferry leaves from the pit's edge
+# every few seconds; jump on it late and you catch its edge and get on. Across the pit, a platform
+# passes under a low beam: ride it, and the beam stops you while the platform slides away from under
+# you. Doors, elevators and buttons come next (3c).
+seed 5
+dojo.level machines

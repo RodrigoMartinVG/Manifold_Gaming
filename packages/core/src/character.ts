@@ -1,5 +1,6 @@
 import { quat, vec3, type Quat, type Vec3 } from '@manifold/common';
 import { gravityAt } from './gravity';
+import { CHARACTER_GAP } from './physics';
 import { axisOf, isDown, NO_INPUT, vectorOf } from './input';
 import type { Body, Character, CharacterSpec, CollisionPose, Entity, ModeName, Movement } from './types';
 import type { World } from './world';
@@ -243,14 +244,51 @@ function standingOn(
   const radius = shape.radius * 0.9;
   const thinner = { kind: 'capsule' as const, halfHeight: shape.halfHeight + (shape.radius - radius), radius };
   const down = vec3.scale(up, -1);
-  const hit = world.castShape(thinner, e.transform!.position, e.transform!.rotation, down, GROUND_REACH, {
-    skip: e.id,
-    dynamic: false,
-  });
-  if (!hit || vec3.dot(hit.normal, up) < 0.5) return null;
-  const body = world.entities.get(hit.entity)?.body;
-  const motion = body ? world.physics.motionOf(body.handle) : null;
-  return { entity: hit.entity, moves: motion?.kinematic ? motion : null };
+  const cast = (capsule: typeof shape) =>
+    world.castShape(capsule, e.transform!.position, e.transform!.rotation, down, GROUND_REACH, { skip: e.id, dynamic: false });
+  const found = (hit: ReturnType<typeof cast>) => {
+    if (!hit || vec3.dot(hit.normal, up) < 0.5) return null;
+    const body = world.entities.get(hit.entity)?.body;
+    const motion = body ? world.physics.motionOf(body.handle) : null;
+    return { entity: hit.entity, moves: motion?.kinematic ? motion : null };
+  };
+  const thin = found(cast(thinner));
+  if (thin?.moves) return thin;
+  // What the program moves, also by an edge under its round bottom (stage 3a): with its center past a
+  // moving platform's edge, the thinner capsule misses it, and the controller, not given it as fixed,
+  // could not get onto it (boarding the ferry as it pulled away, it was dragged along on its edge).
+  const edge = found(cast(shape));
+  return edge?.moves ? edge : thin;
+}
+
+/**
+ * A CHARACTER CARRIED THROUGH WHAT IS IN ITS WAY (stage 3a): its capsule swept from `from` along `by`
+ * (how its platform moves the point where it is), leaving out the platform itself and what the physics
+ * moves (a cube riding along is pushed by the physics). It stops at the first thing it meets, keeping
+ * the controller's gap, and what is left of the carry goes once along that surface, as the controller
+ * slides along a wall. How far it really goes.
+ */
+function sweep(world: World, e: Entity, from: Vec3, by: Vec3, platform: number): Vec3 {
+  const shape = e.body!.shape;
+  const rotation = e.transform!.rotation;
+  let moved: Vec3 = [0, 0, 0];
+  let rest = by;
+  for (let i = 0; i < 2; i++) {
+    const length = vec3.length(rest);
+    if (length < 1e-9) break;
+    const direction = vec3.scale(rest, 1 / length);
+    const hit = world.castShape(shape, vec3.add(from, moved), rotation, direction, length + CHARACTER_GAP, {
+      skip: e.id,
+      besides: platform,
+      dynamic: false,
+    });
+    if (!hit) return vec3.add(moved, rest);
+    const free = Math.max(0, Math.min(length, hit.distance - CHARACTER_GAP));
+    moved = vec3.add(moved, vec3.scale(direction, free));
+    const left = vec3.scale(direction, length - free);
+    rest = vec3.sub(left, vec3.scale(hit.normal, vec3.dot(left, hit.normal)));
+  }
+  return moved;
 }
 
 /** How far under its capsule a character looks for what it stands on: what the controller snaps it down (0.3 m), and a little. */
@@ -397,10 +435,13 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
   // A platform that moves or turns carries it (stage 2d), if it stood on it and did not jump off it:
   // exactly as far as the platform takes the point where it is. After the controller, not through
   // it: the controller saw the platform fixed (physics.ts), and a platform going down would have
-  // stopped it from going down with it. If it walked off the edge (it stood, and now it does not,
-  // without jumping), it keeps the platform's velocity along the ground, as it would jumping; and
-  // from then on, it stands on nothing that moves.
-  const riding: Vec3 = ride && !leapt ? ride.movement : [0, 0, 0];
+  // stopped it from going down with it. But through what is in its way (stage 3a): the carry is swept
+  // from where the walk left it, leaving out the platform itself, and what it meets stops it (a beam
+  // the platform passes under; before, the carry took it into the beam). If it walked off the edge
+  // (it stood, and now it does not, without jumping), it keeps the platform's velocity along the
+  // ground, as it would jumping; and from then on, it stands on nothing that moves.
+  const walked = vec3.add(world.physics.position(body.handle), movement);
+  const riding: Vec3 = ride && !leapt && under ? sweep(world, e, walked, ride.movement, under.entity) : [0, 0, 0];
   if (wasGrounded && !grounded && !leapt) {
     vH = vec3.add(vH, vec3.onPlane(c.ground.velocity, up));
     c.ground = { velocity: [0, 0, 0], spin: 0 };
@@ -414,6 +455,6 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
   if (toldLooking && vec3.length(toldLooking) > 1e-6) c.facing = vec3.normalize(toldLooking);
   else if (c.mode === 'climb' && !isZero(c.wall)) c.facing = [...c.wall];
   else if (vec3.length(inWorld) > 0.1) c.facing = vec3.normalize(inWorld);
-  const position = vec3.add(vec3.add(world.physics.position(body.handle), movement), riding);
+  const position = vec3.add(walked, riding);
   world.physics.setNextPose(body.handle, position, quat.look(c.facing, up));
 }

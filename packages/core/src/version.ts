@@ -20,5 +20,7 @@
  *  12  stage 2e: an appearance may name a model (`model`): the Dojo's characters, its mannequin
  *  13  closing phase 2: climbing along a wall past its side edge, it lets go (before, it got the hop
  *      for the wall's top); and in the Dojo, the void takes what the physics moves, not a platform
+ *  14  stage 3a: a platform is found by its edge too (caught there, a character gets on), and its carry
+ *      is swept through what is in the way (a beam stops it)
  */
-export const SIMULATION_VERSION = 13;
+export const SIMULATION_VERSION = 14;

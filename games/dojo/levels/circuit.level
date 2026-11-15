@@ -9,15 +9,16 @@ spawn 0 1 4
 facing 0 0 -1
 
 # 1. THE YARD: walking. Stairs of 30 cm up to a terrace on the right, a ramp of 18° up to a ledge on
-# the left, and a low roof over the way out (2.15 m: a jump under it hits its head).
+# the left, and a low roof over the way out (2.15 m: a jump under it hits its head). Its pillars end
+# where it begins: they went 15 cm into it, their faces in its own planes, and those flickered.
 box 0 -0.5 0     5 0.5 6     color #6f6a62
 box 3.5 0.15 1.5   1.5 0.15 0.5  color #7d776e
 box 3.5 0.3 0.5    1.5 0.3 0.5   color #7d776e
 box 3.5 0.45 -2    1.5 0.45 2    color #7d776e
 box -3.5 0.62 1.5  1.5 0.1 2.2   rotate x 18  color #7d776e
 box -3.5 0.7 -2.5  1.5 0.7 2     color #7d776e
-box -1.75 1.15 -5  0.25 1.15 1   color #5a544c
-box 1.75 1.15 -5   0.25 1.15 1   color #5a544c
+box -1.75 1.075 -5  0.25 1.075 1   color #5a544c
+box 1.75 1.075 -5   0.25 1.075 1   color #5a544c
 box 0 2.3 -5       2 0.15 1      color #5a544c
 
 # 2. THE JUMPS, over the void, each one asking a little more: 2 m; 3 m and a meter up; 3.5 m and half

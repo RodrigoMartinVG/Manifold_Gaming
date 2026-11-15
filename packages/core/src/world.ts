@@ -20,6 +20,8 @@ export interface Hit {
 export interface Query {
   /** An entity left out (the one asking). */
   skip?: EntityId;
+  /** Another entity left out besides it (stage 3a: the platform a character's carry is swept through). */
+  besides?: EntityId;
   /** Whether the bodies the physics moves (dynamic) count: yes, unless false. */
   dynamic?: boolean;
   /** Only the bodies these groups meet. */
@@ -284,8 +286,10 @@ export class World {
 
   private physicsQuery(o: Query) {
     const skip = o.skip === undefined ? undefined : this.entities.get(o.skip)?.body?.handle;
+    const besides = o.besides === undefined ? undefined : this.entities.get(o.besides)?.body?.handle;
     return {
       ...(skip === undefined ? {} : { skip }),
+      ...(besides === undefined ? {} : { besides }),
       ...(o.dynamic === undefined ? {} : { dynamic: o.dynamic }),
       ...(o.groups ? { groups: o.groups } : {}),
     };

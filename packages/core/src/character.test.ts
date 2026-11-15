@@ -875,3 +875,105 @@ describe('the players inputs, through the session', () => {
     session.world.dispose();
   });
 });
+
+describe('what the program moves, made solid (stage 3a)', () => {
+  /** A world with no floor: a platform (its top at 0.5 m) and, maybe, a wall; and a character. */
+  function platformWorld(
+    platform: { type: 'fixed' | 'kinematic'; at: Vec3; half: Vec3; mover?: Mover; spin?: Vec3 },
+    hero: Vec3,
+    walls: [Vec3, Vec3][] = [],
+  ) {
+    const world = new World({ seed: 1 });
+    const board = world.createEntity({
+      transform: { position: platform.at, rotation: quat.identity() },
+      body: { type: platform.type, shape: { kind: 'box', halfExtents: platform.half } },
+      ...(platform.mover ? { mover: platform.mover } : {}),
+      ...(platform.spin ? { spin: { angularVelocity: platform.spin } } : {}),
+    });
+    for (const [center, half] of walls)
+      world.createEntity({
+        transform: { position: center, rotation: quat.identity() },
+        body: { type: 'fixed', shape: { kind: 'box', halfExtents: half } },
+      });
+    const character = world.createEntity({
+      transform: { position: hero, rotation: quat.identity() },
+      body: { type: 'character', shape: { kind: 'capsule', halfHeight: 0.5, radius: 0.3 } },
+      character: { player: 1 },
+    });
+    return { world, board, hero: character };
+  }
+
+  test('caught on the rear edge of a platform moving away, it steps onto it, as onto a still one (a little later)', () => {
+    // Phase 2's close: boarding the ferry as it pulls away, it fell into the gap and its capsule rested
+    // on the ferry's rear edge, 8 cm low, dragged along and never on it (a fixed platform, or one
+    // standing still, it stepped onto in 13 steps). Here, put there: its round bottom on the edge.
+    const cases = [
+      ['fixed', 'fixed', undefined],
+      ['still', 'kinematic', undefined],
+      ['moving away', 'kinematic', { from: [0, 0.35, -1.5], to: [0, 0.35, -13.5], seconds: 5 }],
+    ] as const;
+    for (const [name, type, mover] of cases) {
+      const { world, board, hero } = platformWorld(
+        { type, at: [0, 0.35, -1.5], half: [1.5, 0.15, 1.5], ...(mover ? { mover: mover as Mover } : {}) },
+        [0, 1.24, 0.26],
+      );
+      let on = -1;
+      run(world, 120, (step) => {
+        const [, y, z] = hero.transform!.position;
+        const rear = board.transform!.position[2] + 1.5;
+        if (on < 0 && hero.character!.grounded && y > 1.28 && z < rear - 0.4) on = step;
+        return input([0, 0, -1]);
+      });
+      world.dispose();
+      expect(on, `${name}: on the platform`).toBeGreaterThan(0);
+      // Onto a fixed or a still one, in a quarter of a second (15 steps); onto one moving away, in half
+      // a second (30): until it stands on it, the platform does not carry it, and goes away at 2.4 m/s.
+      expect(on, `${name}: on it within`).toBeLessThan(type === 'kinematic' && mover ? 45 : 22);
+    }
+  });
+
+  test('a platform that passes under a beam does not carry the character into it: the beam stops it', () => {
+    // A platform going +X at 2 m/s, and a beam across its way at 4 m, 50 cm above it: the platform
+    // passes under it, the character (1.6 m) does not. Phase 2's close: the carry was added after
+    // the controller, without a collision test, and took it into the beam.
+    const beam = 4 - 0.25 - 0.3; // where its capsule touches the beam
+    const { world, hero } = platformWorld(
+      {
+        type: 'kinematic',
+        at: [0, 0.35, 0],
+        half: [1.5, 0.15, 1.5],
+        mover: { from: [0, 0.35, 0], to: [8, 0.35, 0], seconds: 4 },
+      },
+      [0, 1.35, 0],
+      [
+        [
+          [4, 2, 0],
+          [0.25, 1, 3],
+        ],
+      ],
+    );
+    let furthest = -Infinity;
+    run(world, 150, () => {
+      furthest = Math.max(furthest, hero.transform!.position[0]);
+      return input();
+    });
+    world.dispose();
+    expect(furthest, 'it reached the beam').toBeGreaterThan(beam - 0.1);
+    expect(furthest, 'and never went into it').toBeLessThan(beam + 0.03);
+  });
+
+  test("a turning platform's turn is a function of the step: ten minutes later, exactly where its function says", () => {
+    // 45° a second around y. Its turn was added up step by step by the physics (deterministic, but
+    // not a function of the step: a step could not be rebuilt without the ones before it).
+    const { world, board } = platformWorld(
+      { type: 'kinematic', at: [0, 0.35, 0], half: [1.5, 0.15, 1.5], spin: [0, Math.PI / 4, 0] },
+      [9, 9, 9],
+    );
+    run(world, 36000);
+    const expected = quat.fromDegrees([0, 1, 0], (45 * 36000) / 60);
+    const r = board.transform!.rotation;
+    const dot = Math.abs(r[0] * expected[0] + r[1] * expected[1] + r[2] * expected[2] + r[3] * expected[3]);
+    world.dispose();
+    expect(dot).toBeGreaterThan(1 - 1e-9);
+  });
+});

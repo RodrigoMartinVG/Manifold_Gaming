@@ -82,8 +82,8 @@ El arreglo sirve para las dos: mientras calcula, la plataforma que pisa es fija 
 :::caution[Sutilezas]
 
 - **El rayo no ve el borde.** Con el centro ya afuera y el fondo redondo de la cápsula todavía apoyado, el rayo no encuentra la plataforma, y el ejemplo deja de llevarlo. Desde la [etapa 2.5b](../../../bitacora/etapa-2-5b/), el motor busca el piso con su cápsula, un poco más delgada.
-- **Subirse a una plataforma que se va** es un límite conocido, encontrado al [cerrar la fase 2](../../../bitacora/etapa-2-cierre/) y anotado para la fase 3. Si sube cuando la balsa ya se aleja, cae en el hueco con la cápsula apoyada en el borde trasero, y la balsa lo arrastra sin que pueda subirse. La cápsula delgada con que se busca el piso (para que una pared que le roza los costados no cuente) no encuentra ese borde, y el controlador no ve la plataforma fija. En el ejemplo, sin _the platform carries it_, a veces queda enganchado así en el borde del transbordador.
-- **El viaje no pasa por el controlador:** si la plataforma pasa junto a una pared, nada le impide meter al personaje en ella.
+- **Subirse a una plataforma que se va** fue un límite, encontrado al [cerrar la fase 2](../../../bitacora/etapa-2-cierre/). Si subía cuando la balsa ya se alejaba, caía en el hueco con la cápsula apoyada en el borde trasero, y la balsa lo arrastraba sin que pudiera subirse: la cápsula delgada con que se busca el piso (para que una pared que le roza los costados no cuente) no encontraba ese borde, y el controlador no veía la plataforma fija. Desde la [etapa 3a](../../../bitacora/etapa-3a/), el motor busca además con la cápsula entera los cuerpos que mueve el programa: un borde cuenta como piso, y se sube. En el ejemplo, sin _the platform carries it_, a veces queda enganchado así en el borde del transbordador.
+- **En el ejemplo, el viaje no pasa por ningún choque:** si la plataforma pasa junto a una pared, nada le impide meter al personaje en ella. El motor, desde la etapa 3a, barre la cápsula a lo largo del viaje, sin contar la plataforma, y lo que encuentra lo detiene.
   :::
 
 ## En los motores
@@ -93,7 +93,7 @@ El arreglo sirve para las dos: mientras calcula, la plataforma que pisa es fija 
 - **Godot:** el `CharacterBody3D` se mueve con la velocidad del piso que pisa (`get_platform_velocity()`) en `move_and_slide()`, y al despegarse, `platform_on_leave` decide si la suma, solo la que va para arriba, o nada.
 - **En los libros:** Jason Gregory, _Game Engine Architecture_ (3.ª ed.), cap. 13 "Collision and Rigid Body Dynamics": los cuerpos que mueve el juego y no la física (_game-driven bodies_), y cómo se mueve un personaje entre ellos.
 
-**Dónde Manifold eligió otra cosa.** No hay jerarquía: el personaje nunca es hijo de nada. En cada paso, el motor calcula cuánto lleva la plataforma el punto donde está, con lo que se mueve en ese paso (que sale de su función), y lo suma después del controlador, que la vio fija. Se parece a la base de Unreal, pero sin un lugar relativo guardado: solo se acumula el giro (`carriedTurn`). No hay escalas heredadas, nada se mueve a espaldas de la física, y cualquier paso se puede volver a calcular, como piden las repeticiones y la red. El costo: el piso hay que encontrarlo bien en cada paso.
+**Dónde Manifold eligió otra cosa.** No hay jerarquía: el personaje nunca es hijo de nada. En cada paso, el motor calcula cuánto lleva la plataforma el punto donde está, con lo que se mueve en ese paso (que sale de su función), y lo suma después del controlador, que la vio fija, barriendo la cápsula a lo largo de ese viaje para que una pared lo detenga. Se parece a la base de Unreal, pero sin un lugar relativo guardado: solo se acumula el giro (`carriedTurn`). No hay escalas heredadas, nada se mueve a espaldas de la física, y cualquier paso se puede volver a calcular, como piden las repeticiones y la red. El costo: el piso hay que encontrarlo bien en cada paso.
 
 ## En Manifold
 

@@ -50,16 +50,20 @@ export interface PhysicsHit {
 export interface QueryOptions {
   /** A body left out (the one asking), by handle. */
   skip?: number;
+  /** Another body left out besides it (stage 3a: the platform a character's carry is swept through). */
+  besides?: number;
   /** Whether the bodies the physics moves (dynamic) count: yes, unless false. */
   dynamic?: boolean;
   /** Only the bodies these groups meet (like a body's). */
   groups?: CollisionGroups;
 }
 
+/** The thin gap a character keeps between its capsule and what it touches (Rapier's advice: avoid getting stuck). */
+export const CHARACTER_GAP = 0.02;
+
 /** How characters move (stage 1b): what they climb, what they snap to, what they push. */
 const CHARACTER = {
-  /** A thin gap kept between the capsule and what it touches (Rapier's advice: avoid getting stuck). */
-  offset: 0.02,
+  offset: CHARACTER_GAP,
   /** Steps it climbs without jumping: up to 35 cm, if there is at least 15 cm to stand on. */
   stepHeight: 0.35,
   stepWidth: 0.15,
@@ -296,11 +300,13 @@ export class RapierPhysics implements PhysicsBackend {
   /** Rapier's filter arguments, from our options. */
   private filter(o: QueryOptions) {
     const skip = o.skip === undefined ? undefined : this.world.getRigidBody(o.skip);
+    const besides = o.besides;
     return [
       o.dynamic === false ? RAPIER.QueryFilterFlags.EXCLUDE_DYNAMIC : undefined,
       o.groups ? groupsOf(o.groups) : undefined,
       undefined,
       skip,
+      besides === undefined ? undefined : (collider: RAPIER.Collider) => collider.parent()?.handle !== besides,
     ] as const;
   }
 
