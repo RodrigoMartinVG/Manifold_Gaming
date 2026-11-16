@@ -107,3 +107,4 @@ export { VERIFIED, profileFromText, profileText, type Profile } from './profile'
 export { entityNamed, levelDiff, levelOfWorld, pieceFromLine, setField, declareBuilding } from './building';
 export { assertThat, declareChecks, readValue } from './checks';
 export { mapParts, type LevelMap, type MapPart } from './map';
+export { declareProgress, readSave, SAVE_FORMAT, saveGame, saveRecipe, type Progress, type SavedGame } from './saved';

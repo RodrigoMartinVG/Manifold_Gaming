@@ -1,0 +1,8 @@
+{
+  "save": 1,
+  "game": "adventure",
+  "version": 1,
+  "engine": 21,
+  "made": "2026-11-15",
+  "progress": { "seed": 3, "depth": 2, "position": [10, 1, 10], "bag": ["gem", "gem"] }
+}

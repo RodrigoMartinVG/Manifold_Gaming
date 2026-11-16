@@ -1,0 +1,21 @@
+{
+  "name": "@manifold/adventure",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The action adventure (decision 0012): dungeons made from a seed, an inventory, saved games as data. It starts in stage 3k and is complete in phase 5.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./dungeon": "./src/dungeon.ts",
+    "./rules": "./src/rules.ts"
+  },
+  "dependencies": {
+    "@manifold/commands": "0.0.0",
+    "@manifold/common": "0.0.0",
+    "@manifold/core": "0.0.0",
+    "@manifold/presentation": "0.0.0"
+  },
+  "scripts": {
+    "check": "tsc -p tsconfig.json"
+  }
+}

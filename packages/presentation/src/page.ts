@@ -35,6 +35,11 @@ export interface GamePage {
   /** The world created again, with the registry's current values (the menu's "start again"). */
   restart(): void;
   /**
+   * The world created again from a recipe, as a room is loaded (stage 3k: a saved game is one): its
+   * startup values, and what it does after its first step, also when it starts over.
+   */
+  load(recipe: string): void;
+  /**
    * Takes the keys from the player's character while a panel is open (a menu, a dialogue box): call
    * what it returns to give them back. Several can hold them at once.
    */

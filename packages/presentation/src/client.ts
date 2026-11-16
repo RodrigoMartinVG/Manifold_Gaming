@@ -172,6 +172,15 @@ export function mount(cartridge: Cartridge, container: HTMLElement, o: MountOpti
     words,
     wordsIn: (l) => sayer(tables, l),
     restart: () => match.restart(),
+    load(recipe) {
+      const onStartupChange = registry.onStartupChange;
+      registry.onStartupChange = null;
+      registry.forgetWaiting();
+      warn('the recipe', registry.run(recipe, 'recipe'));
+      registry.onStartupChange = onStartupChange;
+      roomWaits = registry.waits();
+      match.restart();
+    },
     hold() {
       holding++;
       let given = false;

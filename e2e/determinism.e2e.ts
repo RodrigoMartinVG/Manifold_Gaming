@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
+import { CHECKED_DUNGEONS, dungeon, textHash } from '@manifold/adventure/dungeon';
 
 /**
  * THE DETERMINISM CHECK (stage 2.5a): the page "La misma huella" plays the Dojo's reference replays
@@ -36,5 +37,22 @@ test('this browser plays every reference replay to the hash Node recorded, witho
   await expect(check).toHaveAttribute('data-same', String(references.length));
   // And it drew nothing: no WebGL context on the page.
   expect(await page.locator('canvas').count()).toBe(0);
+  expect(errors).toEqual([]);
+});
+
+// Stage 3k: a seed gives the same dungeon in Node and in every browser. The same page makes the
+// adventure's dungeons from their seeds; each one's level text has the hash Node gives it.
+test('this browser makes the adventure dungeons Node makes, from the same seeds', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('jugar/la-misma-huella/');
+  const box = page.locator('.same-dungeon');
+  await expect(box).toHaveAttribute('data-state', 'done', { timeout: 30_000 });
+  const rows = box.locator('tbody tr');
+  await expect(rows).toHaveCount(CHECKED_DUNGEONS.length);
+  for (const [i, [seed, depth]] of CHECKED_DUNGEONS.entries())
+    await expect(rows.nth(i).locator('td').nth(3), `seed ${seed}, depth ${depth}`).toHaveText(
+      textHash(dungeon(seed, depth).text),
+    );
   expect(errors).toEqual([]);
 });

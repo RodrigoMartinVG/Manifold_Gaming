@@ -2,6 +2,7 @@ import type { Registry } from '@manifold/commands';
 import type { InputAction } from './input';
 import type { Profile } from './profile';
 import type { ZoneKinds } from './level';
+import type { Progress } from './saved';
 import type { Event } from './types';
 import type { World } from './world';
 
@@ -48,6 +49,12 @@ export interface Cartridge {
    * so is a line the console adds (`add sensor …`, stage 3j).
    */
   readonly zones?: ZoneKinds;
+  /**
+   * What a saved game keeps (stage 3k, decision 0020): the player's progress, as the game's own
+   * versioned data, and how to put it back. Without it, the game saves nothing.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  readonly progress?: Progress<any>;
   /**
    * Once, with the freshly created world: put whatever there is at the start. STARTUP values (how
    * many cubes, which room) are read from the registry, which already has the recipes applied.

@@ -1,0 +1,26 @@
+---
+/**
+ * THE ACTION ADVENTURE'S PAGE (stage 3k: its start): a dungeon made from a seed, in a game's frame.
+ * A link may bring a recipe (`#recipe=adventure.dungeon+7`: another dungeon). (The texts are the
+ * site's, in Spanish.)
+ */
+import GameFrame from '../../../components/GameFrame.astro';
+
+const play = `${import.meta.env.BASE_URL.replace(/\/?$/, '/')}jugar/`;
+---
+
+<GameFrame title="La aventura · Manifold Gaming" back={{ href: play, label: '← Salir de la aventura' }} hintKey="mg-adventure-hint-seen">
+  <span slot="hint">
+    <kbd>W</kbd>
+    <kbd>A</kbd>
+    <kbd>S</kbd>
+    <kbd>D</kbd> o las flechas para caminar, <kbd>Espacio</kbd> para saltar. Juntá las gemas y la llave: la llave abre la salida, más
+    abajo. <kbd>Esc</kbd> o <kbd>P</kbd>: pausa, ajustes, y guardar o cargar la partida.
+  </span>
+  <script>
+    import { startAdventure } from '@manifold/adventure';
+    await startAdventure(document.getElementById('game')!);
+    window.dispatchEvent(new Event('mg-game-ready'));
+    window.addEventListener('hashchange', () => location.reload());
+  </script>
+</GameFrame>

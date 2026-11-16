@@ -1,17 +1,15 @@
 ---
 /**
- * THE DOJO'S PAGE: full screen, without the site's frame. The game is mounted in #game. Two pages
- * use it: `/jugar/dojo/` and each saved room's (`/jugar/dojo/rain/`), which passes its name
- * (decision 0010: every room has its address). Astro bundles the <script> with Vite, like any page:
- * it imports the Dojo as one more package of the monorepo.
+ * THE DOJO'S PAGE: full screen, in a game's frame (GameFrame). Two pages use it: `/jugar/dojo/` and
+ * each saved room's (`/jugar/dojo/rain/`), which passes its name (decision 0010: every room has its
+ * address). Astro bundles the <script> with Vite, like any page: it imports the Dojo as one more
+ * package of the monorepo.
  *
  * The first time, a hint says how to start: the console is the Dojo's whole interface, and without
- * the hint all one sees is a cube. It goes away when the console opens (or with its ✕), and it is
- * not shown again in this browser. Leaving goes to the Dojo's page in the site (`/jugar/dojo/`).
+ * the hint all one sees is a cube. Leaving goes to the Dojo's page in the site (`/jugar/dojo/`).
  * (The texts are the site's, in Spanish.)
  */
-import '@fontsource-variable/cinzel';
-import rust from '../assets/drawings/rust.svg';
+import GameFrame from './GameFrame.astro';
 
 interface Props {
   /** The saved room (its recipe's name), if one came in through its address. */
@@ -25,166 +23,39 @@ const { room, title, character = false } = Astro.props;
 const play = `${import.meta.env.BASE_URL.replace(/\/?$/, '/')}jugar/dojo/`;
 ---
 
-<html lang="es">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{title ? `${title} · Dojo · Manifold Gaming` : 'Dojo · Manifold Gaming'}</title>
-    <style>
-      html,
-      body {
-        margin: 0;
-        height: 100%;
-        overflow: hidden;
-        background: #14161c;
-        color: #e8e8ea;
-        font: 14px/1.4 system-ui, sans-serif;
-      }
-      #game {
-        position: fixed;
-        inset: 0;
-      }
-      /* Back: a small plate of old metal, like the site's buttons. Bottom right: the console opens
-         at the top, and its button is at the bottom left. */
-      #back {
-        position: fixed;
-        right: 12px;
-        bottom: 12px;
-        padding: 0.35rem 0.9rem;
-        border: 1px solid #24170a;
-        border-radius: 0.35rem;
-        /* The same metal as the site (workshop.css): old bronze with the rust texture on top. */
-        background:
-          var(--rust) 0 0 / 220px 220px,
-          linear-gradient(160deg, #3c2916 0%, #4c351f 35%, #553c24 55%, #48321c 80%, #3f2b17 100%);
-        box-shadow:
-          inset 0 1px 0 rgb(255 225 180 / 0.1),
-          0 6px 14px -6px rgb(0 0 0 / 0.8);
-        color: #ead5b0;
-        text-shadow: 0 -1px 0 rgb(0 0 0 / 0.65);
-        font: 700 13px/1.4 'Cinzel Variable', Georgia, serif;
-        letter-spacing: 0.06em;
-        text-decoration: none;
-        opacity: 0.85;
-      }
-      #back:hover {
-        opacity: 1;
-      }
-      /* The first visit's hint: a plate at the bottom, between the console's button and "back". */
-      #hint {
-        position: fixed;
-        left: 50%;
-        bottom: 12px;
-        transform: translateX(-50%);
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        width: max-content;
-        max-width: calc(100% - 2 * 190px);
-        padding: 0.55rem 0.6rem 0.55rem 1rem;
-        border: 1px solid #24170a;
-        border-radius: 0.4rem;
-        background: rgb(27 24 20 / 0.92);
-        box-shadow: 0 8px 20px -8px rgb(0 0 0 / 0.8);
-        color: #e6dccb;
-        font: 14px/1.45 system-ui, sans-serif;
-      }
-      #hint[hidden] {
-        display: none;
-      }
-      #hint kbd,
-      #hint code {
-        padding: 0.05rem 0.35rem;
-        border-radius: 0.25rem;
-        background: #2f2922;
-        color: #f0d59a;
-        font: 13px ui-monospace, monospace;
-      }
-      #hint button {
-        flex: none;
-        width: 1.8rem;
-        height: 1.8rem;
-        border: 0;
-        border-radius: 50%;
-        background: transparent;
-        color: #b8ab97;
-        font-size: 16px;
-        cursor: pointer;
-      }
-      #hint button:hover {
-        color: #f3e9d8;
-        background: #2f2922;
-      }
-      /* On a narrow screen, above the two buttons instead of between them. */
-      @media (max-width: 640px) {
-        #hint {
-          bottom: 56px;
-          max-width: calc(100% - 24px);
+<GameFrame
+  title={title ? `${title} · Dojo · Manifold Gaming` : 'Dojo · Manifold Gaming'}
+  back={{ href: play, label: '← Salir del Dojo' }}
+  hintKey={character ? 'mg-dojo-hint-character-seen' : 'mg-dojo-hint-seen'}
+  room={room}
+>
+  <Fragment slot="hint">
+        {
+          character ? (
+            <span>
+              <kbd>W</kbd>
+              <kbd>A</kbd>
+              <kbd>S</kbd>
+              <kbd>D</kbd> o las flechas para caminar, <kbd>Espacio</kbd> para saltar, <kbd>Shift</kbd> para correr,{' '}
+              <kbd>E</kbd> para apretar un botón y <kbd>F</kbd> para tirar una pelota; arrastrá para girar la cámara.{' '}
+              <kbd>Esc</kbd> o <kbd>P</kbd>: pausa y ajustes. Lo demás, desde la consola: abrila con{' '}
+              <kbd>º</kbd> o con el botón <code>›_</code>, y probá <code>help</code>.
+            </span>
+          ) : (
+            <span>
+              Arrastrá para mirar alrededor, y hacé clic en algo para inspeccionarlo. Lo demás se maneja desde la consola:
+              abrila con <kbd>º</kbd> o con el botón <code>›_</code>, y probá <code>help</code>.
+            </span>
+          )
         }
-      }
-    </style>
-  </head>
-  <body>
-    <div id="game" data-room={room}></div>
-    <p id="hint" role="note" data-key={character ? 'mg-dojo-hint-character-seen' : 'mg-dojo-hint-seen'} hidden>
-      {
-        character ? (
-          <span>
-            <kbd>W</kbd>
-            <kbd>A</kbd>
-            <kbd>S</kbd>
-            <kbd>D</kbd> o las flechas para caminar, <kbd>Espacio</kbd> para saltar, <kbd>Shift</kbd> para correr,{' '}
-            <kbd>E</kbd> para apretar un botón y <kbd>F</kbd> para tirar una pelota; arrastrá para girar la cámara.{' '}
-            <kbd>Esc</kbd> o <kbd>P</kbd>: pausa y ajustes. Lo demás, desde la consola: abrila con{' '}
-            <kbd>º</kbd> o con el botón <code>›_</code>, y probá <code>help</code>.
-          </span>
-        ) : (
-          <span>
-            Arrastrá para mirar alrededor, y hacé clic en algo para inspeccionarlo. Lo demás se maneja desde la consola:
-            abrila con <kbd>º</kbd> o con el botón <code>›_</code>, y probá <code>help</code>.
-          </span>
-        )
-      }
-      <button type="button" aria-label="Cerrar la pista">✕</button>
-    </p>
-    <a id="back" href={play} style={`--rust: url(${rust.src})`}>← Salir del Dojo</a>
-    <script>
-      import { startDojo } from '@manifold/dojo';
-      const game = document.getElementById('game')!;
-      await startDojo(game, { room: game.dataset.room, base: import.meta.env.BASE_URL });
-      // A link to this same page with another fragment (a recipe, a replay, a ghost) does not open the
-      // page again: the browser only changes the fragment. The world must be born from it: start over.
-      window.addEventListener('hashchange', () => location.reload());
-
-      // The first visit's hint (see above). Without storage (a private window), it shows every time.
-      // The rooms with a character have their own (it says how to drive it): seen apart.
-      const hint = document.getElementById('hint')!;
-      const KEY = hint.dataset.key ?? 'mg-dojo-hint-seen';
-      const seen = () => {
-        try {
-          return localStorage.getItem(KEY) === '1';
-        } catch {
-          return false;
-        }
-      };
-      const dismiss = () => {
-        hint.hidden = true;
-        try {
-          localStorage.setItem(KEY, '1');
-        } catch {
-          // no storage: it lasts only for this page
-        }
-      };
-      if (!seen()) {
-        hint.hidden = false;
-        hint.querySelector('button')!.addEventListener('click', dismiss);
-        const gameConsole = document.querySelector('.mg-console');
-        if (gameConsole) {
-          new MutationObserver(() => {
-            if (gameConsole.getAttribute('data-open') === 'true') dismiss();
-          }).observe(gameConsole, { attributes: true, attributeFilter: ['data-open'] });
-        }
-      }
-    </script>
-  </body>
-</html>
+  </Fragment>
+  <script>
+    import { startDojo } from '@manifold/dojo';
+    const game = document.getElementById('game')!;
+    await startDojo(game, { room: game.dataset.room, base: import.meta.env.BASE_URL });
+    window.dispatchEvent(new Event('mg-game-ready'));
+    // A link to this same page with another fragment (a recipe, a replay, a ghost) does not open the
+    // page again: the browser only changes the fragment. The world must be born from it: start over.
+    window.addEventListener('hashchange', () => location.reload());
+  </script>
+</GameFrame>

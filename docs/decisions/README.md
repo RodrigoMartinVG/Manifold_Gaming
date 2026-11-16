@@ -26,3 +26,4 @@ Each one has: **context** (what problem there was), **decision**, **consequences
 | [0017](0017-phase-5-scope.md)           | Phase 5's scope: three compact games, of 10 to 15 minutes        | Accepted                                                                     |
 | [0018](0018-signals.md)                 | Signals: named values, once per step, in the order written       | Accepted                                                                     |
 | [0019](0019-the-games-words.md)         | The games' words: keys in the world, the player's language       | Accepted                                                                     |
+| [0020](0020-saved-games.md)             | Saved games: the progress, as versioned data                     | Accepted                                                                     |

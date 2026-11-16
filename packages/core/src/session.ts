@@ -1,6 +1,7 @@
 import { formatValue, Registry, type Message, type Value } from '@manifold/commands';
 import { declareBuilding } from './building';
 import { declareChecks } from './checks';
+import { declareProgress } from './saved';
 import { VERIFIED } from './profile';
 import type { Vec3 } from '@manifold/common';
 import type { Cartridge } from './cartridge';
@@ -77,6 +78,7 @@ export function registryFor(cartridge: Cartridge): Registry<World> {
 export function declareCore(registry: Registry<World>, cartridge?: Cartridge) {
   declareBuilding(registry, cartridge);
   declareChecks(registry);
+  declareProgress(registry, cartridge);
   registry.declareVariable({
     name: 'seed',
     description: "The seed of the world's randomness: the same seed, the same world.",
@@ -192,6 +194,11 @@ export class Session {
   /** Its world (another one, after `load`). */
   get world(): World {
     return this.current;
+  }
+
+  /** How many world changes wait for the next step (stage 3j). */
+  get scheduledChanges(): number {
+    return this.scheduled.length;
   }
 
   /**
@@ -324,7 +331,8 @@ export function playRecipe(cartridge: Cartridge, text: string, o: { most?: numbe
   said.push(...registry.run(text, 'recipe'));
   const session = new Session(cartridge, { registry });
   const most = o.most ?? 60 * 600;
-  for (let steps = 0; registry.pending && steps < most; steps++) {
+  // (Until nothing waits, and what the last lines changed has entered the world.)
+  for (let steps = 0; (registry.pending || session.scheduledChanges > 0) && steps < most; steps++) {
     session.step();
     registry.stepped();
   }

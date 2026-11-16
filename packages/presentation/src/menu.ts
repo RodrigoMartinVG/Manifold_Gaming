@@ -3,6 +3,8 @@ import type { World } from '@manifold/core';
 import type { PageMatch } from './match';
 import type { GamePage, Piece } from './page';
 import { SETTINGS, type Setting } from './settings';
+import { saveGame, saveRecipe, type SavedGame } from '@manifold/core';
+import { storage } from './storage';
 import { button, focusables, panel } from './ui';
 import { numberIn, type Language } from './words';
 
@@ -64,7 +66,38 @@ export function mountMenu(page: GamePage, match: PageMatch, o: { blocked(): bool
         page.restart();
       }),
     );
-    p.box.append(actions);
+    // A game that saves (stage 3k, decision 0020), played alone: its progress, kept in this browser.
+    const note = document.createElement('p');
+    note.className = 'mg-small';
+    if (page.cartridge.progress && alone) {
+      const kept = storage(`manifold.${page.cartridge.id}`);
+      const say = (text: string) => {
+        note.textContent = text;
+        page.container.dataset.saved = text;
+      };
+      actions.append(
+        button(page.words('menu.save'), () => {
+          const saved = saveGame(page.cartridge, page.session.world, page.me);
+          if (!saved) return;
+          kept.write('save', saved);
+          say(page.words('menu.saved', [saved.made]));
+        }),
+        button(page.words('menu.load'), () => {
+          const saved = kept.read<SavedGame>('save');
+          if (!saved) return say(page.words('menu.nothing'));
+          let recipe: string;
+          try {
+            recipe = saveRecipe(page.cartridge, saved);
+          } catch (e) {
+            page.say(`load: ${(e as Error).message}`, 'warn');
+            return say(page.words('menu.unreadable'));
+          }
+          close();
+          page.load(recipe);
+        }),
+      );
+    }
+    p.box.append(actions, note);
     return p;
   };
 

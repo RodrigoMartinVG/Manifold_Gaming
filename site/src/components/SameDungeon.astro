@@ -1,0 +1,55 @@
+---
+/**
+ * THE SAME DUNGEON (stage 3k): the adventure's dungeons made in the reader's browser from their seeds,
+ * with the hash of each one's level text. The browser test compares them with Node's, in every
+ * browser: a seed gives the same dungeon everywhere. (The texts are the site's, in Spanish.)
+ */
+---
+
+<div class="same-dungeon not-content" data-state="waiting">
+  <table>
+    <thead>
+      <tr>
+        <th>Semilla</th>
+        <th>Profundidad</th>
+        <th>Celdas</th>
+        <th>Huella de su nivel</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<script>
+  import { CHECKED_DUNGEONS, dungeon, textHash } from '@manifold/adventure/dungeon';
+  const box = document.querySelector<HTMLElement>('.same-dungeon')!;
+  const body = box.querySelector('tbody')!;
+  for (const [seed, depth] of CHECKED_DUNGEONS) {
+    const d = dungeon(seed, depth);
+    const row = document.createElement('tr');
+    for (const text of [String(seed), String(depth), String(d.rows.join('').replace(/ /g, '').length), textHash(d.text)]) {
+      const cell = document.createElement('td');
+      cell.textContent = text;
+      row.append(cell);
+    }
+    body.append(row);
+  }
+  box.dataset.state = 'done';
+</script>
+
+<style>
+  .same-dungeon {
+    margin: 1.5rem 0;
+  }
+  .same-dungeon table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--sl-text-sm);
+  }
+  .same-dungeon th,
+  .same-dungeon :global(td) {
+    padding: 0.4rem 0.6rem;
+    border-bottom: 1px solid var(--sl-color-hairline);
+    text-align: left;
+  }
+</style>

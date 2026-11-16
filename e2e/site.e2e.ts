@@ -4,6 +4,7 @@ import path from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
 import { initPhysics, levelFromText, levelOfWorld, levelToText, playRecipe } from '@manifold/core';
 import { createDojo } from '@manifold/dojo/rules';
+import { dungeon } from '@manifold/adventure/dungeon';
 
 /** Collects the page's errors (exceptions and `console.error`) to demand there are none. */
 function errors(page: Page) {
@@ -732,6 +733,42 @@ test('the workshop (stage 3j): built from the console, it checks itself, and exp
   await typeInConsole(page, 'level.diff');
   await expect(consoleLog(page)).toContainText('+ box 0 0.75 -6  2 0.75 0.3  material wood  color #8a6a42');
   await expect(consoleLog(page)).toContainText('+ lamp 3 3 -4.5  8 1.5  name lamp');
+  expect(list).toEqual([]);
+});
+
+// ---------------------------------------------------------------- saving the game (stage 3k)
+
+// The adventure's start: a gem taken (the console puts the character on it), the game saved from the
+// menu; the page opened again (a new world: nothing taken), the game loaded: the gem in the inventory,
+// the character where it was, and the gem not in the dungeon.
+test('the adventure (stage 3k): a gem taken, the game saved; the page again, the game loaded: as it was', async ({ page }) => {
+  const list = errors(page);
+  const game = page.locator('#game');
+  const hud = () => game.getAttribute('data-hud');
+  await page.goto('jugar/aventura/');
+  await expect.poll(hud, { timeout: 20_000 }).toBe('Profundidad 1 | Gemas 0 | Llave no');
+  // The first gem of the dungeon of seed 1 (the default), from Node's own generator.
+  const d = dungeon(1, 1);
+  const row = d.rows.findIndex((r) => r.includes('*'));
+  const col = d.rows[row]!.indexOf('*');
+  await page.keyboard.press('Backquote');
+  await typeInConsole(page, `set hero transform.position ${(col + 0.5) * 2} 1 ${(row + 0.5) * 2}`);
+  await page.locator('.mg-console input').press('Escape');
+  await expect.poll(hud).toBe('Profundidad 1 | Gemas 1 | Llave no');
+  await settled(page, 'player');
+  const where = await position(page, 'player');
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Guardar la partida' }).click();
+  await expect.poll(() => game.getAttribute('data-saved')).toMatch(/^Partida guardada/);
+  await page.keyboard.press('Escape');
+  // Again: a new world.
+  await page.reload();
+  await expect.poll(hud, { timeout: 20_000 }).toBe('Profundidad 1 | Gemas 0 | Llave no');
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Cargar la partida' }).click();
+  await expect.poll(hud, { timeout: 20_000 }).toBe('Profundidad 1 | Gemas 1 | Llave no');
+  const back = await position(page, 'player');
+  expect(Math.hypot(back[0]! - where[0]!, back[2]! - where[2]!)).toBeLessThan(0.1);
   expect(list).toEqual([]);
 });
 
