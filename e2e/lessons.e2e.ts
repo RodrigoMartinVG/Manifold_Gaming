@@ -452,13 +452,26 @@ test('a dungeon from a seed: the same seed gives the same dungeon, all connected
 
 test('the new tutorial, a window into the world: our numbers put the ball at the same pixel as three.js', async ({ page }) => {
   const f = await open(page, 'tutorial/parte-1/03-una-ventana-al-mundo/');
-  const pixel = async (name: string) => (await value(f, name)).split(',').map(Number);
   await expect.poll(() => value(f, 'our numbers')).toMatch(/^\d+\.\d, \d+\.\d$/);
+  // The ball moves, and two rows read one after the other can come from different frames (on a slow
+  // machine they did, 14 px apart). Both are read at once, in one task of the figure's frame, where no
+  // frame can come in between; three times, a moment apart.
+  const frame = (await (await page.locator('.live-code .lc-result iframe').first().elementHandle())!.contentFrame())!;
+  const both = () =>
+    frame.evaluate(() => {
+      const row = (name: string) =>
+        [...document.querySelectorAll('.lil-gui .controller')]
+          .find((c) => c.querySelector('.name')?.textContent?.startsWith(name))!
+          .querySelector('input')!
+          .value.split(',')
+          .map(Number);
+      return [row('our numbers'), row('three.js')] as const;
+    });
   for (let i = 0; i < 3; i++) {
-    const [ox, oy] = await pixel('our numbers');
-    const [tx, ty] = await pixel('three.js');
+    const [[ox, oy], [tx, ty]] = await both();
     expect(Math.abs(ox! - tx!)).toBeLessThan(1);
     expect(Math.abs(oy! - ty!)).toBeLessThan(1);
+    await page.waitForTimeout(400);
   }
 });
 
