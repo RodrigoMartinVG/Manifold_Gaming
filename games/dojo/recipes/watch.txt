@@ -1,4 +1,5 @@
 # The watcher: seen in the light, lost in the dark
+# group: world
 # Since stage 3d the light is the simulation's: an eye at the end of a dark hall sees you where you are
 # lit, and loses you in the dark, behind the pillar or in the fog. E at the post on the left switches
 # the middle lamp. `show.light` draws the lamps' reach, `show.vision` what the eye looks at.

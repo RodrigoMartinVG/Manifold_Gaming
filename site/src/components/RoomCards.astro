@@ -1,13 +1,23 @@
 ---
 /**
- * THE DOJO'S SAVED ROOMS, as cards: each one opens its room's page. A room IS its recipe, so the card
- * shows its lines (without the comments): what the Dojo is born with, as it would be typed in the
- * console; and the command that loads it. The rooms with a character to drive go first, marked.
- * They are read from games/dojo/recipes/: a new room shows up by itself.
- * (Rooms are in English, like everything in the console: decision 0011.)
+ * THE DOJO'S SAVED ROOMS, by group (stage 4a): each group with its heading and a line on what its rooms
+ * show, and each room as a small card that opens its page, says whether it has a character to drive,
+ * and keeps its recipe (what the Dojo is born with, as it would be typed in the console) behind "ver la
+ * receta". A recipe says its group in its header (`# group: world`, games/dojo/src/rooms.ts): a new room
+ * shows up by itself, in its group. (Rooms are in English, like everything in the console: decision 0011;
+ * the groups' headings are the site's words, in Spanish.)
  */
-import { ROOMS } from '@manifold/dojo/rooms';
+import { ROOM_GROUPS, ROOMS, type RoomGroup } from '@manifold/dojo/rooms';
 import { BASE } from '../sections';
+
+/** What the site says of each group. */
+const GROUPS: Record<RoomGroup, { title: string; about: string }> = {
+  start: { title: 'Para empezar', about: 'El personaje en su nivel chico, y el Dojo como viene.' },
+  demos: { title: 'Las demostraciones', about: 'Lo que cerró cada fase, todo junto en una sala.' },
+  character: { title: 'El personaje', about: 'Lo que sabe hacer, y lo que le hacen el piso y la cámara.' },
+  world: { title: 'El mundo que responde', about: 'Máquinas, luz que se ve, niveles dibujados y armados desde la consola.' },
+  engine: { title: 'El motor por dentro', about: 'El azar con semilla, la gravedad, el tiempo, cuánto aguanta y qué dibuja.' },
+};
 
 /** The lines that make a room: neither comments nor blank lines. */
 const linesOf = (text: string) =>
@@ -15,74 +25,105 @@ const linesOf = (text: string) =>
     .split('\n')
     .map((l) => l.trim())
     .filter((l) => l && !l.startsWith('#'));
-/** Whether the room has a character to drive. */
-const withCharacter = (text: string) => /^dojo\.level course$/m.test(text);
+/** Whether the room has a character to drive: every Dojo level brings one (games/dojo/src/rules.ts). */
+const withCharacter = (text: string) => /^dojo\.level \S+$/m.test(text);
 
-const rooms = Object.entries(ROOMS).sort(
-  ([a, x], [b, y]) => Number(withCharacter(y.text)) - Number(withCharacter(x.text)) || a.localeCompare(b),
-);
+/** Each group's rooms (the ones with a character first), and the rooms without a known group, last. */
+const sorted = (rooms: [string, (typeof ROOMS)[string]][]) =>
+  rooms.sort(([a, x], [b, y]) => Number(withCharacter(y.text)) - Number(withCharacter(x.text)) || a.localeCompare(b));
+const all = Object.entries(ROOMS);
+const groups = [
+  ...ROOM_GROUPS.map((id) => ({ id, ...GROUPS[id], rooms: sorted(all.filter(([, r]) => r.group === id)) })),
+  { id: 'other', title: 'Otras salas', about: '', rooms: sorted(all.filter(([, r]) => r.group === null)) },
+].filter((g) => g.rooms.length > 0);
 ---
 
-<ul class="mg-room-cards not-content">
+<div class="mg-room-groups not-content">
   {
-    rooms.map(([name, room]) => (
-      <li>
-        <a href={`${BASE}jugar/dojo/${name}/`}>
-          <span class="mg-room-head">
-            <span class="mg-room-title">{room.title}</span>
-            {withCharacter(room.text) && <span class="mg-room-tag">con personaje</span>}
-          </span>
-          <span class="mg-room-lines">
-            {linesOf(room.text).length > 0 ? (
-              linesOf(room.text).map((line) => <code>{line}</code>)
-            ) : (
-              <span class="mg-room-none">Ninguna línea: el Dojo como viene.</span>
-            )}
-          </span>
-          <span class="mg-room-load">
-            <code>load {name}</code>
-          </span>
-        </a>
-      </li>
+    groups.map((group) => (
+      <section class="mg-room-group" data-group={group.id}>
+        <h3>{group.title}</h3>
+        {group.about && <p class="mg-room-about">{group.about}</p>}
+        <ul class="mg-room-cards">
+          {group.rooms.map(([name, room]) => (
+            <li>
+              <a class="mg-room-title" href={`${BASE}jugar/dojo/${name}/`}>
+                {room.title}
+              </a>
+              <span class="mg-room-meta">
+                {withCharacter(room.text) && <span class="mg-room-tag">con personaje</span>}
+                <code class="mg-room-load">load {name}</code>
+              </span>
+              <details>
+                <summary>ver la receta</summary>
+                <span class="mg-room-lines">
+                  {linesOf(room.text).length > 0 ? (
+                    linesOf(room.text).map((line) => <code>{line}</code>)
+                  ) : (
+                    <span class="mg-room-none">Ninguna línea: el Dojo como viene.</span>
+                  )}
+                </span>
+              </details>
+            </li>
+          ))}
+        </ul>
+      </section>
     ))
   }
-</ul>
+</div>
 
 <style>
+  .mg-room-groups {
+    display: flex;
+    flex-direction: column;
+    gap: 1.4rem;
+    margin-top: 1rem;
+  }
+  .mg-room-group h3 {
+    margin: 0;
+    color: var(--mg-title);
+    font-family: var(--mg-font-title);
+    font-size: var(--sl-text-lg);
+  }
+  .mg-room-about {
+    margin: 0.15rem 0 0.6rem;
+    color: var(--sl-color-gray-3);
+    font-size: var(--sl-text-sm);
+  }
   .mg-room-cards {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
-    gap: 0.9rem;
-    margin: 1rem 0 0;
+    grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+    gap: 0.6rem;
+    margin: 0;
     padding: 0;
     list-style: none;
   }
-  .mg-room-cards a {
+  .mg-room-cards li {
     display: flex;
     flex-direction: column;
-    gap: 0.7rem;
-    height: 100%;
-    box-sizing: border-box;
-    padding: 0.9rem 1rem;
+    gap: 0.35rem;
+    padding: 0.6rem 0.8rem;
     border: 1px solid var(--mg-bronze-line-strong);
     border-radius: 0.5rem;
     background: color-mix(in srgb, var(--mg-plate) 85%, transparent);
-    text-decoration: none;
   }
-  .mg-room-cards a:hover {
+  .mg-room-cards li:hover {
     border-color: var(--sl-color-accent);
-  }
-  .mg-room-head {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 0.3rem 0.6rem;
   }
   .mg-room-title {
     color: var(--mg-title);
     font-family: var(--mg-font-title);
     font-weight: 600;
+    text-decoration: none;
+  }
+  .mg-room-title:hover {
+    text-decoration: underline;
+  }
+  .mg-room-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.3rem 0.6rem;
   }
   .mg-room-tag {
     padding: 0.05rem 0.45rem;
@@ -92,12 +133,23 @@ const rooms = Object.entries(ROOMS).sort(
     font-size: var(--sl-text-xs);
     white-space: nowrap;
   }
+  .mg-room-load {
+    padding: 0;
+    background: none;
+    color: var(--sl-color-accent-high);
+    font-size: var(--sl-text-xs);
+  }
+  .mg-room-cards details summary {
+    color: var(--sl-color-gray-3);
+    font-size: var(--sl-text-xs);
+    cursor: pointer;
+  }
   /* What the room is born with: its recipe's lines, small and dim. */
   .mg-room-lines {
     display: flex;
     flex-direction: column;
     gap: 0.15rem;
-    flex: 1;
+    margin-top: 0.35rem;
   }
   .mg-room-lines code {
     align-self: flex-start;
@@ -105,10 +157,6 @@ const rooms = Object.entries(ROOMS).sort(
     background: none;
     color: var(--sl-color-gray-3);
     font-size: var(--sl-text-xs);
-  }
-  .mg-room-load code {
-    color: var(--sl-color-accent-high);
-    font-size: var(--sl-text-sm);
   }
   /* A room without lines (the empty Dojo): it says so, instead of an empty box. */
   .mg-room-none {

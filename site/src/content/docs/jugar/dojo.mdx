@@ -28,7 +28,7 @@ Cómo se maneja el personaje es igual en todos los juegos: está en [Cómo se ju
 
 ## Sus salas
 
-Cada sala es una **receta** (_recipe_) guardada: unas líneas de la consola con las que el Dojo arranca ya preparado. Cada tarjeta muestra esas líneas y lleva a la sala; desde la consola, `load` la carga. Una sala nueva es un archivo nuevo en `games/dojo/recipes/`: su tarjeta y su página aparecen solas.
+Cada sala es una **receta** (_recipe_) guardada: unas líneas de la consola con las que el Dojo arranca ya preparado. Están por grupos; cada tarjeta lleva a su sala, y en "ver la receta" están sus líneas. Desde la consola, `load` la carga. Una sala nueva es un archivo nuevo en `games/dojo/recipes/`, que dice su grupo en el encabezado (`# group: world`): su tarjeta y su página aparecen solas.
 
 <RoomCards />
 

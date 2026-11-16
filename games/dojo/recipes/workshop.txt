@@ -1,4 +1,5 @@
 # Workshop: a room built from the console
+# group: world
 # Since stage 3j the console builds: `add` puts a level's line in the world, `clone` copies what a line
 # built, `set` changes a value, `delete` takes it away. `level.export` writes the world as a level, and
 # `level.diff` what changed since it was born. This room is built on the yard after its first step,

@@ -1,2 +1,3 @@
 # The empty Dojo
+# group: start
 # The floor, the big cube that spins and pushes what it touches, and the console: the Dojo as it comes.

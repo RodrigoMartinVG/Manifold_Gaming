@@ -1,4 +1,5 @@
 # The keep: the phase's demonstration
+# group: demos
 # Closing phase 3, everything it built at once: a button opens a door, a lift goes up to a dark hall, a
 # lamp lights a plate before the last door and an eye sees whoever stands there. The door opens only
 # for someone on the plate the eye does not see: break the lamp with a ball (F), and its light goes out.

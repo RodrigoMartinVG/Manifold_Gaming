@@ -1,4 +1,5 @@
 # The course
+# group: start
 # A small classic level to drive the character: WASD or the arrows to walk, Space to jump, Shift to
 # run, and the mouse to turn the camera around it. Steps, a ramp, platforms reached by jumping, a
 # wall too high to climb, and a few cubes to push.

@@ -1,4 +1,5 @@
 # Slow motion
+# group: engine
 # The world advances the same, by fixed steps: it is only shown slower. That is why the timescale
 # belongs to the VIEW, and does not change the hash (look at it in the stats).
 seed 5

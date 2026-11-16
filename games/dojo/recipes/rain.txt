@@ -1,4 +1,5 @@
 # Cube rain
+# group: engine
 # A hundred and twenty small cubes, all taken from the world's randomness. With the same seed,
 # always the same ones, in the same place: change the seed in the console (seed 8) and look.
 seed 7

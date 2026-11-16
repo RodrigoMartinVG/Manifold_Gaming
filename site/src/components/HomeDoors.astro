@@ -5,13 +5,18 @@
  * the strip with the stage the engine is in, which leads to the full plan.
  * (The texts are the site's, in Spanish.)
  */
-import { ROOMS } from '@manifold/dojo/rooms';
+import { ROOM_GROUPS, ROOMS } from '@manifold/dojo/rooms';
 import { Icon } from '@astrojs/starlight/components';
 import { lessons, pageUrl, reports } from '../pages-lists';
 import { BASE } from '../sections';
 import { CURRENT_STAGE, STAGES } from '../stages';
 
-const rooms = Object.entries(ROOMS);
+// The rooms to start with and the phases' demonstrations (stage 4a: the others are on the Dojo's page).
+const order = (g: string | null) => ROOM_GROUPS.indexOf(g as (typeof ROOM_GROUPS)[number]);
+const rooms = Object.entries(ROOMS)
+  .filter(([, r]) => r.group === 'start' || r.group === 'demos')
+  .sort(([a, x], [b, y]) => order(x.group) - order(y.group) || a.localeCompare(b));
+const more = Object.keys(ROOMS).length - rooms.length;
 const lessonList = await lessons();
 const firstLesson = lessonList[0]!;
 const latest = (await reports())[0]!;
@@ -22,7 +27,7 @@ const latest = (await reports())[0]!;
     <h2 class="title"><Icon name="rocket" class="icon" size="1.333em" /><span>Jugar</span></h2>
     <p>
       Los juegos del motor. Hoy, el Dojo: el laboratorio, un mundo que corre en tu navegador con una consola para cambiar
-      todo lo que se puede tocar. Sus salas ya vienen preparadas:
+      todo lo que se puede tocar. Sus salas ya vienen preparadas; para empezar:
     </p>
     <ul class="mg-rooms">
       {
@@ -31,6 +36,13 @@ const latest = (await reports())[0]!;
             <a href={`${BASE}jugar/dojo/${name}/`}>{room.title}</a>
           </li>
         ))
+      }
+      {
+        more > 0 && (
+          <li class="mg-rooms-more">
+            <a href={`${BASE}jugar/dojo/#sus-salas`}>y {more} salas más</a>
+          </li>
+        )
       }
     </ul>
     <a class="mg-door-link" href={`${BASE}jugar/`}>Los juegos →</a>

@@ -3,7 +3,7 @@ import { initPhysics, levelFromText, levelOfWorld, levelToText, playRecipe, regi
 import { DojoCartridge } from './cartridge';
 import { LEVELS } from './levels';
 import { createDojo, DOJO_ZONES } from './rules';
-import { ROOMS } from './rooms';
+import { recipeGroup, ROOM_GROUPS, ROOMS } from './rooms';
 
 beforeAll(initPhysics);
 
@@ -34,5 +34,17 @@ describe('recipes that check themselves (stage 3j)', () => {
     expect(levelToText(levelOfWorld(loaded.world))).toBe(text);
     session.world.dispose();
     loaded.world.dispose();
+  });
+});
+
+describe("the rooms' groups (stage 4a)", () => {
+  test('every room says its group, one the site knows', () => {
+    for (const [name, room] of Object.entries(ROOMS)) expect(room.group, name).not.toBeNull();
+    expect(new Set(Object.values(ROOMS).map((r) => r.group))).toEqual(new Set(ROOM_GROUPS));
+  });
+  test('the group is read from the header only, and an unknown one is none', () => {
+    expect(recipeGroup('# A title\n# group: world\nseed 2')).toBe('world');
+    expect(recipeGroup('# A title\nseed 2\n# group: world')).toBeNull();
+    expect(recipeGroup('# A title\n# group: nowhere')).toBeNull();
   });
 });

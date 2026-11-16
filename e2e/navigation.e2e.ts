@@ -124,9 +124,12 @@ test("the home page's doors lead to pages that exist, with what is new in each s
 
   const doors = page.locator('.mg-doors .mg-door');
   await expect(doors).toHaveCount(3);
-  // One link per saved room, read from the Dojo's recipes.
-  const rooms = readdirSync(join(import.meta.dirname, '..', 'games', 'dojo', 'recipes')).filter((f) => f.endsWith('.txt'));
-  await expect(page.locator('.mg-rooms a')).toHaveCount(rooms.length);
+  // The rooms to start with and the demonstrations (their recipes say so), and a link to all the others.
+  const recipes = join(import.meta.dirname, '..', 'games', 'dojo', 'recipes');
+  const rooms = readdirSync(recipes).filter((f) => f.endsWith('.txt'));
+  const featured = rooms.filter((f) => /^# group: (start|demos)$/m.test(readFileSync(join(recipes, f), 'utf8')));
+  await expect(page.locator('.mg-rooms li:not(.mg-rooms-more) a')).toHaveCount(featured.length);
+  await expect(page.locator('.mg-rooms-more a')).toHaveText(`y ${rooms.length - featured.length} salas más`);
   // The number of lessons, and the latest report.
   // (Every part's numbered lessons: tutorial/parte-1/01-coordenadas.mdx…)
   const lessons = readdirSync(join(DOCS, 'tutorial'))
@@ -181,13 +184,26 @@ test("the play section: the games as cards, the Dojo first, and the Dojo's page 
   expect(await games.count()).toBeGreaterThan(1);
 
   await page.goto('jugar/dojo/');
-  const cards = page.locator('.mg-room-cards li');
-  // The rooms with a character (the course's) go first, all of them before any other.
-  const tagged = await cards.evaluateAll((li) => li.map((x) => x.textContent!.includes('con personaje')));
-  expect(tagged[0]).toBe(true);
-  expect(tagged.indexOf(false)).toBeGreaterThan(tagged.lastIndexOf(true));
-  await expect(cards.first()).toContainText('dojo.level course');
-  await expect(cards.filter({ hasText: 'load course' }).locator('a')).toHaveAttribute('href', /jugar\/dojo\/course\/$/);
+  // By groups, in order (stage 4a); every recipe has its card, in its group.
+  const groups = page.locator('.mg-room-group');
+  await expect(groups.locator('h3')).toHaveText([
+    'Para empezar',
+    'Las demostraciones',
+    'El personaje',
+    'El mundo que responde',
+    'El motor por dentro',
+  ]);
+  const recipes = readdirSync(join(import.meta.dirname, '..', 'games', 'dojo', 'recipes')).filter((f) => f.endsWith('.txt'));
+  await expect(page.locator('.mg-room-cards li')).toHaveCount(recipes.length);
+  // In each group, the rooms with a character first: the course before the empty Dojo.
+  const start = groups.first().locator('li');
+  await expect(start.first()).toContainText('con personaje');
+  await expect(start.first()).toContainText('load course');
+  await expect(start.first().locator('a')).toHaveAttribute('href', /jugar\/dojo\/course\/$/);
+  // The recipe is behind "ver la receta".
+  await expect(start.first().locator('.mg-room-lines')).toBeHidden();
+  await start.first().locator('summary').click();
+  await expect(start.first().locator('.mg-room-lines')).toContainText('dojo.level course');
 });
 
 test("the Dojo's hint can be closed by hand, too", async ({ page }) => {

@@ -1,4 +1,5 @@
 # Capabilities: climbing, gliding, a second jump
+# group: character
 # The course, with what a character can do besides walking and jumping. Three stars: one on top of a
 # tower that can only be climbed (push against it), one on an island out in the void that can only be
 # reached gliding (hold Space while falling), and one high above the last platform, for a second jump

@@ -1,4 +1,5 @@
 # Surfaces: ice that slides, a current that carries
+# group: character
 # What a floor is made of, since stage 3b, and how it sounds, since 3f: the start is wood, stone and
 # metal, side by side. On the rink the character's feet push a twelfth of what
 # they push on stone: it slides, and stopping takes that long too. Past it, a stream whose current

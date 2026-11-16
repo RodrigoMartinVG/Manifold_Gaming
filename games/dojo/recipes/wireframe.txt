@@ -1,4 +1,5 @@
 # Wireframe: the triangles and the axes
+# group: engine
 # What the graphics card draws, without filling: every cube is twelve triangles. With the
 # world's axes (x red, y green, z blue) and the step's stats.
 seed 3
