@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { CommandInfo, VariableInfo } from '@manifold/commands';
 import type { Quat, Vec3 } from '@manifold/common';
-import { upAt } from '@manifold/core';
+import { upAt, type World } from '@manifold/core';
 import type { Bodies } from './bodies';
 import type { PageMatch } from './match';
 import type { GamePage, Piece } from './page';
@@ -51,6 +51,21 @@ const DEAD_ZONE = { above: 0.8, below: 0.6 };
 const START = { position: new THREE.Vector3(3.2, 2.4, 4.2), target: new THREE.Vector3(0, 1, 0) };
 /** How close to and how far from what it looks at the wheel or a pinch can take it, in meters. */
 const NEAREST = 0.5;
+/** Against walls (stage 3h): how far it keeps from them (the ball swept from the head, m), how close to the head it may come, and how fast it goes back out (per second). */
+const CLEARANCE = 0.25;
+const CLOSEST = 0.35;
+const OUT = 3;
+/** How fast a zone's suggestion turns the camera (per second: gentler than `chase` coming back behind). */
+const SUGGESTED = 2;
+
+/** Where a zone the character is in suggests looking (stage 3h: its `view`, a direction), if one does. */
+function viewOf(world: World, id: number): THREE.Vector3 | null {
+  for (const zone of world.entities.values()) {
+    const view = zone.sensor?.params.view;
+    if (view?.length === 3 && zone.sensor!.inside.includes(id)) return new THREE.Vector3(view[0], view[1], view[2]).normalize();
+  }
+  return null;
+}
 const FARTHEST = 120;
 /**
  * How fast what is left of a drag dies out: e^(−4t), half of it in 0.17 s. Always, also while the drag
@@ -103,8 +118,21 @@ export function mountCamera(
   const drift = { x: 0, y: 0 };
   /** The pointers on the screen (a finger, the mouse), where they were at the last move, and their buttons. */
   const pointers = new Map<number, { x: number; y: number; buttons: number; at: number }>();
+  /**
+   * AGAINST WALLS (stage 3h): how far the camera was brought in front of a wall at the last frame (taken
+   * back at the start of the next, so the leash keeps its own distance: it never learns the wall's), and
+   * how far from the head it is shown now (null: from where it wants to be).
+   */
+  const pulled = new THREE.Vector3();
+  let shown: number | null = null;
+  /** Back where it wants to be: what moves it (a drag, the wheel, the leash) moves that, never the pull. */
+  const unpull = () => {
+    camera.position.sub(pulled);
+    pulled.set(0, 0, 0);
+  };
 
   const turnAround = (axis: THREE.Vector3, angle: number) => {
+    unpull();
     const offset = camera.position.clone().sub(target).applyAxisAngle(axis, angle);
     camera.position.copy(target).add(offset);
   };
@@ -126,12 +154,14 @@ export function mountCamera(
   };
   /** Closer (scale < 1) or farther (> 1) from what it looks at. */
   const dolly = (scale: number) => {
+    unpull();
     const offset = camera.position.clone().sub(target);
     offset.setLength(THREE.MathUtils.clamp(offset.length() * scale, NEAREST, FARTHEST));
     camera.position.copy(target).add(offset);
   };
   /** Sideways and up or down, by pixels of the screen: what it looks at goes along under the pointer. */
   const pan = (dx: number, dy: number) => {
+    unpull();
     const perPixel =
       (2 * camera.position.distanceTo(target) * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))) / canvas.clientHeight;
     const right = new THREE.Vector3().setFromMatrixColumn(camera.matrix, 0).multiplyScalar(-dx * perPixel);
@@ -216,6 +246,8 @@ export function mountCamera(
   /** Behind the character and a little above, looking at its head. Or, without a character, where it started. */
   function reset() {
     drift.x = drift.y = 0;
+    pulled.set(0, 0, 0);
+    shown = null;
     lookHeight = null;
     const hero = page.player();
     if (hero?.transform && hero.character) {
@@ -275,6 +307,8 @@ export function mountCamera(
     },
     frame({ now, dt, alpha, world, hero }) {
       if (!orbiting) return;
+      // Where it wants to be, not where a wall brought it (stage 3h): the leash works from there.
+      unpull();
       // A gamepad's right stick turns the camera (2.5 radians per second, pushed all the way).
       const [stickX, stickY] = o.stick();
       if (stickX || stickY) {
@@ -359,18 +393,51 @@ export function mountCamera(
           const along = camera.position.clone().sub(head);
           along.addScaledVector(up, -along.dot(up));
           if (along.lengthSq() < 1e-6) along.copy(offset);
-          // Chasing: and it comes back behind the character, unless it was just turned by hand.
-          if (mode === 'chase' && pointers.size === 0 && now - turnedByHand > 600) {
-            const behind = new THREE.Vector3(...hero.character.facing).negate();
-            behind.addScaledVector(up, -behind.dot(up));
-            const angle = Math.atan2(new THREE.Vector3().crossVectors(along, behind).dot(up), along.dot(behind));
-            along.applyAxisAngle(up, angle * (1 - Math.exp(-4 * dt)));
+          // Chasing: and it comes back behind the character, unless it was just turned by hand. A zone the
+          // character is in can suggest where to look instead (stage 3h: its `view`, a direction in the
+          // world, what the level's author wants seen), in `follow` and `chase` alike: the camera turns,
+          // little by little, to look along it, unless it was just turned by hand.
+          const untouched = pointers.size === 0 && now - turnedByHand > 600;
+          const suggested = untouched ? viewOf(world, hero.id) : null;
+          const towards = suggested
+            ? suggested.negate()
+            : untouched && mode === 'chase'
+              ? new THREE.Vector3(...hero.character.facing).negate()
+              : null;
+          if (towards) {
+            towards.addScaledVector(up, -towards.dot(up));
+            const angle = Math.atan2(new THREE.Vector3().crossVectors(along, towards).dot(up), along.dot(towards));
+            along.applyAxisAngle(up, angle * (1 - Math.exp(-(suggested ? SUGGESTED : 4) * dt)));
           }
           along.setLength(reach);
           target.copy(head);
           camera.position.copy(head).add(along).addScaledVector(up, height);
         }
       }
+      // AGAINST WALLS (stage 3h): a ball swept from the head to where the camera wants to be; if it meets
+      // something (not what the physics moves, a ball would make it jump; nor a character), the camera is
+      // shown before it, at once, and goes back out little by little once the way is clear. Free, it
+      // goes where it is put.
+      if (mode !== 'free' && heroMesh && hero?.transform) {
+        const up = new THREE.Vector3(...upAt(world, hero.transform.position));
+        const head = heroMesh.position.clone().addScaledVector(up, 0.6);
+        const way = camera.position.clone().sub(head);
+        const wants = way.length();
+        if (wants > 1e-6) {
+          way.divideScalar(wants);
+          const hit = world.castShape({ kind: 'ball', radius: CLEARANCE }, head.toArray(), [0, 0, 0, 1], way.toArray(), wants, {
+            skip: hero.id,
+            dynamic: false,
+            characters: false,
+          });
+          const free = hit ? Math.max(CLOSEST, hit.distance) : wants;
+          shown = shown === null || free < shown ? free : shown + (free - shown) * (1 - Math.exp(-OUT * dt));
+          shown = Math.min(shown, wants);
+          const at = head.clone().addScaledVector(way, shown);
+          pulled.copy(at).sub(camera.position);
+          camera.position.copy(at);
+        }
+      } else shown = null;
       camera.lookAt(target);
     },
     stop() {

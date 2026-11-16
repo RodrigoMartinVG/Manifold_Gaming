@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { afterSteps, position, settled } from './helpers';
 import path from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
+import { levelFromText } from '@manifold/core';
 
 /** Collects the page's errors (exceptions and `console.error`) to demand there are none. */
 function errors(page: Page) {
@@ -501,6 +502,74 @@ test('in the course, the keys drive the character: it walks where the camera loo
   await page.keyboard.press('Space');
   // (With time: without a GPU and after many tests, a frame can take long.)
   await expect.poll(async () => (await position(page, 'player'))[1], { timeout: 15_000 }).toBeGreaterThan(y0! + 1);
+  expect(list).toEqual([]);
+});
+
+// ---------------------------------------------------------------- the camera against walls (stage 3h)
+
+// Holding W the whole way: in the tunnels the camera is behind the character, and at each turn a zone
+// says where to look, the camera turns there, and W, which goes where the camera looks, goes with it.
+// On every frame the camera has to be out of every box of the level, and a little more (the ball it
+// sweeps keeps 25 cm), and see the character's head: nothing in between. Before 3h, in the tunnels, it
+// was above the ceiling, which hid the character; at the turns, inside the walls.
+test('the corridor: holding W walks it all, and the camera never ends inside a wall or a ceiling (stage 3h)', async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  const list = errors(page);
+  const level = levelFromText(readFileSync(path.join(process.cwd(), 'games/dojo/levels/corridor.level'), 'utf8'));
+  expect(level.boxes.every((b) => !b.turn)).toBe(true);
+  await page.goto('jugar/dojo/corridor/');
+  await expect.poll(async () => (await position(page, 'player')).length, { timeout: 20_000 }).toBe(3);
+  await settled(page, 'player');
+  // The camera and the character, from the same frame (the page writes both before the observer runs).
+  type Seen = { camera: number[]; player: number[] };
+  await page.locator('#game').evaluate((el) => {
+    const seen: Seen[] = [];
+    (window as unknown as { seen: Seen[] }).seen = seen;
+    const numbers = (v: string | undefined) => (v ?? '').split(' ').map(Number);
+    new MutationObserver(() => seen.push({ camera: numbers(el.dataset.camera), player: numbers(el.dataset.player) })).observe(
+      el,
+      { attributes: true, attributeFilter: ['data-camera'] },
+    );
+  });
+  await page.keyboard.down('KeyW');
+  // Into the room at the end, past both turns.
+  await expect.poll(async () => (await position(page, 'player'))[2], { timeout: 80_000 }).toBeLessThan(-16);
+  await page.keyboard.up('KeyW');
+  const seen = await page.evaluate(() => (window as unknown as { seen: Seen[] }).seen);
+  expect(seen.length).toBeGreaterThan(30);
+  type Box = (typeof level.boxes)[number];
+  /** How far a point is from a box (0 inside it). */
+  const away = (p: number[], b: Box) =>
+    Math.hypot(...[0, 1, 2].map((k) => Math.max(0, Math.abs(p[k]! - b.center[k]!) - b.half[k]!)));
+  /** Whether the segment from `a` to `b` goes through a box made `shrink` smaller on every side (slabs). */
+  const through = (a: number[], z: number[], b: Box, shrink: number) => {
+    let [from, to] = [0, 1];
+    for (let k = 0; k < 3; k++) {
+      const [lo, hi] = [b.center[k]! - b.half[k]! + shrink, b.center[k]! + b.half[k]! - shrink];
+      const d = z[k]! - a[k]!;
+      if (Math.abs(d) < 1e-9) {
+        if (a[k]! < lo || a[k]! > hi) return false;
+        continue;
+      }
+      const [t0, t1] = [(lo - a[k]!) / d, (hi - a[k]!) / d].sort((x, y) => x - y);
+      [from, to] = [Math.max(from, t0!), Math.min(to, t1!)];
+      if (from > to) return false;
+    }
+    return true;
+  };
+  const nearest = Math.min(...seen.map(({ camera }) => Math.min(...level.boxes.map((b) => away(camera, b)))));
+  // (Rounded to the centimeter as the page writes it: 25 cm, less a little.)
+  expect(nearest, 'how near a box the camera came').toBeGreaterThan(0.2);
+  // The head, 60 cm above the character's center (as the camera looks at it). The character is where
+  // the last step put it, and drawn up to a step behind (7.5 cm walking): boxes 5 cm smaller.
+  const hidden = seen.filter(({ camera, player }) =>
+    level.boxes.some((b) => through(camera, [player[0]!, player[1]! + 0.6, player[2]!], b, 0.05)),
+  );
+  expect(hidden, 'frames where something was between the camera and the head').toEqual([]);
+  // And it did come in: under the ceilings (at 3 m), where without walls it would be at 3.6.
+  expect(seen.some(({ camera }) => camera[1]! < 2.9 && camera[2]! < 0)).toBe(true);
   expect(list).toEqual([]);
 });
 

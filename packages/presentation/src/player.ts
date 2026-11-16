@@ -91,7 +91,9 @@ export function mountPlayerControls(o: { blocked(): boolean; buttons?: readonly 
   const held = new Set<string>();
   /** Pressed since the last reading (even if already released). */
   const pressed = new Set<string>();
-  const typing = (e: KeyboardEvent) => (e.target as HTMLElement | null)?.closest('input, textarea, select, [contenteditable]');
+  // (A key's target is an element, or the document or the window if a script sent it there: they have no `closest`.)
+  const typing = (e: KeyboardEvent) =>
+    e.target instanceof Element ? e.target.closest('input, textarea, select, [contenteditable]') : null;
 
   const down = (e: KeyboardEvent) => {
     // (Alt is not left out: held, A and D go to the sides. Ctrl and Cmd are the browser's.)

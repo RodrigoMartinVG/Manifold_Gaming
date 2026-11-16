@@ -134,6 +134,8 @@ export const DOJO_ZONES: ZoneKinds = {
   plate: {},
   /** A fog bank (stage 3d): it attenuates light and sight through it, by its `opacity` per meter. */
   fog: { opacity: 1 },
+  /** Where the camera should look while a character is in it (stage 3h): its `view`, a direction (x y z). */
+  camera: { view: 3 },
 };
 
 /**

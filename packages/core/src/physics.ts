@@ -56,6 +56,8 @@ export interface QueryOptions {
   dynamic?: boolean;
   /** Only the bodies these groups meet (like a body's). */
   groups?: CollisionGroups;
+  /** More bodies left out, by handle (stage 3h: the characters, for the camera). */
+  leave?: readonly number[];
 }
 
 /** The thin gap a character keeps between its capsule and what it touches (Rapier's advice: avoid getting stuck). */
@@ -319,13 +321,13 @@ export class RapierPhysics implements PhysicsBackend {
   /** Rapier's filter arguments, from our options. */
   private filter(o: QueryOptions) {
     const skip = o.skip === undefined ? undefined : this.world.getRigidBody(o.skip);
-    const besides = o.besides;
+    const left = [...(o.besides === undefined ? [] : [o.besides]), ...(o.leave ?? [])];
     return [
       o.dynamic === false ? RAPIER.QueryFilterFlags.EXCLUDE_DYNAMIC : undefined,
       o.groups ? groupsOf(o.groups) : undefined,
       undefined,
       skip,
-      besides === undefined ? undefined : (collider: RAPIER.Collider) => collider.parent()?.handle !== besides,
+      left.length === 0 ? undefined : (collider: RAPIER.Collider) => !left.includes(collider.parent()?.handle ?? -1),
     ] as const;
   }
 

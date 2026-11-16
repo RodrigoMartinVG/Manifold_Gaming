@@ -1,0 +1,7 @@
+# Corridor: the camera against walls
+# Since stage 3h the camera never ends inside a wall: a ball swept from the character's head to where
+# the camera wants to be finds what is in between, and the camera comes in in front of it at once, and
+# goes back out slowly once the way is clear. Walk the corridor: a tunnel, a trench open to the sky,
+# another tunnel. Two zones say where to look along it (`show.sensors` draws them).
+seed 9
+dojo.level corridor

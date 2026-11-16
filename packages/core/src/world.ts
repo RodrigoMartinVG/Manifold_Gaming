@@ -42,17 +42,21 @@ export interface Query {
   dynamic?: boolean;
   /** Only the bodies these groups meet. */
   groups?: CollisionGroups;
+  /** Whether characters count: yes, unless false (stage 3h: the camera goes through people, not walls). */
+  characters?: boolean;
 }
 
 /** A body's mass, from its density (the physics' own, 1, without one) and its shape's volume: what Rapier gives it. */
 export function massOf(body: Pick<Body, 'shape' | 'density'>): number {
   const s = body.shape;
+  // (Products, not `**`: Math.pow may give other bits in another browser.)
+  const r = s.kind === 'box' ? 0 : s.radius;
   const volume =
     s.kind === 'box'
       ? 8 * s.halfExtents[0] * s.halfExtents[1] * s.halfExtents[2]
       : s.kind === 'ball'
-        ? (4 / 3) * Math.PI * s.radius ** 3
-        : Math.PI * s.radius ** 2 * (2 * s.halfHeight) + (4 / 3) * Math.PI * s.radius ** 3;
+        ? (4 / 3) * Math.PI * r * r * r
+        : Math.PI * r * r * (2 * s.halfHeight) + (4 / 3) * Math.PI * r * r * r;
   return (body.density ?? 1) * volume;
 }
 
@@ -561,6 +565,9 @@ export class World {
       ...(besides === undefined ? {} : { besides }),
       ...(o.dynamic === undefined ? {} : { dynamic: o.dynamic }),
       ...(o.groups ? { groups: o.groups } : {}),
+      ...(o.characters === false
+        ? { leave: [...this.entities.values()].flatMap((e) => (e.character && e.body ? [e.body.handle] : [])) }
+        : {}),
     };
   }
 
