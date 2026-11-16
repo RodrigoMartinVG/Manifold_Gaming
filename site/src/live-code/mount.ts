@@ -45,6 +45,8 @@ const workshop = Prec.high(
 interface File {
   name: string;
   code: string;
+  /** In a step of the tutorial's project: whether this step added or changed the file (decision 0021). */
+  changed?: boolean;
 }
 
 interface Running {
@@ -117,6 +119,10 @@ export function mountLiveCode(root: HTMLElement) {
     button.type = 'button';
     button.role = 'tab';
     button.textContent = f.name;
+    if (f.changed === false) {
+      button.classList.add('lc-kept');
+      button.title = 'Sin cambios en esta lección';
+    }
     button.addEventListener('click', () => {
       states[current] = view.state;
       current = i;

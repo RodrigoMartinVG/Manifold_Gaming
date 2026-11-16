@@ -250,9 +250,13 @@ test('logical light: walking its loop, the character is seen in the light and no
       .first()
       .inputValue()
       .then(Number);
-  await page.waitForTimeout(300);
-  const parts = await Promise.all(['lamp 1', 'lamp 2', 'lamp 3'].map(exact));
-  expect(await exact('light')).toBeCloseTo(0.08 + parts.reduce((a, b) => a + b, 0), 2);
+  // (Read until the panel has caught up with the stop: on a loaded machine a frame can come between
+  // two readings, with the character still moving. Waiting for the relation, not for a clock.)
+  const ambient = async () => {
+    const parts = await Promise.all(['lamp 1', 'lamp 2', 'lamp 3'].map(exact));
+    return (await exact('light')) - parts.reduce((a, b) => a + b, 0);
+  };
+  await expect.poll(ambient).toBeCloseTo(0.08, 2);
 });
 
 test('breakables: a slow ball does not break the vase; a faster one does, with three pieces and fragments apart', async ({
@@ -443,4 +447,26 @@ test('a dungeon from a seed: the same seed gives the same dungeon, all connected
   await expect.poll(() => value(f, 'hash (map)')).toBe('744db12f');
   await set(f, 'seed', '8');
   await expect.poll(() => value(f, 'hash (map)')).toBe('2c2d14c7');
+});
+
+test('the new tutorial, a window into the world: our numbers put the ball at the same pixel as three.js', async ({ page }) => {
+  const f = await open(page, 'tutorial-nuevo/parte-1/01-una-ventana-al-mundo/');
+  const pixel = async (name: string) => (await value(f, name)).split(',').map(Number);
+  await expect.poll(() => value(f, 'our numbers')).toMatch(/^\d+\.\d, \d+\.\d$/);
+  for (let i = 0; i < 3; i++) {
+    const [ox, oy] = await pixel('our numbers');
+    const [tx, ty] = await pixel('three.js');
+    expect(Math.abs(ox! - tx!)).toBeLessThan(1);
+    expect(Math.abs(oy! - ty!)).toBeLessThan(1);
+  }
+});
+
+test('the new tutorial, moving with vectors: normalized, 3 m/s straight and diagonally; without, the diagonal is √2 faster', async ({
+  page,
+}) => {
+  const f = await open(page, 'tutorial-nuevo/parte-1/02-moverse/');
+  await expect.poll(() => number(f, 'straight speed'), { timeout: 20_000 }).toBeCloseTo(3, 2);
+  await expect.poll(() => number(f, 'diagonal speed'), { timeout: 20_000 }).toBeCloseTo(3, 2);
+  await toggle(f, 'normalize');
+  await expect.poll(() => number(f, 'diagonal speed'), { timeout: 20_000 }).toBeCloseTo(4.24, 2);
 });

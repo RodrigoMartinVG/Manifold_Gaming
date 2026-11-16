@@ -1,6 +1,8 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 
 /**
  * The Manifold Gaming site (decision 0002): Astro, with Starlight for the tutorial. It is published
@@ -13,6 +15,9 @@ export default defineConfig({
   site: 'https://rodrigomartinvg.github.io',
   base: BASE,
   trailingSlash: 'always',
+  // The tutorial's mathematics, typeset (decision 0021): $…$ inline and $$…$$ apart, drawn by KaTeX
+  // when the site is built (no script in the reader's browser).
+  markdown: { remarkPlugins: [remarkMath], rehypePlugins: [rehypeKatex] },
   // Models (stage 2e: the Dojo's mannequin): served as files, by their address.
   vite: { assetsInclude: ['**/*.glb'] },
   // Addresses that moved, so old links still arrive. Stage 1's lessons took their places in the
@@ -37,7 +42,7 @@ export default defineConfig({
       // The "workshop" look (bronze, patina and compass constructions): src/styles/workshop.css.
       logo: { src: './src/assets/drawings/logo.svg', alt: '' },
       favicon: '/favicon.svg',
-      customCss: ['@fontsource-variable/cinzel', './src/styles/workshop.css'],
+      customCss: ['@fontsource-variable/cinzel', 'katex/dist/katex.min.css', './src/styles/workshop.css'],
       components: {
         // The home page has its own hero, with the live 3D showcase.
         Hero: './src/components/Hero.astro',
@@ -91,6 +96,14 @@ export default defineConfig({
           ],
         },
         { label: 'Bitácora', items: [{ autogenerate: { directory: 'bitacora' } }] },
+        // The new tutorial's pilot (decision 0021): out of the sections until it is accepted.
+        {
+          label: 'Tutorial nuevo (piloto)',
+          items: [
+            { label: 'Empezar aquí', link: '/tutorial-nuevo/' },
+            { label: 'Parte 1: algo que se mueve', items: [{ autogenerate: { directory: 'tutorial-nuevo/parte-1' } }] },
+          ],
+        },
       ],
       routeMiddleware: './src/route-data.ts',
     }),

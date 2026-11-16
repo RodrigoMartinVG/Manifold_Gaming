@@ -77,6 +77,47 @@ describe('every lesson has its main path and the four layers around it (0013)', 
     });
 });
 
+/** The new tutorial's lessons (decision 0021): while it is a pilot, at `tutorial-nuevo/`. */
+const newLessons = [...PAGES].filter(([id]) => /^tutorial-nuevo\/parte-\d+\/\d+/.test(id));
+/** A page's words, without its frontmatter, imports and tags. */
+const words = (text: string) =>
+  text
+    .replace(/^---[\s\S]*?---/, '')
+    .replace(/^import .*$/gm, '')
+    .replace(/<[^>]+>/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean).length;
+
+describe('the new tutorial’s lessons: the main path first, the layers short (0021)', () => {
+  it('there are lessons to check', () => expect(newLessons.length).toBeGreaterThan(0));
+  const MAIN = ['El problema', 'La matemática', 'En el proyecto', 'Probalo', 'Lo importante'];
+  for (const [id, text] of newLessons)
+    it(id, () => {
+      for (const heading of [...MAIN, 'Más a fondo', 'En los motores', 'En Manifold', 'Para practicar', 'Para saber más'])
+        expect(section(text, heading), `"${heading}"`).not.toBeNull();
+      expect(text, 'a step of the project, live').toMatch(/<LiveCode project="[^"]+"/);
+      // The main path is most of the page.
+      const main = MAIN.reduce((sum, h) => sum + words(section(text, h) ?? ''), 0);
+      expect(main / words(text), 'the main path, at least 60% of the page').toBeGreaterThanOrEqual(0.6);
+      // The layers around it, short.
+      const deeper = (section(text, 'Más a fondo') ?? '').match(/<details>/g) ?? [];
+      expect(deeper.length, 'one or two "Más a fondo"').toBeGreaterThanOrEqual(1);
+      expect(deeper.length).toBeLessThanOrEqual(2);
+      const traps = /:::caution\[Sutilezas\]\n([\s\S]*?)\n\s*:::/.exec(text)?.[1] ?? '';
+      expect((traps.match(/^- \*\*/gm) ?? []).length, 'at least two "Sutilezas"').toBeGreaterThanOrEqual(2);
+      const engines = section(text, 'En los motores') ?? '';
+      expect((engines.match(/^- /gm) ?? []).length, 'at most five lines in "En los motores"').toBeLessThanOrEqual(5);
+      expect(engines).toContain('**Dónde Manifold eligió otra cosa.**');
+      const manifold = (section(text, 'En Manifold') ?? '').replace(/^\n## En Manifold\n/, '').trim();
+      expect(manifold.includes('\n\n'), '"En Manifold", one paragraph').toBe(false);
+      const practice = section(text, 'Para practicar') ?? '';
+      const exercises = (practice.match(/^\*\*\d\. /gm) ?? []).length;
+      expect(exercises, 'two or three exercises').toBeGreaterThanOrEqual(2);
+      expect(exercises).toBeLessThanOrEqual(3);
+      expect((practice.match(/<summary>Una pista<\/summary>/g) ?? []).length, 'a hint for each').toBe(exercises);
+    });
+});
+
 describe('the patterns', () => {
   const patterns = PAGES.get('tutorial/patrones')!;
   const anchors = anchorsOf(patterns);

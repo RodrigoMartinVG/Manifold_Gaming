@@ -11,7 +11,8 @@ type Entry = App.Locals['starlightRoute']['sidebar'][number];
  */
 export const onRequest = defineRouteMiddleware((context) => {
   const route = context.locals.starlightRoute;
-  const section = sectionOf(route.id);
+  // (The new tutorial's pilot, decision 0021, lives apart from the sections, with an index of its own.)
+  const section = sectionOf(route.id) ?? (route.id.startsWith('tutorial-nuevo') ? 'tutorial-nuevo' : null);
   if (!section) return; // the home page: no sidebar
   const inSection = (href: string) => href.startsWith(`${BASE}${section}/`);
 

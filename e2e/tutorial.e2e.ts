@@ -30,7 +30,10 @@ function tutorialLessons(): string[] {
     }
   };
   walk(join(DOCS, 'tutorial'));
-  return pages.filter((p) => !NOT_LESSONS.has(p)).sort();
+  // And the new tutorial's pilot (decision 0021), while it lives apart.
+  walk(join(DOCS, 'tutorial-nuevo'));
+  // (The new tutorial's introductions, its own and each part's, have no example.)
+  return pages.filter((p) => !NOT_LESSONS.has(p) && !/^tutorial-nuevo\/(parte-\d+\/)?$/.test(p)).sort();
 }
 
 /**

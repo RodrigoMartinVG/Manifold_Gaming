@@ -9,21 +9,35 @@
  *
  * (The labels are the site's text, in Spanish.)
  */
+import { projectAt } from '../course';
+
 interface Props {
-  lesson: string;
+  /** An example of its own, in `src/lessons/<lesson>/` (the archived tutorial's way). */
+  lesson?: string;
+  /**
+   * Or a step of the tutorial's project (decision 0021), `parte-1/02-moverse`: the project as that
+   * step leaves it, from `src/course/` (src/course.ts). The files the step changed come first.
+   */
+  project?: string;
   /** Start by itself when it shows up on screen (each lesson's first example). */
   autorun?: boolean;
 }
 
-const { lesson, autorun = false } = Astro.props;
+const { lesson, project, autorun = false } = Astro.props;
 const all = import.meta.glob<string>('../lessons/**/*.ts', { query: '?raw', import: 'default', eager: true });
-const prefix = `../lessons/${lesson}/`;
-const files = Object.entries(all)
-  .filter(([path]) => path.startsWith(prefix))
-  .map(([path, code]) => ({ name: path.slice(prefix.length), code }))
-  .sort((a, b) => (a.name === 'main.ts' ? -1 : b.name === 'main.ts' ? 1 : a.name.localeCompare(b.name)));
-if (!files.some((f) => f.name === 'main.ts')) {
-  throw new Error(`The lesson "${lesson}" has no main.ts (in src/lessons/${lesson}/)`);
+const course = import.meta.glob<string>('../course/**/*.ts', { query: '?raw', import: 'default', eager: true });
+let files: { name: string; code: string; changed?: boolean }[];
+if (project) files = projectAt(course, project);
+else {
+  if (!lesson) throw new Error('A LiveCode needs a lesson or a project step');
+  const prefix = `../lessons/${lesson}/`;
+  files = Object.entries(all)
+    .filter(([path]) => path.startsWith(prefix))
+    .map(([path, code]) => ({ name: path.slice(prefix.length), code }))
+    .sort((a, b) => (a.name === 'main.ts' ? -1 : b.name === 'main.ts' ? 1 : a.name.localeCompare(b.name)));
+  if (!files.some((f) => f.name === 'main.ts')) {
+    throw new Error(`The lesson "${lesson}" has no main.ts (in src/lessons/${lesson}/)`);
+  }
 }
 // Whether it animates: then the browser tests ask it to draw frames, not only to write to the console
 // (an example that wrote and then never drew passed before: the hole stages 0b and 1f found).
@@ -111,6 +125,10 @@ const animates = files.some((f) => f.code.includes('requestAnimationFrame'));
   }
   .live-code button:hover {
     color: #f3e9d8;
+  }
+  /* A step of the project: the files this lesson did not touch, quieter. */
+  .live-code .lc-tabs button.lc-kept {
+    opacity: 0.6;
   }
   .live-code .lc-tabs button[aria-selected='true'] {
     color: #f0d59a;
