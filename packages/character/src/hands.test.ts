@@ -56,6 +56,7 @@ const climber = (velocity: Vec3, mode = 'climb') =>
     mode,
     grounded: false,
     facing: [0, 0, -1],
+    pitch: 0,
     wall: mode === 'climb' ? [0, 0, -1] : [0, 0, 0],
     velocity,
     airJumps: 0,
@@ -158,6 +159,25 @@ describe("the mannequin's hands (stage 4a)", () => {
     const frames = climb(copy, wall(2), 2.5, 1.2, 0.5);
     const ledge = frames.filter((f) => f.hands.L.kind === 'ledge' && f.hands.R.kind === 'ledge');
     expect(ledge.length).toBeGreaterThan(3);
+    // Whatever the cycle's phase when the edge comes within reach (the wall ending at other heights),
+    // both hands end on it; and a hand that held the wall goes straight to the edge, without a jump:
+    // the frame it changes hold, it moves no more than the body's climb (4 cm) and a ninth of the way
+    // (0.15 s for it), where a jump would be the whole way at once.
+    let straight = 0;
+    for (const top of [2, 2.4, 2.8, 3.2, 3.6]) {
+      const run = climb(modelInstance(model), wall(top), 2.5, 1.2 + (top - 2) / 2.5, 0.5);
+      expect(run.some((f) => f.hands.L.kind === 'ledge' && f.hands.R.kind === 'ledge')).toBe(true);
+      for (let i = 1; i < run.length; i++)
+        for (const side of ['L', 'R'] as const) {
+          const [a, b] = [run[i - 1]!.hands[side], run[i]!.hands[side]];
+          if (a.kind !== 'wall' || b.kind !== 'ledge') continue;
+          straight++;
+          const way = a.contact!.distanceTo(b.contact!);
+          expect(a.at.distanceTo(b.at)).toBeLessThan(0.05 + way / 6);
+          expect(way).toBeGreaterThan(0.1);
+        }
+    }
+    expect(straight).toBeGreaterThan(0);
     for (const f of ledge)
       for (const side of ['L', 'R'] as const) {
         const { contact } = f.hands[side];

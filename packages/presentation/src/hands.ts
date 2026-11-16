@@ -11,7 +11,8 @@ import { endOf, reach, rootOf, type Limb, type LimbSpec } from './ik';
  * arm's reach, and kept there, in the world, while the body climbs past it, until it is beyond 1.05 of
  * the reach (that gap is what keeps a hand from taking and letting go in turns at one distance). Each hand
  * takes one hold in its half of the climbing cycle (the left one in the second half: the animation's left
- * hand reaches in the first), both while the body is still on the wall, and both on a ledge. Held, the
+ * hand reaches in the first), both while the body is still on the wall, and both on a ledge, a hand
+ * on the wall going to the edge as soon as the edge is within reach (in 0.15 s, not at once). Held, the
  * arms reach for what they hold. The solver's weight comes and goes smoothly, so taking and letting go
  * are not jumps. Only the view: the world is not touched (its rays are queries).
  */
@@ -46,6 +47,8 @@ const FADE_OUT = 0.12;
 const PALM = 0.03;
 /** Slower than this on the wall (m/s), the body is still: both hands hold. */
 const STILL = 0.1;
+/** How long a hand takes to go from one hold to the next while the solver weighs it (s). */
+const SHIFT = 0.15;
 
 /** What a hand holds, if anything. */
 export type HoldKind = 'wall' | 'ledge' | 'held';
@@ -57,6 +60,8 @@ export interface Hand {
   kind: HoldKind | null;
   /** Let go: where it held, while its weight goes. */
   leaving: THREE.Vector3 | null;
+  /** Gone from one hold to another (from the wall to its edge): how far from the new one it still is, fading. */
+  shift: { offset: THREE.Vector3; left: number } | null;
   /** How much the solver weighs, 0 to 1 (eased when it is applied). */
   weight: number;
   /** It took its hold in this half of the climbing cycle (one per half). */
@@ -67,7 +72,16 @@ export interface Hand {
 }
 export type Hands = Record<'L' | 'R', Hand>;
 
-const newHand = (): Hand => ({ contact: null, kind: null, leaving: null, weight: 0, took: false, ratio: 0, missed: 0 });
+const newHand = (): Hand => ({
+  contact: null,
+  kind: null,
+  leaving: null,
+  shift: null,
+  weight: 0,
+  took: false,
+  ratio: 0,
+  missed: 0,
+});
 export const newHands = (): Hands => ({ L: newHand(), R: newHand() });
 
 /** What a hand can find around the body: surfaces by rays, and what it holds. */
@@ -158,6 +172,26 @@ function wallHold(limb: Limb, around: Surroundings, wall: Vec3): { at: THREE.Vec
   return null;
 }
 
+/** Where the solver takes a hand now: its hold (or the one it let go), less what is left of a shift. */
+function aimOfHand(h: Hand, out: THREE.Vector3): THREE.Vector3 | null {
+  const at = h.contact ?? h.leaving;
+  if (!at) return null;
+  out.copy(at);
+  if (h.shift) out.addScaledVector(h.shift.offset, h.shift.left / SHIFT);
+  return out;
+}
+
+const was = new THREE.Vector3();
+
+/** A hand takes a hold: if the solver still weighs it, from where it was going, smoothly (`SHIFT`). */
+function take(h: Hand, at: THREE.Vector3, kind: HoldKind) {
+  const from = h.weight > 0 ? aimOfHand(h, was) : null;
+  h.shift = from ? { offset: from.clone().sub(at), left: SHIFT } : null;
+  h.contact = at;
+  h.kind = kind;
+  h.leaving = null;
+}
+
 /** Each hand's half of the climbing cycle, by its phase: the left hand holds in the second half. */
 const holdsNow = (side: 'L' | 'R', phase: number) => (side === 'L' ? phase >= 0.5 : phase < 0.5);
 /** A weight eased in and out (smoothstep): no jump in speed where it starts or ends. */
@@ -205,29 +239,33 @@ export function grip(
       const far = shoulder.distanceTo(h.contact) > LET_GO * full;
       const over = h.kind === 'held' ? !reachFor : !climbing || far || (h.kind === 'wall' && !window && !still);
       if (over) {
-        h.leaving = h.contact;
+        h.leaving = aimOfHand(h, new THREE.Vector3());
         h.contact = null;
         h.kind = null;
+        h.shift = null;
       } else if (h.kind === 'held') h.contact = reachFor;
+      else if (h.kind === 'wall' && dt > 0) {
+        // Holding the wall when its edge comes within reach: to the edge (both hands end there).
+        const top = wallHold(limb, around!, c.wall);
+        if (top?.kind === 'ledge' && shoulder.distanceTo(top.at) <= TAKE * full) take(h, top.at, 'ledge');
+      }
     }
     // Take.
-    if (!h.contact && reachFor) {
-      h.contact = reachFor;
-      h.kind = 'held';
-      h.leaving = null;
-    } else if (!h.contact && climbing && dt > 0) {
+    if (!h.contact && reachFor) take(h, reachFor, 'held');
+    else if (!h.contact && climbing && dt > 0) {
       const hold = wallHold(limb, around, c.wall);
       const may = hold && (hold.kind === 'ledge' || ((window || still) && !h.took));
       if (hold && may && shoulder.distanceTo(hold.at) <= TAKE * full) {
-        h.contact = hold.at;
-        h.kind = hold.kind;
-        h.leaving = null;
+        take(h, hold.at, hold.kind);
         if (hold.kind === 'wall') h.took = true;
       }
     }
-    if (dt > 0) h.weight = h.contact ? Math.min(1, h.weight + dt / FADE_IN) : Math.max(0, h.weight - dt / FADE_OUT);
+    if (dt > 0) {
+      h.weight = h.contact ? Math.min(1, h.weight + dt / FADE_IN) : Math.max(0, h.weight - dt / FADE_OUT);
+      if (h.shift && (h.shift.left -= dt) <= 0) h.shift = null;
+    }
     if (h.weight === 0) h.leaving = null;
-    const target = h.contact ?? h.leaving;
+    const target = aimOfHand(h, spot);
     if (target && h.weight > 0) {
       const done = reach(object, limb, target, eased(h.weight));
       h.ratio = done.ratio;
