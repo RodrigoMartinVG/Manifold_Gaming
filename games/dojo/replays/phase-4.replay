@@ -1,0 +1,20 @@
+# Manifold replay 27
+# Phase 4, what a body can do: aiming up and down apart from where it looks, a ball thrown where it aims.
+# A reference replay (stage 2.5a): playing it must end with the hash on its last line. A refactor
+# keeps it bit for bit. Recorded by games/dojo/src/reference.test.ts; recorded again (npm run
+# references) only when the simulation changes on purpose, with SIMULATION_VERSION.
+game dojo
+profile rapier-deterministic server 60
+birth seed 9
+birth dojo.level course
+change 31 dojo.goto 0 1 6
+input 31 1 face @0 pitch 0.4
+input 35 1 face @0 pitch 0.4 dojo.throw
+input 36 1 face @0 pitch 0.4
+input 121 1 face @0 pitch -0.15
+input 125 1 face @0 pitch -0.15 dojo.throw
+input 126 1 face @0 pitch -0.15
+input 211 1 face @90 pitch 0.8
+input 215 1 face @90 pitch 0.8 dojo.throw
+input 216 1 face @90 pitch 0.8
+end 330 d277d6f1

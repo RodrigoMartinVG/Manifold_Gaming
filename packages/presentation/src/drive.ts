@@ -1,3 +1,4 @@
+import type { Vec3 } from '@manifold/common';
 import type { CommandInfo, VariableInfo } from '@manifold/commands';
 import { faceFor, upAt } from '@manifold/core';
 import type { Rig } from './camera';
@@ -23,6 +24,18 @@ export const DRIVE_COMMANDS = {
       'What a player can ask for in this game, and what presses it (the core declares what the character reads; each game, its own buttons).',
   },
 } as const satisfies Record<string, CommandInfo>;
+
+/**
+ * How far above (+) or below (−) the ground a look is, as the `pitch` input takes it (stage 4b): a
+ * fraction of a quarter turn. (The browser's arcsine: it is an input, rounded to hundredths before it
+ * enters the world, never the simulation's arithmetic.)
+ */
+export function pitchOf(look: Vec3, up: Vec3): number {
+  const length = Math.hypot(...look) * Math.hypot(...up);
+  if (length === 0) return 0;
+  const sin = (look[0] * up[0] + look[1] * up[1] + look[2] * up[2]) / length;
+  return Math.asin(Math.max(-1, Math.min(1, sin))) / (Math.PI / 2);
+}
 
 /**
  * DRIVING THE CHARACTER (stage 1b): on every frame, before the steps, what this page's player asks
@@ -62,12 +75,14 @@ export function mountDrive(
       const look = rig.look();
       // (Aiming, the mouse turns it: the keys go by the camera, whatever the scheme.)
       const aiming = rig.mode === 'aim';
-      const asked = o.controls.read(look, upAt(world, hero.transform.position), aiming ? 'camera' : scheme);
-      // Aiming, the character looks where the camera looks (the core keeps only its horizontal part).
+      const up = upAt(world, hero.transform.position);
+      const asked = o.controls.read(look, up, aiming ? 'camera' : scheme);
+      // Aiming, the character looks where the camera looks (the core keeps only its horizontal part),
+      // and aims up or down as it does (stage 4b: its pitch).
       // `face` is read inside the turn the platforms gave the character (stage 2d): asked inside the
       // one the camera already turned by, the same as long as the mouse is still (`faceFor`, the core).
       const turn = rig.turn() ?? hero.character?.carriedTurn ?? [0, 0, 0, 1];
-      match.sendInput(aiming ? { ...asked, face: faceFor({ carriedTurn: turn }, look) } : asked);
+      match.sendInput(aiming ? { ...asked, face: faceFor({ carriedTurn: turn }, look), pitch: pitchOf(look, up) } : asked);
     },
   };
 }

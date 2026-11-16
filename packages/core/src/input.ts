@@ -29,6 +29,11 @@ export const CHARACTER_ACTIONS: readonly InputAction[] = [
     kind: 'direction',
     description: 'where to look, if it is given (inside the turn the platforms gave the character: faceFor)',
   },
+  {
+    name: 'pitch',
+    kind: 'axis',
+    description: 'where to aim, above (+) or below (−) where it looks, as a fraction of a quarter turn (stage 4b)',
+  },
   { name: 'jump', kind: 'button', description: 'jumping' },
   { name: 'run', kind: 'button', description: 'running' },
   { name: 'use', kind: 'button', description: 'using what it stands in: a button (stage 3c)' },

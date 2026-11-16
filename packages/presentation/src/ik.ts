@@ -291,6 +291,15 @@ const delta = new THREE.Quaternion();
 const worldTurn = new THREE.Quaternion();
 const parentTurn = new THREE.Quaternion();
 
+/** Turns a bone (in the world) by `angle` radians about the unit `axis` (the world's). */
+export function rotateInWorld(bone: THREE.Object3D, axis: THREE.Vector3, angle: number) {
+  delta.setFromAxisAngle(axis, angle);
+  bone.getWorldQuaternion(worldTurn);
+  bone.parent!.getWorldQuaternion(parentTurn);
+  bone.quaternion.copy(parentTurn.invert().multiply(delta.multiply(worldTurn)));
+  bone.updateMatrixWorld(true);
+}
+
 /** Turns a bone (in the world) by the least turn that takes the direction `a` to `b` (`a` along the bone: a turn across it, never about it). */
 export function turn(bone: THREE.Object3D, a: THREE.Vector3, b: THREE.Vector3) {
   delta.setFromUnitVectors(a.normalize(), b.normalize());

@@ -1,6 +1,7 @@
 import { quat, vec3, type Vec3 } from '@manifold/common';
 import { characterParts } from '@manifold/character';
 import {
+  aimOf,
   buildLevel,
   component,
   DEFAULT_MOVEMENT,
@@ -271,7 +272,7 @@ function joinedPlayers(world: World) {
  * - `dojo.cubes` is STARTUP: how many cubes there are when the world is born (changing it restarts it);
  * - `dojo.spin` is WORLD: the big cube's spin, which changes at a given step;
  * - `dojo.spawn x y z` is a WORLD action: a ball that falls from there, at a given step.
- * - `dojo.throw` is a PLAYER's button (stage 1d): the character throws a ball forward. The core does
+ * - `dojo.throw` is a PLAYER's button (stage 1d): the character throws a ball where it aims. The core does
  *   not know it: the Dojo declares it, reads it on every step, and its page says which key presses it.
  * (And the engine's `seed` and `physics.gravity`, which the Dojo lets people touch too.)
  *
@@ -282,7 +283,7 @@ export function createDojo(levels: Readonly<Record<string, Level>>): Cartridge {
   return {
     id: 'dojo',
     title: 'Dojo',
-    inputs: [{ name: 'dojo.throw', kind: 'button', description: 'the character throws a ball forward' }],
+    inputs: [{ name: 'dojo.throw', kind: 'button', description: 'the character throws a ball where it aims' }],
     // A lab: in a match, everybody may change the world (another game may let only its host).
     mayChange: () => true,
     // Its zones (stage 3b), for its levels and for what the console adds (stage 3j).
@@ -379,12 +380,14 @@ export function createDojo(levels: Readonly<Record<string, Level>>): Cartridge {
     onStep(world, events) {
       joinedPlayers(world);
       levelLoop(world, events);
-      // Each press throws one ball (held, it does not throw more): from the chest, forward and up a little.
+      // Each press throws one ball (held, it does not throw more): from the chest, where it aims (stage
+      // 4b: with its pitch), and up a little from there.
       for (const e of world.entities.values()) {
         if (!e.character || !e.transform || !pressed(world, e.character.player, 'dojo.throw')) continue;
         const up = upAt(world, e.transform.position);
-        const from = vec3.add(e.transform.position, vec3.add(vec3.scale(e.character.facing, 0.75), vec3.scale(up, 0.4)));
-        ball(world, from, vec3.add(vec3.scale(e.character.facing, 9), vec3.scale(up, 2.5)));
+        const { ahead, above } = aimOf(e.character, up);
+        const from = vec3.add(e.transform.position, vec3.add(vec3.scale(ahead, 0.75), vec3.scale(up, 0.4)));
+        ball(world, from, vec3.add(vec3.scale(ahead, 9), vec3.scale(above, 2.5)));
       }
     },
 

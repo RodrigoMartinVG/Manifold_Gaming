@@ -35,6 +35,8 @@ interface Seen {
   carried: number;
   /** The most balls there were at once (thrown or dropped from the console). */
   balls: number;
+  /** How high each ball went (its center, m), in the order they were made. */
+  heights: Map<number, number>;
 }
 
 const hero = (s: Session, player = 1): Entity | undefined =>
@@ -45,7 +47,7 @@ function run(recipe: string, acts: Act[]): { session: Session; seen: Seen } {
   const errors = registry.run(recipe, 'recipe').filter((m) => m.level === 'error');
   expect(errors).toEqual([]);
   const session = new Session(DojoCartridge, { registry });
-  const seen: Seen = { notices: [], modes: new Set(), carried: 0, balls: 0 };
+  const seen: Seen = { notices: [], modes: new Set(), carried: 0, balls: 0, heights: new Map() };
   for (const act of acts) {
     const lines = typeof act.lines === 'function' ? act.lines(session) : (act.lines ?? []);
     for (const line of lines) expect(session.registry.run(line, 'console').filter((m) => m.level === 'error')).toEqual([]);
@@ -60,8 +62,9 @@ function run(recipe: string, acts: Act[]): { session: Session; seen: Seen } {
         seen.modes.add(h.character.mode);
         if (h.character.ground.velocity.some((v) => v !== 0)) seen.carried++;
       }
-      const balls = [...session.world.entities.values()].filter((e) => e.body?.shape.kind === 'ball').length;
-      seen.balls = Math.max(seen.balls, balls);
+      const balls = [...session.world.entities.values()].filter((e) => e.body?.shape.kind === 'ball');
+      seen.balls = Math.max(seen.balls, balls.length);
+      for (const b of balls) seen.heights.set(b.id, Math.max(seen.heights.get(b.id) ?? -Infinity, b.transform!.position[1]));
     }
   }
   return { session, seen };
@@ -249,9 +252,46 @@ describe('the reference replays (stage 2.5a), recorded from their scripts', () =
   });
 });
 
+describe('the reference replays of phase 4, growing with it', () => {
+  test('phase 4, what a body can do (from 4b): aiming up and down apart from where it looks, a ball thrown where it aims', async () => {
+    // On the course's open floor, looking at −Z: up, a little down, and almost straight up, each throw
+    // where it aims (its pitch, a quarter turn per unit); the last one looking at +X.
+    const aimed =
+      (pitch: number, face: [number, number, number] = [0, 0, -1]) =>
+      (s: number) => ({
+        face,
+        pitch,
+        'dojo.throw': s === 5,
+      });
+    const { session, seen } = run('seed 9\ndojo.level course', [
+      { steps: 30 },
+      { lines: ['dojo.goto 0 1 6'], steps: 90, drive: aimed(0.4) },
+      { steps: 90, drive: aimed(-0.15) },
+      { steps: 120, drive: aimed(0.8, [1, 0, 0]) },
+    ]);
+    const c = hero(session)!.character!;
+    expect(c.pitch).toBe(72);
+    expect(c.facing).toEqual([1, 0, 0]);
+    // Thrown from the chest (1.2 m up): up at 36°, it rises about 2.7 m; at −13.5°, hardly at all; at
+    // 72°, about 4.4 m.
+    const [up, low, high] = [...seen.heights.values()];
+    expect(seen.heights.size).toBe(3);
+    expect(up! - 1.2).toBeGreaterThan(2.4);
+    expect(low! - 1.2).toBeLessThan(0.1);
+    expect(high! - 1.2).toBeGreaterThan(4);
+    await expect(
+      referenceText(
+        session,
+        'Phase 4, what a body can do: aiming up and down apart from where it looks, a ball thrown where it aims.',
+      ),
+    ).toMatchFileSnapshot('../replays/phase-4.replay');
+    session.world.dispose();
+  });
+});
+
 describe('the reference replays, as they are in their files', () => {
   test('there is one per phase (two for phase 3: its machines and its light), of this simulation version', () => {
-    expect(Object.keys(REFERENCE_REPLAYS)).toEqual(['phase-0', 'phase-1', 'phase-2', 'phase-3', 'phase-3-light']);
+    expect(Object.keys(REFERENCE_REPLAYS)).toEqual(['phase-0', 'phase-1', 'phase-2', 'phase-3', 'phase-3-light', 'phase-4']);
     for (const text of Object.values(REFERENCE_REPLAYS))
       expect(text.split('\n')[0]).toBe(`# Manifold replay ${SIMULATION_VERSION}`);
   });

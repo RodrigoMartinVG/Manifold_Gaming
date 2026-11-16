@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, test } from 'vitest';
 import { quat, vec3, type Vec3 } from '@manifold/common';
 import type { Cartridge } from './cartridge';
-import { DEFAULT_MOVEMENT, faceFor, poseOf, turned } from './character';
+import { aimOf, DEFAULT_MOVEMENT, faceFor, poseOf, turned } from './character';
 import { buildLevel, levelFromText } from './level';
 import { NO_INPUT } from './input';
 import { stateHash } from './hash';
@@ -259,6 +259,42 @@ describe('the character (stage 1b)', () => {
     world.dispose();
   });
 
+  test('aiming (stage 4b): the pitch tilts where it aims, not its body; asked nothing, it aims level', () => {
+    const { world, hero } = setUp();
+    run(world, 60);
+    const c = hero.character!;
+    // Half of a quarter turn up, looking at +X.
+    run(world, 2, () => ({ ...input([0, 0, 0], false, false, [1, 0, 0]), pitch: 0.5 }));
+    expect(c.pitch).toBe(45);
+    expect(c.facing).toEqual([1, 0, 0]);
+    // Its body stays upright: it turns about its up only.
+    expect(vec3.dot(quat.rotate(hero.transform!.rotation, [0, 1, 0]), [0, 1, 0])).toBeCloseTo(1, 12);
+    const { ahead, above } = aimOf(c, [0, 1, 0]);
+    expect(ahead[0]).toBeCloseTo(Math.SQRT1_2, 14);
+    expect(ahead[1]).toBeCloseTo(Math.SQRT1_2, 14);
+    expect(above[0]).toBeCloseTo(-Math.SQRT1_2, 14);
+    expect(above[1]).toBeCloseTo(Math.SQRT1_2, 14);
+    // Asked nothing: level again.
+    run(world, 1, () => NO_INPUT);
+    expect(c.pitch).toBe(0);
+    world.dispose();
+  });
+
+  test("where it aims: level, its facing and its up exactly; straight up, its up; always of length 1 and square with the aim's up", () => {
+    const facing: Vec3 = [0.6, 0, -0.8];
+    expect(aimOf({ facing, pitch: 0 }, [0, 1, 0])).toEqual({ ahead: facing, above: [0, 1, 0] });
+    const up = aimOf({ facing, pitch: 90 }, [0, 1, 0]);
+    expect(up.ahead.map((v) => Math.abs(v) < 1e-15)).toEqual([true, false, true]);
+    expect(up.ahead[1]).toBe(1);
+    for (const pitch of [-90, -63, -12.6, 0.9, 27, 81]) {
+      const { ahead, above } = aimOf({ facing, pitch }, [0, 1, 0]);
+      expect(vec3.length(ahead)).toBeCloseTo(1, 14);
+      expect(vec3.length(above)).toBeCloseTo(1, 14);
+      expect(vec3.dot(ahead, above)).toBeCloseTo(0, 14);
+      expect(Math.asin(ahead[1]) * (180 / Math.PI)).toBeCloseTo(pitch, 9);
+    }
+  });
+
   test('it turns on its own axis without moving, and walks where it looks: forward, back and to the side (tank controls)', () => {
     const { world, hero } = setUp();
     run(world, 60);
@@ -429,6 +465,35 @@ describe('the character (stage 1b)', () => {
     const withIt = climb(true);
     expect(withIt.modes.has('climb')).toBe(true);
     expect(withIt.onTop).toBe(true);
+  });
+
+  test('climb (stage 4a): it comes to its wall, to a centimeter from touching it, and never into it', () => {
+    // The wall's face at x = 1.5; the character starts 1 m from it, and finds it with its ray 55 cm ahead.
+    const { world, hero } = setUp({
+      at: [0.5, 1, 0],
+      boxes: [
+        [
+          [3, 3, 0],
+          [1.5, 3, 3],
+        ],
+      ],
+    });
+    hero.character!.can.climb = true;
+    run(world, 60);
+    let closest = Infinity;
+    let climbing = 0;
+    run(world, 120, () => {
+      if (hero.character!.mode === 'climb') {
+        climbing++;
+        closest = Math.min(closest, 1.5 - hero.transform!.position[0]);
+      }
+      return input([1, 0, 0]);
+    });
+    expect(climbing).toBeGreaterThan(60);
+    // Touching: its radius (0.3 m) and the controller's gap (2 cm); it stays a centimeter more away.
+    expect(closest).toBeGreaterThan(0.3 + 0.02);
+    expect(closest).toBeLessThan(0.3 + 0.02 + 0.011);
+    world.dispose();
   });
 
   test('climb (stage 2e2): climbing along a wall past its side edge, it lets go; only at the top does it hop', () => {

@@ -355,6 +355,12 @@ export interface Character {
   jumpHeld: boolean;
   /** Where it looks: a unit vector perpendicular to its "up". */
   facing: Vec3;
+  /**
+   * Where it aims, above (+) or below (−) where it looks, in degrees from −90 to 90 (stage 4b): its
+   * body faces along the ground, its aim tilts (`aimOf`). From the `pitch` input, a quarter turn per
+   * unit, at every step: asked nothing, it aims level.
+   */
+  pitch: number;
   /** What it holds (stage 3g), by id; 0, nothing. Held by a pull towards in front of it, it stays the physics'. */
   holding: EntityId;
   /**

@@ -16,7 +16,7 @@ import {
 } from './locomotion';
 import { footPaths, LEGS, newFeet, plant, type Feet, type FootPaths } from './feet';
 import { ARMS, grip, newHands, type Hands, type Surroundings } from './hands';
-import { limbOf, type Limb } from './ik';
+import { limbOf, rotateInWorld, type Limb } from './ik';
 
 /** A copy of a model, ready to draw, and the animations it plays. */
 export interface ModelInstance {
@@ -34,6 +34,8 @@ export interface ModelInstance {
   readonly arms: Readonly<Record<'L' | 'R', Limb>> | null;
   /** What its hands hold (hands.ts), from one frame to the next. */
   readonly hands: Hands;
+  /** Its aim as drawn (stage 4b): the pitch it shows (degrees), and the bones it is spread over. */
+  readonly aim: { pitch: number; readonly spine: THREE.Object3D | null; readonly head: THREE.Object3D | null };
   /** The animation that weighs most now (null: none yet). */
   playing: string | null;
 }
@@ -116,6 +118,7 @@ export function modelInstance(model: { scene: THREE.Object3D; clips: readonly TH
     legs,
     arms,
     hands: newHands(),
+    aim: { pitch: 0, spine: object.getObjectByName('spine') ?? null, head: object.getObjectByName('head') ?? null },
     playing: null,
   };
 }
@@ -154,6 +157,37 @@ export function turnBody(drawn: THREE.Quaternion, target: THREE.Quaternion, up: 
   upAxis.set(...up);
   const sin = new THREE.Vector3().crossVectors(before, ahead).dot(upAxis);
   return THREE.MathUtils.radToDeg(Math.atan2(sin, before.dot(ahead))) / dt;
+}
+
+/** How fast the drawn aim follows the world's (degrees per second): a flick of the mouse, quick but not a jump. */
+const AIM_RATE = 720;
+/**
+ * How the pitch is spread over the body (stage 4b): the spine takes this much, the head the rest. A
+ * person aiming up bends mostly at the neck (it extends to about 60°), the back giving some 25°; and the
+ * mannequin's torso is one piece that turns at the waist, so at 0.4 aiming straight up leaned it back
+ * like a limbo dancer. At 0.3, aiming 72° up, the chest takes 22° and the head 50°.
+ */
+export const AIM_SPINE = 0.3;
+const side = new THREE.Vector3();
+
+/**
+ * THE AIM, SHOWN (stage 4b): the body faces along the ground (the world turns it about its "up" only),
+ * and the aim's pitch is spread over the spine and the head, so that the head (its visor) looks where
+ * the character aims and the chest goes part of the way (`AIM_SPINE`), the arms with it. Towards the world's pitch at
+ * `AIM_RATE` at most. Only the view: the world is not touched.
+ */
+export function aimBody(model: ModelInstance, pitch: number, dt: number) {
+  const { aim } = model;
+  // (A character made by hand, in a test, may have none: level.)
+  const wanted = Number.isFinite(pitch) ? pitch : 0;
+  if (dt > 0) aim.pitch += Math.max(-AIM_RATE * dt, Math.min(AIM_RATE * dt, wanted - aim.pitch));
+  if (aim.pitch === 0 || !aim.spine?.parent || !aim.head?.parent) return;
+  model.object.updateMatrixWorld(true);
+  // About the body's own right: a positive turn takes its forward (−Z) up.
+  side.set(1, 0, 0).transformDirection(model.object.matrixWorld);
+  const radians = THREE.MathUtils.degToRad(aim.pitch);
+  rotateInWorld(aim.spine, side, radians * AIM_SPINE);
+  rotateInWorld(aim.head, side, radians * (1 - AIM_SPINE));
 }
 
 /**
@@ -205,6 +239,8 @@ export function animate(
   // And the feet where the cycles' feet are, mixed; on the ground, they stay there (feet.ts).
   const where = { L: footing(model.gait, 'L', c.grounded), R: footing(model.gait, 'R', c.grounded) };
   plant(model.object, model.legs, model.paths, model.actions, model.feet, where, up, dt);
+  // Its aim, over the spine and the head (the arms go with the chest).
+  aimBody(model, c.pitch, dt);
   // And the hands on what they hold: a wall, a ledge, what is carried (hands.ts).
   grip(model.object, model.arms, model.hands, c, around, model.gait.climbPhase, moved, up, dt);
   model.playing = dominant(weights);

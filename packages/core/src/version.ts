@@ -52,5 +52,7 @@
  *      grid, which the physics makes Rapier's voxels: what rolls or slides across it does not hop or trip
  *  26  stage 4a: a climbing character comes to its wall (a centimeter from touching it), instead of
  *      climbing where its ray found it, up to 55 cm away: the view's hands hold on to it
+ *  27  stage 4b: a character aims (`pitch`, from its input): where it aims is part of its state, and
+ *      the Dojo's ball leaves along the aim
  */
-export const SIMULATION_VERSION = 26;
+export const SIMULATION_VERSION = 27;

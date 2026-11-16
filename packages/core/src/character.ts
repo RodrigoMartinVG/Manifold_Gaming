@@ -1,4 +1,4 @@
-import { quat, vec3, type Quat, type Vec3 } from '@manifold/common';
+import { quat, sinCosDegrees, vec3, type Quat, type Vec3 } from '@manifold/common';
 import { gravityAt } from './gravity';
 import { tractionOf } from './materials';
 import { CHARACTER_GAP, STANDS_ON } from './physics';
@@ -45,6 +45,7 @@ export function newCharacter(spec: CharacterSpec): Character {
     jumpPending: 0,
     jumpHeld: false,
     facing: [...(spec.facing ?? [0, 0, -1])],
+    pitch: 0,
     light: 0,
     stride: 0,
     holding: 0,
@@ -174,6 +175,20 @@ export function carriedBy(
  */
 export function faceFor(c: Pick<Character, 'carriedTurn'>, direction: Vec3): Vec3 {
   return quat.rotate(quat.conjugate(c.carriedTurn), direction);
+}
+
+/**
+ * WHERE A CHARACTER AIMS (stage 4b): where it looks, tilted by its pitch towards its "up" (`ahead`, of
+ * length 1), and the aim's own up (`above`, square with it): what is thrown a little above the aim
+ * goes along both. With our own sine and cosine, so the same bits in every browser. `up` is the
+ * character's, of length 1 (`upAt`).
+ */
+export function aimOf(c: Pick<Character, 'facing' | 'pitch'>, up: Vec3): { ahead: Vec3; above: Vec3 } {
+  const [sin, cos] = sinCosDegrees(c.pitch);
+  return {
+    ahead: vec3.add(vec3.scale(c.facing, cos), vec3.scale(up, sin)),
+    above: vec3.sub(vec3.scale(up, cos), vec3.scale(c.facing, sin)),
+  };
 }
 
 /**
@@ -610,6 +625,8 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
   if (toldLooking && vec3.length(toldLooking) > 1e-6) c.facing = vec3.normalize(toldLooking);
   else if (c.mode === 'climb' && !isZero(c.wall)) c.facing = [...c.wall];
   else if (vec3.length(inWorld) > 0.1) c.facing = vec3.normalize(inWorld);
+  // And where it aims, above or below that (stage 4b).
+  c.pitch = 90 * Math.max(-1, Math.min(1, axisOf(input, 'pitch')));
   const position = vec3.add(walked, riding);
   world.physics.setNextPose(body.handle, position, quat.look(c.facing, up));
 
