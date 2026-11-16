@@ -12,7 +12,8 @@ import {
   rod,
 } from 'lab';
 
-// THE LESSON'S FORMULAS. A point is three numbers, its coordinates (x, y, z), in meters.
+// ─── THE LESSON: the two formulas. Read these, and change them to see what happens. ───
+// A point is three numbers, its coordinates (x, y, z), in meters.
 /** Pythagoras on the floor: the legs are Δx and Δz. */
 function floorDistance(p: THREE.Vector3, q: THREE.Vector3) {
   const dx = q.x - p.x;
@@ -27,6 +28,7 @@ function distance(p: THREE.Vector3, q: THREE.Vector3) {
   return Math.sqrt(dx * dx + dy * dy + dz * dz);
 }
 
+// ─── THE DRAWING: the lab kit, from here on. No need to read it; the formulas above are the lesson. ───
 // THE FIGURE: the tutorial's lab kit (its source is one click away, under the editor). Everything it
 // draws is placed by its coordinates in `lab.world`; left-handed, that group is mirrored (scale.z = −1):
 // the same numbers, drawn in the mirror.

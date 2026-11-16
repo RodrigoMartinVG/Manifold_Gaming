@@ -2,6 +2,9 @@ import * as THREE from 'three';
 import { arrow, axes, circle, createLab, draggable, numbers, point } from 'lab';
 import { add, length, normalize, scale, sub, vec, type Vec } from './vec';
 
+// ─── THE LESSON is in vec.ts: our vectors, as functions. Here they are at work, in the frame at the end
+// ("OUR FUNCTIONS"). The rest is THE DRAWING, made with the lab kit: no need to read it. ───
+
 // THE FLOOR SEEN FROM ABOVE: +X to the right, +Z towards us (down on the screen), +Y up, out of it.
 // Each square of the grid is 1 m. The figure (`lab`) is the tutorial's shared kit: its source is one
 // click away, under the editor.
@@ -147,6 +150,7 @@ numbers(lab.gui, {
 
 lab.onFrame((dt) => {
   if (settings.autopilot) autopilot(dt);
+  // ─── THE LESSON, AT WORK ───
   // OUR FUNCTIONS: each one makes a new vector, and leaves a and b as they were.
   const sum = add(a, b);
   draw.a.set(O, a);

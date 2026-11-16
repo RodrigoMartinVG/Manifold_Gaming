@@ -1,6 +1,9 @@
 import * as THREE from 'three';
 import { arrow, createLab, draggable, fan, frame, numbers, path, point, type V3 } from 'lab';
 
+// ─── THE LESSON: `turn`, below, the turn about an axis written out, and the convention it follows. The
+// rest is THE DRAWING, made with the lab kit: no need to read it. ───
+
 // THE TUTORIAL'S AXES: right-handed, +X right, +Y up, +Z towards whoever looks from the front.
 // A POSITIVE TURN about an axis is counterclockwise seen from the axis's tip: about +X, +Y turns
 // towards +Z; about +Y, +Z towards +X; about +Z, +X towards +Y (always the next one, in a circle).

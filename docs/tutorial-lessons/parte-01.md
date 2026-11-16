@@ -405,6 +405,7 @@ takes the seventeen lessons and _la torreta_.
   added, and their tests); its raw key handling.
 - **Open:** the curriculum says `vec.ts` "grows" here, but with "Moverse" moved to 2.8 no earlier project lesson adds
   it: 1.7 adds it whole. Also decide whether `debug.ts` lifetimes count real seconds (as here) or frames.
+- **The kit's bridge** (the author's decision, 2026-11-16): the lab kit is never taught as a topic. When `debug.ts` arrives here, the lesson says that the kit under every concept figure is the same idea at full size (arrows, points, lines, labels, drawn each frame), and that from now on it can be read: the link under each figure's editor.
 
 ### 1.8 Matrices: adónde van los ejes (C)
 

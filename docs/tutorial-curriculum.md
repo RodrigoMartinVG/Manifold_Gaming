@@ -185,7 +185,11 @@ The layers around it:
 ### 4.2 The lab kit for live figures
 
 One shared module for the concept lessons' figures, importable, with its source one click away from every example
-(copying the same scene code into a hundred lessons would not be maintained). It grows with the curriculum:
+(copying the same scene code into a hundred lessons would not be maintained). **It is never taught as a topic** (the
+author's decision, 2026-11-16): a figure's code shows the lesson first, marked _THE LESSON_ (its formulas, in their own
+file or at the top of `main.ts`), and the drawing after it, marked _THE DRAWING_ and made with the kit, which the
+reader need not read. "Empezar aquí" says so; three.js is taught where the project needs it, and 1.7's `debug.ts`, a
+small kit of the reader's own, is where the kit becomes readable. It grows with the curriculum:
 
 - **Primitives that know geometry:** a vector with its label; a point; a plane with its normal and its half-space
   shaded; a frame (axes in red, green and blue, or **T**, **B**, **N**); a segment with its closest-point markers;

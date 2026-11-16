@@ -13,6 +13,10 @@ import {
   type Point,
 } from './projection';
 
+// ─── THE LESSON is in projection.ts: the four steps of the projection, one function each. Here they are
+// at work, in the frame below ("P, STEP BY STEP" and "THE RAILS"). The rest is THE DRAWING, made with the
+// lab kit: no need to read it. ───
+
 // THE FIGURE, seen from behind the eye and to its left: the tutorial's lab kit (its source is one click
 // away, under the editor). Drag to look around. What only explains the scene (the plane, the lines, the
 // eye) is `figureOnly`: the eye's own picture, in the corner, shows only the world.
@@ -212,6 +216,7 @@ lab.onFrame((dt) => {
   pyramid.set([eyeAt, topLeft, eyeAt, topRight, eyeAt, bottomRight, eyeAt, bottomLeft]);
   planeLabel.at(topLeft);
 
+  // ─── THE LESSON, AT WORK ───
   // P, STEP BY STEP: seen from the eye, its depth, on the plane, normalized, in pixels.
   const c = fromEye(P, EYE);
   const d = depthOf(c);
