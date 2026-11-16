@@ -5,7 +5,7 @@ sidebar:
   order: 5
 ---
 
-import LiveCode from '../../../../components/LiveCode.astro';
+import LiveCode from '../../../../../components/LiveCode.astro';
 
 ¿Cómo se graba una partida para volver a verla? La primera idea es grabar dónde estaba cada cosa en cada instante, como un video. Funciona, pero pesa: cientos de números por paso, sesenta pasos por segundo.
 
@@ -46,7 +46,7 @@ Cualquier cosa que no sea exactamente igual en las dos corridas:
 - **Un azar sin semilla.** `Math.random()` da otra cosa cada vez. Por eso las cajas salen de `createRandom(7)`, y el piloto automático tiene su propia semilla.
 - **El tiempo de la pantalla.** Si la física avanzara con el tiempo de cada cuadro, una máquina lenta daría otra partida.
 - **Las funciones aproximadas.** El estándar de JavaScript deja que cada navegador calcule `Math.sin`, `Math.cos` o `Math.atan2` a su manera, y el último bit puede cambiar. Dentro de un navegador da igual; entre dos, no. Rapier tiene una versión **determinista**, que hace sus cuentas igual en todos lados: es la que usan estos ejemplos y el motor.
-- **El −0.** Un número negativo muy chico, redondeado, da −0, que se escribe "0" y se lee como +0. Son bits distintos: si una repetición guardara −0 como texto, al volver daría otra huella. Al motor le pasó, y está en la [Bitácora de la etapa 1c2](../../../bitacora/etapa-1c2/).
+- **El −0.** Un número negativo muy chico, redondeado, da −0, que se escribe "0" y se lee como +0. Son bits distintos: si una repetición guardara −0 como texto, al volver daría otra huella. Al motor le pasó, y está en la [Bitácora de la etapa 1c2](../../../../bitacora/etapa-1c2/).
 
 </details>
 
@@ -87,11 +87,11 @@ Guardar **lo que pasó** en vez de **cómo quedó**, y reconstruir el estado rep
 - **La otra manera es grabar el estado.** El sistema de repeticiones de Unreal graba lo que el servidor les manda a los clientes (el estado de los objetos, como viaja por la red): no necesita determinismo, y a cambio pesa mucho más.
 - **En la literatura:** Glenn Fiedler, _Deterministic Lockstep_ (2014). Jason Gregory, _Game Engine Architecture_ (4.ª ed., vol. I), §8.5.2.4, que muestra grabar y reproducir con los mismos tiempos y la misma semilla como una de las razones para controlar el ritmo de los cuadros.
 
-**Dónde Manifold eligió otra cosa.** Eligió las entradas, y las hizo **texto**: la primera línea es la versión de la simulación; después, el juego, su perfil y cómo nació el mundo (sus valores, como líneas de la consola); después, una por línea, cada entrada de cada jugador y cada cambio escrito en la consola, con su paso; al final, el último paso y su huella. Entra en un enlace. Y cada fase deja una **repetición de referencia** que las pruebas juegan en Chromium, Firefox, WebKit y Node: si un cambio altera el mundo sin querer, la huella del final lo delata ([La misma huella](../../../jugar/la-misma-huella/)).
+**Dónde Manifold eligió otra cosa.** Eligió las entradas, y las hizo **texto**: la primera línea es la versión de la simulación; después, el juego, su perfil y cómo nació el mundo (sus valores, como líneas de la consola); después, una por línea, cada entrada de cada jugador y cada cambio escrito en la consola, con su paso; al final, el último paso y su huella. Entra en un enlace. Y cada fase deja una **repetición de referencia** que las pruebas juegan en Chromium, Firefox, WebKit y Node: si un cambio altera el mundo sin querer, la huella del final lo delata ([La misma huella](../../../../jugar/la-misma-huella/)).
 
 ## En Manifold
 
-Las repeticiones del motor son texto que se puede leer, una cosa por línea: [`packages/core/src/replay.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/stage-01/packages/core/src/replay.ts). Entran en un enlace: en el Dojo, `replay export` arma uno, y quien lo abre ve la partida y comprueba la huella al final, en su navegador. `ghost` corre contra lo que acabás de hacer. Una prueba graba una corrida con el teclado en Chromium, Firefox y WebKit, y la reproduce en Node: la misma huella en los cuatro. Está en la [Bitácora de la etapa 1c](../../../bitacora/etapa-1c/).
+Las repeticiones del motor son texto que se puede leer, una cosa por línea: [`packages/core/src/replay.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/stage-01/packages/core/src/replay.ts). Entran en un enlace: en el Dojo, `replay export` arma uno, y quien lo abre ve la partida y comprueba la huella al final, en su navegador. `ghost` corre contra lo que acabás de hacer. Una prueba graba una corrida con el teclado en Chromium, Firefox y WebKit, y la reproduce en Node: la misma huella en los cuatro. Está en la [Bitácora de la etapa 1c](../../../../bitacora/etapa-1c/).
 
 ## Para practicar
 

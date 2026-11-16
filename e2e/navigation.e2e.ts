@@ -31,8 +31,9 @@ const pagesBySection: [string, string | null][] = [
   ['jugar/dojo/', 'jugar'],
   ['jugar/consola/', 'jugar'],
   ['tutorial/', 'tutorial'],
-  ['tutorial/etapa-0/01-primer-cubo/', 'tutorial'],
-  ['tutorial/glosario/', 'tutorial'],
+  ['tutorial/parte-1/01-coordenadas/', 'tutorial'],
+  ['tutorial/archivo/etapa-0/01-primer-cubo/', 'tutorial'],
+  ['tutorial/archivo/glosario/', 'tutorial'],
   ['bitacora/', 'bitacora'],
   ['bitacora/etapa-0e/', 'bitacora'],
   ['proyecto/', 'proyecto'],
@@ -67,7 +68,7 @@ test('on a phone, the sections are in a bar at the bottom, also on the home page
   await expect(page.locator('nav.mg-tabbar a[aria-current]')).toHaveText('Bitácora');
 
   // At the end of a lesson, previous/next stay above the bar.
-  await page.goto('tutorial/etapa-0/01-primer-cubo/');
+  await page.goto('tutorial/archivo/etapa-0/01-primer-cubo/');
   await page.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
   const next = (await page.locator('.pagination-links a[rel="next"]').boundingBox())!;
   expect(next.y + next.height).toBeLessThanOrEqual((await bar.boundingBox())!.y);
@@ -77,7 +78,7 @@ test('each section has its own sidebar, and previous/next never leave it', async
   await page.setViewportSize({ width: 1440, height: 900 });
   const sidebarLinks = (section: string) => page.locator(`.sidebar-pane a[href*="/${section}/"]`);
 
-  await page.goto('tutorial/etapa-0/01-primer-cubo/');
+  await page.goto('tutorial/archivo/etapa-0/01-primer-cubo/');
   expect(await sidebarLinks('tutorial').count()).toBeGreaterThan(5);
   await expect(sidebarLinks('bitacora')).toHaveCount(0);
 
@@ -87,9 +88,9 @@ test('each section has its own sidebar, and previous/next never leave it', async
 
   // The patterns are the tutorial's last page, after the glossary (before, the glossary was the last,
   // and its "next" went to the Bitácora): the last page's "next" never leaves the section.
-  await page.goto('tutorial/glosario/');
-  await expect(page.locator('.pagination-links a[rel="next"]')).toHaveAttribute('href', /\/tutorial\/patrones\/$/);
-  await page.goto('tutorial/patrones/');
+  await page.goto('tutorial/archivo/glosario/');
+  await expect(page.locator('.pagination-links a[rel="next"]')).toHaveAttribute('href', /\/tutorial\/archivo\/patrones\/$/);
+  await page.goto('tutorial/archivo/patrones/');
   await expect(page.locator('.pagination-links a[rel="next"]')).toHaveCount(0);
   await page.goto('bitacora/etapa-0/');
   await expect(page.locator('.pagination-links a[rel="prev"]')).toHaveAttribute('href', /\/bitacora\/$/);
@@ -127,10 +128,10 @@ test("the home page's doors lead to pages that exist, with what is new in each s
   const rooms = readdirSync(join(import.meta.dirname, '..', 'games', 'dojo', 'recipes')).filter((f) => f.endsWith('.txt'));
   await expect(page.locator('.mg-rooms a')).toHaveCount(rooms.length);
   // The number of lessons, and the latest report.
-  // (Every stage's: tutorial/etapa-0/, tutorial/etapa-1/…)
+  // (Every part's numbered lessons: tutorial/parte-1/01-coordenadas.mdx…)
   const lessons = readdirSync(join(DOCS, 'tutorial'))
-    .filter((d) => d.startsWith('etapa-'))
-    .flatMap((d) => readdirSync(join(DOCS, 'tutorial', d)).filter((f) => f.endsWith('.mdx')));
+    .filter((d) => d.startsWith('parte-'))
+    .flatMap((d) => readdirSync(join(DOCS, 'tutorial', d)).filter((f) => /^\d+.*\.mdx$/.test(f)));
   await expect(doors.nth(1)).toContainText(`${lessons.length} lecciones`);
   await expect(doors.nth(2).locator('.mg-door-next a')).toHaveText(reports()[0]!.title);
 

@@ -3,7 +3,7 @@ import type { V3 } from './geometry';
 
 /** A name at a point of the scene, centred on it: an HTML element moved, every frame, to where the point is seen. */
 export interface Label {
-  /** Where it is (in the world). */
+  /** Where it is, in the figure's coordinates (those of `lab.world`). */
   at(p: V3): Label;
   /** What it says. */
   text(s: string): Label;
@@ -19,8 +19,8 @@ export interface Label {
   show(visible: boolean): Label;
 }
 
-/** The labels of a figure, placed on every frame (none behind the camera). */
-export function createLabels(camera: THREE.Camera, canvas: HTMLCanvasElement) {
+/** The labels of a figure, placed on every frame (none behind the camera), at points of `world`. */
+export function createLabels(camera: THREE.Camera, canvas: HTMLCanvasElement, world: THREE.Object3D) {
   const all: {
     element: HTMLDivElement;
     at: THREE.Vector3;
@@ -83,13 +83,13 @@ export function createLabels(camera: THREE.Camera, canvas: HTMLCanvasElement) {
     const box = canvas.getBoundingClientRect();
     for (const one of all) {
       const { element, at, visible } = one;
-      seen.copy(at).project(camera);
+      seen.copy(at).applyMatrix4(world.matrixWorld).project(camera);
       element.style.display = !visible || seen.z > 1 ? 'none' : '';
       let x = box.left + ((seen.x + 1) / 2) * box.width;
       let y = box.top + ((1 - seen.y) / 2) * box.height - one.lift;
       if (one.ahead !== 0 || one.side !== 0) {
         // The direction as seen, (dx, dy) on the screen, where y grows downwards; its left is (dy, −dx).
-        ahead.copy(at).add(one.direction).project(camera);
+        ahead.copy(at).add(one.direction).applyMatrix4(world.matrixWorld).project(camera);
         const dx = ((ahead.x - seen.x) / 2) * box.width;
         const dy = (-(ahead.y - seen.y) / 2) * box.height;
         const l = Math.hypot(dx, dy);

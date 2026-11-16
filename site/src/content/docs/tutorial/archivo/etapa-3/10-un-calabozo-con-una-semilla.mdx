@@ -5,7 +5,7 @@ sidebar:
   order: 10
 ---
 
-import LiveCode from '../../../../components/LiveCode.astro';
+import LiveCode from '../../../../../components/LiveCode.astro';
 
 Un calabozo (_dungeon_) hecho a mano es un archivo: alguien dibujó cada sala. Uno hecho por **generación por procedimiento** (_procedural generation_) lo arma un programa: tira dados, prueba dónde poner una sala, la une con la anterior. Así tienen otro calabozo en cada partida los juegos que siguieron a Rogue, de 1980.
 
@@ -102,7 +102,7 @@ Pero `p` baja a medida que el mapa se llena: con la semilla 7 a profundidad 2, l
 
 ## En Manifold
 
-En [`games/adventure/src/dungeon.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/games/adventure/src/dungeon.ts), `dungeon(seed, depth)` arma el calabozo con su azar propio y lo escribe como nivel, y `textHash` saca su huella; [`dungeon.test.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/games/adventure/src/dungeon.test.ts) recorre 180 calabozos desde el comienzo, y [`rules.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/games/adventure/src/rules.ts) los construye (`buildDungeon`). Se juegan en [la aventura](../../../jugar/aventura/), y [La misma huella](../../../jugar/la-misma-huella/#el-mismo-calabozo) hace seis en tu navegador. La sala [`maze`](../../../jugar/dojo/maze/) del Dojo es un mapa dibujado a mano. La [Bitácora](../../../bitacora/etapa-3k/) cuenta cómo se hizo.
+En [`games/adventure/src/dungeon.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/games/adventure/src/dungeon.ts), `dungeon(seed, depth)` arma el calabozo con su azar propio y lo escribe como nivel, y `textHash` saca su huella; [`dungeon.test.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/games/adventure/src/dungeon.test.ts) recorre 180 calabozos desde el comienzo, y [`rules.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/games/adventure/src/rules.ts) los construye (`buildDungeon`). Se juegan en [la aventura](../../../../jugar/aventura/), y [La misma huella](../../../../jugar/la-misma-huella/#el-mismo-calabozo) hace seis en tu navegador. La sala [`maze`](../../../../jugar/dojo/maze/) del Dojo es un mapa dibujado a mano. La [Bitácora](../../../../bitacora/etapa-3k/) cuenta cómo se hizo.
 
 ## Para practicar
 

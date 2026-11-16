@@ -5,7 +5,7 @@ sidebar:
   order: 7
 ---
 
-import LiveCode from '../../../../components/LiveCode.astro';
+import LiveCode from '../../../../../components/LiveCode.astro';
 
 En [La cámara que sigue](../../etapa-1/03-la-camara-que-sigue/), la cámara iba atada al personaje con una correa (_leash_), en un campo abierto. En un pasillo, esa correa la mete en las paredes: en cada vuelta queda detrás del muro que el personaje acaba de doblar, y debajo de un techo bajo queda arriba del techo. El jugador ve una pared.
 
@@ -104,7 +104,7 @@ La segunda trampa está más escondida: guardar a qué distancia de la cabeza se
 
 ## En Manifold
 
-En [`packages/presentation/src/camera.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/presentation/src/camera.ts), `mountCamera` hace todo esto en su parte `AGAINST WALLS`: el barrido desde la cabeza, `cut`, `pulled` y `unpull`, con `CLEARANCE` (25 cm), `CLOSEST` (35 cm) y `OUT` (3 por segundo). La consulta es `castShape` del mundo, en [`packages/core/src/world.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/world.ts), con `characters: false` y `dynamic: false`. En la sala [`corridor`](../../../jugar/dojo/corridor/) del Dojo, manteniendo W se recorre un pasillo con dos túneles, y en cada vuelta una zona sugiere hacia dónde mirar (su `view`). La [Bitácora](../../../bitacora/etapa-3h/) cuenta cómo se hizo.
+En [`packages/presentation/src/camera.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/presentation/src/camera.ts), `mountCamera` hace todo esto en su parte `AGAINST WALLS`: el barrido desde la cabeza, `cut`, `pulled` y `unpull`, con `CLEARANCE` (25 cm), `CLOSEST` (35 cm) y `OUT` (3 por segundo). La consulta es `castShape` del mundo, en [`packages/core/src/world.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/world.ts), con `characters: false` y `dynamic: false`. En la sala [`corridor`](../../../../jugar/dojo/corridor/) del Dojo, manteniendo W se recorre un pasillo con dos túneles, y en cada vuelta una zona sugiere hacia dónde mirar (su `view`). La [Bitácora](../../../../bitacora/etapa-3h/) cuenta cómo se hizo.
 
 ## Para practicar
 

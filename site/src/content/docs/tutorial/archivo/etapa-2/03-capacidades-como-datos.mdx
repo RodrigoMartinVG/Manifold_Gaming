@@ -5,7 +5,7 @@ sidebar:
   order: 3
 ---
 
-import LiveCode from '../../../../components/LiveCode.astro';
+import LiveCode from '../../../../../components/LiveCode.astro';
 
 En [Un personaje](../../etapa-1/02-un-personaje/), la cápsula caminaba y saltaba. Los juegos de plataformas suelen darle más: **trepar** (_climb_) una pared, **planear** (_glide_) manteniendo el salto, o un **segundo salto** en el aire (_double jump_). Y muchas veces se lo dan de a poco: lo que un personaje sabe hacer **cambia mientras se juega**.
 
@@ -95,13 +95,13 @@ En vez de una jerarquía de clases de personajes (el que trepa, el que planea, e
 - **En el diseño de niveles,** los _metroidvanias_ arman el mapa alrededor de las capacidades. _Super Metroid_ (1994) es el clásico: se ven lugares a los que todavía no se llega, y cada capacidad nueva abre una parte del mapa. _Ori and the Blind Forest_ (2015) usa justamente estas tres.
 - **En los libros:** Robert Nystrom, _Game Programming Patterns_, caps. "Component" y "Type Object". Jason Gregory, _Game Engine Architecture_, el capítulo "Runtime Gameplay Foundation Systems": los modelos de objetos del juego, de la jerarquía de clases a la composición.
 
-**Dónde Manifold eligió otra cosa.** Ni objetos de habilidad ni etiquetas: tres booleanos en los datos del personaje, leídos en un solo lugar. Se cambian desde la consola del Dojo como cualquier valor del mundo (`dojo.climb on`) y quedan grabados en la repetición, en su paso. Es la decisión 0004: el mundo es datos, para copiarlo, compararlo con una huella y guardarlo en una instantánea, y un objeto con comportamiento propio no se copia ni se compara así. El costo: una capacidad nueva es código nuevo en el motor (una rama más donde se elige el modo), no algo que un diseñador agrega desde afuera. Con tres, alcanza ([Bitácora de la etapa 2c](../../../bitacora/etapa-2c/)).
+**Dónde Manifold eligió otra cosa.** Ni objetos de habilidad ni etiquetas: tres booleanos en los datos del personaje, leídos en un solo lugar. Se cambian desde la consola del Dojo como cualquier valor del mundo (`dojo.climb on`) y quedan grabados en la repetición, en su paso. Es la decisión 0004: el mundo es datos, para copiarlo, compararlo con una huella y guardarlo en una instantánea, y un objeto con comportamiento propio no se copia ni se compara así. El costo: una capacidad nueva es código nuevo en el motor (una rama más donde se elige el modo), no algo que un diseñador agrega desde afuera. Con tres, alcanza ([Bitácora de la etapa 2c](../../../../bitacora/etapa-2c/)).
 
 ## En Manifold
 
 El tipo `Capabilities` y el campo `can` del personaje están en [`packages/core/src/types.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/types.ts), y se leen en `modeFor` y en el salto de [`packages/core/src/character.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/character.ts). Un personaje nace sin ninguna, salvo que el juego se las dé. El Dojo declara `dojo.climb`, `dojo.glide` y `dojo.doublejump` como valores del mundo, que se prenden y se apagan en vivo para todos ([`games/dojo/src/rules.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/games/dojo/src/rules.ts)).
 
-En la sala [`capabilities`](../../../jugar/dojo/capabilities/) del Dojo hay tres estrellas, cada una con su capacidad: arriba de una torre de 6 m, en una isla a 13,5 m de la última plataforma, y muy alta sobre ella ([la receta](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/games/dojo/recipes/capabilities.txt)). Escribí `dojo.glide off` en la consola y probá otra vez. La sala [`circuit`](../../../jugar/dojo/circuit/) pide las tres en un mismo recorrido. La [Bitácora de la etapa 2c](../../../bitacora/etapa-2c/) cuenta por qué la pared se nota con un rayo y no con los choques del controlador.
+En la sala [`capabilities`](../../../../jugar/dojo/capabilities/) del Dojo hay tres estrellas, cada una con su capacidad: arriba de una torre de 6 m, en una isla a 13,5 m de la última plataforma, y muy alta sobre ella ([la receta](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/games/dojo/recipes/capabilities.txt)). Escribí `dojo.glide off` en la consola y probá otra vez. La sala [`circuit`](../../../../jugar/dojo/circuit/) pide las tres en un mismo recorrido. La [Bitácora de la etapa 2c](../../../../bitacora/etapa-2c/) cuenta por qué la pared se nota con un rayo y no con los choques del controlador.
 
 ## Para practicar
 

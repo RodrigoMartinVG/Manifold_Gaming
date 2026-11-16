@@ -13,7 +13,7 @@ Un juego está lleno de cosas que se mueven, y de preguntas sobre ellas: hacia d
 
 <LiveCode lesson="parte-1/vectors" autorun />
 
-El piso visto desde arriba, con sus ejes: $+X$ hacia la derecha, $+Z$ hacia vos (hacia abajo en la pantalla), y $+Y$ saliendo del piso, hacia arriba. Cada cuadrado mide 1 m. Las flechas $\mathbf{a}$ (roja) y $\mathbf{b}$ (azul) salen del origen $O$, y sus puntas se pueden arrastrar, tomándolas por el anillo. La dorada es la suma, $\mathbf{a} + \mathbf{b}$; las dos tenues son $\mathbf{b}$ dibujada desde la punta de $\mathbf{a}$, y $\mathbf{a}$ desde la punta de $\mathbf{b}$. La verde es la resta, $\mathbf{a} - \mathbf{b}$; la violeta, $\mathbf{a}$ multiplicada por el número $k$ del panel; la blanca, $\hat{\mathbf{a}}$, mide 1 y tiene la punta sobre el círculo de radio 1. Mientras nadie arrastra, un piloto automático lleva las puntas de parada en parada. El panel muestra cada vector y cada largo, calculados por nuestras funciones.
+El piso visto desde arriba, con sus ejes: $+X$ hacia la derecha, $+Z$ hacia vos (hacia abajo en la pantalla), y $+Y$ saliendo del piso, hacia arriba. Cada cuadrado mide 1 m. Las flechas $\mathbf{a}$ (roja) y $\mathbf{b}$ (azul) salen del origen $O$, y sus puntas se pueden arrastrar, tomándolas por la bolita. La dorada es la suma, $\mathbf{a} + \mathbf{b}$; las dos tenues son $\mathbf{b}$ dibujada desde la punta de $\mathbf{a}$, y $\mathbf{a}$ desde la punta de $\mathbf{b}$. La verde es la resta, $\mathbf{a} - \mathbf{b}$; la violeta, $\mathbf{a}$ multiplicada por el número $k$ del panel; la blanca, $\hat{\mathbf{a}}$, mide 1 y tiene la punta sobre el círculo de radio 1. Mientras nadie arrastra, un piloto automático lleva las puntas de parada en parada. El panel muestra cada vector y cada largo, calculados por nuestras funciones.
 
 ## La matemática
 
@@ -194,16 +194,16 @@ Los de la primera parada del piloto automático: $\mathbf{a} = (3, 0, -1)$, $\ma
 
 - **`vec.ts`: los vectores, los mismos del proyecto.** Un vector es un objeto con `x`, `y` y `z` (`Vec`), y cada operación es una función que devuelve uno nuevo: `add`, `sub`, `scale`, `length` y `normalize`, que deja el cero como cero. El opuesto es `scale(a, -1)`; la distancia entre dos puntos, `length(sub(q, p))`. Es el archivo que el proyecto suma en [Moverse](../05-moverse/).
 - **En cada cuadro, las cuentas:** `main.ts` calcula `sum`, `difference`, `stretched` y `unit` con esas funciones. `a` y `b` no cambian.
-- **Y las flechas:** `draw.sum.set(O, sum)` dibuja la suma desde el origen; `draw.bAfterA.set(a, sum)`, $\mathbf{b}$ desde la punta de $\mathbf{a}$; `draw.difference.set(b, a)`, la resta, de punta a punta. Las flechas van de un punto a otro: la punta de $\mathbf{a}$ es el punto $O + \mathbf{a}$, con los números de `a`.
-- **Arrastrar una punta:** un `THREE.Raycaster` tira un rayo desde el ojo por el puntero, y `ray.intersectPlane` lo corta con el piso, el plano $y = 0$. `tipNear` elige la punta que está a menos de medio metro, con `length(sub(p, a))`: la distancia es el largo de la diferencia. El punto se redondea a medios metros (`snap`), para poder llegar a números exactos. Tomar una punta apaga el piloto automático y deja quieta la cámara (`controls.enabled = false`): el evento se escucha en la ventana, antes que los controles de la cámara.
+- **Y las flechas:** una flecha es un vector dibujado en un punto, `set(desde, vector)`. `draw.sum.set(O, sum)` dibuja la suma desde el origen; `draw.bAfterA.set(a, b)`, el vector $\mathbf{b}$ desde la punta de $\mathbf{a}$ (el punto $O + \mathbf{a}$, con los números de `a`); `draw.difference.set(b, sub(a, b))`, la resta, desde la punta de $\mathbf{b}$ hasta la de $\mathbf{a}$.
+- **Arrastrar una punta:** `draggable` lleva la bolita de cada punta por el piso, el plano $y = 0$, que se le da como $[\mathbf{n} \mid d]$ con $\mathbf{n} = (0, 1, 0)$ y $d = 0$: un rayo desde el ojo por el puntero, cortado con ese plano. El punto se redondea a medios metros (`half`), para poder llegar a números exactos. Tomar una punta apaga el piloto automático (`start`), y la cámara se queda quieta mientras se arrastra.
 - **El piloto automático** lleva cada punta de una parada a la siguiente con `between(p, q, s)`, que es $P + s\,(Q - P)$: una combinación afín, con $s$ de 0 a 1. `ease` hace que arranque y frene despacio.
 - **Lo mismo, con three.js:** con su `Vector3`, `a3.clone().add(b3)` y `a3.clone().normalize()`. El `clone()` hace falta: los métodos de three.js cambian el vector sobre el que se llaman.
-- **`figure.ts`, el dibujo:** las flechas planas sobre el piso, los anillos y los nombres. No es parte de la lección.
+- **El dibujo es el kit de laboratorio** (`'lab'`, con su código en el enlace que hay debajo del editor): la escena y la cámara que se gira (`createLab`), las flechas con su nombre (`arrow`), las bolitas que se arrastran (`point`, `draggable`) y los números del panel (`numbers`). Es el mismo en todas las figuras del tutorial, y no es parte de la lección.
 
 ## Probalo
 
 1. **Mirá la primera parada:** _vector a_ (el vector $\mathbf{a}$) dice $(3, 0, -1)$; _sum a + b_ (la suma), $(4, 0, -3)$; _length |a + b|_ (el largo de la suma), 5, y _|a| + |b|_ (la suma de los largos), 5,398. Seguí al piloto: el largo de la suma nunca pasa a la suma de los largos, y en la tercera parada son iguales.
-2. **Arrastrá la punta de $\mathbf{b}$** (su anillo azul): el piloto se apaga, la dorada y el paralelogramo la siguen, y la verde va siempre de la punta de $\mathbf{b}$ a la de $\mathbf{a}$. Soltá las dos puntas en el mismo lugar (se acomodan de a medio metro): _difference a − b_ (la resta) da $(0, 0, 0)$, la verde desaparece, y la dorada es $\mathbf{a} + \mathbf{a} = 2\,\mathbf{a}$.
+2. **Arrastrá la punta de $\mathbf{b}$** (su bolita azul): el piloto se apaga, la dorada y el paralelogramo la siguen, y la verde va siempre de la punta de $\mathbf{b}$ a la de $\mathbf{a}$. Soltá las dos puntas en el mismo lugar (se acomodan de a medio metro): _difference a − b_ (la resta) da $(0, 0, 0)$, la verde desaparece, y la dorada es $\mathbf{a} + \mathbf{a} = 2\,\mathbf{a}$.
 3. **Mové _scalar k_** (el escalar $k$) a 2, y después a −1: la flecha violeta se estira sobre la recta de $\mathbf{a}$, y después se da vuelta. _length |k a|_ (el largo de $k\,\mathbf{a}$) es siempre $\lvert k \rvert$ por _length |a|_ (el largo de $\mathbf{a}$): con $k = -1$, el mismo.
 4. **Llevá la punta de $\mathbf{a}$ al origen:** _unit â_ ($\mathbf{a}$ normalizado) da $(0, 0, 0)$, _length |â|_ (su largo) 0, y la flecha blanca desaparece: el cero no tiene dirección. Soltala en cualquier otro lugar: _length |â|_ vuelve a 1, y _three.js â_ (lo mismo, calculado por three.js) coincide con _unit â_. Tildá _autopilot_ (el piloto automático) y sigue desde ahí.
 
@@ -289,7 +289,7 @@ La suma es $(1, 0, 3)$. Las dos flechas miden $\sqrt{5}$ y forman un ángulo rec
 <details>
 <summary>Una pista</summary>
 
-`between(a, b, 0.5)` es $\tfrac12 P + \tfrac12 Q$. Un anillo para marcarlo se hace una vez, con `figure.ring(0.15, 0.08, 0xffffff)`, y se mueve en cada cuadro con su `set`. El centro de la dorada es $\tfrac12\,(\mathbf{a} + \mathbf{b})$: los mismos números.
+`between(a, b, 0.5)` es $\tfrac12 P + \tfrac12 Q$. Una bolita para marcarlo se hace una vez, con `point(lab, { color: 0xffffff })` (`point` viene de `'lab'`), y se mueve en cada cuadro con su `set`. El centro de la dorada es $\tfrac12\,(\mathbf{a} + \mathbf{b})$: los mismos números.
 
 </details>
 

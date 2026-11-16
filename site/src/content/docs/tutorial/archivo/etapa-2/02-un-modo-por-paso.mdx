@@ -5,7 +5,7 @@ sidebar:
   order: 2
 ---
 
-import LiveCode from '../../../../components/LiveCode.astro';
+import LiveCode from '../../../../../components/LiveCode.astro';
 
 En [Un personaje](../../etapa-1/02-un-personaje/), cada paso era una sola receta: las teclas dan una velocidad, la gravedad le resta, el controlador dice cuánto se puede mover. Pero si el personaje **trepa**, la gravedad ya no lo tira; si **planea**, cae despacio. La tentación es llenar el paso de banderas (`isClimbing`, `isGliding`…) y de `if` que las combinan.
 
@@ -66,7 +66,7 @@ Y no se guardan transiciones ("de caminar se pasa al aire cuando…"): el modo s
 <details>
 <summary>Aportes que se suman, y por qué el límite va después</summary>
 
-Hay aportes que **cambian la velocidad**, como la gravedad (`vy = vy − g · dt`), y otros que **solo lo mueven en ese paso**, como el viento o una plataforma. Si el viento entrara en la velocidad, al salir de la caja azul el personaje seguiría deslizándose, como si hubiera tomado impulso: arrastrar no es empujar, dice la Bitácora de la [etapa 2b](../../../bitacora/etapa-2b/).
+Hay aportes que **cambian la velocidad**, como la gravedad (`vy = vy − g · dt`), y otros que **solo lo mueven en ese paso**, como el viento o una plataforma. Si el viento entrara en la velocidad, al salir de la caja azul el personaje seguiría deslizándose, como si hubiera tomado impulso: arrastrar no es empujar, dice la Bitácora de la [etapa 2b](../../../../bitacora/etapa-2b/).
 
 El límite de caída va **después de la suma**. Planeando a −1,5 m/s, en un paso de 1/60 s la gravedad resta unos 0,16 m/s:
 
@@ -95,7 +95,7 @@ Por qué se siente parejo:
 
 :::caution[Sutilezas]
 
-- **Trepar no empuja contra la pared:** sube a su lado. Para el controlador, una pared es una pendiente de 90°, y cancelaría la subida (lo cuenta la Bitácora de la [etapa 2c](../../../bitacora/etapa-2c/)).
+- **Trepar no empuja contra la pared:** sube a su lado. Para el controlador, una pared es una pendiente de 90°, y cancelaría la subida (lo cuenta la Bitácora de la [etapa 2c](../../../../bitacora/etapa-2c/)).
 - **El saltito, solo arriba de todo.** Trepando en diagonal (A y W), al pasar el costado de la torre se acaba la pared, pero arriba no hay nada: no salta, se suelta.
   :::
 
@@ -109,13 +109,13 @@ Darle a cada situación su propio comportamiento, y decidir en un solo lugar en 
 - **Unity y Godot:** ni el `CharacterController` de Unity ni el `CharacterBody3D` de Godot tienen modos: mueven una cápsula (`Move()`, `move_and_slide()`) y dicen si quedó en el piso. Los modos los arma cada juego, casi siempre como una máquina de estados (_state machine_) con una clase por estado; en Godot, también la gravedad.
 - **En los libros:** Robert Nystrom, _Game Programming Patterns_, cap. "State", va de una heroína llena de banderas a las máquinas de estados, y a dos variantes: la **jerárquica** (_hierarchical state machine_), donde estados parecidos comparten lo común en un estado padre; y el **autómata con pila** (_pushdown automaton_), que apila estados para volver al anterior.
 
-**Dónde Manifold eligió otra cosa.** Los modos son **datos en una tabla**, no clases ni un `switch`, y sus números son del personaje: entran en la huella y en las repeticiones. Hay **una sola decisión**, de cero en cada paso, en vez de transiciones repartidas entre los estados: con cuatro modos alcanza una lista en orden, sin jerarquía ni pila. Y **los aportes van afuera de los modos**: las plataformas que se mueven ([etapa 2d](../../../bitacora/etapa-2d/)) se sumaron sin que ningún modo sepa de ellas, y la gravedad de un planeta no tiene que conocerla cada uno.
+**Dónde Manifold eligió otra cosa.** Los modos son **datos en una tabla**, no clases ni un `switch`, y sus números son del personaje: entran en la huella y en las repeticiones. Hay **una sola decisión**, de cero en cada paso, en vez de transiciones repartidas entre los estados: con cuatro modos alcanza una lista en orden, sin jerarquía ni pila. Y **los aportes van afuera de los modos**: las plataformas que se mueven ([etapa 2d](../../../../bitacora/etapa-2d/)) se sumaron sin que ningún modo sepa de ellas, y la gravedad de un planeta no tiene que conocerla cada uno.
 
 ## En Manifold
 
 El personaje del motor está en [`packages/core/src/character.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/character.ts): la tabla (`MODES`), la decisión (`modeFor`) y el paso entero (`moveCharacter`), con los aportes en su cuarta parte. Sus números, los de un juego de plataformas, son `DEFAULT_MOVEMENT`. Además, corre, salta desde la pared y da un segundo salto, y las reglas de trepar y de planear preguntan antes si puede: son capacidades, que se prenden y apagan en vivo.
 
-En la sala [`capabilities`](../../../jugar/dojo/capabilities/) del Dojo están prendidas, y el [`circuit`](../../../jugar/dojo/circuit/) termina con un planeo de 22,5 m. En la consola, `inspect me` muestra el modo, y `dojo.air 0` saca el control en el aire. La Bitácora de las etapas [2b](../../../bitacora/etapa-2b/) y [2c](../../../bitacora/etapa-2c/) cuenta cómo se hizo.
+En la sala [`capabilities`](../../../../jugar/dojo/capabilities/) del Dojo están prendidas, y el [`circuit`](../../../../jugar/dojo/circuit/) termina con un planeo de 22,5 m. En la consola, `inspect me` muestra el modo, y `dojo.air 0` saca el control en el aire. La Bitácora de las etapas [2b](../../../../bitacora/etapa-2b/) y [2c](../../../../bitacora/etapa-2c/) cuenta cómo se hizo.
 
 ## Para practicar
 

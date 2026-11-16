@@ -18,6 +18,12 @@ export interface LabOptions {
 /** A figure: the scene, its camera, its panel, its labels and its loop. */
 export interface Lab {
   scene: THREE.Scene;
+  /**
+   * What the kit draws goes in here, in the figure's own coordinates: the identity, until a figure moves
+   * or mirrors its whole world (`lab.world.scale.z = -1` draws the same numbers left-handed), and the
+   * labels and the dragging follow it.
+   */
+  world: THREE.Group;
   camera: THREE.PerspectiveCamera;
   controls: OrbitControls;
   renderer: THREE.WebGLRenderer;
@@ -56,8 +62,11 @@ export function createLab(o: LabOptions): Lab {
     scene.add(new THREE.GridHelper(size, size, 0x5c5246, 0x3a332c));
   }
 
+  const world = new THREE.Group();
+  scene.add(world);
+
   const gui = new GUI({ title: o.title });
-  const labels = createLabels(camera, renderer.domElement);
+  const labels = createLabels(camera, renderer.domElement, world);
 
   // The picture takes the window; its centre moves left by half the panel (and back when it closes).
   const fit = () => {
@@ -81,6 +90,7 @@ export function createLab(o: LabOptions): Lab {
       update(Math.min(0.25, (now - before) / 1000));
       before = now;
       controls.update();
+      world.updateMatrixWorld();
       renderer.render(scene, camera);
       labels.place();
       requestAnimationFrame(frame);
@@ -88,7 +98,7 @@ export function createLab(o: LabOptions): Lab {
     requestAnimationFrame(frame);
   }
 
-  const lab = { scene, camera, controls, renderer, gui, label: labels.label, onFrame };
+  const lab = { scene, world, camera, controls, renderer, gui, label: labels.label, onFrame };
   // In the browser's console, in the figure's frame, `lab` is the figure: `lab.camera.position`,
   // `lab.scene.children`... (and the browser tests read it there too).
   Object.assign(globalThis, { lab });

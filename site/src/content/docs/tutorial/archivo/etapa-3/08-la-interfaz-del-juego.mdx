@@ -5,7 +5,7 @@ sidebar:
   order: 8
 ---
 
-import LiveCode from '../../../../components/LiveCode.astro';
+import LiveCode from '../../../../../components/LiveCode.astro';
 
 Un juego le habla a quien lo juega: "Punto de control", "Una estrella: quedan 3", un reloj en una esquina. Pero el mundo de Manifold se simula igual en un servidor, en cada navegador y en cada repetición, y dos personas que comparten una partida pueden leer en dos idiomas: una frase en español no tiene lugar en él.
 
@@ -106,7 +106,7 @@ El mundo deja una clave y sus números, y la página elige las palabras. Es la *
 
 ## En Manifold
 
-Las palabras del motor y cómo se dicen están en [`packages/presentation/src/words.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/presentation/src/words.ts) (`ENGINE_WORDS`, `sayer`, `numberIn`, `timeIn`, `languageOf`, `missingKeys`); el HUD, los avisos y los subtítulos, en [`hud.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/presentation/src/hud.ts), [`notices.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/presentation/src/notices.ts) y [`subtitles.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/presentation/src/subtitles.ts) (`mountHud`, `mountNotices`, `mountSubtitles`); los ajustes y cuáles se guardan, en [`settings.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/presentation/src/settings.ts) (`mountSettings`); el menú de pausa, en [`menu.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/presentation/src/menu.ts); y las palabras del Dojo, su HUD y el cuadro de la meta, en [`games/dojo/src/interface.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/games/dojo/src/interface.ts) (`DOJO_WORDS`, `dojoHud`, `dojoGoal`). La sala [`circuit`](../../../jugar/dojo/circuit/) del Dojo muestra el HUD y el cuadro de la meta; los subtítulos vienen apagados, y se prenden en los ajustes o con `view.subtitles on`. La [Bitácora](../../../bitacora/etapa-3i/) cuenta cómo se hizo.
+Las palabras del motor y cómo se dicen están en [`packages/presentation/src/words.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/presentation/src/words.ts) (`ENGINE_WORDS`, `sayer`, `numberIn`, `timeIn`, `languageOf`, `missingKeys`); el HUD, los avisos y los subtítulos, en [`hud.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/presentation/src/hud.ts), [`notices.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/presentation/src/notices.ts) y [`subtitles.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/presentation/src/subtitles.ts) (`mountHud`, `mountNotices`, `mountSubtitles`); los ajustes y cuáles se guardan, en [`settings.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/presentation/src/settings.ts) (`mountSettings`); el menú de pausa, en [`menu.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/presentation/src/menu.ts); y las palabras del Dojo, su HUD y el cuadro de la meta, en [`games/dojo/src/interface.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/games/dojo/src/interface.ts) (`DOJO_WORDS`, `dojoHud`, `dojoGoal`). La sala [`circuit`](../../../../jugar/dojo/circuit/) del Dojo muestra el HUD y el cuadro de la meta; los subtítulos vienen apagados, y se prenden en los ajustes o con `view.subtitles on`. La [Bitácora](../../../../bitacora/etapa-3i/) cuenta cómo se hizo.
 
 ## Para practicar
 

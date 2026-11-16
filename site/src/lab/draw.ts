@@ -62,7 +62,7 @@ export function arrow(
   }
   const object = new THREE.Group();
   object.add(shaft, head);
-  lab.scene.add(object);
+  lab.world.add(object);
   const label = o.label === undefined ? null : lab.label(o.label).color(css(o.color));
   let visible = true;
   let drawn = false;
@@ -102,7 +102,7 @@ export function arrow(
 export function point(lab: Lab, o: { color: number; label?: string; radius?: number; opacity?: number }) {
   const radius = o.radius ?? 0.09;
   const mesh = new THREE.Mesh(new THREE.SphereGeometry(radius, 24, 14), paint(o.color, o.opacity));
-  lab.scene.add(mesh);
+  lab.world.add(mesh);
   const label = o.label === undefined ? null : lab.label(o.label).color(css(o.color)).lift(18);
   const handle = {
     mesh,
@@ -129,7 +129,7 @@ export function line(lab: Lab, o: { color: number; dashed?: boolean; opacity?: n
     ? new THREE.LineDashedMaterial({ ...look, dashSize: 0.12, gapSize: 0.08 })
     : new THREE.LineBasicMaterial(look);
   const object = new THREE.Line(geometry, material);
-  lab.scene.add(object);
+  lab.world.add(object);
   const handle = {
     object,
     set(a: V3, b: V3) {
@@ -145,6 +145,57 @@ export function line(lab: Lab, o: { color: number; dashed?: boolean; opacity?: n
   return handle;
 }
 
+/** A ROD: a segment with thickness, from one point to another (a length to see, not a vector: no head). */
+export function rod(lab: Lab, o: { color: number; width?: number; opacity?: number }) {
+  const radius = o.width ?? 0.03;
+  const mesh = new THREE.Mesh(SHAFT, paint(o.color, o.opacity));
+  lab.world.add(mesh);
+  const along = new THREE.Vector3();
+  const handle = {
+    mesh,
+    set(a: V3, b: V3) {
+      along.set(b.x - a.x, b.y - a.y, b.z - a.z);
+      const length = along.length();
+      mesh.visible = length > 1e-6;
+      if (!mesh.visible) return handle;
+      mesh.position.set(a.x, a.y, a.z);
+      mesh.quaternion.setFromUnitVectors(UP, along.divideScalar(length));
+      mesh.scale.set(radius, length, radius);
+      return handle;
+    },
+    show(on: boolean) {
+      mesh.visible = on;
+      return handle;
+    },
+  };
+  return handle;
+}
+
+/** A RIGHT-ANGLE MARK at a corner, between the directions towards two points (none when a side is too short). */
+export function rightAngle(lab: Lab, o: { color: number; size?: number }) {
+  const size = o.size ?? 0.22;
+  const geometry = new THREE.BufferGeometry();
+  const object = new THREE.Line(geometry, new THREE.LineBasicMaterial({ color: o.color }));
+  lab.world.add(object);
+  const u = new THREE.Vector3();
+  const w = new THREE.Vector3();
+  const handle = {
+    object,
+    set(corner: V3, a: V3, b: V3) {
+      u.set(a.x - corner.x, a.y - corner.y, a.z - corner.z);
+      w.set(b.x - corner.x, b.y - corner.y, b.z - corner.z);
+      object.visible = u.length() > 2 * size && w.length() > 2 * size;
+      if (!object.visible) return handle;
+      u.setLength(size);
+      w.setLength(size);
+      const c = v(corner);
+      geometry.setFromPoints([c.clone().add(u), c.clone().add(u).add(w), c.clone().add(w)]);
+      return handle;
+    },
+  };
+  return handle;
+}
+
 /** A PATH through several points, as a line of one pixel: an arc, a trail, a curve sampled. */
 export function path(lab: Lab, o: { color: number; opacity?: number }) {
   const geometry = new THREE.BufferGeometry();
@@ -152,7 +203,7 @@ export function path(lab: Lab, o: { color: number; opacity?: number }) {
     geometry,
     new THREE.LineBasicMaterial({ color: o.color, transparent: (o.opacity ?? 1) < 1, opacity: o.opacity ?? 1 }),
   );
-  lab.scene.add(object);
+  lab.world.add(object);
   const handle = {
     object,
     set(points: readonly V3[]) {
@@ -180,7 +231,7 @@ export function fan(lab: Lab, o: { color: number; opacity?: number }) {
       depthWrite: false,
     }),
   );
-  lab.scene.add(mesh);
+  lab.world.add(mesh);
   const handle = {
     mesh,
     set(centre: V3, points: readonly V3[]) {
@@ -215,7 +266,7 @@ export function circle(lab: Lab, o: { color: number; radius: number; width?: num
       depthWrite: false,
     }),
   );
-  lab.scene.add(mesh);
+  lab.world.add(mesh);
   const handle = {
     mesh,
     set(centre: V3, normal: V3 = { x: 0, y: 1, z: 0 }) {
@@ -244,7 +295,7 @@ export function plane(lab: Lab, o: { color: number; size?: number; opacity?: num
       depthWrite: false,
     }),
   );
-  lab.scene.add(mesh);
+  lab.world.add(mesh);
   const normal = o.normal === false ? null : arrow(lab, { color: o.color, label: 'n' });
   const handle = {
     mesh,
@@ -262,10 +313,15 @@ export function plane(lab: Lab, o: { color: number; size?: number; opacity?: num
   return handle;
 }
 
+/** The axes' colors, as in almost every program: red, green and blue for x, y and z. */
+export const AXIS_COLOR = { x: 0xe0605a, y: 0x6cc070, z: 0x5a9ae6 } as const;
+
 /** A FRAME: three arrows from an origin (red, green, blue: x, y, z, or any three directions), with names. */
 export function frame(lab: Lab, o: { size?: number; names?: [string, string, string]; width?: number } = {}) {
   const names = o.names ?? ['x', 'y', 'z'];
-  const axes = [0xe0605a, 0x6cc070, 0x5a9ae6].map((color, i) => arrow(lab, { color, label: names[i], width: o.width ?? 0.03 }));
+  const axes = [AXIS_COLOR.x, AXIS_COLOR.y, AXIS_COLOR.z].map((color, i) =>
+    arrow(lab, { color, label: names[i], width: o.width ?? 0.03 }),
+  );
   const handle = {
     axes,
     set(origin: V3, x: V3 = { x: 1, y: 0, z: 0 }, y: V3 = { x: 0, y: 1, z: 0 }, z: V3 = { x: 0, y: 0, z: 1 }) {

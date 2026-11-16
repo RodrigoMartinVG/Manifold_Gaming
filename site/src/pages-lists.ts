@@ -17,8 +17,9 @@ export async function reports(): Promise<Page[]> {
   return all.sort((a, b) => order(b) - order(a));
 }
 
-/** The tutorial's lessons, in order (without its introduction and its glossary). */
+/** The tutorial's lessons, in order: the parts' numbered lessons (not their introductions, nor the archive). */
 export async function lessons(): Promise<Page[]> {
-  const all = await getCollection('docs', (p) => /^tutorial\/etapa-\d+\//.test(p.id));
-  return all.sort((a, b) => a.id.localeCompare(b.id));
+  const all = await getCollection('docs', (p) => /^tutorial\/parte-\d+\/\d+/.test(p.id));
+  const key = (p: Page) => p.id.replace(/\d+/g, (n) => n.padStart(3, '0')); // parte-10 after parte-9
+  return all.sort((a, b) => key(a).localeCompare(key(b)));
 }

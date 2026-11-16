@@ -3,6 +3,8 @@ import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
+import { fileURLToPath } from 'node:url';
+import { redirects } from './src/redirects.mjs';
 
 /**
  * The Manifold Gaming site (decision 0002): Astro, with Starlight for the tutorial. It is published
@@ -20,18 +22,9 @@ export default defineConfig({
   markdown: { remarkPlugins: [remarkMath], rehypePlugins: [rehypeKatex] },
   // Models (stage 2e: the Dojo's mannequin): served as files, by their address.
   vite: { assetsInclude: ['**/*.glb'] },
-  // Addresses that moved, so old links still arrive. Stage 1's lessons took their places in the
-  // deeper pass (decision 0013): collisions, the camera and inputs went in between, where they teach.
-  // (Astro does not add `base` to a redirect's destination: without it, the page would send readers
-  // to /tutorial/…, outside the site, as the browser test found.)
-  redirects: Object.fromEntries(
-    [
-      ['01-un-personaje', '02-un-personaje'],
-      ['02-repeticiones', '05-repeticiones'],
-      ['03-instantaneas', '06-instantaneas'],
-      ['04-servidor-y-cliente', '07-servidor-y-cliente'],
-    ].map(([from, to]) => [`/tutorial/etapa-1/${from}/`, `${BASE}/tutorial/etapa-1/${to}/`]),
-  ),
+  // Addresses that moved, so old links still arrive: the old tutorial, archived; stage 1's lessons that
+  // took other places; the new tutorial's pilot (src/redirects.mjs, which the tests read too).
+  redirects: redirects(BASE, fileURLToPath(new URL('./src/content/docs', import.meta.url))),
   integrations: [
     starlight({
       title: 'Manifold Gaming',
@@ -82,30 +75,48 @@ export default defineConfig({
             },
           ],
         },
+        // The tutorial (decision 0021): the pages before part 1, then the parts; the old tutorial, archived,
+        // closed at the end, with its stages, its glossary and its patterns.
         {
           label: 'Tutorial',
           items: [
             { label: 'Empezar aquí', link: '/tutorial/' },
-            { label: 'Etapa 0: cimientos', items: [{ autogenerate: { directory: 'tutorial/etapa-0' } }] },
-            { label: 'Etapa 1: física y un personaje', items: [{ autogenerate: { directory: 'tutorial/etapa-1' } }] },
-            { label: 'Etapa 2: capacidades', items: [{ autogenerate: { directory: 'tutorial/etapa-2' } }] },
-            { label: 'Etapa 3: un mundo que responde', items: [{ autogenerate: { directory: 'tutorial/etapa-3' } }] },
-            { label: 'Glosario', link: '/tutorial/glosario/' },
-            // The design patterns the lessons use, gathered like the glossary gathers the words (0013).
-            { label: 'Patrones', link: '/tutorial/patrones/' },
+            { label: 'TypeScript para quien sabe JavaScript', link: '/tutorial/typescript/' },
+            { label: 'La notación', link: '/tutorial/notacion/' },
+            { label: 'Parte 1: El espacio', items: [{ autogenerate: { directory: 'tutorial/parte-1' } }] },
+            {
+              label: 'El tutorial anterior (archivado)',
+              collapsed: true,
+              items: [
+                { label: 'Presentación', link: '/tutorial/archivo/' },
+                {
+                  label: 'Etapa 0: cimientos',
+                  collapsed: true,
+                  items: [{ autogenerate: { directory: 'tutorial/archivo/etapa-0' } }],
+                },
+                {
+                  label: 'Etapa 1: física y un personaje',
+                  collapsed: true,
+                  items: [{ autogenerate: { directory: 'tutorial/archivo/etapa-1' } }],
+                },
+                {
+                  label: 'Etapa 2: capacidades',
+                  collapsed: true,
+                  items: [{ autogenerate: { directory: 'tutorial/archivo/etapa-2' } }],
+                },
+                {
+                  label: 'Etapa 3: un mundo que responde',
+                  collapsed: true,
+                  items: [{ autogenerate: { directory: 'tutorial/archivo/etapa-3' } }],
+                },
+                { label: 'Glosario', link: '/tutorial/archivo/glosario/' },
+                // The design patterns the lessons use, gathered like the glossary gathers the words (0013).
+                { label: 'Patrones', link: '/tutorial/archivo/patrones/' },
+              ],
+            },
           ],
         },
         { label: 'Bitácora', items: [{ autogenerate: { directory: 'bitacora' } }] },
-        // The new tutorial's pilot (decision 0021): out of the sections until it is accepted.
-        {
-          label: 'Tutorial nuevo (piloto)',
-          items: [
-            { label: 'Empezar aquí', link: '/tutorial-nuevo/' },
-            { label: 'TypeScript para quien sabe JavaScript', link: '/tutorial-nuevo/typescript/' },
-            { label: 'La notación', link: '/tutorial-nuevo/notacion/' },
-            { label: 'Parte 1: algo que se mueve', items: [{ autogenerate: { directory: 'tutorial-nuevo/parte-1' } }] },
-          ],
-        },
       ],
       routeMiddleware: './src/route-data.ts',
     }),

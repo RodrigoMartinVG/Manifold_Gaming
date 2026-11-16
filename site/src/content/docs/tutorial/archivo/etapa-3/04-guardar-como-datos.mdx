@@ -5,7 +5,7 @@ sidebar:
   order: 4
 ---
 
-import LiveCode from '../../../../components/LiveCode.astro';
+import LiveCode from '../../../../../components/LiveCode.astro';
 
 La manera más directa de guardar una partida es sacarle una **foto** al mundo: todo, tal cual está, cada objeto con cada número. El motor ya sabe hacerlo: es una [instantánea](../../etapa-1/06-instantaneas/). Y para volver a un momento de la misma sesión, es perfecta. Para guardar una partida, no: la foto está escrita en el idioma de la versión del motor que la sacó. La próxima actualización cambia un componente, y todas las partidas guardadas quedan ilegibles.
 
@@ -88,7 +88,7 @@ La foto del mundo es un **memento** (_memento_): el objeto entrega algo que solo
 
 - [`packages/core/src/saved.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/saved.ts): el sobre (`saveGame`), leer y migrar (`readSave`), la partida como receta (`saveRecipe`), y el cambio del mundo `progress`.
 - [`games/adventure/src/rules.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/games/adventure/src/rules.ts): el progreso de la aventura, versión 2, y su migración desde la 1. La partida de la versión 1, guardada como archivo: [`games/adventure/saves/version-1.json`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/games/adventure/saves/version-1.json).
-- [La aventura](../../../jugar/aventura/): en el menú de pausa (<kbd>Esc</kbd>), guardar y cargar la partida. La Bitácora de la [etapa 3k](../../../bitacora/etapa-3k/) cuenta cómo se hizo.
+- [La aventura](../../../../jugar/aventura/): en el menú de pausa (<kbd>Esc</kbd>), guardar y cargar la partida. La Bitácora de la [etapa 3k](../../../../bitacora/etapa-3k/) cuenta cómo se hizo.
 
 ## Para practicar
 

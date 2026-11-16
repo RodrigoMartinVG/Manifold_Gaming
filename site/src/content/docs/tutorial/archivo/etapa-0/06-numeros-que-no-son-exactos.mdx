@@ -5,7 +5,7 @@ sidebar:
   order: 6
 ---
 
-import LiveCode from '../../../../components/LiveCode.astro';
+import LiveCode from '../../../../../components/LiveCode.astro';
 
 La [lección anterior](../05-simulacion-y-dibujo/) terminó con una promesa: la misma semilla y los mismos pasos dan el mismo mundo, **número por número**. Para cumplirla hay que saber cómo son esos números, porque no son los de la escuela.
 
@@ -108,9 +108,9 @@ Medido en este tutorial contra el valor exacto, en cada grado entero: el seno y 
 
 - [`packages/common/src/math.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/common/src/math.ts): los largos, con `Math.sqrt` de la suma de cuadrados (no con `Math.hypot`); el seno y el coseno propios, `sinCosDegrees`; y `quat.look`, que arma una orientación sin trigonometría.
 - [`packages/common/src/approx.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/common/src/approx.ts): lo que sí usa la trigonometría del navegador, para las pruebas y las vistas. Nunca dentro de un paso.
-- [`eslint.config.js`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/eslint.config.js): una regla del revisor de código prohíbe `Math.sin`, `cos`, `atan2`, `exp`, `pow`, `**` y compañía en el núcleo, en la red y en las reglas de cada juego. La puso la [etapa 1f](../../../bitacora/etapa-1f/), cuando encontró trigonometría escondida en un paso.
+- [`eslint.config.js`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/eslint.config.js): una regla del revisor de código prohíbe `Math.sin`, `cos`, `atan2`, `exp`, `pow`, `**` y compañía en el núcleo, en la red y en las reglas de cada juego. La puso la [etapa 1f](../../../../bitacora/etapa-1f/), cuando encontró trigonometría escondida en un paso.
 - [`packages/core/src/input.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/input.ts): las direcciones que pide un jugador van en **grados enteros**, armadas con el seno propio, y los −0 se vuelven +0.
-- [La misma huella](../../../jugar/la-misma-huella/): tu navegador juega las repeticiones de referencia del motor y compara su huella con la que dio Node al grabarlas. Las pruebas del proyecto lo hacen en Chromium, Firefox y WebKit.
+- [La misma huella](../../../../jugar/la-misma-huella/): tu navegador juega las repeticiones de referencia del motor y compara su huella con la que dio Node al grabarlas. Las pruebas del proyecto lo hacen en Chromium, Firefox y WebKit.
 
 ## Para practicar
 

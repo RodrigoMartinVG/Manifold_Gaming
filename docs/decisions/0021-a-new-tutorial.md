@@ -87,7 +87,7 @@ The inventory of both tutorials, lesson by lesson, refines this outline before p
 
 ### How it starts
 
-1. **This decision, and a pilot:** part 1's introduction page and its first two lessons (the window into the world, and moving with vectors), with what they need: KaTeX, the project's tree of modules, and the tests. Until it is accepted it lives at an address of its own, out of the navigation. The author reads it as a learner and as a mathematician; what the pilot teaches changes this decision before it is accepted.
+1. **This decision, and a pilot:** part 1's introduction page and its first two lessons (the window into the world, and moving with vectors), with what they need: KaTeX, the project's tree of modules, and the tests. Until it is accepted it lives at an address of its own, out of the navigation. (Done: the pilot grew into the curriculum, and on 2026-11-16 the new tutorial took the Tutorial section, the old one archived at `/tutorial/archivo/`.) The author reads it as a learner and as a mathematician; what the pilot teaches changes this decision before it is accepted.
 2. **The archive:** the current tutorial moves, as it is, to an archive of the site (its pages and examples working, with a notice that it is archived, out of the main navigation, its old addresses sent there). The new tutorial takes its place in the Tutorial section.
 3. **The inventory:** every lesson of both tutorials with its destination in the outline, or dropped with why. Then Manifold Lab can be deleted by its author.
 4. **Part 1,** whole, and then the next.

@@ -5,7 +5,7 @@ sidebar:
   order: 4
 ---
 
-import LiveCode from '../../../../components/LiveCode.astro';
+import LiveCode from '../../../../../components/LiveCode.astro';
 
 En la [lección del personaje](../02-un-personaje/), el paso de la física leía las teclas directamente: `held.has('KeyW')`. Para un ejemplo alcanza. Para un juego, no: el jugador 2 usa las flechas, otro tiene un mando, un bot no tiene teclado, una repetición vuelve a pedir lo que se pidió, y por la red llega lo que pidió otra computadora. El mundo no puede saber de dónde viene cada cosa.
 
@@ -99,9 +99,9 @@ Convertir un pedido en un dato (algo que se puede guardar, mandar, repetir o fab
 ## En Manifold
 
 - [`packages/core/src/input.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/input.ts): las acciones con su clase (botón, eje, vector, dirección), `pressed`, y `normalizeInput`, que redondea lo que entra.
-- [`packages/core/src/session.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/session.ts): `setInput` deja cada entrada esperando su paso. Si un toque se apretó y se soltó antes de un paso, el apretado espera su turno y el soltado entra en el paso siguiente: hasta la [etapa 2a](../../../bitacora/etapa-2a/), un toque así se perdía.
+- [`packages/core/src/session.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/session.ts): `setInput` deja cada entrada esperando su paso. Si un toque se apretó y se soltó antes de un paso, el apretado espera su turno y el soltado entra en el paso siguiente: hasta la [etapa 2a](../../../../bitacora/etapa-2a/), un toque así se perdía.
 - [`packages/presentation/src/player.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/presentation/src/player.ts): de las teclas y el mando a lo que se pide, por la cámara (adelante es hacia donde mira la cámara, aplastado sobre el piso) o como un tanque.
-- En el [Dojo](../../../jugar/dojo/course/), el comando `inputs` lista lo que puede pedir un jugador en ese juego, y qué tecla lo pide.
+- En el [Dojo](../../../../jugar/dojo/course/), el comando `inputs` lista lo que puede pedir un jugador en ese juego, y qué tecla lo pide.
 
 ## Para practicar
 

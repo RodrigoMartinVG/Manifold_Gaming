@@ -5,7 +5,7 @@ sidebar:
   order: 7
 ---
 
-import LiveCode from '../../../../components/LiveCode.astro';
+import LiveCode from '../../../../../components/LiveCode.astro';
 
 En un juego en red, cada jugador tiene su computadora, y la partida tiene que ser la misma para todos. La manera de lograrlo usa todo lo de las lecciones anteriores:
 
@@ -92,7 +92,7 @@ El cable del ejemplo guarda cada mensaje en una fila y lo entrega después, en o
 
 ## En Manifold
 
-El motor tiene esto mismo en un paquete propio: [`packages/net`](https://github.com/RodrigoMartinVG/Manifold_Gaming/tree/stage-01/packages/net/src), con un servidor y un cliente que no saben por dónde viajan sus mensajes. Y **todos los juegos juegan a través de él, aunque se juegue solo**: el servidor vive en la misma página, y cada partida comprueba el determinismo mientras se juega. En el Dojo, `net open` en una pestaña y `net join` en otra del mismo navegador ponen a dos jugadores en la misma partida, cada uno con su personaje. Cómo se armó está en la [Bitácora de la etapa 1e](../../../bitacora/etapa-1e/).
+El motor tiene esto mismo en un paquete propio: [`packages/net`](https://github.com/RodrigoMartinVG/Manifold_Gaming/tree/stage-01/packages/net/src), con un servidor y un cliente que no saben por dónde viajan sus mensajes. Y **todos los juegos juegan a través de él, aunque se juegue solo**: el servidor vive en la misma página, y cada partida comprueba el determinismo mientras se juega. En el Dojo, `net open` en una pestaña y `net join` en otra del mismo navegador ponen a dos jugadores en la misma partida, cada uno con su personaje. Cómo se armó está en la [Bitácora de la etapa 1e](../../../../bitacora/etapa-1e/).
 
 ## Para practicar
 

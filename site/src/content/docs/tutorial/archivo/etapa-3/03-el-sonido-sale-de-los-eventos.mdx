@@ -5,7 +5,7 @@ sidebar:
   order: 3
 ---
 
-import LiveCode from '../../../../components/LiveCode.astro';
+import LiveCode from '../../../../../components/LiveCode.astro';
 
 En un juego de sigilo, un paso en el metal te delata y uno en la alfombra no. Para eso, el sonido no puede ser solo algo que suena en los parlantes: el guardia tiene que **enterarse**, y enterarse igual en cada copia de la partida. Entonces el sonido nace en la simulación, como un **evento**: qué lo hizo, dónde, sobre qué, cuán rápido o cuán fuerte, y **hasta dónde se oye**.
 
@@ -44,7 +44,7 @@ Tres pisos lado a lado, madera, piedra y metal, y un personaje que camina en un 
 
 Rapier, como casi todos los motores de física, puede avisar cuándo dos cosas empiezan a tocarse, y con qué fuerza. Pero esos avisos quedan **afuera** del estado del mundo: una instantánea no los guarda, y una copia restaurada a la mitad de un choque podría oír un golpe de más, o de menos. Para un guardia que reacciona a lo que oye, eso cambiaría la partida.
 
-El golpe sale de lo que el mundo ya tiene: la velocidad de cada cosa antes y después del paso. Si cambió más de lo que le dio la gravedad, algo la golpeó, y la energía del golpe es `½ m Δv²`. Está en el mundo, así que es igual en cada copia y después de cualquier instantánea ([etapa 3f](../../../bitacora/etapa-3f/)).
+El golpe sale de lo que el mundo ya tiene: la velocidad de cada cosa antes y después del paso. Si cambió más de lo que le dio la gravedad, algo la golpeó, y la energía del golpe es `½ m Δv²`. Está en el mundo, así que es igual en cada copia y después de cualquier instantánea ([etapa 3f](../../../../bitacora/etapa-3f/)).
 
 </details>
 
@@ -86,14 +86,14 @@ La simulación no hace sonar nada: deja eventos en una lista, y el dibujo los le
 - **Unity:** no trae un oído para la IA; los juegos emiten su propio evento al hacer sonar algo.
 - **En los libros:** Ian Millington, _AI for Games_, el cap. sobre la percepción (el oído, con la atenuación por distancia). Andy Farnell, _Designing Sound_ (2010): sonidos hechos con síntesis, sin grabaciones.
 
-**Dónde Manifold eligió otra cosa.** **El sonido es de la simulación, con su radio:** el oído de los bots de la fase 4 leerá el mismo evento que hace sonar los parlantes. **Los golpes, de las velocidades de antes y de después**, no de los eventos de contacto de la física, que quedan afuera del mundo. **Sintetizado, sin archivos grabados** ([decisión 0015](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/docs/decisions/0015-art-and-sound.md)): la madera repica, el metal resuena. Y para quien no oye, los **subtítulos** de cada sonido, con una flecha hacia donde vino ([etapa 3i](../../../bitacora/etapa-3i/)).
+**Dónde Manifold eligió otra cosa.** **El sonido es de la simulación, con su radio:** el oído de los bots de la fase 4 leerá el mismo evento que hace sonar los parlantes. **Los golpes, de las velocidades de antes y de después**, no de los eventos de contacto de la física, que quedan afuera del mundo. **Sintetizado, sin archivos grabados** ([decisión 0015](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/docs/decisions/0015-art-and-sound.md)): la madera repica, el metal resuena. Y para quien no oye, los **subtítulos** de cada sonido, con una flecha hacia donde vino ([etapa 3i](../../../../bitacora/etapa-3i/)).
 
 ## En Manifold
 
 - [`packages/core/src/sound.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/sound.ts): cuán lejos se oye un paso en cada material (`STEP_HEARD`) y un golpe por su energía (`hitRadius`).
 - [`packages/core/src/character.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/character.ts): los pasos cada zancada, y los aterrizajes.
 - [`packages/presentation/src/audio.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/presentation/src/audio.ts): la síntesis, con Web Audio. Y [`subtitles.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/presentation/src/subtitles.ts): los subtítulos.
-- La sala [`surfaces`](../../../jugar/dojo/surfaces/) del Dojo empieza en tres pisos, madera, piedra y metal.
+- La sala [`surfaces`](../../../../jugar/dojo/surfaces/) del Dojo empieza en tres pisos, madera, piedra y metal.
 
 ## Para practicar
 

@@ -133,12 +133,12 @@ Los puntos del ejemplo, los que pone el botón _worked example_: $P = (3,\ 2,\ 1
 ## El código
 
 - **Las fórmulas, arriba de todo.** `floorDistance` y `distance`, en `main.ts`, son las dos fórmulas renglón por renglón: las diferencias, sus cuadrados, la suma y la raíz (`Math.sqrt`).
-- **Los puntos son datos.** `p` y `q` son `THREE.Vector3`: tres números, `x`, `y` y `z`. Las esferas solo los copian en cada cuadro (`pBall.position.copy(p)`).
-- **Un marco que se puede espejar.** Los ejes, los puntos y la caja están dentro de `frame`, un `THREE.Group`. Con _left-handed_, `frame.scale.z = -1` da vuelta la $z$ de todo lo que contiene: el sistema de mano izquierda, con los mismos números. Los ejes son flechas (`ArrowHelper`) con los colores de casi todos los programas: rojo, verde y azul para $X$, $Y$ y $Z$.
+- **Los puntos son datos.** `p` y `q` son `THREE.Vector3`: tres números, `x`, `y` y `z`. Las bolitas solo los copian en cada cuadro (`pBall.set(p)`).
+- **Un mundo que se puede espejar.** Lo que dibuja el kit de laboratorio (`'lab'`) va en `lab.world`, un `THREE.Group`, ubicado por sus coordenadas. Con _left-handed_, `lab.world.scale.z = -1` da vuelta la $z$ de todo lo que contiene: el sistema de mano izquierda, con los mismos números. Los ejes (`frame`) son flechas con los colores de casi todos los programas: rojo, verde y azul para $X$, $Y$ y $Z$.
 - **Las coordenadas, como largos.** `foot` es $(x, 0, z)$, `onX` es $(x, 0, 0)$ y `onZ` es $(0, 0, z)$. Con ellos se ubican las barras `xRod` y `zRod`, y los trazos `drop`, `footToX` y `footToZ`.
-- **La caja.** `a` y `b` son las esquinas $A$ y $B$; `legX`, `legZ` y `legY`, los catetos; `floorLine`, la distancia sobre el piso; `floorFill` y `standingFill`, los dos triángulos; `rightAngle`, sus ángulos rectos.
-- **Arrastrar.** Un `Raycaster` arma el rayo que sale de la cámara por el puntero; `ray.intersectPlane` lo corta con el plano horizontal a la altura del punto, y `frame.worldToLocal` deshace el espejo, para volver a las coordenadas. Mientras se arrastra, `controls.enabled = false` deja quieta la cámara.
-- **El panel.** `distance(p, q)` es la nuestra; `p.distanceTo(q)`, la de three.js. `figure.ts` y `labels.ts` dibujan líneas y nombres: no son parte de la lección.
+- **La caja.** `a` y `b` son las esquinas $A$ y $B$; `legX`, `legZ` y `legY`, los catetos; `floorLine`, la distancia sobre el piso; `floorFill` y `standingFill`, los dos triángulos; `atA` y `atB`, sus ángulos rectos.
+- **Arrastrar.** `draggable` lleva cada punto por el plano horizontal a su altura $h$: los puntos con $y = h$, que se le dan como $[\mathbf{n} \mid d]$ con $\mathbf{n} = (0, 1, 0)$ y $d = -h$. El kit trabaja en las coordenadas de `lab.world`, así que con el espejo el arrastre sigue dando coordenadas. Mientras se arrastra, la cámara se queda quieta.
+- **El panel.** `distance(p, q)` es la nuestra; `p.distanceTo(q)`, la de three.js. El resto del dibujo es el kit de laboratorio, con su código en el enlace que hay debajo del editor: no es parte de la lección.
 
 ## Probalo
 

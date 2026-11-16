@@ -12,8 +12,9 @@ const taken = new WeakSet<HTMLCanvasElement>();
 
 /**
  * DRAGGING a thing of the figure across a plane [n | d]: press on it (or near it), move, let go. While
- * dragging, the camera does not turn. `move` gets the point of the plane under the pointer; the lesson
- * decides what to do with it (round it, keep it on a circle...).
+ * dragging, the camera does not turn. The plane, and the point `move` gets (the plane's point under the
+ * pointer), are in the figure's coordinates, those of `lab.world`; the lesson decides what to do with the
+ * point (round it, keep it on a circle...).
  */
 export function draggable(
   lab: Lab,
@@ -77,9 +78,13 @@ export function draggable(
     // window, say). The buttons are the truth, not the events.
     if ((e.buttons & 1) === 0) return stop();
     aim(e);
+    // The ray in the figure's coordinates (lab.world may be moved or mirrored), where the plane is given.
+    const inverse = lab.world.matrixWorld.clone().invert();
+    const origin = ray.ray.origin.clone().applyMatrix4(inverse);
+    const direction = ray.ray.direction.clone().transformDirection(inverse);
     const { normal, d } = o.plane();
-    const t = rayPlane(ray.ray.origin, ray.ray.direction, normal, d);
-    if (t !== null) o.move(ray.ray.origin.clone().addScaledVector(ray.ray.direction, t));
+    const t = rayPlane(origin, direction, normal, d);
+    if (t !== null) o.move(origin.addScaledVector(direction, t));
   });
   const stop = () => {
     if (!dragging) return;

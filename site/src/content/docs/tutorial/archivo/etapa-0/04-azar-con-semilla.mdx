@@ -5,7 +5,7 @@ sidebar:
   order: 4
 ---
 
-import LiveCode from '../../../../components/LiveCode.astro';
+import LiveCode from '../../../../../components/LiveCode.astro';
 
 Los juegos usan azar para casi todo: dónde aparece un enemigo, cómo rebota algo, cómo se arma un nivel. Pero una computadora no tira dados: **calcula**. Los números "al azar" salen de una cuenta que, vista de afuera, no parece tener ningún patrón. Por eso se llaman **pseudoaleatorios** (_pseudorandom_).
 
@@ -95,7 +95,7 @@ Y su estado se puede leer y restaurar. Así una instantánea del mundo guarda ta
 
 ## En Manifold
 
-El motor usa un generador mejor (SFC32), cuyo estado se puede guardar y restaurar, y cada mundo tiene **el suyo**: [`packages/common/src/random.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/stage-00/packages/common/src/random.ts). En el Dojo se elige desde su consola: abrí [este mundo de 30 cubos](../../../jugar/dojo/#recipe=dojo.cubes+30;seed+1), apretá la tecla `` ` `` y escribí `seed 2`. El mundo vuelve a empezar con otra semilla; con `seed 1` vuelve el primero, idéntico.
+El motor usa un generador mejor (SFC32), cuyo estado se puede guardar y restaurar, y cada mundo tiene **el suyo**: [`packages/common/src/random.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/stage-00/packages/common/src/random.ts). En el Dojo se elige desde su consola: abrí [este mundo de 30 cubos](../../../../jugar/dojo/#recipe=dojo.cubes+30;seed+1), apretá la tecla `` ` `` y escribí `seed 2`. El mundo vuelve a empezar con otra semilla; con `seed 1` vuelve el primero, idéntico.
 
 ## Para practicar
 

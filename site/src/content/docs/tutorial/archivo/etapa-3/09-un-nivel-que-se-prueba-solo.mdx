@@ -5,7 +5,7 @@ sidebar:
   order: 9
 ---
 
-import LiveCode from '../../../../components/LiveCode.astro';
+import LiveCode from '../../../../../components/LiveCode.astro';
 
 En [Un nivel como texto](../../etapa-2/00-un-nivel-como-texto/), cada caja era una línea con su centro y sus medidas. Un laberinto de 11 por 11 serían decenas de líneas de números, y nadie ve el laberinto leyéndolas. Es más claro **dibujarlo**, un carácter por **celda** (_cell_): `#` es una pared, `.` es piso, un espacio es nada (un pozo), y las letras que nombra la **leyenda** (_legend_) son zonas.
 
@@ -119,7 +119,7 @@ La regla: quien corre el mundo avisa cada vez que aplica un cambio (`entered`), 
 
 ## En Manifold
 
-La unión es `mapParts`, en [`packages/core/src/map.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/map.ts); el bloque `map` lo leen y lo construyen `levelFromText` y `buildLevel`, en [`level.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/level.ts). `levelOfWorld` ([`building.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/building.ts)) escribe el mundo de vuelta; `wait` y `assert` están en [`checks.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/checks.ts), y la ida y vuelta de cada nivel del Dojo, en [`levels.test.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/games/dojo/src/levels.test.ts). En el Dojo, el laberinto es la sala [`maze`](../../../jugar/dojo/maze/), y [`workshop`](../../../jugar/dojo/workshop/) se construye desde la consola y se revisa sola. La [Bitácora](../../../bitacora/etapa-3j/) cuenta cómo se hizo; los calabozos dibujados así son la [lección siguiente](../10-un-calabozo-con-una-semilla/).
+La unión es `mapParts`, en [`packages/core/src/map.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/map.ts); el bloque `map` lo leen y lo construyen `levelFromText` y `buildLevel`, en [`level.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/level.ts). `levelOfWorld` ([`building.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/building.ts)) escribe el mundo de vuelta; `wait` y `assert` están en [`checks.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/checks.ts), y la ida y vuelta de cada nivel del Dojo, en [`levels.test.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/games/dojo/src/levels.test.ts). En el Dojo, el laberinto es la sala [`maze`](../../../../jugar/dojo/maze/), y [`workshop`](../../../../jugar/dojo/workshop/) se construye desde la consola y se revisa sola. La [Bitácora](../../../../bitacora/etapa-3j/) cuenta cómo se hizo; los calabozos dibujados así son la [lección siguiente](../10-un-calabozo-con-una-semilla/).
 
 ## Para practicar
 

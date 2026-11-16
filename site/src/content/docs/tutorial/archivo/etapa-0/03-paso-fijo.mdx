@@ -5,7 +5,7 @@ sidebar:
   order: 3
 ---
 
-import LiveCode from '../../../../components/LiveCode.astro';
+import LiveCode from '../../../../../components/LiveCode.astro';
 
 Una computadora no puede calcular el movimiento de manera continua: lo calcula **de a saltitos**. Sabiendo dónde está una pelota y a qué velocidad va, calcula dónde estará un instante después. Sabiendo la gravedad, calcula cómo cambia su velocidad en ese instante. Después repite, una y otra vez. Ese instante se llama **paso** (_step_), y su duración en el código se escribe `dt`.
 
@@ -89,7 +89,7 @@ Pero se equivoca justo cuando importa: si en ese paso la pelota rebota, la extra
 
 - **La interpolación muestra el pasado**: como mucho, un paso atrás. Con pasos de 1/60 de segundo no se nota.
 - **Hay que ponerle un tope al acumulador.** Si la pestaña se duerme diez segundos, el acumulador junta diez segundos, y al volver intentaría correr 600 pasos de golpe. Si cada paso tarda, el cuadro siguiente junta todavía más, y todo se traba: se la llama la "espiral de la muerte" (_spiral of death_).
-- **El orden de las dos líneas importa.** Primero la velocidad, después la posición: se llama **Euler semi-implícito**, y es lo que usan casi todos los motores de física. Al revés (Euler explícito), la energía crece sola y las órbitas se abren. La vitrina del [inicio](../../../) usa el semi-implícito, y una prueba verifica que en diez minutos su energía no se va.
+- **El orden de las dos líneas importa.** Primero la velocidad, después la posición: se llama **Euler semi-implícito**, y es lo que usan casi todos los motores de física. Al revés (Euler explícito), la energía crece sola y las órbitas se abren. La vitrina del [inicio](../../../../) usa el semi-implícito, y una prueba verifica que en diez minutos su energía no se va.
   :::
 
 :::tip[Patrón: bucle de juego, con paso fijo]

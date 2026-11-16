@@ -5,7 +5,7 @@ sidebar:
   order: 6
 ---
 
-import LiveCode from '../../../../components/LiveCode.astro';
+import LiveCode from '../../../../../components/LiveCode.astro';
 
 Hasta acá, el personaje era una cápsula con un visor. Uno de verdad tiene piernas, que siguen al cuerpo: si va de costado, pasos de costado; si acelera, más largos y más seguidos; si se frena, quietas. Y el pie apoyado tiene que quedarse donde pisó: si se desliza, el personaje parece patinar sobre hielo.
 
@@ -109,7 +109,7 @@ La simulación dice dónde está la figura y adónde mira; la vista elige los cl
 
 ## En Manifold
 
-En [`locomotion.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/presentation/src/locomotion.ts), `directions`, `targets` y `advance` deciden los pesos y la fase, con números y sin three.js; en [`models.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/presentation/src/models.ts), `motion` mide cuánto avanzó de verdad, `turnBody` limita el giro y `animate` lo aplica al mezclador. El maniquí lo hace [`art/mannequin.py`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/art/mannequin.py) y lo revisa [`assets.test.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/games/dojo/src/assets.test.ts). Camina, corre y trepa en la sala [`circuit`](../../../jugar/dojo/circuit/) del Dojo, y la [Bitácora](../../../bitacora/etapa-2e2/) cuenta cómo se hizo.
+En [`locomotion.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/presentation/src/locomotion.ts), `directions`, `targets` y `advance` deciden los pesos y la fase, con números y sin three.js; en [`models.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/presentation/src/models.ts), `motion` mide cuánto avanzó de verdad, `turnBody` limita el giro y `animate` lo aplica al mezclador. El maniquí lo hace [`art/mannequin.py`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/art/mannequin.py) y lo revisa [`assets.test.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/games/dojo/src/assets.test.ts). Camina, corre y trepa en la sala [`circuit`](../../../../jugar/dojo/circuit/) del Dojo, y la [Bitácora](../../../../bitacora/etapa-2e2/) cuenta cómo se hizo.
 
 ## Para practicar
 

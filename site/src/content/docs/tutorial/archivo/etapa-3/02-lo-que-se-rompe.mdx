@@ -5,7 +5,7 @@ sidebar:
   order: 2
 ---
 
-import LiveCode from '../../../../components/LiveCode.astro';
+import LiveCode from '../../../../../components/LiveCode.astro';
 
 Cuando algo se rompe en un juego pasan dos cosas distintas. Una **cambia la partida**: la lámpara rota ya no ilumina, el guardia te pierde, la puerta de vidrio deja pasar. La otra **solo se ve**: las astillas que vuelan, rebotan y desaparecen. Si las dos fueran de la simulación, cada copia de la partida tendría que mover cien astillas igual, bit por bit, y guardarlas en cada instantánea, para nada: ninguna regla las lee.
 
@@ -44,7 +44,7 @@ Un jarrón azul sobre un poste. _throw_ (tirar) le arroja una pelota de 4,2 kg d
 
 El paso de la física resuelve el choque: cuando termina, la pelota ya rebotó, o se frenó contra el jarrón. Si la energía se midiera con la velocidad de después, un golpe fortísimo podría medir casi nada, porque la pelota quedó quieta.
 
-Lo que el jarrón recibe es lo que la pelota traía: su velocidad al empezar el paso en que se tocaron. Por eso `step` la anota antes de `sim.step()`, y después pregunta quién toca a quién (`contactPair`). En el motor, la fase de lo que se rompe va justo después de la de la física, y antes de leer las velocidades que dejó el choque ([etapa 3e](../../../bitacora/etapa-3e/)).
+Lo que el jarrón recibe es lo que la pelota traía: su velocidad al empezar el paso en que se tocaron. Por eso `step` la anota antes de `sim.step()`, y después pregunta quién toca a quién (`contactPair`). En el motor, la fase de lo que se rompe va justo después de la de la física, y antes de leer las velocidades que dejó el choque ([etapa 3e](../../../../bitacora/etapa-3e/)).
 
 Una medida más fina usaría la energía que **pierde** el choque, o el impulso que la física aplicó (que Rapier puede dar en sus eventos de contacto). La de llegada es simple, la misma en todas las copias, y alcanza para que una pelota lenta no rompa y una rápida sí.
 
@@ -85,13 +85,13 @@ La simulación no sabe que hay fragmentos: deja un evento con una semilla, y el 
 - **Red Faction: Guerrilla y Battlefield:** destrucción que cambia el mapa; en una partida en red, lo que importa para jugar va por la red, y el polvo y las astillas no.
 - **En los libros:** Ian Millington, _Game Physics Engine Development_, cap. sobre los cuerpos que se rompen. Jason Gregory, _Game Engine Architecture_, sobre la física de los efectos (_cosmetic physics_) separada de la de la jugabilidad.
 
-**Dónde Manifold eligió otra cosa.** **Por la energía del golpe, sin eventos de contacto de la física:** la energía sale de las velocidades de antes y de después, que están en el mundo, así una instantánea y una copia restaurada rompen igual. **Los pedazos grandes, en el hash; los fragmentos, en una física de la presentación:** con las cajas fijas del nivel para rebotar, que ningún rayo de la jugabilidad ve. **Una lámpara rota queda, apagada:** lo que se rompe y lo que deja son datos del componente `breakable` ([etapa 3e](../../../bitacora/etapa-3e/)).
+**Dónde Manifold eligió otra cosa.** **Por la energía del golpe, sin eventos de contacto de la física:** la energía sale de las velocidades de antes y de después, que están en el mundo, así una instantánea y una copia restaurada rompen igual. **Los pedazos grandes, en el hash; los fragmentos, en una física de la presentación:** con las cajas fijas del nivel para rebotar, que ningún rayo de la jugabilidad ve. **Una lámpara rota queda, apagada:** lo que se rompe y lo que deja son datos del componente `breakable` ([etapa 3e](../../../../bitacora/etapa-3e/)).
 
 ## En Manifold
 
 - [`packages/core/src/world.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/world.ts): la fase `breaks` (la energía con las velocidades de antes), `shatter` y `breakApart` (los pedazos grandes, y el evento `broke` con su semilla).
 - [`packages/presentation/src/debris.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/presentation/src/debris.ts): los fragmentos, en una física propia, hechos de la semilla.
-- La [sala de la vigilancia](../../../jugar/dojo/watch/): una pelota (F) rompe la lámpara del poste, y el ojo te pierde. Y [la demostración de la fase](../../../jugar/dojo/keep/), donde romperla abre la última puerta.
+- La [sala de la vigilancia](../../../../jugar/dojo/watch/): una pelota (F) rompe la lámpara del poste, y el ojo te pierde. Y [la demostración de la fase](../../../../jugar/dojo/keep/), donde romperla abre la última puerta.
 
 ## Para practicar
 
@@ -126,4 +126,4 @@ Es lo mismo que el jarrón, un nivel más abajo: cada pedazo con su umbral, y en
 
 - [La destrucción de Unreal (Chaos Destruction)](https://dev.epicgames.com/documentation/en-us/unreal-engine/chaos-destruction-in-unreal-engine) (en inglés).
 - [Game Programming Patterns](https://gameprogrammingpatterns.com/), de Robert Nystrom (en inglés): la separación entre lo que pasa y cómo se muestra recorre todo el libro.
-- La Bitácora de la [etapa 3e](../../../bitacora/etapa-3e/): cómo se hizo en el motor, y la demostración de la fase.
+- La Bitácora de la [etapa 3e](../../../../bitacora/etapa-3e/): cómo se hizo en el motor, y la demostración de la fase.

@@ -5,7 +5,7 @@ sidebar:
   order: 1
 ---
 
-import LiveCode from '../../../../components/LiveCode.astro';
+import LiveCode from '../../../../../components/LiveCode.astro';
 
 En la [lección anterior](../00-motor-de-fisica/), `world.step()` hacía caer, chocar y apilar cuarenta cajas. Antes de calcular cómo rebota algo, el motor tiene que saber **qué está tocando a qué**. Y eso, con muchos cuerpos, es caro.
 
@@ -98,13 +98,13 @@ Ordenar las cosas según dónde están, para encontrar rápido las que están ce
 - **En los libros:** Christer Ericson, _Real-Time Collision Detection_, cap. 4 "Bounding Volumes" (las cajas y las esferas que envuelven) y cap. 7 "Spatial Partitioning" (grillas, árboles y ordenar y barrer). _Real-Time Rendering_ (4.ª ed.), cap. 19 (las estructuras espaciales) y §22.13.3 (la prueba entre dos cajas alineadas). El volumen I de _Game Engine Architecture_ (4.ª ed.) solo lo presenta (§1.5.10 "Collision and Physics"): el detalle está en su volumen II.
 - **Erin Catto**, el autor de Box2D, contó cómo se construye un buen árbol dinámico en la GDC de 2019 ("Math for Game Developers: Dynamic Bounding Volume Hierarchies").
 
-**Dónde Manifold eligió otra cosa.** Para los cuerpos, nada: las dos fases son de Rapier, dentro de `world.step()`. Pero las **zonas** de un nivel (cajas que no empujan, solo notan quién entra) son del motor, y se buscan con las mismas dos fases, escritas a mano: primero, tres comparaciones contra la caja alineada con el mundo que contiene a la zona; solo los que pasan se llevan al espacio de la zona para la prueba exacta. Antes, cada zona hacía la cuenta completa con cada cuerpo: en la sala `stress` del Dojo, 0,15 ms por paso, un tercio de lo que tardaba la física. Con las dos fases, la misma respuesta en 0,05 ms ([Bitácora de la etapa 2.5b](../../../bitacora/etapa-2-5b/)).
+**Dónde Manifold eligió otra cosa.** Para los cuerpos, nada: las dos fases son de Rapier, dentro de `world.step()`. Pero las **zonas** de un nivel (cajas que no empujan, solo notan quién entra) son del motor, y se buscan con las mismas dos fases, escritas a mano: primero, tres comparaciones contra la caja alineada con el mundo que contiene a la zona; solo los que pasan se llevan al espacio de la zona para la prueba exacta. Antes, cada zona hacía la cuenta completa con cada cuerpo: en la sala `stress` del Dojo, 0,15 ms por paso, un tercio de lo que tardaba la física. Con las dos fases, la misma respuesta en 0,05 ms ([Bitácora de la etapa 2.5b](../../../../bitacora/etapa-2-5b/)).
 
 ## En Manifold
 
 - [`packages/core/src/world.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/world.ts): `sense`, las zonas en dos fases, y `holdingBox`, la caja alineada con el mundo que contiene una caja girada. También las consultas espaciales del mundo (`castRay`, `castShape`), que responden por entidad y le preguntan a Rapier.
 - [`packages/core/src/physics.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/physics.ts): la frontera con Rapier, con sus consultas y los contactos que encontró (`contacts`).
-- En el [Dojo](../../../jugar/dojo/), `show.physics on` dibuja las formas con las que choca cada cuerpo, y `show.contacts on`, los puntos donde se tocan, con su normal.
+- En el [Dojo](../../../../jugar/dojo/), `show.physics on` dibuja las formas con las que choca cada cuerpo, y `show.contacts on`, los puntos donde se tocan, con su normal.
 
 ## Para practicar
 

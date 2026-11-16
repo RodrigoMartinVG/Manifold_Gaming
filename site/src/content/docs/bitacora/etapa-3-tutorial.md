@@ -10,8 +10,8 @@ sidebar:
 ## Qué hicimos
 
 - **Ocho lecciones nuevas**, cada una con su ejemplo en vivo, sus capas y una prueba en el navegador que lee lo que su ejemplo muestra:
-  - en la etapa 2, [preguntarle al mundo: rayos y barridos](../../tutorial/etapa-2/05-rayos-y-barridos/) y [un personaje animado](../../tutorial/etapa-2/06-un-personaje-animado/);
-  - en la etapa 3, [fricción y rebote](../../tutorial/etapa-3/05-friccion-y-rebote/), [la masa: empujar y agarrar](../../tutorial/etapa-3/06-la-masa/), [la cámara contra las paredes](../../tutorial/etapa-3/07-la-camara-contra-las-paredes/), [la interfaz del juego](../../tutorial/etapa-3/08-la-interfaz-del-juego/), [un nivel que se prueba solo](../../tutorial/etapa-3/09-un-nivel-que-se-prueba-solo/) y [un calabozo con una semilla](../../tutorial/etapa-3/10-un-calabozo-con-una-semilla/).
+  - en la etapa 2, [preguntarle al mundo: rayos y barridos](../../tutorial/archivo/etapa-2/05-rayos-y-barridos/) y [un personaje animado](../../tutorial/archivo/etapa-2/06-un-personaje-animado/);
+  - en la etapa 3, [fricción y rebote](../../tutorial/archivo/etapa-3/05-friccion-y-rebote/), [la masa: empujar y agarrar](../../tutorial/archivo/etapa-3/06-la-masa/), [la cámara contra las paredes](../../tutorial/archivo/etapa-3/07-la-camara-contra-las-paredes/), [la interfaz del juego](../../tutorial/archivo/etapa-3/08-la-interfaz-del-juego/), [un nivel que se prueba solo](../../tutorial/archivo/etapa-3/09-un-nivel-que-se-prueba-solo/) y [un calabozo con una semilla](../../tutorial/archivo/etapa-3/10-un-calabozo-con-una-semilla/).
 - **Las etapas quedan con 8, 8, 7 y 11 lecciones.** Antes eran 8, 8, 5 y 5, aunque las fases 2 y 3 construyeron más que la 0 y la 1.
 - **Las sutilezas de la etapa 3.** Las 21 lecciones de las etapas 0 a 2 las tenían y las 5 de la etapa 3 no. Ahora las tienen, y la prueba del tutorial pide al menos dos en cada lección, así no vuelve a pasar.
 - **Ejemplos que se manejan.** Los nuevos que tienen algo que se mueve andan solos hasta que tocás una tecla, y una casilla les devuelve el piloto automático.

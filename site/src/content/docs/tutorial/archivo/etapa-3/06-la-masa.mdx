@@ -5,7 +5,7 @@ sidebar:
   order: 6
 ---
 
-import LiveCode from '../../../../components/LiveCode.astro';
+import LiveCode from '../../../../../components/LiveCode.astro';
 
 En un juego de aventura hay cajas para empujar hasta una placa, y bloques que no se mueven por más que uno insista. Para eso, las cosas tienen que **pesar**. La masa (_mass_) de algo sale de lo que es y de su tamaño: su **densidad** (_density_), los kilos que tiene un metro cúbico de ese material, por su **volumen**. Una caja de madera de 40 cm de lado pesa 0,4³ × 700 = 44,8 kg. Un bloque de piedra de 80 cm, 0,8³ × 2.400 = 1.228,8 kg: veintisiete veces más.
 
@@ -102,7 +102,7 @@ Medido en el ejemplo (es el segundo ejercicio), con un personaje de 80 kg: la ca
 
 ## En Manifold
 
-En [`packages/core/src/character.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/character.ts) están `push`, el empujón (con `PUSH`), y `hold`, que agarra, sostiene y suelta (con `HOLD`). En [`world.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/world.ts), el método `push`, que cambia una velocidad con el impulso que pide la masa, y `massOf`; en [`physics.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/physics.ts), el controlador con el empujón de Rapier apagado (`createController`); en [`materials.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/materials.ts), las densidades. En la sala [`machines`](../../../jugar/dojo/machines/) del Dojo, una caja de madera se lleva (la G agarra) hasta una placa que mantiene abierta una puerta, y un bloque de piedra no se mueve. La [Bitácora](../../../bitacora/etapa-3g/) cuenta cómo se hizo.
+En [`packages/core/src/character.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/character.ts) están `push`, el empujón (con `PUSH`), y `hold`, que agarra, sostiene y suelta (con `HOLD`). En [`world.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/world.ts), el método `push`, que cambia una velocidad con el impulso que pide la masa, y `massOf`; en [`physics.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/physics.ts), el controlador con el empujón de Rapier apagado (`createController`); en [`materials.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/materials.ts), las densidades. En la sala [`machines`](../../../../jugar/dojo/machines/) del Dojo, una caja de madera se lleva (la G agarra) hasta una placa que mantiene abierta una puerta, y un bloque de piedra no se mueve. La [Bitácora](../../../../bitacora/etapa-3g/) cuenta cómo se hizo.
 
 ## Para practicar
 
@@ -139,4 +139,4 @@ Que `pull` diga también si recortó el cambio de velocidad (`change.length() > 
 - Jason Gregory, _Game Engine Architecture_ (en inglés), el capítulo "Collision and Rigid Body Dynamics".
 - [El controlador de personaje de Rapier](https://rapier.rs/docs/user_guides/javascript/character_controller) (en inglés): entre otras cosas, cómo empuja lo que toca y con qué masa.
 - [Los colisionadores de Rapier](https://rapier.rs/docs/user_guides/javascript/colliders) (en inglés): la densidad, el rozamiento y cómo se combinan los de dos superficies.
-- La [Bitácora](../../../bitacora/etapa-3g/) de la masa y el agarre: cómo se hizo en el motor, con lo que se midió.
+- La [Bitácora](../../../../bitacora/etapa-3g/) de la masa y el agarre: cómo se hizo en el motor, con lo que se midió.

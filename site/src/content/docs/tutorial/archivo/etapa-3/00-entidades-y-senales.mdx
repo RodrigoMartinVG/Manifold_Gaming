@@ -5,7 +5,7 @@ sidebar:
   order: 0
 ---
 
-import LiveCode from '../../../../components/LiveCode.astro';
+import LiveCode from '../../../../../components/LiveCode.astro';
 
 Un mundo que **responde** está lleno de causas y efectos: un botón abre una puerta, dos placas llaman a un ascensor, un vigía que te ve cierra una reja. Para escribirlos hacen falta dos cosas. Primero, que las cosas tengan **nombre** (`door`, `button`, `plate_a`): así un nivel puede decir "la puerta sigue a la señal `open`" sin saber qué número le tocó a cada entidad. Segundo, algo que lleve la causa al efecto: una **señal** (_signal_).
 
@@ -76,7 +76,7 @@ con `T` lo que tarda en abrirse. Cerrándose, el signo cambia. Si la señal camb
 
 - **`used` dura un paso.** Apretar el botón prende `used` solo en el paso en que se apretó; mantenerlo apretado no lo vuelve a prender. Lo que tiene que durar lo guarda otra señal: un `toggle` o un `latch`.
 - **Lo que recuerda un `toggle` es parte del mundo.** Para darse vuelta solo en el borde, guarda si lo que lee estaba prendido (`kept`). Si eso quedara afuera del estado, una copia restaurada de una instantánea justo mientras alguien apretaba el botón se daría vuelta otra vez, y las copias dejarían de coincidir. En el motor, esa memoria va en el hash y en las instantáneas.
-- **Una puerta que sigue a una placa se cierra al cruzarla.** Si `open` es solo "alguien está en la placa", al bajarse de ella para pasar, la puerta se cierra adelante. La salida es un cerrojo que se prende con la placa y no se apaga nunca (lo apaga una entrada que nadie toca): así está hecha la última puerta de la [fortaleza](../../../jugar/dojo/keep/) del Dojo.
+- **Una puerta que sigue a una placa se cierra al cruzarla.** Si `open` es solo "alguien está en la placa", al bajarse de ella para pasar, la puerta se cierra adelante. La salida es un cerrojo que se prende con la placa y no se apaga nunca (lo apaga una entrada que nadie toca): así está hecha la última puerta de la [fortaleza](../../../../jugar/dojo/keep/) del Dojo.
 - **Una señal calculada no se escribe a mano.** En el motor, `signal lights 1` cambia una señal de entrada; a una calculada, la consola se niega y dice por qué: al final del paso, su cuenta la pisaría.
 
 :::
@@ -99,8 +99,8 @@ La puerta lee `open` del paso anterior mientras el paso calcula el nuevo: lo que
 
 - [`packages/core/src/world.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/world.ts): `named` (una entidad por su nombre), `addSignal` y la fase de las señales, y `progressOf`, el lugar de un mecanismo como función del paso.
 - [`packages/core/src/level.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/level.ts): las líneas `signal`, `door` y `lift` del formato de nivel, que revisa que cada señal lea solo lo de arriba.
-- [`games/dojo/levels/machines.level`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/games/dojo/levels/machines.level): un botón que abre una puerta y placas que llaman a un ascensor. En la sala [`machines`](../../../jugar/dojo/machines/), `signals` las lista y `show.signals on` las dibuja. La [demostración de la fase](../../../jugar/dojo/keep/) las junta con la luz y lo que se rompe.
-- La Bitácora de la [etapa 3c](../../../bitacora/etapa-3c/) cuenta cómo se hicieron.
+- [`games/dojo/levels/machines.level`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/games/dojo/levels/machines.level): un botón que abre una puerta y placas que llaman a un ascensor. En la sala [`machines`](../../../../jugar/dojo/machines/), `signals` las lista y `show.signals on` las dibuja. La [demostración de la fase](../../../../jugar/dojo/keep/) las junta con la luz y lo que se rompe.
+- La Bitácora de la [etapa 3c](../../../../bitacora/etapa-3c/) cuenta cómo se hicieron.
 
 ## Para practicar
 

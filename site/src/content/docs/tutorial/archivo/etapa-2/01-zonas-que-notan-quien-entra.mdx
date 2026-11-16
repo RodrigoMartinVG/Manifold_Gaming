@@ -5,7 +5,7 @@ sidebar:
   order: 1
 ---
 
-import LiveCode from '../../../../components/LiveCode.astro';
+import LiveCode from '../../../../../components/LiveCode.astro';
 
 Un nivel tiene lugares que **significan** algo: si llegás acá, ganaste; si caés acá, volvés al último punto de control; si pasás por acá, te llevás la estrella. Ninguno empuja a nadie: solo **notan** quién entra y quién sale.
 
@@ -95,14 +95,14 @@ La zona no llama a nadie: deja un evento, y a quien le interese lo lee después.
 - **Box2D y Rapier:** una forma marcada como sensor no genera contactos, solo avisa cuándo empieza y cuándo termina a superponerse (_overlap_) con otra. Box2D (v3) los entrega después del paso (`b2World_GetSensorEvents`); Rapier, en una `EventQueue` que se vacía después de `world.step` (`drainCollisionEvents`).
 - **En los libros:** Christer Ericson, _Real-Time Collision Detection_, cap. 4 "Bounding Volumes" (las cajas alineadas y las orientadas) y cap. 5 "Basic Primitive Tests" (el punto más cercano de una caja girada, una esfera contra una caja). Robert Nystrom, _Game Programming Patterns_, caps. "Observer" y "Event Queue".
 
-**Dónde Manifold eligió otra cosa.** **El centro, no cualquier roce:** en esos motores, una zona nota a un cuerpo apenas se tocan sus formas; en Manifold, cuando entra su centro. Para un nivel es lo que se busca (no te caíste porque un pie rozó el vacío), y es una sola cuenta por cuerpo. **Del mundo, no de la física:** las zonas no están en Rapier y sus eventos de sensor no se usan. Las calcula el mundo en su propia fase, la última del paso, con cuentas que dan los mismos bits en todos los navegadores, y sin las cajas de la fase amplia de Rapier, que van un paso atrasadas ([etapa 2.5b](../../../bitacora/etapa-2-5b/)). **Parte del paso, en orden:** los eventos quedan en `world.stepEvents`, en un orden fijo, y las reglas los leen apenas termina el paso; una repetición y el otro lado de la red los ven iguales ([etapa 2a](../../../bitacora/etapa-2a/)).
+**Dónde Manifold eligió otra cosa.** **El centro, no cualquier roce:** en esos motores, una zona nota a un cuerpo apenas se tocan sus formas; en Manifold, cuando entra su centro. Para un nivel es lo que se busca (no te caíste porque un pie rozó el vacío), y es una sola cuenta por cuerpo. **Del mundo, no de la física:** las zonas no están en Rapier y sus eventos de sensor no se usan. Las calcula el mundo en su propia fase, la última del paso, con cuentas que dan los mismos bits en todos los navegadores, y sin las cajas de la fase amplia de Rapier, que van un paso atrasadas ([etapa 2.5b](../../../../bitacora/etapa-2-5b/)). **Parte del paso, en orden:** los eventos quedan en `world.stepEvents`, en un orden fijo, y las reglas los leen apenas termina el paso; una repetición y el otro lado de la red los ven iguales ([etapa 2a](../../../../bitacora/etapa-2a/)).
 
 ## En Manifold
 
 - [`packages/core/src/world.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/world.ts): `sense`, la fase de las zonas (con `holdingBox` y el conjugado de la rotación), y `emit`, que deja cada evento para las reglas y para la presentación.
 - [`packages/core/src/types.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/types.ts): el componente `Sensor` (`kind`, `half`, `inside`) y los eventos `sensorEntered` y `sensorLeft`. El motor nunca lee `kind`: es la palabra del juego.
 - [`games/dojo/src/rules.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/games/dojo/src/rules.ts): `levelLoop`, lo que significa cada zona en el Dojo. `checkpoint`, adonde volvés; `fall`, el vacío (un personaje vuelve a su punto de control; un cubo, desaparece); `star`, para quien llega primero; `goal`, con el tiempo, las caídas y las estrellas.
-- Un nivel declara sus zonas, una por línea ([`course.level`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/games/dojo/levels/course.level)). En la sala `circuit` del [Dojo](../../../jugar/dojo/circuit/), `show.sensors on` las dibuja. La Bitácora de las etapas [2a](../../../bitacora/etapa-2a/) y [2.5b](../../../bitacora/etapa-2-5b/) cuenta cómo se hicieron.
+- Un nivel declara sus zonas, una por línea ([`course.level`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/games/dojo/levels/course.level)). En la sala `circuit` del [Dojo](../../../../jugar/dojo/circuit/), `show.sensors on` las dibuja. La Bitácora de las etapas [2a](../../../../bitacora/etapa-2a/) y [2.5b](../../../../bitacora/etapa-2-5b/) cuenta cómo se hicieron.
 
 ## Para practicar
 

@@ -5,7 +5,7 @@ sidebar:
   order: 6
 ---
 
-import LiveCode from '../../../../components/LiveCode.astro';
+import LiveCode from '../../../../../components/LiveCode.astro';
 
 Una repetición rehace un mundo desde su nacimiento. Pero a veces hace falta otra cosa: **guardar un momento y volver a él**, como el "guardar estado" de un emulador. O mandarle a alguien que entra a una partida empezada el mundo tal como está, sin hacerle rehacer media hora de juego.
 
@@ -95,7 +95,7 @@ Sacar una foto del estado interno de algo, para volver a él después, **sin** q
 
 ## En Manifold
 
-Una instantánea del motor es la de Rapier, más todo lo que el mundo guarda en sus entidades: el reloj, el contador de entidades, el estado del azar, la gravedad y lo que pidió cada jugador ([`packages/core/src/world.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/stage-01/packages/core/src/world.ts)). En el Dojo, `snapshot` guarda el momento y `snapshot load` vuelve. Y la repetición sigue valiendo después de volver, porque la sesión también vuelve su historia. Cómo se midió que Rapier restaura exacto está en la [Bitácora de la etapa 1d](../../../bitacora/etapa-1d/).
+Una instantánea del motor es la de Rapier, más todo lo que el mundo guarda en sus entidades: el reloj, el contador de entidades, el estado del azar, la gravedad y lo que pidió cada jugador ([`packages/core/src/world.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/stage-01/packages/core/src/world.ts)). En el Dojo, `snapshot` guarda el momento y `snapshot load` vuelve. Y la repetición sigue valiendo después de volver, porque la sesión también vuelve su historia. Cómo se midió que Rapier restaura exacto está en la [Bitácora de la etapa 1d](../../../../bitacora/etapa-1d/).
 
 ## Para practicar
 

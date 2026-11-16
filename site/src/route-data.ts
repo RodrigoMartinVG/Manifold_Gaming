@@ -11,9 +11,10 @@ type Entry = App.Locals['starlightRoute']['sidebar'][number];
  */
 export const onRequest = defineRouteMiddleware((context) => {
   const route = context.locals.starlightRoute;
-  // (The new tutorial's pilot, decision 0021, lives apart from the sections, with an index of its own.)
-  const section = sectionOf(route.id) ?? (route.id.startsWith('tutorial-nuevo') ? 'tutorial-nuevo' : null);
+  const section = sectionOf(route.id);
   if (!section) return; // the home page: no sidebar
+  // The old tutorial, archived (decision 0021): each of its pages says so on top, and where the new one is.
+  if (route.id.startsWith('tutorial/archivo')) route.entry.data.banner = { content: ARCHIVE_NOTICE };
   const inSection = (href: string) => href.startsWith(`${BASE}${section}/`);
 
   // (The section's group keeps its heading: it names the section, and its links stay small.)
@@ -27,6 +28,11 @@ export const onRequest = defineRouteMiddleware((context) => {
     next: next && inSection(next.href) ? next : undefined,
   };
 });
+
+/** What every archived page says on top. (The site's text, in Spanish.) */
+const ARCHIVE_NOTICE =
+  `Esta lección es del <strong>tutorial anterior</strong>, que quedó archivado: sus ejemplos siguen funcionando, ` +
+  `pero ya no se actualiza. El tutorial nuevo empieza en <a href="${BASE}tutorial/">Empezar aquí</a>.`;
 
 /** The entries (and the groups, with what is left of them) whose links pass the filter. */
 function keep(entries: Entry[], pass: (href: string) => boolean): Entry[] {

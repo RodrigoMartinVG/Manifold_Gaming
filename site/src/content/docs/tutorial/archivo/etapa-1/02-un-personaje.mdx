@@ -5,7 +5,7 @@ sidebar:
   order: 2
 ---
 
-import LiveCode from '../../../../components/LiveCode.astro';
+import LiveCode from '../../../../../components/LiveCode.astro';
 
 En la [lección del motor de física](../00-motor-de-fisica/), la física movía todo. Pero un personaje no puede ser una caja más: si fuera un cuerpo **dinámico**, rodaría por las rampas, rebotaría al caer, se volcaría al chocar, y frenaría de a poco como una piedra que resbala. Un personaje tiene que **obedecer al jugador**: arrancar y frenar cuando se lo pide, y no caerse.
 
@@ -88,11 +88,11 @@ Un personaje hace cosas distintas según en qué está: en el piso acelera rápi
 - **Todos tienen un controlador de personaje.** Unity tiene el componente `CharacterController`: una cápsula que se mueve con `Move()`, con una pendiente máxima y una altura de escalón. Unreal tiene el `CharacterMovementComponent`, con modos de moverse (caminando, cayendo, nadando, volando) y su propia manera de subir escalones y encontrar el piso. Godot tiene `CharacterBody3D` y su `move_and_slide()`, con un ángulo máximo de piso y el pegarse al piso al bajar.
 - **En la literatura:** Maddy Thorson, una de las autoras de _Celeste_, contó en "Celeste & Forgiveness" (2020) las trampas que hacen que un juego de plataformas se sienta justo, el tiempo de coyote y el salto guardado entre ellas. Robert Nystrom, _Game Programming Patterns_, cap. "State": su ejemplo es una heroína que salta, se agacha y se lanza en picada.
 
-**Dónde Manifold eligió otra cosa.** Usa el controlador de Rapier para no atravesar nada, pero la manera de moverse es suya, y es **datos**: los modos (caminar, en el aire, planear, trepar) son uno por vez, decididos en un solo lugar, y los números de cada uno (velocidades, aceleraciones, pasos de coyote) son parte del personaje ([Bitácora de la etapa 2b](../../../bitacora/etapa-2b/)). Su "arriba" no es `+y` sino lo contrario de la gravedad, y sobre una plataforma que se mueve, el motor lo lleva exacto con ella ([etapa 2d](../../../bitacora/etapa-2d/)).
+**Dónde Manifold eligió otra cosa.** Usa el controlador de Rapier para no atravesar nada, pero la manera de moverse es suya, y es **datos**: los modos (caminar, en el aire, planear, trepar) son uno por vez, decididos en un solo lugar, y los números de cada uno (velocidades, aceleraciones, pasos de coyote) son parte del personaje ([Bitácora de la etapa 2b](../../../../bitacora/etapa-2b/)). Su "arriba" no es `+y` sino lo contrario de la gravedad, y sobre una plataforma que se mueve, el motor lo lleva exacto con ella ([etapa 2d](../../../../bitacora/etapa-2d/)).
 
 ## En Manifold
 
-El personaje es un sistema del motor, con sus números como datos: [`packages/core/src/character.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/stage-01/packages/core/src/character.ts). Además de esto, acelera y frena de a poco (rápido en el piso y lento en el aire), guarda el salto unos pasos si se apretó un poco antes de tocar el piso, toma su "arriba" de la gravedad y gira sin trigonometría. Se maneja con el teclado o con un mando, por la cámara o como un tanque, y la cámara lo sigue con correa. En la sala `course` del [Dojo](../../../jugar/dojo/course/) está todo junto. La Bitácora de las etapas [1b](../../../bitacora/etapa-1b/) y [1c2](../../../bitacora/etapa-1c2/) cuenta cómo se hizo.
+El personaje es un sistema del motor, con sus números como datos: [`packages/core/src/character.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/stage-01/packages/core/src/character.ts). Además de esto, acelera y frena de a poco (rápido en el piso y lento en el aire), guarda el salto unos pasos si se apretó un poco antes de tocar el piso, toma su "arriba" de la gravedad y gira sin trigonometría. Se maneja con el teclado o con un mando, por la cámara o como un tanque, y la cámara lo sigue con correa. En la sala `course` del [Dojo](../../../../jugar/dojo/course/) está todo junto. La Bitácora de las etapas [1b](../../../../bitacora/etapa-1b/) y [1c2](../../../../bitacora/etapa-1c2/) cuenta cómo se hizo.
 
 ## Para practicar
 

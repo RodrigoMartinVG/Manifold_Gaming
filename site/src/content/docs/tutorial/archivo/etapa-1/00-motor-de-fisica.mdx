@@ -5,7 +5,7 @@ sidebar:
   order: 0
 ---
 
-import LiveCode from '../../../../components/LiveCode.astro';
+import LiveCode from '../../../../../components/LiveCode.astro';
 
 En la etapa 0, la pelota que rebotaba era física hecha a mano: una velocidad, la gravedad y un "si se metió en el piso, que rebote". Alcanza para una pelota contra un piso. Para cuarenta cajas que chocan entre sí, se apilan y se empujan, ya no: hace falta un **motor de física** (_physics engine_). Es un programa que solo hace eso, calcular cómo se mueven y chocan los cuerpos sólidos, y lo hace bien y rápido.
 
@@ -68,7 +68,7 @@ Resolver un contacto desarma un poco los demás: empujar la caja de abajo mueve 
 
 Un cuerpo cuya velocidad se queda por debajo de un umbral durante un rato se **duerme** (_sleep_): el motor deja de moverlo y de resolver sus contactos con otros dormidos. Una pila que ya cayó no cuesta casi nada. Se despierta cuando algo despierto lo toca, o cuando el programa lo cambia (le da una velocidad, lo mueve).
 
-En el ejemplo, _bodies awake_ los cuenta. Dormir es la razón por la que cuarenta cajas quietas no cuestan lo mismo que cuarenta cayendo. El motor de Manifold lo aprovecha una vez más: un cuerpo dormido no se mueve, así que su lugar se lee una sola vez, al dormirse. En la sala `stress` del Dojo, leer todos los cuerpos en cada paso era un tercio del tiempo de la física ([Bitácora de la etapa 2.5b](../../../bitacora/etapa-2-5b/)).
+En el ejemplo, _bodies awake_ los cuenta. Dormir es la razón por la que cuarenta cajas quietas no cuestan lo mismo que cuarenta cayendo. El motor de Manifold lo aprovecha una vez más: un cuerpo dormido no se mueve, así que su lugar se lee una sola vez, al dormirse. En la sala `stress` del Dojo, leer todos los cuerpos en cada paso era un tercio del tiempo de la física ([Bitácora de la etapa 2.5b](../../../../bitacora/etapa-2-5b/)).
 
 </details>
 
@@ -93,7 +93,7 @@ Una caja de este ejemplo es tres piezas que no se conocen: un cuerpo (cómo se m
 
 ## En Manifold
 
-Rapier vive detrás de un solo archivo, la frontera con la física: [`packages/core/src/physics.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/stage-01/packages/core/src/physics.ts). El resto del motor no importa Rapier: habla con esa frontera, en sus propios tipos. Cada entidad guarda solo el número de su cuerpo, nunca el cuerpo, así el estado del mundo sigue siendo datos simples. Y se usa la versión **determinista** de Rapier: hace sus cuentas igual en todas las máquinas. La [Bitácora de la etapa 1a](../../../bitacora/etapa-1a/) cuenta cómo se midió.
+Rapier vive detrás de un solo archivo, la frontera con la física: [`packages/core/src/physics.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/stage-01/packages/core/src/physics.ts). El resto del motor no importa Rapier: habla con esa frontera, en sus propios tipos. Cada entidad guarda solo el número de su cuerpo, nunca el cuerpo, así el estado del mundo sigue siendo datos simples. Y se usa la versión **determinista** de Rapier: hace sus cuentas igual en todas las máquinas. La [Bitácora de la etapa 1a](../../../../bitacora/etapa-1a/) cuenta cómo se midió.
 
 ## Para practicar
 

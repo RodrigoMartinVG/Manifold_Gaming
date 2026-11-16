@@ -12,9 +12,9 @@ import { join, relative } from 'node:path';
 const DOCS = join(import.meta.dirname, '..', 'site', 'src', 'content', 'docs');
 
 /** Tutorial pages that are not lessons: they have no examples to run. */
-const NOT_LESSONS = new Set(['tutorial/glosario/', 'tutorial/patrones/']);
+const NOT_LESSONS = new Set(['tutorial/archivo/glosario/', 'tutorial/archivo/patrones/']);
 
-/** The tutorial's lessons, as addresses: `tutorial/`, `tutorial/etapa-0/01-primer-cubo/`... */
+/** The tutorial's pages with examples, as addresses: `tutorial/parte-1/01-coordenadas/`, the archive's... */
 function tutorialLessons(): string[] {
   const pages: string[] = [];
   const walk = (folder: string) => {
@@ -30,10 +30,8 @@ function tutorialLessons(): string[] {
     }
   };
   walk(join(DOCS, 'tutorial'));
-  // And the new tutorial's pilot (decision 0021), while it lives apart.
-  walk(join(DOCS, 'tutorial-nuevo'));
-  // (The new tutorial's introductions, its own and each part's, have no example.)
-  return pages.filter((p) => !NOT_LESSONS.has(p) && !/^tutorial-nuevo\/(parte-\d+\/)?$/.test(p)).sort();
+  // (The tutorial's introductions, its own and each part's, have no example; the archived one's has.)
+  return pages.filter((p) => !NOT_LESSONS.has(p) && !/^tutorial\/(parte-\d+\/)?$/.test(p)).sort();
 }
 
 /**
@@ -89,27 +87,41 @@ test('a lesson only fetches the libraries it imports: Rapier (4 MB) only where i
   page.on('request', (r) => {
     if (r.url().includes('/vendor/')) fetched.push(r.url().split('/vendor/')[1]!);
   });
-  await page.goto('tutorial/etapa-0/03-paso-fijo/');
+  await page.goto('tutorial/archivo/etapa-0/03-paso-fijo/');
   await runAndWait(page.locator('.live-code').first());
   expect(fetched).toContain('three.js');
   expect(fetched).not.toContain('rapier.js');
-  await page.goto('tutorial/etapa-1/00-motor-de-fisica/');
+  await page.goto('tutorial/archivo/etapa-1/00-motor-de-fisica/');
   await runAndWait(page.locator('.live-code').first());
   expect(fetched).toContain('rapier.js');
 });
 
-test('the lessons that moved (stage 1, in the deeper pass) still answer at their old addresses', async ({ page, baseURL }) => {
+test('pages that moved still answer at their old addresses: the archive, stage 1’s renames, the pilot', async ({
+  page,
+  baseURL,
+}) => {
   for (const [old, now] of [
-    ['01-un-personaje', '02-un-personaje'],
-    ['02-repeticiones', '05-repeticiones'],
-    ['03-instantaneas', '06-instantaneas'],
-    ['04-servidor-y-cliente', '07-servidor-y-cliente'],
-  ]) {
-    await page.goto(`tutorial/etapa-1/${old}/`);
+    // The old tutorial, archived (decision 0021)...
+    ['tutorial/etapa-0/01-primer-cubo/', 'tutorial/archivo/etapa-0/01-primer-cubo/'],
+    ['tutorial/glosario/', 'tutorial/archivo/glosario/'],
+    // ...with stage 1's lessons that took other places in the deeper pass (decision 0013)...
+    ['tutorial/etapa-1/01-un-personaje/', 'tutorial/archivo/etapa-1/02-un-personaje/'],
+    ['tutorial/etapa-1/02-repeticiones/', 'tutorial/archivo/etapa-1/05-repeticiones/'],
+    ['tutorial/etapa-1/03-instantaneas/', 'tutorial/archivo/etapa-1/06-instantaneas/'],
+    ['tutorial/etapa-1/04-servidor-y-cliente/', 'tutorial/archivo/etapa-1/07-servidor-y-cliente/'],
+    // ...and the new tutorial's pilot, which lived apart.
+    ['tutorial-nuevo/parte-1/04-vectores/', 'tutorial/parte-1/04-vectores/'],
+  ] as const) {
+    await page.goto(old);
     // The whole address, with the site's base: a redirect without it leaves the site.
-    await expect(page).toHaveURL(`${baseURL}tutorial/etapa-1/${now}/`);
-    await expect(page.locator('.live-code').first()).toBeVisible();
+    await expect(page).toHaveURL(`${baseURL}${now}`);
+    await expect(page.locator('h1')).toBeVisible();
   }
+  // An archived page says so, and where the new tutorial starts.
+  await expect(page.locator('.sl-banner')).toHaveCount(0);
+  await page.goto('tutorial/archivo/etapa-0/01-primer-cubo/');
+  await expect(page.locator('.sl-banner')).toContainText('tutorial anterior');
+  await expect(page.locator('.sl-banner a')).toHaveAttribute('href', /\/tutorial\/$/);
 });
 
 test('the glossary and the patterns are not lessons: they have no examples', async ({ page }) => {
@@ -121,7 +133,8 @@ test('the glossary and the patterns are not lessons: they have no examples', asy
 });
 
 test('editing the code and running it; an error shows up with its file and its line', async ({ page }) => {
-  await page.goto('tutorial/');
+  // (The archived tutorial's introduction: its example prints "hello 1".)
+  await page.goto('tutorial/archivo/');
   const example = page.locator('.live-code').first();
   await typeCode(page, example, "console.log('edited in the test', { x: 1.23456789 });");
   await example.locator('.lc-run').click();
@@ -140,7 +153,7 @@ test('editing the code and running it; an error shows up with its file and its l
 
 test('full screen: the code and what it draws, side by side, without restarting the example', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
-  await page.goto('tutorial/etapa-0/01-primer-cubo/');
+  await page.goto('tutorial/archivo/etapa-0/01-primer-cubo/');
   const example = page.locator('.live-code').first();
   await runAndWait(example);
   // If the iframe moved in the page, the browser would reload it: its navigations are counted.
@@ -178,7 +191,7 @@ test('full screen: the code and what it draws, side by side, without restarting 
 
 test('without full screen (like on the iPhone), the example takes the window, and Esc brings it back', async ({ page }) => {
   await page.addInitScript(() => Object.defineProperty(Document.prototype, 'fullscreenEnabled', { get: () => false }));
-  await page.goto('tutorial/etapa-0/01-primer-cubo/');
+  await page.goto('tutorial/archivo/etapa-0/01-primer-cubo/');
   const example = page.locator('.live-code').first();
   await example.locator('.lc-expand').click();
   await expect(example).toHaveAttribute('data-expanded', 'window');
@@ -191,7 +204,7 @@ test('without full screen (like on the iPhone), the example takes the window, an
 
 test('the side panels hide and are remembered, and the example uses the width that is left', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto('tutorial/etapa-0/03-paso-fijo/');
+  await page.goto('tutorial/archivo/etapa-0/03-paso-fijo/');
   const example = page.locator('.live-code').first();
   const sidebar = page.locator('header .mg-panels .mg-panel[data-panel="sidebar"]');
   const toc = page.locator('header .mg-panels .mg-panel[data-panel="toc"]');
@@ -211,7 +224,7 @@ test('the side panels hide and are remembered, and the example uses the width th
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(1440);
 
   // On another page they are still hidden (it is remembered), until they are shown again.
-  await page.goto('tutorial/etapa-0/01-primer-cubo/');
+  await page.goto('tutorial/archivo/etapa-0/01-primer-cubo/');
   await expect(page.locator('.sidebar-pane')).toBeHidden();
   await expect(sidebar).toHaveAttribute('aria-pressed', 'false');
   await sidebar.click();

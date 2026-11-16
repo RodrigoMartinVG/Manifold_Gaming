@@ -5,7 +5,7 @@ sidebar:
   order: 5
 ---
 
-import LiveCode from '../../../../components/LiveCode.astro';
+import LiveCode from '../../../../../components/LiveCode.astro';
 
 Hasta ahora, cada ejemplo mezclaba las cuentas con el dibujo: la misma variable era la posición de la pelota y la de su malla en Three.js. En un programa chico no importa. En un motor, es la decisión más importante: **lo que pasa** y **lo que se ve** son dos programas distintos.
 
@@ -111,7 +111,7 @@ Así está armado todo el motor:
 - `packages/core` (el núcleo) es la simulación. Compila **sin** las funciones del navegador: si alguien escribe `document` adentro, el programa no compila.
 - `packages/presentation` (la presentación) dibuja. Un juego solo puede importar las partes que le corresponden, y eso también lo revisa una herramienta automática (el _linter_).
 
-Lo cuenta la [bitácora de la etapa 0](../../../bitacora/etapa-0/), y las reglas están en la [decisión 0003](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/docs/decisions/0003-boundaries.md) (en inglés, como todas las decisiones).
+Lo cuenta la [bitácora de la etapa 0](../../../../bitacora/etapa-0/), y las reglas están en la [decisión 0003](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/docs/decisions/0003-boundaries.md) (en inglés, como todas las decisiones).
 
 ## Para practicar
 

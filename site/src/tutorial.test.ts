@@ -19,7 +19,7 @@ const SITE = join(import.meta.dirname, '..');
 const REPO = join(SITE, '..');
 const DOCS = join(SITE, 'src', 'content', 'docs');
 
-/** Every page of the site's docs, by id (`tutorial/etapa-0/01-primer-cubo`), with its text. */
+/** Every page of the site's docs, by id (`tutorial/parte-1/01-coordenadas`), with its text. */
 function pages(folder = DOCS, out = new Map<string, string>()): Map<string, string> {
   for (const e of readdirSync(folder, { withFileTypes: true })) {
     const file = join(folder, e.name);
@@ -33,7 +33,8 @@ function pages(folder = DOCS, out = new Map<string, string>()): Map<string, stri
   return out;
 }
 const PAGES = pages();
-const lessons = [...PAGES].filter(([id]) => /^tutorial\/etapa-\d+\//.test(id));
+/** The old tutorial's lessons, archived (decision 0021): they keep the shape they were written in. */
+const lessons = [...PAGES].filter(([id]) => /^tutorial\/archivo\/etapa-\d+\//.test(id));
 
 /** A heading's anchor, as Starlight makes it (github-slugger): lower case, no punctuation, spaces as dashes. */
 const slug = (heading: string) =>
@@ -77,8 +78,8 @@ describe('every lesson has its main path and the four layers around it (0013)', 
     });
 });
 
-/** The new tutorial's lessons (decision 0021): while it is a pilot, at `tutorial-nuevo/`. */
-const newLessons = [...PAGES].filter(([id]) => /^tutorial-nuevo\/parte-\d+\/\d+/.test(id));
+/** The tutorial's lessons (decision 0021): the parts' numbered pages. */
+const newLessons = [...PAGES].filter(([id]) => /^tutorial\/parte-\d+\/\d+/.test(id));
 /** A page's words, without its frontmatter, imports and tags. */
 const words = (text: string) =>
   text
@@ -124,7 +125,7 @@ describe('the new tutorial’s lessons: the main path first, the layers short (0
 });
 
 describe('the patterns', () => {
-  const patterns = PAGES.get('tutorial/patrones')!;
+  const patterns = PAGES.get('tutorial/archivo/patrones')!;
   const anchors = anchorsOf(patterns);
   for (const [id, text] of lessons)
     for (const callout of text.matchAll(/:::tip\[Patrón: ([^\]]+)\]([\s\S]*?)\n:::/g))
@@ -132,7 +133,7 @@ describe('the patterns', () => {
         const link = /\]\(\.\.\/\.\.\/patrones\/#([^)]+)\)/.exec(callout[2]!);
         expect(link, 'the callout links to its pattern').not.toBeNull();
         expect(anchors.has(decodeURIComponent(link![1]!)), `#${link![1]} on the Patrones page`).toBe(true);
-        expect(patterns).toContain(`](../${id.slice('tutorial/'.length)}/)`);
+        expect(patterns).toContain(`](../${id.slice('tutorial/archivo/'.length)}/)`);
       });
 });
 

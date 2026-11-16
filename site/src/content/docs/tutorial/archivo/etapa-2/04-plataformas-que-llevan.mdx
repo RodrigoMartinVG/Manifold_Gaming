@@ -5,7 +5,7 @@ sidebar:
   order: 4
 ---
 
-import LiveCode from '../../../../components/LiveCode.astro';
+import LiveCode from '../../../../../components/LiveCode.astro';
 
 En la lección del [personaje](../../etapa-1/02-un-personaje/), el piso nunca se movía. Pero un juego de plataformas está lleno de balsas, ascensores y carruseles, y subirse a uno plantea tres preguntas: dónde está la plataforma en cada paso, cuánto se mueve el que va encima, y cómo se camina sobre algo que se mueve.
 
@@ -81,8 +81,8 @@ El arreglo sirve para las dos: mientras calcula, la plataforma que pisa es fija 
 
 :::caution[Sutilezas]
 
-- **El rayo no ve el borde.** Con el centro ya afuera y el fondo redondo de la cápsula todavía apoyado, el rayo no encuentra la plataforma, y el ejemplo deja de llevarlo. Desde la [etapa 2.5b](../../../bitacora/etapa-2-5b/), el motor busca el piso con su cápsula, un poco más delgada.
-- **Subirse a una plataforma que se va** fue un límite, encontrado al [cerrar la fase 2](../../../bitacora/etapa-2-cierre/). Si subía cuando la balsa ya se alejaba, caía en el hueco con la cápsula apoyada en el borde trasero, y la balsa lo arrastraba sin que pudiera subirse: la cápsula delgada con que se busca el piso (para que una pared que le roza los costados no cuente) no encontraba ese borde, y el controlador no veía la plataforma fija. Desde la [etapa 3a](../../../bitacora/etapa-3a/), el motor busca además con la cápsula entera los cuerpos que mueve el programa: un borde cuenta como piso, y se sube. En el ejemplo, sin _the platform carries it_, a veces queda enganchado así en el borde del transbordador.
+- **El rayo no ve el borde.** Con el centro ya afuera y el fondo redondo de la cápsula todavía apoyado, el rayo no encuentra la plataforma, y el ejemplo deja de llevarlo. Desde la [etapa 2.5b](../../../../bitacora/etapa-2-5b/), el motor busca el piso con su cápsula, un poco más delgada.
+- **Subirse a una plataforma que se va** fue un límite, encontrado al [cerrar la fase 2](../../../../bitacora/etapa-2-cierre/). Si subía cuando la balsa ya se alejaba, caía en el hueco con la cápsula apoyada en el borde trasero, y la balsa lo arrastraba sin que pudiera subirse: la cápsula delgada con que se busca el piso (para que una pared que le roza los costados no cuente) no encontraba ese borde, y el controlador no veía la plataforma fija. Desde la [etapa 3a](../../../../bitacora/etapa-3a/), el motor busca además con la cápsula entera los cuerpos que mueve el programa: un borde cuenta como piso, y se sube. En el ejemplo, sin _the platform carries it_, a veces queda enganchado así en el borde del transbordador.
 - **En el ejemplo, el viaje no pasa por ningún choque:** si la plataforma pasa junto a una pared, nada le impide meter al personaje en ella. El motor, desde la etapa 3a, barre la cápsula a lo largo del viaje, sin contar la plataforma, y lo que encuentra lo detiene.
   :::
 
@@ -99,7 +99,7 @@ El arreglo sirve para las dos: mientras calcula, la plataforma que pisa es fija 
 
 En [`packages/core/src/character.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/character.ts), `standingOn` busca lo que pisa, `carriedBy` calcula cuánto lleva una plataforma un punto, y `moveCharacter` lo lleva, lo gira (`carriedTurn`) y lo hace salir con la velocidad de la plataforma. La plataforma fija para el controlador está en `moveCharacter` de [`packages/core/src/physics.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/physics.ts), con un comentario largo sobre lo que se midió; el lugar como función del tiempo, en [`packages/core/src/world.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/world.ts). En el formato de nivel ([`level.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/level.ts)), una caja va y viene con `move 9 0 0 5` (9 m a lo largo de x en 5 s, y vuelta) o gira con `spin y 40` (40° por segundo).
 
-En la sala `circuit` del [Dojo](../../../jugar/dojo/circuit/) están la balsa, el ascensor y el carrusel. La Bitácora de la [etapa 2d](../../../bitacora/etapa-2d/) cuenta cómo se hizo.
+En la sala `circuit` del [Dojo](../../../../jugar/dojo/circuit/) están la balsa, el ascensor y el carrusel. La Bitácora de la [etapa 2d](../../../../bitacora/etapa-2d/) cuenta cómo se hizo.
 
 ## Para practicar
 
@@ -134,4 +134,4 @@ Un ascensor es un `ferry` cuyo `from` y `to` difieren en `y`. Agregalo a la list
 
 - Jason Gregory, _Game Engine Architecture_, el capítulo "Collision and Rigid Body Dynamics".
 - [El controlador de personaje de Rapier](https://rapier.rs/docs/user_guides/javascript/character_controller) (en inglés): la holgura, los escalones, las pendientes y pegarse al piso.
-- La Bitácora de la [etapa 2d](../../../bitacora/etapa-2d/): de dónde salió todo esto, con sus hallazgos y lo que midió.
+- La Bitácora de la [etapa 2d](../../../../bitacora/etapa-2d/): de dónde salió todo esto, con sus hallazgos y lo que midió.

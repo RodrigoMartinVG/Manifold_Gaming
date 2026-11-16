@@ -5,7 +5,7 @@ sidebar:
   order: 1
 ---
 
-import LiveCode from '../../../../components/LiveCode.astro';
+import LiveCode from '../../../../../components/LiveCode.astro';
 
 En casi todos los juegos, la luz es del dibujo: la placa de video calcula cuánto brilla cada píxel, y la simulación no se entera. Pero un juego de sigilo necesita que un guardia te vea en la luz y te pierda en la sombra, y que eso sea igual en cada copia de la partida. Entonces la luz tiene que ser **de la simulación**: un número, calculado con cuentas que dan los mismos bits en todos lados, que dice **cuán iluminado está un punto**.
 
@@ -70,7 +70,7 @@ El vigía mira en una dirección `m` (de largo 1). Un punto está en su campo de
 
 - **Lo que se ve llega más lejos que lo que cuenta.** Las luces de three.js del ejemplo se apagan con el cuadrado de la distancia y llegan hasta una vez y media el radio; la luz lógica cae en línea recta y termina en el radio. En ese borde, el personaje puede verse iluminado y contar como oscuro. Decide la simulación; si la diferencia confunde, que el dibujo muestre el radio (en el Dojo, `show.light`).
 - **La luz se mide en un punto.** En el ejemplo y en el motor, la de un personaje es la de su centro. Con medio cuerpo asomado detrás de la columna, está entero en la luz o entero en la sombra, según dónde caiga ese punto. Medir en varios (la cabeza, el pecho, los pies) es más justo, y cuesta un rayo por lámpara por cada punto.
-- **Cada pregunta recorre todas las lámparas.** La luz de un punto pide un rayo por lámpara, y la niebla, una cuenta por cada banco. Con muchos personajes y muchas lámparas eso suma: el motor junta las lámparas prendidas y las nieblas una vez por paso, no en cada pregunta, y una prueba de rendimiento lo vigila (la [Bitácora](../../../bitacora/etapa-3d/) cuenta cómo se midió).
+- **Cada pregunta recorre todas las lámparas.** La luz de un punto pide un rayo por lámpara, y la niebla, una cuenta por cada banco. Con muchos personajes y muchas lámparas eso suma: el motor junta las lámparas prendidas y las nieblas una vez por paso, no en cada pregunta, y una prueba de rendimiento lo vigila (la [Bitácora](../../../../bitacora/etapa-3d/) cuenta cómo se midió).
 
 :::
 
@@ -81,13 +81,13 @@ El vigía mira en una dirección `m` (de largo 1). Un punto está en su campo de
 - **Unreal y Unity:** su luz es del dibujo. Para el sigilo, los juegos calculan la suya: rayos desde las luces, o muestras de una textura de luz precalculada (_lightmap_) en los puntos del personaje.
 - **En los libros:** Christer Ericson, _Real-Time Collision Detection_, cap. 5 ("intersecting a ray or segment against a box"). Ian Millington, _AI for Games_, el cap. sobre la percepción (vista, oído, la luz como parte de ver).
 
-**Dónde Manifold eligió otra cosa.** **Del mundo, en el hash:** la luz de cada personaje (`character.light`) está en el estado y se calcula en su propia fase, antes de las señales; un vigía es una entidad, y que vea es la fuente de una señal (`seen eye`). **Sin `exp`:** la atenuación racional, para luz y vista ([etapa 3d](../../../bitacora/etapa-3d/)). **Lo dibujado sigue a la simulación:** la luz ambiente del dibujo es la del mundo, y cada lámpara prendida ilumina con una luz de three.js, pero la que decide es `lightAt`.
+**Dónde Manifold eligió otra cosa.** **Del mundo, en el hash:** la luz de cada personaje (`character.light`) está en el estado y se calcula en su propia fase, antes de las señales; un vigía es una entidad, y que vea es la fuente de una señal (`seen eye`). **Sin `exp`:** la atenuación racional, para luz y vista ([etapa 3d](../../../../bitacora/etapa-3d/)). **Lo dibujado sigue a la simulación:** la luz ambiente del dibujo es la del mundo, y cada lámpara prendida ilumina con una luz de three.js, pero la que decide es `lightAt`.
 
 ## En Manifold
 
 - [`packages/core/src/world.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/world.ts): `lightAt`, `transmission` e `insideLength`, y la fase `light`, que ilumina a cada personaje y decide qué ve cada vigía.
 - [`packages/presentation/src/lights.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/presentation/src/lights.ts): lo que se dibuja de las lámparas y los vigías, y `show.light` y `show.vision`.
-- La sala [`watch`](../../../jugar/dojo/watch/) del Dojo: un salón oscuro, cuatro lámparas, una columna, un banco de niebla y un ojo. La Bitácora de la [etapa 3d](../../../bitacora/etapa-3d/) cuenta cómo se hizo.
+- La sala [`watch`](../../../../jugar/dojo/watch/) del Dojo: un salón oscuro, cuatro lámparas, una columna, un banco de niebla y un ojo. La Bitácora de la [etapa 3d](../../../../bitacora/etapa-3d/) cuenta cómo se hizo.
 
 ## Para practicar
 

@@ -5,7 +5,7 @@ sidebar:
   order: 5
 ---
 
-import LiveCode from '../../../../components/LiveCode.astro';
+import LiveCode from '../../../../../components/LiveCode.astro';
 
 Hasta ahora, al mundo físico se le daban cuerpos y se miraba dónde quedaban. Pero un juego necesita además **preguntarle cosas, sin mover nada**. ¿Qué pisa el personaje? ¿Hay una pared delante, para trepar? ¿La lámpara ve este punto? ¿Hasta dónde puede alejarse la cámara sin meterse en un muro? ¿A quién le pegó el disparo?
 
@@ -105,7 +105,7 @@ El motor lo escribe junto a sus consultas, y una prueba crea un poste, pregunta,
 
 ## En Manifold
 
-Las consultas están en [`world.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/world.ts) (`castRay`, `castShape` y `shortestDelta`, con sus filtros en `Query`) y, sobre Rapier, en [`physics.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/physics.ts) (los grupos, en `groupsOf`); [`world.test.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/world.test.ts) prueba la pelota que toca 25 cm antes, los grupos y el cuerpo que aparece en el paso siguiente. Las usan el personaje, en [`character.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/character.ts) (el piso con su cápsula en `standingOn`, la pared para trepar en `wallAhead`, el viaje sobre una plataforma en `sweep`), la luz y la vista (`illuminate`, en `world.ts`) y la cámara, en [`camera.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/presentation/src/camera.ts), con una pelota de 25 cm barrida desde la cabeza. En la sala [`corridor`](../../../jugar/dojo/corridor/) del Dojo se ve esa cámara contra las paredes, y la [Bitácora](../../../bitacora/etapa-2-5b/) cuenta cómo se hicieron las consultas.
+Las consultas están en [`world.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/world.ts) (`castRay`, `castShape` y `shortestDelta`, con sus filtros en `Query`) y, sobre Rapier, en [`physics.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/physics.ts) (los grupos, en `groupsOf`); [`world.test.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/world.test.ts) prueba la pelota que toca 25 cm antes, los grupos y el cuerpo que aparece en el paso siguiente. Las usan el personaje, en [`character.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/character.ts) (el piso con su cápsula en `standingOn`, la pared para trepar en `wallAhead`, el viaje sobre una plataforma en `sweep`), la luz y la vista (`illuminate`, en `world.ts`) y la cámara, en [`camera.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/presentation/src/camera.ts), con una pelota de 25 cm barrida desde la cabeza. En la sala [`corridor`](../../../../jugar/dojo/corridor/) del Dojo se ve esa cámara contra las paredes, y la [Bitácora](../../../../bitacora/etapa-2-5b/) cuenta cómo se hicieron las consultas.
 
 ## Para practicar
 

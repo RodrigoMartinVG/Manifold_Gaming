@@ -5,7 +5,7 @@ sidebar:
   order: 5
 ---
 
-import LiveCode from '../../../../components/LiveCode.astro';
+import LiveCode from '../../../../../components/LiveCode.astro';
 
 En la [lección del motor de física](../../etapa-1/00-motor-de-fisica/), cada forma tenía su rebote y su rozamiento, y nadie los cambiaba. Pero una caja de hielo tiene que resbalar por una rampa donde una de piedra se queda quieta, y una pelota de caucho tiene que rebotar donde una de madera apenas salta. Para un motor de física, eso son **dos números por superficie**.
 
@@ -111,7 +111,7 @@ No hay una clase para la caja de hielo y otra para la de piedra: hay cajas, y ca
 
 ## En Manifold
 
-Los materiales del motor y la tracción (`MATERIALS`, `tractionOf`) están en [`materials.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/materials.ts); el mundo los guarda por nombre (`World.materials`, `addMaterial`) y, en `createEntity`, un cuerpo toma su fricción, su rebote y su densidad ([`world.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/world.ts)). Un nivel declara los suyos con `material oil friction 0.02 bounce 0 density 900 drag 0.4`, y una caja dice `material ice` ([`level.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/level.ts)); `moveCharacter` lee la tracción del piso ([`character.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/character.ts)). La sala [`surfaces`](../../../jugar/dojo/surfaces/) del Dojo tiene una pista de hielo, y en la consola `inspect rink` dice de qué está hecha. La [Bitácora](../../../bitacora/etapa-3b/) cuenta cómo se hizo.
+Los materiales del motor y la tracción (`MATERIALS`, `tractionOf`) están en [`materials.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/materials.ts); el mundo los guarda por nombre (`World.materials`, `addMaterial`) y, en `createEntity`, un cuerpo toma su fricción, su rebote y su densidad ([`world.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/world.ts)). Un nivel declara los suyos con `material oil friction 0.02 bounce 0 density 900 drag 0.4`, y una caja dice `material ice` ([`level.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/level.ts)); `moveCharacter` lee la tracción del piso ([`character.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/character.ts)). La sala [`surfaces`](../../../../jugar/dojo/surfaces/) del Dojo tiene una pista de hielo, y en la consola `inspect rink` dice de qué está hecha. La [Bitácora](../../../../bitacora/etapa-3b/) cuenta cómo se hizo.
 
 ## Para practicar
 
@@ -149,4 +149,4 @@ Mostrá en el panel `box.isSleeping()` y probá de a medio grado desde 18°. Por
 - [El coeficiente de restitución, en Wikipedia](https://en.wikipedia.org/wiki/Coefficient_of_restitution) (en inglés).
 - Ian Millington, _Game Physics Engine Development_, capítulos "Collision Resolution" y "Resting Contacts and Friction" (en inglés).
 - Robert Nystrom, ["Type Object"](https://gameprogrammingpatterns.com/type-object.html), en _Game Programming Patterns_ (en inglés): los tipos como datos.
-- La [Bitácora](../../../bitacora/etapa-3b/): los materiales, el hielo y la corriente del Dojo, con lo que se midió.
+- La [Bitácora](../../../../bitacora/etapa-3b/): los materiales, el hielo y la corriente del Dojo, con lo que se midió.

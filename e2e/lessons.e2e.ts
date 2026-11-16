@@ -23,7 +23,7 @@ const value = async (f: FrameLocator, name: string) => {
 const click = (f: FrameLocator, name: string) => f.locator('.lil-gui button', { hasText: name }).first().click();
 
 test('replays: the ghost gives the same hash on every step; one step late, another', async ({ page }) => {
-  const f = await open(page, 'tutorial/etapa-1/05-repeticiones/');
+  const f = await open(page, 'tutorial/archivo/etapa-1/05-repeticiones/');
   await expect.poll(async () => Number(await value(f, 'steps')), { timeout: 30_000 }).toBeGreaterThan(120);
   await click(f, 'race your ghost');
   await expect.poll(async () => Number(await value(f, 'steps checked')), { timeout: 30_000 }).toBeGreaterThan(100);
@@ -37,7 +37,7 @@ test('replays: the ghost gives the same hash on every step; one step late, anoth
 });
 
 test('snapshots: the twin born from a snapshot is the same world, until it is nudged', async ({ page }) => {
-  const f = await open(page, 'tutorial/etapa-1/06-instantaneas/');
+  const f = await open(page, 'tutorial/archivo/etapa-1/06-instantaneas/');
   await expect.poll(async () => Number(await value(f, 'step')), { timeout: 30_000 }).toBeGreaterThan(200);
   expect(await value(f, 'the twin is')).toBe('the same');
   await click(f, 'nudge the twin');
@@ -45,7 +45,7 @@ test('snapshots: the twin born from a snapshot is the same world, until it is nu
 });
 
 test('server and client: the hash checks agree; an input lost by the client is a desync', async ({ page }) => {
-  const f = await open(page, 'tutorial/etapa-1/07-servidor-y-cliente/');
+  const f = await open(page, 'tutorial/archivo/etapa-1/07-servidor-y-cliente/');
   await expect.poll(async () => Number(await value(f, 'hash checks')), { timeout: 30_000 }).toBeGreaterThan(2);
   expect(await value(f, 'desyncs')).toBe('0');
   await click(f, 'loses an input');
@@ -64,7 +64,7 @@ async function set(f: FrameLocator, name: string, to: string) {
 }
 
 test('numbers that are not exact: far from the origin, a 32-bit step is lost', async ({ page }) => {
-  const f = await open(page, 'tutorial/etapa-0/06-numeros-que-no-son-exactos/');
+  const f = await open(page, 'tutorial/archivo/etapa-0/06-numeros-que-no-son-exactos/');
   expect(await value(f, 'a step moves')).toBe('0.0167 m');
   await expect.poll(() => value(f, 'the red one moved'), { timeout: 30_000 }).toMatch(/^-?0\.0167 m$/);
   await set(f, 'far: 10^', '6');
@@ -73,7 +73,7 @@ test('numbers that are not exact: far from the origin, a 32-bit step is lost', a
 });
 
 test('matrices and spaces: the tip stays the same in the ship’s space, not in the world’s', async ({ page }) => {
-  const f = await open(page, 'tutorial/etapa-0/07-matrices-y-espacios/');
+  const f = await open(page, 'tutorial/archivo/etapa-0/07-matrices-y-espacios/');
   await expect.poll(() => value(f, 'the ship’s'), { timeout: 30_000 }).toBe('0.00  0.00  -0.70');
   const world = await value(f, 'the world’s');
   await expect.poll(() => value(f, 'the world’s'), { timeout: 30_000 }).not.toBe(world);
@@ -82,7 +82,7 @@ test('matrices and spaces: the tip stays the same in the ship’s space, not in 
 });
 
 test('finding collisions: the grid finds the same pairs as every pair, with fewer tests', async ({ page }) => {
-  const f = await open(page, 'tutorial/etapa-1/01-como-se-encuentra-un-choque/');
+  const f = await open(page, 'tutorial/archivo/etapa-1/01-como-se-encuentra-un-choque/');
   await expect.poll(() => value(f, 'the same pairs as every pair'), { timeout: 30_000 }).toBe('yes');
   expect(Number(await value(f, 'box tests'))).toBeLessThan((300 * 299) / 2 / 5);
   await set(f, 'broad phase', 'every pair');
@@ -90,7 +90,7 @@ test('finding collisions: the grid finds the same pairs as every pair, with fewe
 });
 
 test('inputs as actions: a bot asks for actions, and only the changes are kept, with their player', async ({ page }) => {
-  const f = await open(page, 'tutorial/etapa-1/04-entradas-como-acciones/');
+  const f = await open(page, 'tutorial/archivo/etapa-1/04-entradas-como-acciones/');
   await expect.poll(async () => Number(await value(f, 'changes kept')), { timeout: 30_000 }).toBeGreaterThan(2);
   await expect(f.locator('pre')).toContainText('player 2');
   await expect.poll(async () => Number(await value(f, 'jumps, player 2')), { timeout: 30_000 }).toBeGreaterThan(0);
@@ -104,7 +104,7 @@ test('inputs as actions: a bot asks for actions, and only the changes are kept, 
 test('zones: balls come into the zones and leave them, each "left" after its "entered", and who is inside adds up', async ({
   page,
 }) => {
-  const f = await open(page, 'tutorial/etapa-2/01-zonas-que-notan-quien-entra/');
+  const f = await open(page, 'tutorial/archivo/etapa-2/01-zonas-que-notan-quien-entra/');
   await expect.poll(async () => Number(await value(f, 'left')), { timeout: 30_000 }).toBeGreaterThan(5);
   // The console from its first line (it keeps the last 200: none dropped yet): for every ball and zone,
   // "entered" and "left" take turns, starting with "entered".
@@ -139,7 +139,7 @@ test('zones: balls come into the zones and leave them, each "left" after its "en
 test('platforms that carry: on the carousel the character goes round and turns with it; without the carry, it stays', async ({
   page,
 }) => {
-  const f = await open(page, 'tutorial/etapa-2/04-plataformas-que-llevan/');
+  const f = await open(page, 'tutorial/archivo/etapa-2/04-plataformas-que-llevan/');
   await click(f, 'demo');
   await expect.poll(() => value(f, 'on'), { timeout: 30_000 }).toBe('carousel');
   await expect.poll(async () => Number(await value(f, 'carried (m/s)')), { timeout: 30_000 }).toBeGreaterThan(0.5);
@@ -157,7 +157,7 @@ test('platforms that carry: on the carousel the character goes round and turns w
 test('a level as text: what is read is the level, the balls come to rest on its boxes, and a bad line says its number', async ({
   page,
 }) => {
-  const f = await open(page, 'tutorial/etapa-2/00-un-nivel-como-texto/');
+  const f = await open(page, 'tutorial/archivo/etapa-2/00-un-nivel-como-texto/');
   // The default level: 7 boxes and 2 zones, every line understood.
   expect(await value(f, 'title')).toBe('A small yard');
   expect(await value(f, 'boxes')).toBe('7');
@@ -183,7 +183,7 @@ test('a level as text: what is read is the level, the balls come to rest on its 
 });
 
 test('one mode per step: the demo walks, climbs, jumps and glides, and every mode is seen', async ({ page }) => {
-  const f = await open(page, 'tutorial/etapa-2/02-un-modo-por-paso/');
+  const f = await open(page, 'tutorial/archivo/etapa-2/02-un-modo-por-paso/');
   await expect.poll(() => value(f, 'mode'), { timeout: 30_000 }).toBe('walk');
   await click(f, 'demo');
   // The demo starts over from the start, and "modes seen" lists only what it visits: all four.
@@ -196,7 +196,7 @@ test('capabilities as data: the demo takes the three stars; without climbing, th
   page,
 }) => {
   test.slow();
-  const f = await open(page, 'tutorial/etapa-2/03-capacidades-como-datos/');
+  const f = await open(page, 'tutorial/archivo/etapa-2/03-capacidades-como-datos/');
   await click(f, 'demo');
   // (It waits on "demos played": "stars" goes back to 0 when a demo starts, and could be read too early.)
   await expect.poll(async () => Number(await value(f, 'demos played')), { timeout: 60_000 }).toBe(1);
@@ -221,7 +221,7 @@ const box = (f: FrameLocator, name: string) =>
     .first()
     .locator('input[type="checkbox"]');
 test('signals: from a cause to the door, one step; computed backwards, three', async ({ page }) => {
-  const f = await open(page, 'tutorial/etapa-3/00-entidades-y-senales/');
+  const f = await open(page, 'tutorial/archivo/etapa-3/00-entidades-y-senales/');
   await box(f, 'crate a on its plate').check();
   await box(f, 'crate b on its plate').check();
   await expect.poll(() => value(f, 'cause to door (steps)'), { timeout: 15_000 }).toBe('1');
@@ -236,7 +236,7 @@ test('signals: from a cause to the door, one step; computed backwards, three', a
 test('logical light: walking its loop, the character is seen in the light and not behind the pillar or in the dark', async ({
   page,
 }) => {
-  const f = await open(page, 'tutorial/etapa-3/01-la-luz-como-logica/');
+  const f = await open(page, 'tutorial/archivo/etapa-3/01-la-luz-como-logica/');
   const seen = () => box(f, 'seen').isChecked();
   await expect.poll(seen, { timeout: 30_000 }).toBe(true);
   await expect.poll(seen, { timeout: 30_000 }).toBe(false);
@@ -263,7 +263,7 @@ test('logical light: walking its loop, the character is seen in the light and no
 test('breakables: a slow ball does not break the vase; a faster one does, with three pieces and fragments apart', async ({
   page,
 }) => {
-  const f = await open(page, 'tutorial/etapa-3/02-lo-que-se-rompe/');
+  const f = await open(page, 'tutorial/archivo/etapa-3/02-lo-que-se-rompe/');
   // At 4 m/s, about 38 J: less than its 60.
   await click(f, 'throw');
   await expect.poll(async () => Number(await value(f, 'last hit (J)')), { timeout: 15_000 }).toBeGreaterThan(30);
@@ -277,7 +277,7 @@ test('breakables: a slow ball does not break the vase; a faster one does, with t
 });
 
 test('sound from events: steps on each floor, heard as far as it says; a dropped ball hits the metal', async ({ page }) => {
-  const f = await open(page, 'tutorial/etapa-3/03-el-sonido-sale-de-los-eventos/');
+  const f = await open(page, 'tutorial/archivo/etapa-3/03-el-sonido-sale-de-los-eventos/');
   await expect.poll(() => value(f, 'last sound'), { timeout: 15_000 }).toMatch(/^step on (wood|stone|metal)$/);
   const heard = { wood: '7', stone: '6', metal: '10' } as Record<string, string>;
   await expect
@@ -298,7 +298,7 @@ test('sound from events: steps on each floor, heard as far as it says; a dropped
 test('saving as data: the progress loads after the engine changes, the photo does not; an old save is brought forward', async ({
   page,
 }) => {
-  const f = await open(page, 'tutorial/etapa-3/04-guardar-como-datos/');
+  const f = await open(page, 'tutorial/archivo/etapa-3/04-guardar-como-datos/');
   await expect.poll(async () => Number(await value(f, 'gems')), { timeout: 30_000 }).toBeGreaterThan(0);
   await click(f, 'save the progress');
   await expect.poll(() => value(f, 'message')).toMatch(/^saved/);
@@ -321,7 +321,7 @@ const number = async (f: FrameLocator, name: string) => Number(await value(f, na
 test('rays and sweeps: the ball stops a radius before the ray, only the ray fits the slot, a new box is seen a step later', async ({
   page,
 }) => {
-  const f = await open(page, 'tutorial/etapa-2/05-rayos-y-barridos/');
+  const f = await open(page, 'tutorial/archivo/etapa-2/05-rayos-y-barridos/');
   await expect.poll(() => value(f, 'west, the wall')).toBe('5.00 / 4.75');
   expect(await value(f, 'east, the slot')).toBe('5.00 / 2.75');
   expect(await value(f, 'north, the glass')).toBe('3.00 / 2.75');
@@ -339,7 +339,7 @@ test('rays and sweeps: the ball stops a radius before the ray, only the ray fits
 test('an animated character: with the phase by distance the planted foot barely slides; by the clock it slides', async ({
   page,
 }) => {
-  const f = await open(page, 'tutorial/etapa-2/06-un-personaje-animado/');
+  const f = await open(page, 'tutorial/archivo/etapa-2/06-un-personaje-animado/');
   // The first lap looks north: its north side walks to its right, one clip alone.
   await expect.poll(() => value(f, 'direction weights'), { timeout: 20_000 }).toBe('right 1.00');
   const slide = await number(f, 'foot slide');
@@ -352,7 +352,7 @@ test('an animated character: with the phase by distance the planted foot barely 
 test('friction and bounce: ice slides where stone stays, rubber comes back up e² of the height, ice takes 65 steps to stop', async ({
   page,
 }) => {
-  const f = await open(page, 'tutorial/etapa-3/05-friccion-y-rebote/');
+  const f = await open(page, 'tutorial/archivo/etapa-3/05-friccion-y-rebote/');
   await expect.poll(() => number(f, 'ice slid'), { timeout: 20_000 }).toBeGreaterThan(0.5);
   expect(await number(f, 'stone slid')).toBeLessThan(0.01);
   expect(await value(f, 'rubber: e²')).toBe('0.5');
@@ -365,7 +365,7 @@ test('friction and bounce: ice slides where stone stays, rubber comes back up e�
 });
 
 test('mass: the capped push moves the crate and not the block; the crate is carried and stops at the wall', async ({ page }) => {
-  const f = await open(page, 'tutorial/etapa-3/06-la-masa/');
+  const f = await open(page, 'tutorial/archivo/etapa-3/06-la-masa/');
   expect(await value(f, 'crate (kg)')).toBe('44.8');
   expect(await value(f, 'block (kg)')).toBe('1228.8');
   expect(await value(f, 'crate friction (N)')).toBe('242');
@@ -384,7 +384,7 @@ test('mass: the capped push moves the crate and not the block; the crate is carr
 test('the camera against walls: with the sweep it never gets near a wall or behind one; without it, it does', async ({
   page,
 }) => {
-  const f = await open(page, 'tutorial/etapa-3/07-la-camara-contra-las-paredes/');
+  const f = await open(page, 'tutorial/archivo/etapa-3/07-la-camara-contra-las-paredes/');
   // Through the tunnel and round the first corners, the walls take something from the camera.
   await expect.poll(() => number(f, 'cut (m)'), { timeout: 15_000 }).toBeGreaterThan(2);
   expect(await number(f, 'closest to a wall')).toBeGreaterThanOrEqual(20);
@@ -400,7 +400,7 @@ test('the game’s interface: the language changes the words, never the key or t
   // Two runs of 300 steps each: on a slow machine the world steps slower than the clock (the frames are
   // capped), so the waits are for the world's steps, with room.
   test.setTimeout(180_000);
-  const f = await open(page, 'tutorial/etapa-3/08-la-interfaz-del-juego/');
+  const f = await open(page, 'tutorial/archivo/etapa-3/08-la-interfaz-del-juego/');
   await expect.poll(() => value(f, 'last notice (key)')).toMatch(/^notice\.(star|goal) \[/);
   await expect.poll(() => value(f, 'last notice (words)')).toMatch(/estrella|Vuelta|La última/);
   expect(await value(f, 'keys missing')).toBe('none');
@@ -418,7 +418,7 @@ test('the game’s interface: the language changes the words, never the key or t
 test('a level that tests itself: few boxes, the export is the map, and its recipe passes; per cell, the ball hops', async ({
   page,
 }) => {
-  const f = await open(page, 'tutorial/etapa-3/09-un-nivel-que-se-prueba-solo/');
+  const f = await open(page, 'tutorial/archivo/etapa-3/09-un-nivel-que-se-prueba-solo/');
   expect(await value(f, 'cells')).toBe('135');
   expect(await value(f, 'boxes')).toBe('17');
   expect(await value(f, 'export = map')).toBe('yes');
@@ -434,7 +434,7 @@ test('a level that tests itself: few boxes, the export is the map, and its recip
 test('a dungeon from a seed: the same seed gives the same dungeon, all connected; another generator, another one', async ({
   page,
 }) => {
-  const f = await open(page, 'tutorial/etapa-3/10-un-calabozo-con-una-semilla/');
+  const f = await open(page, 'tutorial/archivo/etapa-3/10-un-calabozo-con-una-semilla/');
   await expect.poll(() => value(f, 'hash (map)')).toBe('744db12f');
   expect(await value(f, 'rooms')).toBe('6 of 6');
   expect(await value(f, 'floor cells')).toBe('182');
@@ -451,7 +451,7 @@ test('a dungeon from a seed: the same seed gives the same dungeon, all connected
 });
 
 test('the new tutorial, a window into the world: our numbers put the ball at the same pixel as three.js', async ({ page }) => {
-  const f = await open(page, 'tutorial-nuevo/parte-1/03-una-ventana-al-mundo/');
+  const f = await open(page, 'tutorial/parte-1/03-una-ventana-al-mundo/');
   const pixel = async (name: string) => (await value(f, name)).split(',').map(Number);
   await expect.poll(() => value(f, 'our numbers')).toMatch(/^\d+\.\d, \d+\.\d$/);
   for (let i = 0; i < 3; i++) {
@@ -465,7 +465,7 @@ test('the new tutorial, a window into the world: our numbers put the ball at the
 test('the new tutorial, moving with vectors: normalized, 3 m/s straight and diagonally; without, the diagonal is √2 faster', async ({
   page,
 }) => {
-  const f = await open(page, 'tutorial-nuevo/parte-1/05-moverse/');
+  const f = await open(page, 'tutorial/parte-1/05-moverse/');
   await expect.poll(() => number(f, 'straight speed'), { timeout: 20_000 }).toBeCloseTo(3, 2);
   await expect.poll(() => number(f, 'diagonal speed'), { timeout: 20_000 }).toBeCloseTo(3, 2);
   await toggle(f, 'normalize');
@@ -475,7 +475,7 @@ test('the new tutorial, moving with vectors: normalized, 3 m/s straight and diag
 test('the lab kit, in the vectors figure: a tip is dragged across the floor to a half meter, and the camera stays', async ({
   page,
 }) => {
-  const f = await open(page, 'tutorial-nuevo/parte-1/04-vectores/');
+  const f = await open(page, 'tutorial/parte-1/04-vectores/');
   await expect.poll(() => value(f, 'vector a')).toMatch(/^-?\d/);
   await toggle(f, 'autopilot');
   // Where a point of the floor is seen, on the page: the figure's frame projects it with its camera
@@ -523,7 +523,7 @@ test('the lab kit, in the vectors figure: a tip is dragged across the floor to a
 });
 
 test('the notation: a positive turn takes each axis to the next one, and three.js turns the same way', async ({ page }) => {
-  const f = await open(page, 'tutorial-nuevo/notacion/');
+  const f = await open(page, 'tutorial/notacion/');
   await set(f, 'angle (deg)', '90');
   const expected = { X: '0.000, 0.000, 1.000', Y: '1.000, 0.000, 0.000', Z: '0.000, 1.000, 0.000' };
   for (const [axis, turned] of Object.entries(expected)) {
@@ -539,7 +539,7 @@ test('the notation: a positive turn takes each axis to the next one, and three.j
 test('TypeScript for JavaScript programmers: the example writes each section, and an unchecked type error is a NaN', async ({
   page,
 }) => {
-  await page.goto('tutorial-nuevo/typescript/');
+  await page.goto('tutorial/typescript/');
   const example = page.locator('.live-code').first();
   await example.locator('.lc-result').scrollIntoViewIfNeeded();
   const lines = example.locator('.lc-console .lc-line');
@@ -551,4 +551,22 @@ test('TypeScript for JavaScript programmers: the example writes each section, an
   expect(text[5]).toContain('behind the camera, the depth or 0: 0');
   expect(text[6]).toContain('the third target: there is none');
   expect(await example.getAttribute('data-errors')).toBe('0');
+});
+
+test('coordinates: our distance is three.js’s, the worked example gives 5 and 5.2202, and the mirror keeps the numbers', async ({
+  page,
+}) => {
+  const f = await open(page, 'tutorial/parte-1/01-coordenadas/');
+  await click(f, 'worked example');
+  await expect.poll(() => value(f, 'floor distance (m)')).toBe('5');
+  expect(await value(f, 'our distance (m)')).toBe('5.2202');
+  expect(await value(f, 'three.js distanceTo (m)')).toBe('5.2202');
+  expect(await value(f, 'Δ = Q − P')).toBe('(-4.00, -1.50, -3.00)');
+  // Left-handed, the same numbers: another picture, the same point.
+  await toggle(f, 'left-handed');
+  expect(await value(f, 'our distance (m)')).toBe('5.2202');
+  // At the same height, the floor distance is the distance.
+  await set(f, 'height of P (m)', '0.5');
+  await expect.poll(() => value(f, 'our distance (m)')).toBe('5');
+  expect(await value(f, 'three.js distanceTo (m)')).toBe('5');
 });
