@@ -46,6 +46,22 @@ _Real-Time Collision Detection_; **MF** Millington's _Game Physics Engine Develo
 _AI for Games_, 3rd ed. (2019, Millington alone; "Millington and Funge" is the 2nd edition); **GPP** Nystrom's _Game
 Programming Patterns_ (its examples are in 2D C++, with no 3D conventions to translate).
 
+Two more books for the hard explanations (added 2026-11-16, after the tables were made; the lesson sheets cite them
+where they help): **DP** Dunn and Parberry's _3D Math Primer for Graphics and Game Development_, 2nd ed. (free from its
+authors at [gamemath.com](https://gamemath.com/book/), so a lesson can send the reader there), the gentlest of the
+mathematics books, strongest on curves (5.9), the canonical sets of angles (1.13, 1.16), quaternions (1.15) and a
+calculus and mechanics primer (2.1, 2.2, part 4); and **LM** Lengyel's _Mathematics for 3D Game Programming and
+Computer Graphics_, 3rd ed. (not L1, which shares a word of its title), strongest on projection and oblique clipping
+in WebGL's own conventions (1.2, 1.10, 8.14, the portals of part 10), eigenvalues and the spectral theorem (4.2, 4.8),
+the damped spring by its characteristic roots (4.2, 5.5, 7.1), inertia as an integral (4.8), sine and cosine from a
+table and Taylor terms (2.13's `trig.ts`, its table written as literals) and non-inertial frames (5.8). Their
+conventions, to translate: **DP** is left-handed with +_z_ forward (mirror _z_: a quaternion becomes (_w_, −*x*, −*y*,
+_z_), angles about _x_ and _y_ change sign), writes row vectors with the translation in the bottom row, planes as
+_p_·**n** = _d_, clockwise front faces, heading positive to the right and pitch positive nose down (and its 1st
+edition's quaternion product is reversed: use only the 2nd's); **LM** agrees with ours except its aspect ratio
+(height over width), its focal length from the horizontal field of view (three.js's `fov` is vertical), _w_ first on
+the page, and explicit Euler.
+
 | Convention            | Ours (the mathematics)                                                                                                                                        | In code: three.js, Rapier, Manifold                                                                                                                                                                                    | L1                                | L2                                                      | G, G2                                                                      | RTR                                 | E                                    | MF                                                                  | MA                                       |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- | ------------------------------------------------------- | -------------------------------------------------------------------------- | ----------------------------------- | ------------------------------------ | ------------------------------------------------------------------- | ---------------------------------------- |
 | Handedness            | Right-handed; defined (1.6) by the sign of [**i**, **j**, **k**]                                                                                              | Right-handed                                                                                                                                                                                                           | Right                             | Right (camera space too)                                | Both discussed; its graphics examples are left-handed; G2's clip space too | Right                               | Agnostic                             | Right                                                               | Right                                    |
