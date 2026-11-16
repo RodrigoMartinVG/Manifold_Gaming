@@ -871,6 +871,13 @@ The author approved this curriculum, with these answers to the questions it left
 5. **The project grows its own small console** (it also teaches how a console works); "En Manifold" points to the
    Dojo's.
 6. **Behaviour trees stay a "Más a fondo"** (the guard uses a hierarchical state machine) and **rollback a ◇ lesson.**
+7. **The eight decisions across parts** that the lesson sheets' review found
+   ([`tutorial-lessons/README.md`](tutorial-lessons/README.md)) are taken as recommended: gravity as a field
+   `gravityAt(p)` from 2.8; `trig.ts` with `sinCos` (in degrees, an exception to the radians of §2, its reduction exact
+   and its polynomial in radians), `expNeg` and, in 10.9, `acos`, and no `atan2`; the input record with a payload (a
+   point, a quantized direction); one console grammar; 6.4's zones for every region; effects that are only drawn;
+   5.2's constant-acceleration motor, with 7.1 rewritten around it; and a fixed module map (one `view/` folder from
+   1.3).
 
 ## 8. Size
 

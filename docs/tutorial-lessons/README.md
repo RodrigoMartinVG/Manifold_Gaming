@@ -28,8 +28,8 @@ them together afterwards, and what only that review could see is below. The lab 
 
 ## Decisions across parts
 
-Choices that span several parts' sheets, found by the cross-part review. Each has a recommendation; **they wait for
-the author's answer**, and the sheets are amended when a part is written, not before.
+Choices that span several parts' sheets, found by the cross-part review. Each had a recommendation; **the author took
+all eight as recommended (2026-11-16)**, and the sheets are amended when each part is written, not before.
 
 1. **Gravity as a field from the start.** No lesson creates `gravityAt(p)`, which 10.4 says "keeps its name"; 2.8
    writes _v_y −= _gh_ inside `moveBall`, 4.6 has `gravity(g)`, 4.11 `createPhysics(gravity, h)`. Recommended:
