@@ -155,10 +155,13 @@ export function mountCamera(
   /**
    * AGAINST WALLS (stage 3h): how far the camera was brought in front of a wall at the last frame (taken
    * back at the start of the next, so the leash keeps its own distance: it never learns the wall's), and
-   * how far from the head it is shown now (null: from where it wants to be).
+   * how many meters in front of where it wants to be it is shown now (`cut`): what a wall took, given
+   * back slowly. Without walls, 0: it is where it wants to be, however that changes (a first version
+   * kept how far from the head instead, and eased every growth of it, walls or not: coming down from a
+   * jump, the camera lagged 10 cm).
    */
   const pulled = new THREE.Vector3();
-  let shown: number | null = null;
+  let cut = 0;
   /** Back where it wants to be: what moves it (a drag, the wheel, the leash) moves that, never the pull. */
   const unpull = () => {
     camera.position.sub(pulled);
@@ -283,7 +286,7 @@ export function mountCamera(
   function reset() {
     drift.x = drift.y = 0;
     pulled.set(0, 0, 0);
-    shown = null;
+    cut = 0;
     lookHeight = null;
     const hero = page.player();
     if (hero?.transform && hero.character) {
@@ -474,14 +477,15 @@ export function mountCamera(
             dynamic: false,
             characters: false,
           });
-          const free = hit ? Math.max(CLOSEST, hit.distance) : wants;
-          shown = shown === null || free < shown ? free : shown + (free - shown) * (1 - Math.exp(-OUT * dt));
-          shown = Math.min(shown, wants);
-          const at = head.clone().addScaledVector(way, shown);
+          // What a wall takes now, at once; what it took before, given back slowly.
+          const takes = hit ? wants - Math.max(Math.min(CLOSEST, wants), hit.distance) : 0;
+          cut = Math.max(takes, cut * Math.exp(-OUT * dt));
+          if (cut < 1e-4) cut = 0;
+          const at = head.clone().addScaledVector(way, Math.max(0, wants - cut));
           pulled.copy(at).sub(camera.position);
           camera.position.copy(at);
         }
-      } else shown = null;
+      } else cut = 0;
       camera.lookAt(target);
     },
     stop() {
