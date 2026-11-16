@@ -26,7 +26,7 @@ Phase 5's games need saving (decision 0017: a menu, a HUD, saving, credits), and
 - Updating the engine no longer threatens saved games; changing what a game saves asks for a migration and a test, at the moment it changes.
 - What is not in the progress comes back as the level and the seed say: a crate pushed elsewhere is where it started. That is the game's choice of what to keep.
 - A save is small and readable: it can be shown, copied and sent (a link, later).
-- Snapshots keep their place: going back to a moment in a session (`snapshot`, `restore`), rollback and rewinding (phase 6), all within one engine version.
+- Snapshots keep their place: going back to a moment in a session (`snapshot`, `restore`, and phase 4's `step back`), joining a match already started (1e), all within one engine version. (This said "rollback and rewinding (phase 6)" at first: decision 0016 rules out rolling the world back, and phase 6 re-simulates only one's own character.)
 
 ## Alternatives discarded
 

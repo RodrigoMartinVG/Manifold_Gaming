@@ -64,7 +64,7 @@ En el ejemplo, _computed backwards_ rompe esa regla: cada señal lee a las de ab
 <details>
 <summary>Una puerta como función del paso</summary>
 
-Una puerta podría girar un poco en cada paso, sumando. Pero una suma acumula: cada copia redondea igual, sí, pero rebobinar (fase 6) o saltar a un paso pide recalcular todo desde el principio. Calcularla como función es directo: si empezó a abrirse en el paso `since`, desde la apertura `from`, en el paso `t` está en
+Una puerta podría girar un poco en cada paso, sumando. Pero una suma acumula: cada copia redondea igual, sí, pero volver a un paso pasado o saltar a uno pide recalcular todo desde el principio. Y en la fase 6, quien vuelve a simular su propio personaje necesita saber dónde estaba la puerta en ese paso. Calcularla como función es directo: si empezó a abrirse en el paso `since`, desde la apertura `from`, en el paso `t` está en
 
 `p = clamp(from + (t − since) · Δt / T, 0, 1)`
 
