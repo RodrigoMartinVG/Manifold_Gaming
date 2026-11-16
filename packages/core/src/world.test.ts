@@ -98,7 +98,6 @@ describe('spatial queries through the world (stage 2.5b)', () => {
       transform: { position: [-3, 1, 0], rotation: quat.identity() },
       body: { type: 'fixed', shape: { kind: 'box', halfExtents: [0.2, 1, 2] }, groups: { member: 0b10, filter: 0xffff } },
     });
-    // Rapier's queries see a body from the step after it was created.
     world.step();
     return { world, floor, box, ball, wall };
   }
@@ -141,15 +140,56 @@ describe('spatial queries through the world (stage 2.5b)', () => {
     world.dispose();
   });
 
-  test("a body created during a step is in the queries from the next step on (Rapier's limit)", () => {
-    const { world } = scene();
+  test('a body created between two steps is in the queries at once, and so is one put somewhere: where it is, not where it was', () => {
+    // (Rapier's queries see neither until its next step, measured: physics.ts asks them on their own.)
+    const { world, box } = scene();
     const post = world.createEntity({
       transform: { position: [0, 0.5, 3], rotation: quat.identity() },
       body: { type: 'fixed', shape: { kind: 'box', halfExtents: [0.5, 0.5, 0.5] } },
     });
-    expect(world.castRay([0, 0.5, 0], [0, 0, 1], 10)).toBeNull();
+    const ahead = world.castRay([0, 0.5, 0], [0, 0, 1], 10)!;
+    expect(ahead.entity).toBe(post.id);
+    expect(ahead.distance).toBeCloseTo(2.5, 5);
+    expect(ahead.normal[2]).toBeCloseTo(-1, 5);
+    const swept = world.castShape({ kind: 'ball', radius: 0.25 }, [0, 0.5, 0], quat.identity(), [0, 0, 1], 10)!;
+    expect(swept.entity).toBe(post.id);
+    expect(swept.distance).toBeCloseTo(2.25, 3);
+    expect(swept.point[2]).toBeCloseTo(2.5, 3);
+    expect(swept.normal[2]).toBeCloseTo(-1, 3);
+    // The box, put on the other side at once: there, and not where it was.
+    world.place(box, [0, 0.5, -4]);
+    expect(world.castRay([0, 0.5, 0], [1, 0, 0], 10)).toBeNull();
+    expect(world.castRay([0, 0.5, 0], [0, 0, -1], 10)!.entity).toBe(box.id);
+    expect(world.castShape({ kind: 'ball', radius: 0.25 }, [0, 0.5, 0], quat.identity(), [0, 0, -1], 10)!.entity).toBe(box.id);
+    // Left out as any other: by the one asking, by what the physics moves, by its groups.
+    expect(world.castRay([0, 0.5, 0], [0, 0, 1], 10, { skip: post.id })).toBeNull();
     world.step();
-    expect(world.castRay([0, 0.5, 0], [0, 0, 1], 10)!.entity).toBe(post.id);
+    // After the step, Rapier's own queries: the same answers.
+    expect(world.castRay([0, 0.5, 0], [0, 0, 1], 10)!.distance).toBeCloseTo(2.5, 5);
+    expect(world.castRay([0, 0.5, 0], [1, 0, 0], 10)).toBeNull();
+    expect(world.castRay([0, 0.5, 0], [0, 0, -1], 10)!.entity).toBe(box.id);
+    world.dispose();
+  });
+
+  test("before a world's first step, the queries see its bodies (Rapier's see none)", () => {
+    const world = new World({ seed: 1 });
+    const floor = world.createEntity({
+      transform: { position: [0, -0.5, 0], rotation: quat.identity() },
+      body: { type: 'fixed', shape: { kind: 'box', halfExtents: [10, 0.5, 10] } },
+    });
+    const crate = world.createEntity({
+      transform: { position: [2, 0.5, 0], rotation: quat.identity() },
+      body: { type: 'dynamic', shape: { kind: 'box', halfExtents: [0.5, 0.5, 0.5] } },
+    });
+    const fence = world.createEntity({
+      transform: { position: [-2, 0.5, 0], rotation: quat.identity() },
+      body: { type: 'fixed', shape: { kind: 'box', halfExtents: [0.5, 0.5, 0.5] }, groups: { member: 0b10, filter: 0xffff } },
+    });
+    expect(world.castRay([0, 5, 0], [0, -1, 0], 10)!.entity).toBe(floor.id);
+    expect(world.castRay([2, 5, 0], [0, -1, 0], 10)!.entity).toBe(crate.id);
+    expect(world.castRay([2, 5, 0], [0, -1, 0], 10, { dynamic: false })!.entity).toBe(floor.id);
+    expect(world.castRay([-2, 5, 0], [0, -1, 0], 10)!.entity).toBe(fence.id);
+    expect(world.castRay([-2, 5, 0], [0, -1, 0], 10, { groups: { member: 0xffff, filter: 0b01 } })!.entity).toBe(floor.id);
     world.dispose();
   });
 

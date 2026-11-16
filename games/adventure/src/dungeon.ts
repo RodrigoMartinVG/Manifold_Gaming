@@ -35,11 +35,18 @@ const between = (r: Random, min: number, max: number) => min + (r.uint32() % (ma
  * there are more. The first room is where the character starts; the last has the exit; the middle
  * one, the key the exit asks for; and every other room, a gem. What is drawn is a map (stage 3j):
  * walls only where they touch the floor, nothing beyond them.
+ *
+ * Its grid is `size` cells across and it tries for `count` rooms (by its depth: 21 cells and 5 rooms
+ * at depth 1, up to 37 and 9). With fewer than three rooms (on a grid where no more fit), the key goes
+ * in the first room, and with one, the exit too, each where nothing else is: never without a key.
  */
-export function dungeon(seed: number, depth: number): Dungeon {
+export function dungeon(
+  seed: number,
+  depth: number,
+  size = 21 + 4 * Math.min(depth - 1, 4),
+  count = Math.min(4 + depth, 9),
+): Dungeon {
   const r = randomFor(seed, depth);
-  const size = 21 + 4 * Math.min(depth - 1, 4);
-  const count = Math.min(4 + depth, 9);
   const rooms: Room[] = [];
   const overlaps = (a: Room, b: Room) =>
     a.col - 1 < b.col + b.cols && b.col - 1 < a.col + a.cols && a.row - 1 < b.row + b.rows && b.row - 1 < a.row + a.rows;
@@ -78,13 +85,29 @@ export function dungeon(seed: number, depth: number): Dungeon {
     const [c, w] = anywhere ? [room.col + between(r, 0, room.cols - 1), room.row + between(r, 0, room.rows - 1)] : center(room);
     floor[w]![c] = what;
   };
+  /** In a room, where nothing stands yet and the character does not start (the first room's center). */
+  const free = (room: Room, what: string) => {
+    const [sc, sr] = center(rooms[0]!);
+    for (;;) {
+      const c = room.col + between(r, 0, room.cols - 1);
+      const w = room.row + between(r, 0, room.rows - 1);
+      if (floor[w]![c] === '.' && !(c === sc && w === sr)) return void (floor[w]![c] = what);
+    }
+  };
   const last = rooms.length - 1;
-  const middle = Math.max(1, last >> 1);
-  rooms.forEach((room, i) => {
-    if (i === last) mark(room, 'E', false);
-    else if (i === middle) mark(room, 'k', false);
-    else if (i > 0) mark(room, '*', true);
-  });
+  if (rooms.length >= 3) {
+    const middle = last >> 1;
+    rooms.forEach((room, i) => {
+      if (i === last) mark(room, 'E', false);
+      else if (i === middle) mark(room, 'k', false);
+      else if (i > 0) mark(room, '*', true);
+    });
+  } else {
+    // Two rooms (the exit in the second, the key in the first), or one (both in it): no gems.
+    if (last === 1) mark(rooms[1]!, 'E', false);
+    else free(rooms[0]!, 'E');
+    free(rooms[0]!, 'k');
+  }
   // Walls where a floor touches them (along a side or a corner); nothing farther out.
   const rows = floor.map((line, row) =>
     line

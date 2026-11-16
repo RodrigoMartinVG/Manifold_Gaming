@@ -344,7 +344,8 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
       if (page.container.dataset.gesture !== gesture) page.container.dataset.gesture = gesture;
       // Its shadow, straight under it ("down" is where the world says): on what a ray down from its
       // center finds, lying on that surface (a ramp too), smaller and fainter the higher its feet are
-      // (as far as 20 m; beyond, none).
+      // (as far as 20 m; beyond, none). From inside something (another character's capsule), the ray
+      // finds no surface (it hits at 0, with no normal): no shadow.
       for (const [id, shadow] of shadows) {
         const e = world.entities.get(id);
         const drawn = meshes.get(id);
@@ -352,8 +353,8 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
         const up = upAt(world, e.transform.position);
         const from = drawn.position.toArray();
         const hit = world.castRay(from, [-up[0], -up[1], -up[2]], 20, { skip: id });
-        shadow.visible = hit !== null;
-        if (!hit) continue;
+        shadow.visible = hit !== null && hit.distance > 0;
+        if (!hit || !shadow.visible) continue;
         const height = Math.max(0, hit.distance - (e.body ? below(e.body.shape) : 0));
         const [nx, ny, nz] = hit.normal;
         shadow.position.set(hit.point[0] + nx * 0.01, hit.point[1] + ny * 0.01, hit.point[2] + nz * 0.01);

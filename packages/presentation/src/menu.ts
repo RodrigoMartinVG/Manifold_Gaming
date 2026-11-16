@@ -6,7 +6,7 @@ import { SETTINGS, type Setting } from './settings';
 import { saveGame, saveRecipe, type SavedGame } from '@manifold/core';
 import { storage } from './storage';
 import { button, focusables, panel } from './ui';
-import { numberIn, type Language } from './words';
+import { dateIn, numberIn, type Language } from './words';
 
 /** The gamepad's buttons the menu reads (the standard layout): Start opens and closes it; the cross, A and B go through it. */
 const PAD = { start: 9, a: 0, b: 1, up: 12, down: 13, left: 14, right: 15 } as const;
@@ -80,7 +80,8 @@ export function mountMenu(page: GamePage, match: PageMatch, o: { blocked(): bool
           const saved = saveGame(page.cartridge, page.session.world, page.me);
           if (!saved) return;
           kept.write('save', saved);
-          say(page.words('menu.saved', [saved.made]));
+          // The day, as the player's language writes it (the save keeps it as 2026-11-16).
+          say(page.words('menu.saved', [dateIn(page.language, saved.made)]));
         }),
         button(page.words('menu.load'), () => {
           const saved = kept.read<SavedGame>('save');

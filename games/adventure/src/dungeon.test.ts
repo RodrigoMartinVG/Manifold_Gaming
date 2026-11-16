@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { levelFromText, levelToText } from '@manifold/core';
-import { dungeon } from './dungeon';
+import { CHECKED_DUNGEONS, dungeon, textHash } from './dungeon';
 import { ADVENTURE_ZONES } from './rules';
 
 /** The cells a character can walk to from the start, through floor and zones (not walls, not nothing). */
@@ -52,6 +52,42 @@ describe('a dungeon from a seed (stage 3k)', () => {
         expect(all('E'), where).toHaveLength(1);
         expect(all('k'), where).toHaveLength(1);
         for (const cell of [...all('E'), ...all('k'), ...all('*')]) expect(reach.has(cell), `${where}: ${cell}`).toBe(true);
+      }
+  });
+
+  test('the checked dungeons are the same as when they were made: their hashes, fixed here', () => {
+    // The same hash in Node and in the browsers says they all run the same code, not that the code is
+    // the one that made them: a change to the generator, even by mistake, would make other dungeons
+    // everywhere, and a saved game would come back to another one. Changing these is changing the
+    // dungeons: only on purpose, saying so to the saved games (decision 0020).
+    const fixed: Record<string, string> = {
+      '1 1': 'd7809188',
+      '1 3': '9887d3cd',
+      '7 1': 'ba7d4909',
+      '7 2': 'b6ec7673',
+      '42 1': 'caa250d5',
+      '42 5': 'a608a906',
+    };
+    expect(CHECKED_DUNGEONS.map(([seed, depth]) => `${seed} ${depth}`)).toEqual(Object.keys(fixed));
+    for (const [seed, depth] of CHECKED_DUNGEONS)
+      expect(textHash(dungeon(seed, depth).text), `seed ${seed}, depth ${depth}`).toBe(fixed[`${seed} ${depth}`]);
+  });
+
+  test('where only one or two rooms fit, the key is still there, and the exit, and neither where it starts', () => {
+    // A grid of 8 cells holds one room; of 9, one to four. (At the real sizes, 21 cells and more, none
+    // of the 180 dungeons above has fewer than three: the case is a small grid's, not a seed's.)
+    for (const size of [8, 9])
+      for (let seed = 1; seed <= 100; seed++) {
+        const d = dungeon(seed, 1, size);
+        const start: [number, number] = [Math.floor(d.spawn[0] / 2), Math.floor(d.spawn[2] / 2)];
+        const where = `size ${size}, seed ${seed}`;
+        expect(d.rows[start[1]]![start[0]], `${where}: where it starts`).toBe('.');
+        const reach = reachable(d.rows, start);
+        for (const char of ['E', 'k']) {
+          const cells = d.rows.flatMap((row, r) => [...row].flatMap((cell, c) => (cell === char ? [`${c},${r}`] : [])));
+          expect(cells, `${where}: ${char}`).toHaveLength(1);
+          expect(reach.has(cells[0]!), `${where}: ${char} reached`).toBe(true);
+        }
       }
   });
 

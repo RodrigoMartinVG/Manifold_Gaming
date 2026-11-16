@@ -25,6 +25,22 @@ describe("the Dojo's interface (stage 3i)", () => {
     expect([...keys].filter((k) => !(k in DOJO_WORDS.es) || !(k in DOJO_WORDS.en))).toEqual([]);
   });
 
+  test('its notices say how many in whole sentences: "1 tomada, queda 1", never "1 tomadas, quedan 1"', () => {
+    const es = sayer([DOJO_WORDS, ENGINE_WORDS], 'es');
+    const en = sayer([DOJO_WORDS, ENGINE_WORDS], 'en');
+    expect(es('dojo.star', [1, 2])).toBe('Una estrella: 1 tomada, quedan 2');
+    expect(es('dojo.star', [2, 1])).toBe('Una estrella: 2 tomadas, queda 1');
+    expect(es('dojo.star', [1, 1])).toBe('Una estrella: 1 tomada, queda 1');
+    expect(es('dojo.star', [3, 0])).toBe('Una estrella: la última, ya son 3');
+    expect(es('dojo.star', [1, 0])).toBe('Una estrella: la última, y era la única');
+    expect(en('dojo.star', [1, 2])).toBe('a star: 1 taken, 2 left');
+    expect(en('dojo.star', [3, 0])).toBe('a star: the last, 3 in all');
+    expect(es('dojo.goal', [12.345, 1, 1])).toBe('La meta: 12,35 s, 1 caída, 1 estrella');
+    expect(es('dojo.goal', [12.345, 0, 3])).toBe('La meta: 12,35 s, 0 caídas, 3 estrellas');
+    expect(en('dojo.goal', [9, 1, 2])).toBe('the goal: 9.00 s, 1 fall, 2 stars');
+    expect(en('dojo.goal', [9, 2, 1])).toBe('the goal: 9.00 s, 2 falls, 1 star');
+  });
+
   test("its HUD, in a level with a goal: the time, the falls, the stars; in Spanish, as the site's", () => {
     const registry = registryFor(DojoCartridge);
     registry.run(ROOMS.circuit!.text, 'recipe');

@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, test } from 'vitest';
-import { approx, Random, quat, type Vec3 } from '@manifold/common';
+import { approx, Random, quat, vec3, type Vec3 } from '@manifold/common';
 import { stateHash } from './hash';
 import { initPhysics } from './physics';
 import type { Shape } from './types';
@@ -131,6 +131,150 @@ describe('the physics (Rapier, behind physics.ts)', () => {
       expect(Math.abs(normals[i + 1]!)).toBeCloseTo(1, 3); // vertical
     }
     world.dispose();
+  });
+
+  test("a ray that starts inside a body hits it at 0, with a zero normal: no surface, and a number (Rapier's is anything)", () => {
+    const world = new World({ seed: 1 });
+    const shapes: Shape[] = [
+      { kind: 'ball', radius: 0.5 },
+      { kind: 'box', halfExtents: [0.5, 0.5, 0.5] },
+      { kind: 'capsule', halfHeight: 0.5, radius: 0.3 },
+    ];
+    const bodies = shapes.map((shape, i) =>
+      world.createEntity({ transform: { position: [3 * i, 0, 0], rotation: quat.identity() }, body: { type: 'fixed', shape } }),
+    );
+    world.step();
+    // From each one's center (a ball's: Rapier's normal is not even a number there), and from off it (a
+    // ball's: Rapier's points sideways, no surface's).
+    for (const [i, e] of bodies.entries())
+      for (const from of [
+        [3 * i, 0, 0],
+        [3 * i + 0.1, 0.2, 0],
+      ] as Vec3[]) {
+        const hit = world.castRay(from, [0, -1, 0], 10)!;
+        expect(hit.entity, e.body!.shape.kind).toBe(e.id);
+        expect(hit.distance).toBe(0);
+        expect(hit.normal, `${e.body!.shape.kind} from ${from.join(' ')}`).toEqual([0, 0, 0]);
+      }
+    // From outside, the surface's own.
+    expect(world.castRay([0.3, 5, 0], [0, -1, 0], 10)!.normal[1]).toBeCloseTo(Math.sqrt(1 - 0.36), 5);
+    world.dispose();
+  });
+
+  test('a character walking into a wall created between two steps stops at it (the controller does not see it yet)', () => {
+    const world = new World({ seed: 1 });
+    floor(world);
+    const hero = world.createEntity({
+      transform: { position: [0, 0.82, 0], rotation: quat.identity() },
+      body: { type: 'character', shape: { kind: 'capsule', halfHeight: 0.5, radius: 0.3 } },
+      character: { player: 1 },
+    });
+    // Up to speed along +X (7.5 cm a step at 4.5 m/s).
+    world.inputs.set(1, { move: [1, 0, 0] });
+    for (let i = 0; i < 60; i++) world.step();
+    const x = hero.transform!.position[0];
+    expect(hero.character!.velocity[0]).toBeCloseTo(4.5, 1);
+    // A wall 3 cm ahead of its capsule: less than a step.
+    const face = x + 0.3 + 0.03;
+    world.createEntity({
+      transform: { position: [face + 0.5, 1, 0], rotation: quat.identity() },
+      body: { type: 'fixed', shape: { kind: 'box', halfExtents: [0.5, 1, 2] } },
+    });
+    for (let i = 0; i < 30; i++) {
+      world.step();
+      expect(hero.transform!.position[0] + 0.3, `step ${i + 1}`).toBeLessThanOrEqual(face + 1e-4);
+    }
+    world.dispose();
+  });
+
+  test("a snapshot keeps which bodies Rapier's queries do not see yet: restored, it answers and goes on the same", () => {
+    const world = new World({ seed: 1 });
+    floor(world);
+    const hero = world.createEntity({
+      transform: { position: [0, 0.82, 0], rotation: quat.identity() },
+      body: { type: 'character', shape: { kind: 'capsule', halfHeight: 0.5, radius: 0.3 } },
+      character: { player: 1 },
+    });
+    const wall = world.createEntity({
+      transform: { position: [0, 1, -8], rotation: quat.identity() },
+      body: { type: 'fixed', shape: { kind: 'box', halfExtents: [0.5, 1, 2] } },
+    });
+    world.step();
+    // The wall, put in the character's way between two steps; the snapshot, then.
+    world.place(wall, [1.5, 1, 0]);
+    const copy = World.restore(world.snapshot());
+    for (const w of [world, copy])
+      expect(w.castRay([0, 1, 0], [1, 0, 0], 10, { skip: hero.id })?.entity, 'the wall, where it is').toBe(wall.id);
+    expect(stateHash(copy)).toBe(stateHash(world));
+    for (let i = 0; i < 60; i++) {
+      for (const w of [world, copy]) {
+        w.inputs.set(1, { move: [1, 0, 0] });
+        w.step();
+      }
+      expect(stateHash(copy), `step ${i + 1}`).toBe(stateHash(world));
+    }
+    expect(hero.transform!.position[0]).toBeLessThan(1 - 0.3 + 1e-3);
+    world.dispose();
+    copy.dispose();
+  });
+
+  test('sleep: what slides past its friction angle, or rolls down a slope, is not put to sleep there (Rapier did)', () => {
+    /** A ramp of `degrees` (friction 0.5, rising towards +X) and, near its top, a box or a ball on it (0.5 too). */
+    const slope = (degrees: number, shape: Shape) => {
+      const world = new World({ seed: 1 });
+      const a = (degrees * Math.PI) / 180;
+      const rotation: [number, number, number, number] = [0, 0, Math.sin(a / 2), Math.cos(a / 2)];
+      world.createEntity({
+        transform: { position: [0, 0, 0], rotation },
+        body: { type: 'fixed', shape: { kind: 'box', halfExtents: [10, 0.5, 3] }, friction: 0.5 },
+      });
+      const lift = 0.5 + (shape.kind === 'ball' ? shape.radius : 0.25);
+      const thing = world.createEntity({
+        transform: { position: [8 * Math.cos(a) - lift * Math.sin(a), 8 * Math.sin(a) + lift * Math.cos(a), 0], rotation },
+        body: { type: 'dynamic', shape, friction: 0.5 },
+      });
+      const from = [...thing.transform!.position] as Vec3;
+      const moved = () =>
+        Math.sqrt(vec3.dot(vec3.sub(thing.transform!.position, from), vec3.sub(thing.transform!.position, from)));
+      return { world, thing, moved };
+    };
+    const box: Shape = { kind: 'box', halfExtents: [0.25, 0.25, 0.25] };
+    // Friction 0.5: it slides from 26.57° on. At 27°, from rest, about ½ · 9.81 · (sin 27° − 0.5 cos 27°) · t²:
+    // 4.2 m in ten seconds (Rapier put it to sleep after half a second, 1.6 cm down).
+    const steep = slope(27, box);
+    for (let i = 0; i < 600; i++) steep.world.step();
+    expect(steep.moved(), 'at 27°, it slides on').toBeGreaterThan(3.5);
+    steep.world.dispose();
+    // At 25° it holds: it rests, and stays.
+    const gentle = slope(25, box);
+    for (let i = 0; i < 120; i++) gentle.world.step();
+    const rested = gentle.moved();
+    for (let i = 0; i < 480; i++) gentle.world.step();
+    expect(rested, 'at 25°, it holds').toBeLessThan(0.01);
+    expect(gentle.moved()).toBe(rested);
+    expect(gentle.thing.body!.linearVelocity).toEqual([0, 0, 0]);
+    gentle.world.dispose();
+    // A ball rolls down a slope of half a degree: (5/7) · 9.81 · sin 0.5° · t² / 2, 3.1 m in ten seconds
+    // (Rapier put it to sleep after half a second, 8 mm down).
+    const ball = slope(0.5, { kind: 'ball', radius: 0.25 });
+    for (let i = 0; i < 600; i++) ball.world.step();
+    expect(ball.moved(), 'a ball, at 0.5°').toBeGreaterThan(2.5);
+    ball.world.dispose();
+  });
+
+  test('sleep: a world restored while something rests, or while something was refused its sleep, goes on the same', () => {
+    const world = new World({ seed: 1 });
+    floor(world);
+    rain(world, 30);
+    for (let i = 0; i < 240; i++) world.step();
+    const copy = World.restore(world.snapshot());
+    for (let i = 0; i < 240; i++) {
+      world.step();
+      copy.step();
+      expect(stateHash(copy), `step ${i + 1}`).toBe(stateHash(world));
+    }
+    world.dispose();
+    copy.dispose();
   });
 
   test('removing an entity removes its body from the physics', () => {

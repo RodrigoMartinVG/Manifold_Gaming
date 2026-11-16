@@ -9,10 +9,12 @@ import {
   cycleTime,
   dominant,
   finalWeights,
+  footing,
   newGait,
   type CharacterClip,
   type Gait,
 } from './locomotion';
+import { footPaths, newFeet, plant, type Feet, type FootPaths } from './feet';
 
 /** A copy of a model, ready to draw, and the animations it plays. */
 export interface ModelInstance {
@@ -21,6 +23,10 @@ export interface ModelInstance {
   readonly actions: ReadonlyMap<string, THREE.AnimationAction>;
   /** How it moves (stage 2e2: locomotion.ts), from one frame to the next. */
   readonly gait: Gait;
+  /** Where its feet stand (feet.ts), from one frame to the next. */
+  readonly feet: Feet;
+  /** Its ground animations' foot paths (read once for every copy of the model). */
+  readonly paths: FootPaths;
   /** The animation that weighs most now (null: none yet). */
   playing: string | null;
 }
@@ -57,25 +63,42 @@ export function loadModels(urls: Readonly<Record<string, string>> = {}): Models 
   return {
     instance(name) {
       const model = loaded.get(name);
-      if (!model) return null;
-      const object = cloneSkeleton(model.scene);
-      const mixer = new THREE.AnimationMixer(object);
-      // Every animation plays at once, each with its weight, at the time the gait says (stage 2e2):
-      // the mixer does not move them on by itself.
-      const actions = new Map(
-        model.clips.map((clip) => {
-          const action = mixer.clipAction(clip);
-          action.play();
-          action.timeScale = 0;
-          action.setEffectiveWeight(clip.name === 'idle' ? 1 : 0);
-          return [clip.name, action] as const;
-        }),
-      );
-      // (A gesture lasts as long as its animation: the model says how long.)
-      const length = (clip: string, otherwise: number) => model.clips.find((c) => c.name === clip)?.duration ?? otherwise;
-      return { object, mixer, actions, gait: newGait({ flip: length('flip', 0.45), land: length('land', 0.3) }), playing: null };
+      return model ? modelInstance(model) : null;
     },
     onLoad: (listener) => listeners.push(listener),
+  };
+}
+
+/** Each model's foot paths (feet.ts), by its animations: read with its first copy, shared by the rest. */
+const pathsOf = new WeakMap<readonly THREE.AnimationClip[], FootPaths>();
+
+/** A new copy of a loaded model (its scene and its animations), with its own bones and animations. */
+export function modelInstance(model: { scene: THREE.Object3D; clips: readonly THREE.AnimationClip[] }): ModelInstance {
+  const object = cloneSkeleton(model.scene);
+  const mixer = new THREE.AnimationMixer(object);
+  // Every animation plays at once, each with its weight, at the time the gait says (stage 2e2):
+  // the mixer does not move them on by itself.
+  const actions = new Map(
+    model.clips.map((clip) => {
+      const action = mixer.clipAction(clip);
+      action.play();
+      action.timeScale = 0;
+      action.setEffectiveWeight(clip.name === 'idle' ? 1 : 0);
+      return [clip.name, action] as const;
+    }),
+  );
+  // (A gesture lasts as long as its animation: the model says how long.)
+  const length = (clip: string, otherwise: number) => model.clips.find((c) => c.name === clip)?.duration ?? otherwise;
+  let paths = pathsOf.get(model.clips);
+  if (!paths) pathsOf.set(model.clips, (paths = footPaths(object, mixer, actions)));
+  return {
+    object,
+    mixer,
+    actions,
+    gait: newGait({ flip: length('flip', 0.45), land: length('land', 0.3) }),
+    feet: newFeet(),
+    paths,
+    playing: null,
   };
 }
 
@@ -118,7 +141,8 @@ export function turnBody(drawn: THREE.Quaternion, target: THREE.Quaternion, up: 
 /**
  * Moves a copy's animations on by `dt` seconds (already scaled by the match's speed), as the
  * character asks: its mode, how it really moved (`moved`, from `motion`), and how fast its body is
- * drawn turning (`turning`, degrees per second, from `turnBody`). The view only reads the world.
+ * drawn turning (`turning`, degrees per second, from `turnBody`); its place and turn must already be
+ * the frame's (its feet are planted in the world). The view only reads the world.
  */
 export function animate(model: ModelInstance, c: Character, up: Vec3, moved: Vec3, turning: number, dt: number) {
   const spin = THREE.MathUtils.radToDeg(c.ground.spin);
@@ -151,5 +175,8 @@ export function animate(model: ModelInstance, c: Character, up: Vec3, moved: Vec
       'phase' in at ? at.phase * length : clip === 'flip' || clip === 'land' ? Math.min(at.seconds, length) : at.seconds % length;
   }
   model.mixer.update(0);
+  // And the feet where the cycles' feet are, mixed; on the ground, they stay there (feet.ts).
+  const where = { L: footing(model.gait, 'L', c.grounded), R: footing(model.gait, 'R', c.grounded) };
+  plant(model.object, model.paths, model.actions, model.feet, where, up, dt);
   model.playing = dominant(weights);
 }

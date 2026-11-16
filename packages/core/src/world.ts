@@ -28,7 +28,7 @@ export interface Hit {
   entity: EntityId;
   distance: number;
   point: Vec3;
-  /** The normal of the surface hit, pointing out of it. */
+  /** The normal of the surface hit, pointing out of it (zero for a ray that starts inside what it hit: no surface). */
   normal: Vec3;
 }
 
@@ -556,8 +556,9 @@ export class World {
   // (what is seen from a point, a bot's eyes, a hitscan shot), a shape moved along a line (what a
   // character stands on, the camera against a wall) and the shortest way between two points. Every
   // system and every game asks here, not to Rapier: phase 7's glued spaces will make these cross
-  // their seams, in one place. (A body created during a step is in them from the next step on: Rapier
-  // updates what its queries see when it steps, and has nothing to do it in between.)
+  // their seams, in one place. A body created or put somewhere between two steps, or before the first,
+  // is in them at once, where it is: Rapier's own queries see it only from its next step, and until
+  // then physics.ts asks it on its own (measured; `RapierPhysics.unseen`).
 
   /** The first entity a ray from `from` along `direction` (length 1) hits, as far as `reach`. */
   castRay(from: Vec3, direction: Vec3, reach: number, o: Query = {}): Hit | null {

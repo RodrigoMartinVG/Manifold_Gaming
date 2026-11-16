@@ -1,6 +1,19 @@
 import { describe, expect, test } from 'vitest';
 import type { Vec3 } from '@manifold/common';
-import { advance, CHARACTER_CLIPS, directions, finalWeights, gestureWeight, newGait, targets, type Reading } from './locomotion';
+import {
+  advance,
+  CHARACTER_CLIPS,
+  directions,
+  finalWeights,
+  footing,
+  FOOTING,
+  gestureWeight,
+  newGait,
+  strideAlong,
+  STRIDES,
+  targets,
+  type Reading,
+} from './locomotion';
 
 /** A character standing, looking at −Z (the engine's forward), with "up" up: what each test changes. */
 const reading = (over: Partial<Reading> = {}): Reading => ({
@@ -22,14 +35,49 @@ const at = (speed: number, degrees: number): Vec3 => {
 };
 
 describe('how the model moves (stage 2e2)', () => {
-  test('the four directions: the two nearest, by how near', () => {
+  test('the four directions: the two nearest; with the same stride every way, half and half at 45°', () => {
     expect(directions(0)).toEqual({ forward: 1, right: 0, back: 0, left: 0 });
     expect(directions(90)).toEqual({ forward: 0, right: 1, back: 0, left: 0 });
     expect(directions(180)).toEqual({ forward: 0, right: 0, back: 1, left: 0 });
     expect(directions(-90)).toEqual({ forward: 0, right: 0, back: 0, left: 1 });
-    expect(directions(45)).toEqual({ forward: 0.5, right: 0.5, back: 0, left: 0 });
-    expect(directions(-135)).toEqual({ forward: 0, right: 0, back: 0.5, left: 0.5 });
-    for (let a = -360; a <= 360; a += 7) expect(sum(directions(a))).toBeCloseTo(1, 12);
+    const d = directions(45);
+    expect([d.forward, d.right, d.back, d.left].map((x) => Number(x.toFixed(12)))).toEqual([0.5, 0.5, 0, 0]);
+    const e = directions(-135);
+    expect([e.forward, e.right, e.back, e.left].map((x) => Number(x.toFixed(12)))).toEqual([0, 0, 0.5, 0.5]);
+    for (let a = -360; a <= 360; a += 7) expect(sum(directions(a, STRIDES.walk))).toBeCloseTo(1, 12);
+  });
+
+  test('mixed, the step goes where it walks: the weights from the strides, not from the angle alone', () => {
+    // A foot on the ground in the mix goes back as the two cycles' would, weighted: each one's stride
+    // along its direction. That sum points opposite to where it walks, at every angle, for both paces,
+    // and is as long as the mix's stride.
+    const towards: Record<string, [number, number]> = { forward: [1, 0], right: [0, 1], back: [-1, 0], left: [0, -1] };
+    for (const pace of ['walk', 'run'] as const) {
+      const s = STRIDES[pace];
+      const length = { forward: s.forward, back: s.back, right: s.side, left: s.side } as Record<string, number>;
+      for (let a = -180; a < 180; a += 5) {
+        const w = directions(a, s) as Record<string, number>;
+        let along = 0;
+        let across = 0;
+        for (const k of Object.keys(towards)) {
+          along += w[k]! * length[k]! * towards[k]![0];
+          across += w[k]! * length[k]! * towards[k]![1];
+        }
+        const r = (a * Math.PI) / 180;
+        // Its direction, the walk's (to a millionth of a radian), and its length, the mix's stride.
+        expect(
+          Math.abs(Math.atan2(across, along) - Math.atan2(Math.sin(r), Math.cos(r))) % (2 * Math.PI),
+          `${pace} at ${a}°`,
+        ).toBeLessThan(1e-6);
+        expect(Math.hypot(along, across), `${pace} at ${a}°`).toBeCloseTo(strideAlong(a, s), 9);
+      }
+    }
+    // By the angle alone (2e2), at 45° between forward (2.64 m) and a side (1.36 m) the step went at 27°.
+    expect((Math.atan2(0.5 * STRIDES.walk.side, 0.5 * STRIDES.walk.forward) * 180) / Math.PI).toBeCloseTo(27.3, 1);
+    // Now the shorter side weighs more there, and the mix is shorter than either along its own axis.
+    const diagonal = directions(45, STRIDES.walk);
+    expect(diagonal.right).toBeGreaterThan(diagonal.forward);
+    expect(strideAlong(45, STRIDES.walk)).toBeLessThan(STRIDES.walk.side);
   });
 
   test('on the ground, the cycle of where it really goes: forward, back, each side, walking or running', () => {
@@ -39,12 +87,34 @@ describe('how the model moves (stage 2e2)', () => {
     expect(targets(reading({ velocity: at(4.5, 90) }), g).walk_right).toBeCloseTo(1, 9);
     expect(targets(reading({ velocity: at(4.5, -90) }), g).walk_left).toBeCloseTo(1, 9);
     expect(targets(reading({ velocity: at(7.5, -90) }), g).run_left).toBeCloseTo(1, 9);
-    // Between the paces, half and half; between two directions, too.
+    // Between the paces, half and half; between two directions, as `directions` weighs them.
     const between = targets(reading({ velocity: at(6, 0) }), g);
     expect([between.walk, between.run]).toEqual([0.5, 0.5]);
     const diagonal = targets(reading({ velocity: at(4.5, 45) }), g);
-    expect(diagonal.walk).toBeCloseTo(0.5, 9);
-    expect(diagonal.walk_right).toBeCloseTo(0.5, 9);
+    expect(diagonal.walk).toBeCloseTo(directions(45, STRIDES.walk).forward, 9);
+    expect(diagonal.walk_right).toBeCloseTo(directions(45, STRIDES.walk).right, 9);
+  });
+
+  test('each foot is down a quarter of the cycle, the right one around 0.25 and the left around 0.75', () => {
+    const g = newGait();
+    for (let i = 0; i < 60; i++) advance(g, reading({ velocity: at(4.5, 0) }), 1 / 60);
+    const at_ = (phase: number) => {
+      g.phase = phase;
+      return [footing(g, 'L', true), footing(g, 'R', true)];
+    };
+    expect(FOOTING.stance).toBe(0.25);
+    expect(at_(0.25)).toEqual(['up', 'down']);
+    expect(at_(0.75)).toEqual(['down', 'up']);
+    expect(at_(0.13)).toEqual(['up', 'down']);
+    expect(at_(0.4)).toEqual(['up', 'lifting']);
+    expect(at_(0.9)).toEqual(['lifting', 'up']);
+    expect(at_(0.5)).toEqual(['up', 'up']);
+    // In the air, or not walking (quiet, climbing), no foot is down.
+    expect(footing(g, 'R', false)).toBe('up');
+    g.phase = 0.25;
+    const still = newGait();
+    still.phase = 0.25;
+    expect(footing(still, 'R', true)).toBe('up');
   });
 
   test('still, it is quiet; turning on the spot, it steps; and the weights always add up to 1', () => {
@@ -86,9 +156,9 @@ describe('how the model moves (stage 2e2)', () => {
 
   test('the cycle advances with the distance really travelled: against a wall, or paused, it does not move', () => {
     const g = newGait();
-    // One second walking forward at 4.5 m/s, in 60 frames: 4.5 m over a cycle of 2.7 m.
+    // One second walking forward at 4.5 m/s, in 60 frames: 4.5 m over a cycle of 2.64 m.
     for (let i = 0; i < 60; i++) advance(g, reading({ velocity: at(4.5, 0) }), 1 / 60);
-    expect(g.phase).toBeCloseTo((4.5 / 2.7) % 1, 6);
+    expect(g.phase).toBeCloseTo((4.5 / STRIDES.walk.forward) % 1, 6);
     expect(g.weights.walk).toBeGreaterThan(0.99);
     // Pushing against a wall: the view reads that it did not move (models.ts: motion), and the cycle
     // stays where it was, the weights going back to quiet.

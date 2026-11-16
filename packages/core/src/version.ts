@@ -41,5 +41,10 @@
  *  22  stage 3j: what a level built keeps its line (`source`) and the world the level's title, start
  *      and ambient (`origin`), both in the hash and snapshots; the console builds (`add`, `clone`,
  *      `delete`, `set`), world changes like any other
+ *  23  the engine pass after the tutorial: a body created or put somewhere between two steps (or before
+ *      the first) is in the queries at once, and the controller stops at it (Rapier's see it only from
+ *      its next step), and a snapshot keeps which ones those are; a ray that starts inside a body gives
+ *      a zero normal; Rapier does not put to sleep what slides past its friction angle or rolls down a
+ *      slope; a map's floor goes under its walls too (fewer seams)
  */
-export const SIMULATION_VERSION = 22;
+export const SIMULATION_VERSION = 23;

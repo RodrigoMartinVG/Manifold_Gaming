@@ -14,8 +14,9 @@ Blender without a screen (`npm run art`), never by hand. It writes `games/dojo/a
   (`turn`); climbing up and to each side (`climb`, `climb_left`, `climb_right`); rising and falling
   (`rise`, `fall`); gliding (`glide`); and two gestures played once over the rest: a somersault for
   the jump in the air (`flip`) and the weight of a landing (`land`). Made of keyframes computed here
-  (sines and angles), with no root motion: the simulation moves the character, the animation only
-  moves its limbs.
+  (sines and angles; walking and running, from where each foot must be: see "walking and running"),
+  with no root motion: the simulation moves the character, the animation moves its limbs, and only
+  the hips go up and down.
 - The cycles of one family (walking, running, climbing) have one length and one timing: the left
   leg is the one that steps in the first half of every cycle, the right one in the second. So the
   presentation can mix forward with a side, at 45°, and the feet do not fight.
@@ -196,11 +197,17 @@ for pb in pose.bones:
     pb.rotation_mode = "XYZ"
 
 
+# The hips' height (m, from where they are built): the one place an animation moves a bone instead of
+# turning it, and only up and down (a gait's bounce: the stance leg cannot reach the floor at a slant
+# from hips that stay where they are). A pose says it with this key; without it, 0.
+HIPS_HEIGHT = "hips_height"
+
+
 def animate(name, seconds, keys):
     """An animation of about `seconds`, keyed on every frame: its length is a whole number of frames
-    (running, 0.45 s, is 14 frames: 0.467 s). Keys between two frames were moved to one by the
-    exporter, and a cycle came out shorter and uneven; the presentation does not need the exact
-    length, it plays a cycle by the distance travelled (locomotion.ts)."""
+    (a landing, 0.3 s, is 9 frames). Keys between two frames were moved to one by the exporter, and a
+    cycle came out shorter and uneven; the presentation does not need the exact length, it plays a
+    cycle by the distance travelled (locomotion.ts)."""
     action = bpy.data.actions.new(name)
     action.use_fake_user = True
     arm_obj.animation_data_create()
@@ -210,10 +217,17 @@ def animate(name, seconds, keys):
         t = f / count
         for pb in pose.bones:
             pb.rotation_euler = Euler((0, 0, 0))
-        for bone, (rx, ry, rz) in keys(t).items():
+            pb.location = Vector((0, 0, 0))
+        for bone, value in keys(t).items():
+            if bone == HIPS_HEIGHT:
+                # (The hips point up: their own Y is the world's up.)
+                pose.bones["hips"].location = Vector((0, value, 0))
+                continue
+            rx, ry, rz = value
             pose.bones[bone].rotation_euler = Euler((math.radians(rx), math.radians(ry), math.radians(rz)))
         for pb in pose.bones:
             pb.keyframe_insert("rotation_euler", frame=1 + f)
+        pose.bones["hips"].keyframe_insert("location", frame=1 + f)
     # Pushed to its own track, so the exporter takes each animation by its name.
     track = arm_obj.animation_data.nla_tracks.new()
     track.name = name
@@ -230,55 +244,6 @@ def once(t, amplitude, phase=0.0):
     return amplitude * max(0.0, math.sin(2 * math.pi * (t + phase)))
 
 
-def legs_and_arms(t, stride, knee, arm, elbow):
-    """A walking cycle: each leg forward when its arm goes back; the knee bends while the leg comes forward."""
-    return {
-        "thigh_L": swing_limb(wave(t, stride)),
-        "shin_L": bend_knee(once(t, knee, 0.0)),
-        "thigh_R": swing_limb(wave(t, -stride)),
-        "shin_R": bend_knee(once(t, knee, 0.5)),
-        "upper_arm_L": swing_limb(wave(t, -arm), 5, "L"),
-        "forearm_L": bend_elbow(elbow),
-        "upper_arm_R": swing_limb(wave(t, arm), 5, "R"),
-        "forearm_R": bend_elbow(elbow),
-    }
-
-
-def legs_back(t, stride, knee, arm, elbow):
-    """Walking backwards: the walking cycle with every swing the other way; the knee bends at the same
-    moment (the left leg in the first half), so it mixes with walking forward and to the sides."""
-    return {
-        "thigh_L": swing_limb(wave(t, -stride)),
-        "shin_L": bend_knee(once(t, knee, 0.0)),
-        "thigh_R": swing_limb(wave(t, stride)),
-        "shin_R": bend_knee(once(t, knee, 0.5)),
-        "upper_arm_L": swing_limb(wave(t, arm), 5, "L"),
-        "forearm_L": bend_elbow(elbow),
-        "upper_arm_R": swing_limb(wave(t, -arm), 5, "R"),
-        "forearm_R": bend_elbow(elbow),
-    }
-
-
-def legs_side(t, to, spread, knee, lift, lean_side):
-    """Stepping to a side (`to`: "R" or "L"), the feet apart and together again: the leg on that side
-    steps out, the other follows. Each leg goes from straight down (0) to `spread` degrees out of the
-    body and back, both at once, and the left one's knee bends in the first half, as in the other
-    cycles: to the right, the left leg comes in then; to the left, it goes out."""
-    sign = -1 if to == "R" else 1
-    out = spread / 2 * (1 + sign * math.sin(2 * math.pi * t))
-    return {
-        "spine": lean(3, lean_side if to == "R" else -lean_side),
-        "thigh_L": swing_limb(once(t, lift, 0.0), out, "L"),
-        "shin_L": bend_knee(once(t, knee, 0.0)),
-        "thigh_R": swing_limb(once(t, lift, 0.5), out, "R"),
-        "shin_R": bend_knee(once(t, knee, 0.5)),
-        "upper_arm_L": swing_limb(wave(t, 6), 12, "L"),
-        "forearm_L": bend_elbow(30),
-        "upper_arm_R": swing_limb(wave(t, -6), 12, "R"),
-        "forearm_R": bend_elbow(30),
-    }
-
-
 # Quiet: it breathes, its arms hang a little out.
 animate(
     "idle",
@@ -293,20 +258,174 @@ animate(
     },
 )
 
-# Walking (the engine's walk is a jog, 4.5 m/s), leaning a little forward; back, leaning a little back;
-# to each side, stepping apart and together. One length for all four: 0.6 s.
-WALK = 0.6
-animate("walk", WALK, lambda t: {"spine": lean(6, 0, wave(t, 4)), **legs_and_arms(t, 32, 55, 28, 40)})
-animate("walk_back", WALK, lambda t: {"spine": lean(-4, 0, wave(t, 3)), **legs_back(t, 26, 45, 20, 35)})
-animate("walk_right", WALK, lambda t: legs_side(t, "R", 22, 40, 12, 4))
-animate("walk_left", WALK, lambda t: legs_side(t, "L", 22, 40, 12, 4))
+# ---------------------------------------------------------------- walking and running
+#
+# THE FEET STAY WHERE THEY STAND (after the tutorial's pass). The presentation plays a cycle by the
+# distance the character really travels (locomotion.ts: one cycle per stride), so a foot on the ground stays put
+# only if, while it is down, it moves back under the hips exactly as fast as the body goes forward:
+# in a straight line, at a constant speed, on the floor. (The first cycles swung the thigh a quarter
+# of a cycle off the knee: the foot down went back and came forward again, and slid the whole
+# distance.) So the legs are not swung by angles: each foot follows a path, and the angles that put
+# it there are solved (two bones of 0.36 m, the knee forward):
+#
+#   - each foot is down a quarter of the cycle (`STANCE`), the right one around 0.25 and the left one
+#     around 0.75 (so the left one steps, in the air, in the first half: the families mix);
+#   - down, it goes from `sweep / 2` ahead of where it stands to `sweep / 2` behind, in a straight
+#     line at a constant speed: the stride (one cycle's distance) is `sweep / STANCE`;
+#   - up, it comes back along a smooth curve, lifted, leaving and arriving at the ground's speed;
+#   - between the two feet's quarters, both are up (a jog and a run have their moment in the air): the
+#     hips rise a little then, and come down for the next foot.
+#
+# The hips go down while a foot is down (`low`): from hips where they are built, a leg straight down
+# just reaches the floor, and a foot ahead or behind would not. Nothing else moves: the root never.
 
-# Running: the same, faster and wider, leaning more. One length for all four: 0.45 s.
-RUN = 0.45
-animate("run", RUN, lambda t: {"spine": lean(14, 0, wave(t, 6)), "head": lean(-8), **legs_and_arms(t, 48, 90, 45, 75)})
-animate("run_back", RUN, lambda t: {"spine": lean(-2, 0, wave(t, 4)), **legs_back(t, 36, 70, 30, 60)})
-animate("run_right", RUN, lambda t: legs_side(t, "R", 32, 60, 18, 7))
-animate("run_left", RUN, lambda t: legs_side(t, "L", 32, 60, 18, 7))
+THIGH = 0.36
+SHIN = 0.36
+FLOOR = -0.8
+HIP = {"L": (0.1, 0.0, -0.08), "R": (-0.1, 0.0, -0.08)}
+STANCE = 0.25
+DOWN_AT = {"R": 0.25, "L": 0.75}
+# A foot leaves the ground and comes back to it at the ground's speed under the hips (in the world, at
+# rest): it does not scuff as it lands, nor jerk as it leaves. (So it goes on back a little, lifting,
+# before it swings forward: the heel's kick.)
+CARRY = 1.0
+
+
+def leg(dx, dy, dz):
+    """The turns that put a foot (the bottom of its shin) at (dx, dy, dz) from its hip (Blender's axes:
+    Y is back), the knee forward: the thigh's (around its X: positive is back; around its Z: positive
+    is towards -X) and the knee's. Out of reach, the leg points there, straight."""
+    d = min(math.sqrt(dx * dx + dy * dy + dz * dz), (THIGH + SHIN) * 0.999)
+    cos_knee = (d * d - THIGH * THIGH - SHIN * SHIN) / (2 * THIGH * SHIN)
+    knee = math.acos(max(-1.0, min(1.0, cos_knee)))
+    # How far back of the line from the hip to the foot the bent knee leaves the foot.
+    behind = math.atan2(SHIN * math.sin(knee), THIGH + SHIN * math.cos(knee))
+    down = -dz
+    back = math.atan2(dy, math.hypot(dx, down)) - behind
+    out = math.atan2(-dx, down)
+    return (math.degrees(back), 0.0, math.degrees(out)), (math.degrees(knee), 0.0, 0.0)
+
+
+def hermite(p0, p1, m0, m1, u):
+    return (
+        (2 * u**3 - 3 * u**2 + 1) * p0
+        + (u**3 - 2 * u**2 + u) * m0
+        + (-2 * u**3 + 3 * u**2) * p1
+        + (u**3 - u**2) * m1
+    )
+
+
+def foot(t, side, motion, sweep, stand, lift):
+    """Where a foot is at `t` (Blender's axes, from the capsule's center), going along `motion` (a
+    unit vector on the floor) with `sweep` meters on the ground, standing around `stand` (x, y)."""
+    u = (t - DOWN_AT[side] + STANCE / 2) % 1.0
+    if u < STANCE:
+        # Down: from half the sweep ahead to half behind, straight, at a constant speed.
+        k = 0.5 - u / STANCE
+        z = FLOOR
+    else:
+        w = (u - STANCE) / (1 - STANCE)
+        speed = -CARRY * (1 - STANCE) / STANCE
+        k = hermite(-0.5, 0.5, speed, speed, w)
+        z = FLOOR + lift * math.sin(math.pi * w)
+    return (stand[0] + motion[0] * sweep * k, stand[1] + motion[1] * sweep * k, z)
+
+
+def hips_height(t, low, bounce):
+    """Down `low` while a foot is down; in the air between them, up by `bounce` and down again."""
+    for side in ("L", "R"):
+        if (t - DOWN_AT[side] + STANCE / 2) % 1.0 < STANCE:
+            return -low
+    f = ((t - DOWN_AT["R"] - STANCE / 2) % 0.5) / (0.5 - STANCE)
+    return -low + bounce * math.sin(math.pi * f) ** 2
+
+
+def gait(t, motion, sweep, apart, lift, low, bounce):
+    """The legs and the hips of a cycle: each foot along its path, the angles solved for it; `apart`,
+    how much wider than the hips the feet stand (sideways, they must not cross)."""
+    height = hips_height(t, low, bounce)
+    pose = {HIPS_HEIGHT: height}
+    for side, x in (("L", 1), ("R", -1)):
+        hx, hy, hz = HIP[side]
+        fx, fy, fz = foot(t, side, motion, sweep, (hx + x * apart, hy), lift)
+        pose[f"thigh_{side}"], pose[f"shin_{side}"] = leg(fx - hx, fy - hy, fz - (hz + height))
+    return pose
+
+
+def arms(t, swing, elbow, out=5):
+    """Each arm forward as its leg goes back (the left one most forward when the left foot leaves the
+    ground, at 0.875)."""
+    a = swing * math.cos(2 * math.pi * (t - DOWN_AT["L"] - STANCE / 2))
+    return {
+        "upper_arm_L": swing_limb(a, out, "L"),
+        "forearm_L": bend_elbow(elbow),
+        "upper_arm_R": swing_limb(-a, out, "R"),
+        "forearm_R": bend_elbow(elbow),
+    }
+
+
+# The directions of motion on the floor (Blender's axes: its front is -Y, its right -X).
+AHEAD, BACK, RIGHT, LEFT = (0, -1), (0, 1), (-1, 0), (1, 0)
+# The hips' twist with the arms: the shoulders turn with the arm that goes forward.
+twist = lambda t, a: a * math.cos(2 * math.pi * (t - DOWN_AT["L"] - STANCE / 2))
+
+# Walking (the engine's walk is a jog, 4.5 m/s): 0.66 m on the ground for each foot, 2.64 m a cycle
+# (1.7 cycles a second at 4.5 m/s); back, 0.56 m; to a side, the feet wider and 0.34 m (stepping out
+# with the leading foot, the other coming next to it, never across).
+#
+# One length for all four, and for running's: 32 frames. The presentation plays a cycle by the distance
+# travelled, so the length only says how finely it is drawn: a foot's quarter on the ground is 8 frames,
+# from a key to a key. (Drawn in 18, its time on the ground fell between keys, and between two keys the
+# angles go straight while the foot's path does not: it sank 1.5 cm into the floor.)
+CYCLE = 32 / FPS
+WALK = CYCLE
+WALK_LEGS = dict(low=0.1, bounce=0.04)
+animate(
+    "walk",
+    WALK,
+    lambda t: {
+        "spine": lean(6, 0, twist(t, 4)),
+        **gait(t, AHEAD, 0.66, 0.0, 0.12, **WALK_LEGS),
+        **arms(t, 28, 40),
+    },
+)
+animate(
+    "walk_back",
+    WALK,
+    lambda t: {
+        "spine": lean(-4, 0, twist(t, -3)),
+        **gait(t, BACK, 0.56, 0.0, 0.1, **WALK_LEGS),
+        **arms(t, -20, 35),
+    },
+)
+animate("walk_right", WALK, lambda t: {"spine": lean(3, 4), **gait(t, RIGHT, 0.34, 0.12, 0.08, **WALK_LEGS), **arms(t, 6, 30, 12)})
+animate("walk_left", WALK, lambda t: {"spine": lean(3, -4), **gait(t, LEFT, 0.34, 0.12, 0.08, **WALK_LEGS), **arms(t, 6, 30, 12)})
+
+# Running (7.5 m/s): longer on the ground (0.76 m: 3.04 m a cycle, 2.5 a second), lower, the feet
+# higher behind, leaning more.
+RUN = CYCLE
+RUN_LEGS = dict(low=0.12, bounce=0.06)
+animate(
+    "run",
+    RUN,
+    lambda t: {
+        "spine": lean(14, 0, twist(t, 6)),
+        "head": lean(-8),
+        **gait(t, AHEAD, 0.76, 0.0, 0.22, **RUN_LEGS),
+        **arms(t, 45, 75),
+    },
+)
+animate(
+    "run_back",
+    RUN,
+    lambda t: {
+        "spine": lean(-2, 0, twist(t, -4)),
+        **gait(t, BACK, 0.6, 0.0, 0.14, **RUN_LEGS),
+        **arms(t, -30, 60),
+    },
+)
+animate("run_right", RUN, lambda t: {"spine": lean(3, 7), **gait(t, RIGHT, 0.4, 0.14, 0.1, **RUN_LEGS), **arms(t, 8, 30, 18)})
+animate("run_left", RUN, lambda t: {"spine": lean(3, -7), **gait(t, LEFT, 0.4, 0.14, 0.1, **RUN_LEGS), **arms(t, 8, 30, 18)})
 
 # Turning on the spot: small steps, one foot then the other, the arms quiet.
 animate(

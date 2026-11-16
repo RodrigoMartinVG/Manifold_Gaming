@@ -1,5 +1,5 @@
 import RAPIER from '@dimforge/rapier3d-deterministic-compat';
-import type { Quat, Vec3 } from '@manifold/common';
+import { quat, type Quat, type Vec3 } from '@manifold/common';
 import type { Profile } from './profile';
 import type { Body, BodySpec, CollisionGroups, Shape, Transform } from './types';
 
@@ -29,6 +29,8 @@ const toVec = (x: { x: number; y: number; z: number }): Vec3 => [x.x, x.y, x.z];
 const toQuat = (r: { x: number; y: number; z: number; w: number }): Quat => [r.x, r.y, r.z, r.w];
 /** Rapier's groups: the 16 bits a body is a member of, and the 16 it meets, in one number. */
 const groupsOf = (g: CollisionGroups) => ((g.member & 0xffff) << 16) | (g.filter & 0xffff);
+/** Whether two groups (as Rapier's numbers) meet: each is a member of one the other meets (Rapier's own test). */
+const meets = (a: number, b: number) => ((a >>> 16) & b & 0xffff) !== 0 && ((b >>> 16) & a & 0xffff) !== 0;
 /** A shape of ours, as Rapier's. */
 const shapeOf = (shape: Shape) =>
   shape.kind === 'ball'
@@ -37,12 +39,29 @@ const shapeOf = (shape: Shape) =>
       ? new RAPIER.Capsule(shape.halfHeight, shape.radius)
       : new RAPIER.Cuboid(...shape.halfExtents);
 
+const ZERO = { x: 0, y: 0, z: 0 };
+
+/**
+ * A ray's normal as the engine gives it: Rapier's, where it hit a surface. A ray that starts inside a
+ * body hits it at distance 0, where there is no surface, and Rapier's is then anything (measured):
+ * zero (a box, a capsule), not even a number (a ball, from its center), or a direction that is no
+ * surface's (a ball, off its center). There, the engine's is always zero: no surface, and a number.
+ * (Not the ray's direction backwards: a ray down from inside a wall would find a floor to stand on.)
+ */
+function rayNormal(distance: number, n: { x: number; y: number; z: number }): Vec3 {
+  const length = n.x * n.x + n.y * n.y + n.z * n.z;
+  return distance > 0 && length > 0.5 && length < 1.5 ? toVec(n) : [0, 0, 0];
+}
+
 /** What a query of the physics hit (by handle: the world turns it into an entity). */
 export interface PhysicsHit {
   handle: number;
   distance: number;
   point: Vec3;
-  /** The surface's normal there, pointing out of what was hit. */
+  /**
+   * The surface's normal there, pointing out of what was hit. A ray that starts inside a body hits it
+   * at distance 0, where there is no surface: its normal is then zero.
+   */
   normal: Vec3;
 }
 
@@ -130,18 +149,48 @@ export class RapierPhysics implements PhysicsBackend {
   private controller: RAPIER.KinematicCharacterController | null = null;
   /** The bodies that were asleep when they were last read: what they are, their components already say. */
   private readonly asleep = new Set<number>();
+  /**
+   * THE BODIES RAPIER'S QUERIES DO NOT SEE YET, by handle (measured with Rapier alone): a body created,
+   * or put somewhere at once (`place`), between two steps is in no query until the next step, neither
+   * where it was nor where it is; and before a world's first step, no body is. Rapier updates what its
+   * queries see (a tree of boxes) when it steps, and has nothing to do it in between. Until then, the
+   * queries ask each of these on its own (`unseenColliders`), where it is now, and the controller stops at
+   * them (`moveCharacter`). Part of the state: a snapshot keeps them (Rapier's keeps its old tree).
+   */
+  private readonly unseen = new Set<number>();
 
   /** A new physics world; or, with `snapshot`, the one that snapshot keeps (its bodies keep their handles). */
   constructor(gravity: Vec3, timestep: number, snapshot?: Uint8Array) {
     if (!ready) throw new Error('The physics is not ready: `await initPhysics()` before creating a world.');
-    this.world = snapshot ? RAPIER.World.restoreSnapshot(snapshot) : new RAPIER.World(v(gravity));
+    if (snapshot) {
+      const view = new DataView(snapshot.buffer, snapshot.byteOffset, snapshot.byteLength);
+      const count = view.getUint32(0, true);
+      for (let i = 0; i < count; i++) this.unseen.add(view.getFloat64(4 + 8 * i, true));
+      this.world = RAPIER.World.restoreSnapshot(snapshot.subarray(4 + 8 * count));
+      // What slept when the snapshot was taken (after the bodies were read: the same) was read asleep.
+      this.world.forEachRigidBody((body) => {
+        if (body.isSleeping()) this.asleep.add(body.handle);
+      });
+    } else this.world = new RAPIER.World(v(gravity));
     this.world.gravity = v(gravity);
     this.world.timestep = timestep;
   }
 
-  /** Rapier's snapshot of its world, as bytes: bodies, colliders, contacts and the solver's state. */
+  /**
+   * The physics as bytes: how many bodies its queries do not see yet and their handles (a count, then
+   * each one as 8 bytes), and then Rapier's snapshot of its world (bodies, colliders, contacts and the
+   * solver's state).
+   */
   snapshot(): Uint8Array {
-    return this.world.takeSnapshot();
+    const rapier = this.world.takeSnapshot();
+    const head = 4 + 8 * this.unseen.size;
+    const out = new Uint8Array(head + rapier.length);
+    const view = new DataView(out.buffer);
+    view.setUint32(0, this.unseen.size, true);
+    let i = 0;
+    for (const handle of this.unseen) view.setFloat64(4 + 8 * i++, handle, true);
+    out.set(rapier, head);
+    return out;
   }
 
   setGravity(g: Vec3) {
@@ -191,6 +240,7 @@ export class RapierPhysics implements PhysicsBackend {
     if (body.groups) collider.setCollisionGroups(groupsOf(body.groups)).setSolverGroups(groupsOf(body.groups));
     this.world.createCollider(collider, rigid);
     body.handle = rigid.handle;
+    this.unseen.add(rigid.handle);
     return body;
   }
 
@@ -198,6 +248,7 @@ export class RapierPhysics implements PhysicsBackend {
     const rigid = this.world.getRigidBody(handle);
     if (rigid) this.world.removeRigidBody(rigid);
     this.asleep.delete(handle);
+    this.unseen.delete(handle);
   }
 
   /** The velocity a kinematic body moves with during the next step. */
@@ -264,7 +315,31 @@ export class RapierPhysics implements PhysicsBackend {
       const body = hit?.collider?.parent();
       if (body?.isDynamic() && !touched.includes(body.handle)) touched.push(body.handle);
     }
-    return { movement: toVec(c.computedMovement()), grounded: c.computedGrounded(), ceiling, touched };
+    const movement = this.stopAtUnseen(collider, handle, toVec(c.computedMovement()));
+    return { movement, grounded: c.computedGrounded(), ceiling, touched };
+  }
+
+  /**
+   * The controller finds what is in a character's way through Rapier's queries, which do not see the
+   * bodies created or put somewhere since the last step (`unseen`): its capsule is swept along the
+   * movement against each of those, and stops at the first, keeping its gap. It does not slide along
+   * it, for this one step: from the next, the controller sees it, and slides.
+   */
+  private stopAtUnseen(collider: RAPIER.Collider, handle: number, movement: Vec3): Vec3 {
+    if (this.unseen.size === 0) return movement;
+    const length = Math.sqrt(movement[0] * movement[0] + movement[1] * movement[1] + movement[2] * movement[2]);
+    if (length < 1e-9) return movement;
+    const direction = { x: movement[0] / length, y: movement[1] / length, z: movement[2] / length };
+    let free = length;
+    for (const other of this.unseen) {
+      if (other === handle) continue;
+      const hit = this.world
+        .getRigidBody(other)
+        ?.collider(0)
+        ?.castShape(ZERO, collider.shape, collider.translation(), collider.rotation(), direction, 0, free + CHARACTER_GAP, false);
+      if (hit) free = Math.min(free, Math.max(0, hit.time_of_impact - CHARACTER_GAP));
+    }
+    return free === length ? movement : [direction.x * free, direction.y * free, direction.z * free];
   }
 
   /**
@@ -275,11 +350,49 @@ export class RapierPhysics implements PhysicsBackend {
    */
   castRay(from: Vec3, direction: Vec3, reach: number, o: QueryOptions = {}): PhysicsHit | null {
     const ray = new RAPIER.Ray(v(from), v(direction));
-    const hit = this.world.castRayAndGetNormal(ray, reach, true, ...this.filter(o));
-    const body = hit?.collider.parent();
-    if (!hit || !body) return null;
-    const at = ray.pointAt(hit.timeOfImpact);
-    return { handle: body.handle, distance: hit.timeOfImpact, point: toVec(at), normal: toVec(hit.normal) };
+    const seen = this.world.castRayAndGetNormal(ray, reach, true, ...this.filter(o));
+    // (Nearly always, Rapier's queries see every body: nothing more to ask.)
+    if (this.unseen.size === 0) {
+      const body = seen?.collider.parent();
+      if (!seen || !body) return null;
+      const at = ray.pointAt(seen.timeOfImpact);
+      return {
+        handle: body.handle,
+        distance: seen.timeOfImpact,
+        point: toVec(at),
+        normal: rayNormal(seen.timeOfImpact, seen.normal),
+      };
+    }
+    let found = seen && { collider: seen.collider, distance: seen.timeOfImpact, normal: seen.normal };
+    for (const collider of this.unseenColliders(o)) {
+      const hit = collider.castRayAndGetNormal(ray, found ? found.distance : reach, true);
+      if (hit && (!found || hit.timeOfImpact < found.distance))
+        found = { collider, distance: hit.timeOfImpact, normal: hit.normal };
+    }
+    const body = found?.collider.parent();
+    if (!found || !body) return null;
+    const at = ray.pointAt(found.distance);
+    return { handle: body.handle, distance: found.distance, point: toVec(at), normal: rayNormal(found.distance, found.normal) };
+  }
+
+  /**
+   * The colliders of the bodies Rapier's queries do not see yet (`unseen`) that a query with these
+   * options counts, in the order they were created or put: a query asks each one on its own.
+   */
+  private unseenColliders(o: QueryOptions): RAPIER.Collider[] {
+    if (this.unseen.size === 0) return [];
+    const left = new Set([o.skip, o.besides, ...(o.leave ?? [])]);
+    const groups = o.groups ? groupsOf(o.groups) : undefined;
+    const out: RAPIER.Collider[] = [];
+    for (const handle of this.unseen) {
+      if (left.has(handle)) continue;
+      const body = this.world.getRigidBody(handle);
+      const collider = body?.collider(0);
+      if (!body || !collider || (o.dynamic === false && body.isDynamic())) continue;
+      if (groups !== undefined && !meets(groups, collider.collisionGroups())) continue;
+      out.push(collider);
+    }
+    return out;
   }
 
   /**
@@ -296,10 +409,29 @@ export class RapierPhysics implements PhysicsBackend {
     reach: number,
     o: QueryOptions = {},
   ): PhysicsHit | null {
-    const hit = this.world.castShape(v(position), q(rotation), v(direction), shapeOf(shape), 0, reach, true, ...this.filter(o));
-    const body = hit?.collider.parent();
-    if (!hit || !body) return null;
-    return { handle: body.handle, distance: hit.time_of_impact, point: toVec(hit.witness1), normal: toVec(hit.normal1) };
+    const cast = shapeOf(shape);
+    const seen = this.world.castShape(v(position), q(rotation), v(direction), cast, 0, reach, true, ...this.filter(o));
+    let found: PhysicsHit | null = null;
+    const body = seen?.collider.parent();
+    if (seen && body)
+      found = { handle: body.handle, distance: seen.time_of_impact, point: toVec(seen.witness1), normal: toVec(seen.normal1) };
+    if (this.unseen.size === 0) return found;
+    for (const collider of this.unseenColliders(o)) {
+      const max = found ? found.distance : reach;
+      const hit = collider.castShape(ZERO, cast, v(position), q(rotation), v(direction), 0, max, true);
+      if (!hit || (found && hit.time_of_impact >= found.distance)) continue;
+      // (On the collider's own axes, from its center: turned and moved to the world's.)
+      const turn = toQuat(collider.rotation());
+      const center = toVec(collider.translation());
+      const point = quat.rotate(turn, toVec(hit.witness1));
+      found = {
+        handle: collider.parent()!.handle,
+        distance: hit.time_of_impact,
+        point: [point[0] + center[0], point[1] + center[1], point[2] + center[2]],
+        normal: quat.rotate(turn, toVec(hit.normal1)),
+      };
+    }
+    return found;
   }
 
   /**
@@ -351,6 +483,8 @@ export class RapierPhysics implements PhysicsBackend {
       rigid.setNextKinematicRotation(q(rotation));
     }
     this.world.propagateModifiedBodyPositionsToColliders();
+    // Rapier's queries see it again from the next step: until then, asked on its own.
+    this.unseen.add(handle);
   }
 
   /** Where a character's body will be at the end of the next step (it moves there during the step). */
@@ -382,6 +516,8 @@ export class RapierPhysics implements PhysicsBackend {
 
   step() {
     this.world.step();
+    // Stepping, Rapier updated what its queries see: every body, where it is.
+    this.unseen.clear();
   }
 
   /** Copies where the body is and how it moves into the entity's components (after a step). */
@@ -393,12 +529,76 @@ export class RapierPhysics implements PhysicsBackend {
     // a body, each one making an object: in the stress room, a third of the physics' time.
     if (rigid.isSleeping()) {
       if (this.asleep.has(handle)) return;
+      if (rigid.isDynamic() && !this.restsWhereItIs(rigid, body.linearVelocity)) {
+        // Where it is, it cannot rest: its sleep is refused, and it goes on as it went.
+        rigid.wakeUp();
+        rigid.setLinvel(v(body.linearVelocity), true);
+        rigid.setAngvel(v(body.angularVelocity), true);
+        transform.position = toVec(rigid.translation());
+        transform.rotation = toQuat(rigid.rotation());
+        return;
+      }
       this.asleep.add(handle);
     } else this.asleep.delete(handle);
     transform.position = toVec(rigid.translation());
     transform.rotation = toQuat(rigid.rotation());
     body.linearVelocity = toVec(rigid.linvel());
     body.angularVelocity = toVec(rigid.angvel());
+  }
+
+  /**
+   * THE SLEEP RULE (the engine's; before, Rapier's alone): whether a body Rapier just put to sleep can
+   * rest where it is. Rapier puts to sleep what moves slowly for half a second (measured: less than
+   * 0.4 m/s), and what barely slides, from rest, does: a box half a degree past its friction angle went
+   * down 1.6 cm and stopped there for good (awake, 4.3 m in ten seconds, as its friction says).
+   *
+   * So: by what holds it up (of the surfaces it touches, the one that faces up the most), a box, or a
+   * capsule, can slide if that surface is steeper than its friction holds (the tangent of its slope,
+   * more than the friction: Rapier's, the two surfaces' average); a ball, down any slope steeper than 1
+   * in 1000 (Rapier put one to sleep on 0.5°, after 8 mm: it rolls 3 m in ten seconds). And it does
+   * slide if it was going down that slope as the slope makes it: at least what a tenth of a second of
+   * that slope gives (from rest, half a second gave it five times as much). One that leans on others,
+   * in a pile or wedged in a corner, is not moving: something else holds it, and it sleeps (refused, it
+   * stayed awake for good, and a pile with them cost the step a sixth more).
+   *
+   * Asked only when Rapier puts a body to sleep, from what the state has (its contacts, its frictions,
+   * the gravity, its velocity before the step): the same in every copy. What nothing holds up from
+   * below, Rapier decides.
+   */
+  private restsWhereItIs(rigid: RAPIER.RigidBody, velocity: Vec3): boolean {
+    const collider = rigid.collider(0);
+    const g = this.world.gravity;
+    const weight = Math.sqrt(g.x * g.x + g.y * g.y + g.z * g.z);
+    if (!collider || weight < 1e-9) return true;
+    const up = { x: -g.x / weight, y: -g.y / weight, z: -g.z / weight };
+    let facing = 0;
+    let friction = 0;
+    let out = { x: 0, y: 0, z: 0 };
+    this.world.contactPairsWith(collider, (other) => {
+      this.world.contactPair(collider, other, (manifold, flipped) => {
+        if (manifold.numSolverContacts() === 0) return;
+        // The normal points from the first collider to the second (flipped: the other way): out of the
+        // surface below, it points the other way.
+        const n = manifold.normal();
+        const sign = flipped ? 1 : -1;
+        const along = sign * (n.x * up.x + n.y * up.y + n.z * up.z);
+        if (along > facing) {
+          facing = along;
+          friction = (collider.friction() + other.friction()) / 2;
+          out = { x: sign * n.x, y: sign * n.y, z: sign * n.z };
+        }
+      });
+    });
+    if (facing <= 0) return true;
+    const sine = Math.sqrt(Math.max(0, 1 - facing * facing));
+    const holds = collider.shapeType() === RAPIER.ShapeType.Ball ? 0.001 : friction;
+    if (sine <= holds * facing) return true;
+    // Down the slope: gravity along the surface (its length, the weight times the slope's sine).
+    const pressing = g.x * out.x + g.y * out.y + g.z * out.z;
+    const down = { x: g.x - pressing * out.x, y: g.y - pressing * out.y, z: g.z - pressing * out.z };
+    const going = (velocity[0] * down.x + velocity[1] * down.y + velocity[2] * down.z) / (weight * sine);
+    const pull = weight * (sine - holds * facing);
+    return going < 0.1 * pull;
   }
 
   get bodyCount(): number {

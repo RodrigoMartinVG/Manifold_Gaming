@@ -111,9 +111,14 @@ describe("the Dojo's art (stage 2e)", () => {
       turned += (2 * Math.acos(Math.min(1, Math.abs(dot))) * 180) / Math.PI;
     }
     expect(turned, 'the hips, a whole turn (degrees)').toBeCloseTo(360, 0);
-    // No root motion: the simulation moves the character; an animation only turns its bones. (Blender
-    // writes every bone's place and size too: they must not change, from the first key to the last.)
+    // No root motion: the simulation moves the character; an animation turns its bones, and only the
+    // hips go up and down, never along the ground (after the tutorial's pass: walking and running, a
+    // foot reaching the floor ahead or behind needs the hips lower than they are built, where a leg
+    // straight down just reaches it). (Blender writes every bone's place and size too: the rest must
+    // not change, from the first key to the last.)
     const root = json.scenes[0]!.nodes[0]!;
+    const hipsNode = json.nodes.findIndex((n) => n.name === 'hips');
+    const built = json.nodes[hipsNode]!.translation ?? [0, 0, 0];
     for (const a of json.animations ?? [])
       for (const c of a.channels) {
         expect(c.target.node, `${a.name} moves the root`).not.toBe(root);
@@ -121,7 +126,14 @@ describe("the Dojo's art (stage 2e)", () => {
         // (To a micron: Blender takes each sample apart from a matrix, and its last bits wobble.)
         const values = glb.floats(a.samplers[c.sampler]!.output, json);
         const what = `${a.name}: ${json.nodes[c.target.node]?.name}'s ${c.target.path} changes`;
-        for (let i = 3; i < values.length; i++) expect(Math.abs(values[i]! - values[i % 3]!), what).toBeLessThan(1e-6);
+        const bounce = c.target.node === hipsNode && c.target.path === 'translation';
+        for (let i = 3; i < values.length; i++) {
+          if (bounce && i % 3 === 1) {
+            // Up and down (glTF's Y): never above where they are built, and not much below.
+            expect(values[i]! - built[1]!, `${a.name}: the hips' height`).toBeLessThan(1e-6);
+            expect(values[i]! - built[1]!, `${a.name}: the hips' height`).toBeGreaterThan(-0.15);
+          } else expect(Math.abs(values[i]! - values[i % 3]!), what).toBeLessThan(1e-6);
+        }
       }
     // And every bone turns where its animation says, also where it stays still (an elbow bent all
     // through a walk): one rotation channel per bone in every animation.

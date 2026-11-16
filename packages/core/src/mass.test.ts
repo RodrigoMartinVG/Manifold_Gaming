@@ -64,6 +64,29 @@ describe('mass (stage 3g)', () => {
     expect(block, 'the block').toBeLessThan(0.3);
   });
 
+  test("the crate's friction on the floor: 242 N (Rapier averages the two surfaces' 0.5 and 0.6), not 220 (the crate's own)", () => {
+    // A push along the floor, as a force (each step, the change of velocity it gives: F · dt / m): how
+    // much faster the crate goes in its second second than in its first.
+    const faster = (newtons: number) => {
+      const { world, crate } = yard();
+      for (let i = 0; i < 60; i++) world.step();
+      const mass = world.physics.massOf(crate.body!.handle);
+      const speeds: number[] = [];
+      for (let i = 1; i <= 120; i++) {
+        world.push(crate, [newtons / 60 / mass, 0, 0]);
+        world.step();
+        if (i % 60 === 0) speeds.push(crate.body!.linearVelocity[0]);
+      }
+      world.dispose();
+      return speeds[1]! - speeds[0]!;
+    };
+    // 44.8 kg · 9.81 · 0.55 = 241.7 N. Below it, the crate creeps at a steady few cm/s (Rapier's friction
+    // gives a little, measured: 7 mm/s at 200 N, 32 at 240), and does not speed up; above it, it slides
+    // faster and faster: at 255 N, (255 − 241.7) / 44.8 = 0.3 m/s more each second.
+    expect(faster(230), 'pushed with 230 N').toBeLessThan(0.01);
+    expect(faster(255), 'pushed with 255 N').toBeGreaterThan(0.2);
+  });
+
   test('a game pushes what the physics moves: the same change of velocity, whatever its mass (the impulse is its mass times it)', () => {
     const { world, crate, block } = yard();
     world.step();

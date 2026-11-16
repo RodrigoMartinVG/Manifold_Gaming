@@ -336,9 +336,12 @@ function hold(world: World, e: Entity, c: Character, up: Vec3, dt: number) {
  * PUSHING (stage 3g): what the physics moves that the character walks into, it pushes along the ground,
  * towards where it is going, as fast as it walks there at most, with a force of `PUSH` newtons at most:
  * the thing's friction on the floor (its mass times g times the friction) has to be less for it to
- * move. A wooden crate of 45 kg (220 N) slides along; a stone block of a tonne (7,000 N) does not.
- * (Rapier's own rule pushed with an impulse by the character's mass on every step, which adds up: the
- * block went along as easily as the crate.)
+ * move. The friction is Rapier's: the average of the two surfaces'. A wooden crate of 45 kg on stone
+ * (0.5 and 0.6: 0.55, 242 N) slides along; a stone block of 1.2 tonnes (0.6: 7,200 N) does not.
+ * (Rapier's own rule pushes with an impulse by the character's mass on every step, which adds up: with
+ * a person's 70 kg, the block went along almost as far as the crate, 3.8 m against 4.5 in two seconds.
+ * With the mass Rapier gives the engine's capsule, its volume at density 1, 0.4 kg, it moves neither:
+ * the crate 0.5 m, the block nothing. Measured with Rapier alone again, after the tutorial's pass.)
  */
 export const PUSH = 900;
 

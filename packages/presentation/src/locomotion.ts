@@ -10,7 +10,8 @@ import type { ModeName } from '@manifold/core';
  * forward cycle. Now, on the ground, four cycles for each pace (forward, back, each side) are mixed by
  * the angle between where it goes and where it looks; climbing, up and each side; in the air, rising
  * and falling. Each family shares one length and one phase, which advances with the distance really
- * travelled: mixed, the feet stay in step, and at any speed they do not slide. The velocity is the
+ * travelled, one cycle per stride (`STRIDES`: how far the model's foot on the ground goes back in a
+ * cycle): mixed, the feet stay in step, and a foot on the ground stays where it is. The velocity is the
  * one it REALLY had (what the view saw it move), not the one it asks for: against a wall it does not
  * walk in place. And two short gestures over the rest: a somersault for the jump in the air, and
  * the weight of a landing.
@@ -49,8 +50,25 @@ export const FAMILIES = {
 /** The speeds the cycles were made for (m/s): the engine's walk and run. */
 const WALK = 4.5;
 const RUN = 7.5;
-/** How far one cycle carries it (m): ahead or back, and to a side (shorter steps). */
-const STRIDE = { walk: { along: 2.7, side: 1.8 }, run: { along: 3.375, side: 2.4 } };
+
+/** How far one cycle of a family carries it (m), ahead, back and to either side. */
+export interface Stride {
+  forward: number;
+  back: number;
+  side: number;
+}
+
+/**
+ * HOW FAR ONE CYCLE CARRIES IT (m), for each family and direction: how far a foot on the ground goes
+ * back under the hips in one cycle, measured in the model (the Dojo's gait test reads it from the file,
+ * and fails if these are not its numbers). Played with these, a foot on the ground stays where it is
+ * (after the tutorial's pass). In 2e2 they were what a jog's steps should be (2.7 m), not what the cycles did: their
+ * foot on the ground went back and forth a few centimeters, and slid the whole way.
+ */
+export const STRIDES = {
+  walk: { forward: 2.64, back: 2.24, side: 1.36 },
+  run: { forward: 3.04, back: 2.4, side: 1.6 },
+} as const satisfies Record<'walk' | 'run', Stride>;
 /** How far one climbing cycle takes it along the wall (m), and how far it turns in one turning cycle (degrees). */
 const CLIMB_STRIDE = 2;
 const TURN_CYCLE = 180;
@@ -126,18 +144,72 @@ const smoothstep = (a: number, b: number, x: number) => {
 const degrees = (radians: number) => (radians * 180) / Math.PI;
 
 /**
- * The four directions' weights for an angle (degrees, from where it looks; to its right, positive):
- * the two nearest, by how near (at 45°, half forward and half to the side).
+ * WHEN EACH FOOT IS ON THE GROUND in a cycle of walking or running (the art makes them so, and the Dojo's
+ * gait test checks it): a quarter of the cycle each, the right foot's around 0.25 and the left one's
+ * around 0.75; between them, both in the air. `lift`: how long after it the foot may still be leaving
+ * the floor.
  */
-export function directions(angle: number): { forward: number; right: number; back: number; left: number } {
-  const w = { forward: 0, right: 0, back: 0, left: 0 };
-  const order = ['forward', 'right', 'back', 'left'] as const;
+export const FOOTING = { stance: 0.25, lift: 0.06, middle: { L: 0.75, R: 0.25 } } as const;
+
+/** Where a foot is in its cycle: down, lifting, or up. */
+export type Footing = 'down' | 'lifting' | 'up';
+
+/**
+ * Where a foot is in its cycle now (feet.ts plants it): `down`, standing on something with walking or
+ * running weighing most, in that foot's quarter; `lifting`, just after it; `up`, otherwise.
+ */
+export function footing(g: Gait, side: 'L' | 'R', grounded: boolean): Footing {
+  if (!grounded) return 'up';
+  let ground = 0;
+  for (const clip of [...FAMILIES.walk, ...FAMILIES.run]) ground += g.weights[clip];
+  if (ground < 0.5) return 'up';
+  const u = (((g.phase - FOOTING.middle[side] + FOOTING.stance / 2) % 1) + 1) % 1;
+  return u < FOOTING.stance ? 'down' : u < FOOTING.stance + FOOTING.lift ? 'lifting' : 'up';
+}
+
+/** The same stride every way: the directions' weights by angle alone. */
+const EVEN: Stride = { forward: 1, back: 1, side: 1 };
+const ORDER = ['forward', 'right', 'back', 'left'] as const;
+
+/**
+ * Between the two nearest directions of an angle (degrees, from where it looks; to its right,
+ * positive): the weight of each, and how far a cycle of their mix carries it. A foot on the ground in
+ * the mix goes back as the cycles' feet would, weighted: the first one's stride `S1` along its
+ * direction, the next one's `S2` along its own, so the mix goes along the motion only if
+ * `w1·S1 : w2·S2 = cos r : sin r` (r, the angle from the first). Weighted by the angle alone (as in
+ * 2e2), a mix of a long stride and a short one pointed off its way: between forward (2.64 m) and to a
+ * side (1.36 m), walking at 45° its step went at 27°.
+ */
+function between(angle: number, stride: Stride) {
   const a = ((angle % 360) + 360) % 360;
   const sector = Math.floor(a / 90) % 4;
-  const f = (a - sector * 90) / 90;
-  w[order[sector]!] += 1 - f;
-  w[order[(sector + 1) % 4]!] += f;
+  const first = ORDER[sector]!;
+  const next = ORDER[(sector + 1) % 4]!;
+  const length = (d: (typeof ORDER)[number]) => (d === 'forward' ? stride.forward : d === 'back' ? stride.back : stride.side);
+  const r = ((a - sector * 90) * Math.PI) / 180;
+  const along = length(next) * Math.cos(r);
+  const across = length(first) * Math.sin(r);
+  const w1 = along / (along + across);
+  const w2 = across / (along + across);
+  return { first, next, w1, w2, stride: Math.sqrt((w1 * length(first)) ** 2 + (w2 * length(next)) ** 2) };
+}
+
+/**
+ * The four directions' weights for an angle (degrees, from where it looks; to its right, positive):
+ * the two nearest, so that their mixed step goes where it walks (`between`); with the same stride every
+ * way, at 45°, half forward and half to the side.
+ */
+export function directions(angle: number, stride: Stride = EVEN): { forward: number; right: number; back: number; left: number } {
+  const w = { forward: 0, right: 0, back: 0, left: 0 };
+  const b = between(angle, stride);
+  w[b.first] += b.w1;
+  w[b.next] += b.w2;
   return w;
+}
+
+/** How far one cycle of the two nearest directions, mixed by `directions`, carries it (m). */
+export function strideAlong(angle: number, stride: Stride): number {
+  return between(angle, stride).stride;
 }
 
 /** What it plays with no gesture over it, from what it does (the weights add up to 1). */
@@ -165,18 +237,19 @@ export function targets(r: Reading, g: Pick<Gait, 'angle' | 'climbAngle'>): Part
   const moving = smoothstep(0.2, 1, speed);
   const turning = (1 - moving) * clamp01(Math.abs(r.turning) / 90);
   const run = clamp01((speed - WALK) / (RUN - WALK));
-  const d = directions(angle);
+  const walking = directions(angle, STRIDES.walk);
+  const running = directions(angle, STRIDES.run);
   return {
     idle: 1 - moving - turning,
     turn: turning,
-    walk: moving * (1 - run) * d.forward,
-    walk_right: moving * (1 - run) * d.right,
-    walk_back: moving * (1 - run) * d.back,
-    walk_left: moving * (1 - run) * d.left,
-    run: moving * run * d.forward,
-    run_right: moving * run * d.right,
-    run_back: moving * run * d.back,
-    run_left: moving * run * d.left,
+    walk: moving * (1 - run) * walking.forward,
+    walk_right: moving * (1 - run) * walking.right,
+    walk_back: moving * (1 - run) * walking.back,
+    walk_left: moving * (1 - run) * walking.left,
+    run: moving * run * running.forward,
+    run_right: moving * run * running.right,
+    run_back: moving * run * running.back,
+    run_left: moving * run * running.left,
   };
 }
 
@@ -203,14 +276,11 @@ export function advance(g: Gait, r: Reading, dt: number) {
   const follow = 1 - Math.exp(-dt / BLEND);
   for (const clip of CHARACTER_CLIPS) g.weights[clip] += ((target[clip] ?? 0) - g.weights[clip]) * follow;
 
-  // The phases: the ground's, by the distance travelled over one cycle's (mixed as the weights mix);
+  // The phases: the ground's, by the distance travelled over one cycle's (the mix's: walking and running
+  // at one phase, their feet on the ground going back along the same line, add up as they are weighed);
   // climbing's, by the distance along the wall; turning's, by the angle.
-  const d = directions(g.angle);
-  const side = d.left + d.right;
   const run = clamp01((speed - WALK) / (RUN - WALK));
-  const stride =
-    (1 - run) * (STRIDE.walk.along * (1 - side) + STRIDE.walk.side * side) +
-    run * (STRIDE.run.along * (1 - side) + STRIDE.run.side * side);
+  const stride = (1 - run) * strideAlong(g.angle, STRIDES.walk) + run * strideAlong(g.angle, STRIDES.run);
   g.phase = (g.phase + (dt * speed) / stride) % 1;
   if (r.mode === 'climb') g.climbPhase = (g.climbPhase + (dt * vec3.length(r.velocity)) / CLIMB_STRIDE) % 1;
   g.turnPhase = (g.turnPhase + (dt * Math.abs(r.turning)) / TURN_CYCLE) % 1;

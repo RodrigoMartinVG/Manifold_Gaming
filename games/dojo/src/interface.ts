@@ -12,8 +12,26 @@ export const DOJO_WORDS = {
     'dojo.lost': 'El vigía te perdió',
     'dojo.fell': 'Te caíste: de vuelta al punto de control',
     'dojo.checkpoint': 'Punto de control',
-    'dojo.star': 'Una estrella: {0} tomadas, quedan {1}',
-    'dojo.goal': 'La meta: {0:2} s, {1} caídas, {2} estrellas',
+    // Whole sentences for each form of the numbers (decision 0019, after the tutorial's pass: "1 tomadas").
+    'dojo.star': {
+      by: 1,
+      '=0': { by: 0, one: 'Una estrella: la última, y era la única', other: 'Una estrella: la última, ya son {0}' },
+      one: { by: 0, one: 'Una estrella: {0} tomada, queda {1}', other: 'Una estrella: {0} tomadas, queda {1}' },
+      other: { by: 0, one: 'Una estrella: {0} tomada, quedan {1}', other: 'Una estrella: {0} tomadas, quedan {1}' },
+    },
+    'dojo.goal': {
+      by: 1,
+      one: {
+        by: 2,
+        one: 'La meta: {0:2} s, {1} caída, {2} estrella',
+        other: 'La meta: {0:2} s, {1} caída, {2} estrellas',
+      },
+      other: {
+        by: 2,
+        one: 'La meta: {0:2} s, {1} caídas, {2} estrella',
+        other: 'La meta: {0:2} s, {1} caídas, {2} estrellas',
+      },
+    },
     'dojo.hud.time': 'Tiempo',
     'dojo.hud.falls': 'Caídas',
     'dojo.hud.stars': 'Estrellas',
@@ -28,8 +46,16 @@ export const DOJO_WORDS = {
     'dojo.lost': 'the watcher lost you',
     'dojo.fell': 'you fell: back to the checkpoint',
     'dojo.checkpoint': 'checkpoint',
-    'dojo.star': 'a star: {0} taken, {1} left',
-    'dojo.goal': 'the goal: {0:2} s, {1} falls, {2} stars',
+    'dojo.star': {
+      by: 1,
+      '=0': { by: 0, one: 'a star: the last, and the only one', other: 'a star: the last, {0} in all' },
+      other: 'a star: {0} taken, {1} left',
+    },
+    'dojo.goal': {
+      by: 1,
+      one: { by: 2, one: 'the goal: {0:2} s, {1} fall, {2} star', other: 'the goal: {0:2} s, {1} fall, {2} stars' },
+      other: { by: 2, one: 'the goal: {0:2} s, {1} falls, {2} star', other: 'the goal: {0:2} s, {1} falls, {2} stars' },
+    },
     'dojo.hud.time': 'Time',
     'dojo.hud.falls': 'Falls',
     'dojo.hud.stars': 'Stars',
