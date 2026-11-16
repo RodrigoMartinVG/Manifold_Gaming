@@ -130,8 +130,16 @@ Its own track from now on ([decision 0021](docs/decisions/0021-a-new-tutorial.md
 - ✅ **The curriculum** ([`docs/tutorial-curriculum.md`](docs/tutorial-curriculum.md), approved): 146 lessons in ten parts, from the books weighed together, with one set of conventions; and **a design sheet for every lesson** ([`docs/tutorial-lessons/`](docs/tutorial-lessons/)), with the decisions across parts that wait for the author.
 - ✅ **The infrastructure:** the lab kit for the live figures ([`site/src/lab/`](site/src/lab/), imported as `'lab'`), the notation page and "TypeScript para quien sabe JavaScript"; the new tutorial's code checked with `noUncheckedIndexedAccess`, as the engine is.
 - ✅ **The archive:** the old tutorial moved, as it is, to `/tutorial/archivo/`, each page with a banner and its old address sent there; the new one took the Tutorial section (and its pilot's addresses, `/tutorial-nuevo/…`, are sent too). A test reads every link of the site.
+- ✅ **The decisions across parts** (the sheets' review, [`docs/tutorial-lessons/README.md`](docs/tutorial-lessons/README.md)), taken as recommended: gravity as a field from 2.8, `trig.ts` in degrees (an exception to the notation's radians, stated), the input record with a payload, one console grammar, our own zones, effects only drawn, 5.2's constant-acceleration motor, one `view/` folder. Where the tutorial does something an experienced reader would find odd, a **"Para quien ya sabe"** note says why; and the lab kit is not taught as a topic: each figure's code marks _THE LESSON_ and _THE DRAWING_, and 1.7's `debug.ts` is where the kit becomes readable.
+- 🔨 **Part 1, in four batches** (lesson sheets in [`parte-01.md`](docs/tutorial-lessons/parte-01.md)), each reviewed by the author before the next:
+  - ✅ batch 1, 1.1–1.4: coordinates and the projection on the kit, the window into the world made time-free (the turret still, three targets as data, a `view/` folder, everything disposed), vectors; with browser tests at each lesson's worked numbers;
+  - ⬜ batch 2, 1.5–1.7: the dot product (project and reject), the cross product (signed areas, a frame), and the turret that looks (`vec.ts` and `debug.ts` arrive);
+  - ⬜ batch 3, 1.8–1.12: matrices, the inverse, homogeneous coordinates, spaces and hierarchies, the turret with parts;
+  - ⬜ batch 4, 1.13–1.17: rotations (angles, axis and angle, quaternions and slerp), aiming, and the game, the turret.
+  - "Moverse", from the pilot, stays in part 1 until part 2 takes it as 2.8.
+- ⬜ **Accept decision 0021** (still proposed): the pilot is settled; the author's call.
 - ⬜ **The inventory:** every lesson of both tutorials with its destination in the outline, or dropped with why; then Manifold Lab can be deleted.
-- ⬜ **Part 1, whole** (the time in fixed steps, looking, turning, chance with a seed, and the game that closes it), then the next parts.
+- ⬜ **The next parts**, 2 to 10, from their sheets.
 
 ## Phase 4 — Combat and bots ⬜
 
