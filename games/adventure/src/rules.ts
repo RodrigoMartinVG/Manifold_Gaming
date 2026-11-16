@@ -1,3 +1,4 @@
+import { characterParts } from '@manifold/character';
 import { quat, type Vec3 } from '@manifold/common';
 import {
   buildLevel,
@@ -150,9 +151,8 @@ export function createAdventure(): Cartridge {
         // (By its name, the console finds it: `inspect hero`, `set hero transform.position …`.)
         name: 'hero',
         transform: { position: [...d.spawn], rotation: quat.identity() },
-        body: { type: 'character', shape: { kind: 'capsule', halfHeight: 0.5, radius: 0.3 } },
-        character: { player: 1, facing: [0, 0, 1] },
-        appearance: { shape: 'capsule', size: [0.6, 1.6, 0.6], color: 0xd9a35a },
+        // The games' character (stage 4a: @manifold/character): the mannequin, no longer a bare capsule.
+        ...characterParts({ player: 1, facing: [0, 0, 1], color: 0xd9a35a }),
         game: { [EXPLORER]: { dungeon: seed, depth, items: [], taken: [] } satisfies Explorer },
       });
     },

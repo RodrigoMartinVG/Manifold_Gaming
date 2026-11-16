@@ -436,7 +436,7 @@ export interface Appearance {
   /** 0xRRGGBB */
   color: number;
   /**
-   * A model, by the name the game gives the presentation (stage 2e: `dojo.mannequin`): drawn instead
+   * A model, by the name the game gives the presentation (stage 2e; `character.mannequin` since 4a, the games' character): drawn instead
    * of the shape, once it loaded. Only for the eyes: nothing of a model enters the simulation.
    */
   model?: string;

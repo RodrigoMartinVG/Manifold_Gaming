@@ -10,6 +10,7 @@
     "./rules": "./src/rules.ts"
   },
   "dependencies": {
+    "@manifold/character": "0.0.0",
     "@manifold/commands": "0.0.0",
     "@manifold/common": "0.0.0",
     "@manifold/core": "0.0.0",

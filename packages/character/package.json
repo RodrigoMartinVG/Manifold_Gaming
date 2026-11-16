@@ -1,0 +1,23 @@
+{
+  "name": "@manifold/character",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The games' character (stage 4a): the mannequin made by art/mannequin.py, its collision poses by way of moving, and how a game puts a character in its world. Its rules part runs without a screen; its model is for the presentation.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./models": "./src/models.ts",
+    "./glb": "./src/glb.ts",
+    "./assets": "./assets/assets.json"
+  },
+  "dependencies": {
+    "@manifold/common": "0.0.0",
+    "@manifold/core": "0.0.0"
+  },
+  "devDependencies": {
+    "@manifold/presentation": "0.0.0"
+  },
+  "scripts": {
+    "check": "tsc -p tsconfig.json"
+  }
+}

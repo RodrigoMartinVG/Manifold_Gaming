@@ -1,0 +1,46 @@
+import { quat, type Vec3 } from '@manifold/common';
+import type { Appearance, BodySpec, CharacterSpec, CollisionPose, ModeName } from '@manifold/core';
+
+/**
+ * THE GAMES' CHARACTER (stage 4a): one body for every game, so the guards of phase 4 and each game's
+ * player are the same mannequin, and a new way of moving gets its animations once. This part is the
+ * rules': plain data, the same in Node and in every browser, no screen (decision 0003). The model's
+ * address, for the presentation, is in `@manifold/character/models`.
+ */
+
+/** The mannequin's name, the one an appearance gives and the presentation loads (art/mannequin.py made it). */
+export const MANNEQUIN = 'character.mannequin';
+
+/** The character's body: a capsule 1.6 m tall, 0.6 m wide. */
+export const CHARACTER_SHAPE = { kind: 'capsule', halfHeight: 0.5, radius: 0.3 } as const;
+
+/**
+ * What the mannequin's body is in each way of moving where it is not the standing capsule (stage 2e,
+ * for phase 4's blows), from its animations: crouched in the air, its knees up; gliding, tilted 55°
+ * forward. (The controller moves the capsule always.)
+ */
+export const POSES: Partial<Record<ModeName, CollisionPose>> = {
+  air: { shape: { kind: 'capsule', halfHeight: 0.35, radius: 0.3 }, offset: [0, 0.1, 0], rotation: quat.identity() },
+  glide: {
+    shape: { kind: 'capsule', halfHeight: 0.5, radius: 0.3 },
+    offset: [0, 0, 0],
+    rotation: quat.fromDegrees([1, 0, 0], -55),
+  },
+};
+
+/**
+ * A CHARACTER'S PARTS, for a game's `createEntity`: its body, its character (the player who drives it,
+ * where it looks, its poses) and its appearance (the mannequin, once it loaded; the capsule meanwhile, in
+ * its color). A game adds what is its own: a name, a position, its components, what it can do.
+ */
+export function characterParts(o: { player: number; facing: Vec3; color: number }): {
+  body: BodySpec;
+  character: CharacterSpec;
+  appearance: Appearance;
+} {
+  return {
+    body: { type: 'character', shape: { ...CHARACTER_SHAPE } },
+    character: { player: o.player, facing: [...o.facing], poses: POSES },
+    appearance: { shape: 'capsule', size: [0.6, 1.6, 0.6], color: o.color, model: MANNEQUIN },
+  };
+}

@@ -151,6 +151,7 @@ export default defineConfig(
       'packages/common/src/**',
       'packages/core/src/**',
       'packages/net/src/**',
+      'packages/character/src/index.ts',
       'games/*/src/cartridge.ts',
       'games/*/src/rules.ts',
       'games/*/src/levels.ts',
@@ -168,6 +169,17 @@ export default defineConfig(
     rules: { 'no-restricted-imports': ['error', { patterns: [games] }] },
   },
   {
+    // The games' character (stage 4a): its rules part runs without a screen, like a game's rules; its
+    // model (models.ts) is the presentation's.
+    files: ['packages/character/src/index.ts'],
+    rules: { 'no-restricted-imports': ['error', { patterns: [drawing, models, presentation, games, network] }] },
+  },
+  {
+    files: ['packages/character/src/**'],
+    ignores: ['packages/character/src/index.ts'],
+    rules: { 'no-restricted-imports': ['error', { patterns: [games] }] },
+  },
+  {
     // A game uses the engine, never another game.
     files: ['games/*/src/**'],
     rules: {
@@ -176,7 +188,15 @@ export default defineConfig(
         {
           patterns: [
             {
-              group: ['@manifold/*', '!@manifold/common', '!@manifold/commands', '!@manifold/core', '!@manifold/presentation'],
+              group: [
+                '@manifold/*',
+                '!@manifold/common',
+                '!@manifold/commands',
+                '!@manifold/core',
+                '!@manifold/presentation',
+                '!@manifold/character',
+                '!@manifold/character/*',
+              ],
               message: 'A game imports the engine, never another game (decision 0003).',
             },
           ],
@@ -195,6 +215,7 @@ export default defineConfig(
             { ...drawing, message: headless },
             { ...models, message: headless },
             { ...presentation, message: headless },
+            { group: ['@manifold/character/models'], message: headless },
           ],
         },
       ],

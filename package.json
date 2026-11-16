@@ -24,7 +24,7 @@
     "perf": "vitest run --config vitest.perf.config.ts",
     "references": "vitest run games/dojo/src/reference.test.ts --update",
     "art": "npm run art:mannequin && npm run art:door && npm run art:lamp",
-    "art:mannequin": "${BLENDER:-/Applications/Blender.app/Contents/MacOS/Blender} --background --factory-startup --python art/mannequin.py -- games/dojo/assets/mannequin.glb",
+    "art:mannequin": "${BLENDER:-/Applications/Blender.app/Contents/MacOS/Blender} --background --factory-startup --python art/mannequin.py -- packages/character/assets/mannequin.glb",
     "art:door": "${BLENDER:-/Applications/Blender.app/Contents/MacOS/Blender} --background --factory-startup --python art/door.py -- games/dojo/assets/door.glb",
     "art:lamp": "${BLENDER:-/Applications/Blender.app/Contents/MacOS/Blender} --background --factory-startup --python art/lamp.py -- games/dojo/assets/lamp.glb",
     "e2e": "playwright test",

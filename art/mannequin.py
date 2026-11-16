@@ -1,6 +1,6 @@
 """
 THE DOJO'S MANNEQUIN (stage 2e, decision 0015): a character made and animated by this script, run by
-Blender without a screen (`npm run art`), never by hand. It writes `games/dojo/assets/mannequin.glb`.
+Blender without a screen (`npm run art`), never by hand. It writes `packages/character/assets/mannequin.glb` (the games' character since stage 4a).
 
 - Its shape: few polygons, the capsule's size (1.6 m, its origin at the capsule's center, looking
   at -Z, the engine's forward), and three colors: the body's, the joints', and the visor that shows
@@ -34,7 +34,7 @@ import sys
 import bpy
 from mathutils import Euler, Vector
 
-OUT = sys.argv[sys.argv.index("--") + 1] if "--" in sys.argv else "games/dojo/assets/mannequin.glb"
+OUT = sys.argv[sys.argv.index("--") + 1] if "--" in sys.argv else "packages/character/assets/mannequin.glb"
 FPS = 30
 
 # ---------------------------------------------------------------- the scene, empty

@@ -1,3 +1,4 @@
+import { CHARACTER_MODELS } from '@manifold/character/models';
 import { recipeFromLink } from '@manifold/commands';
 import { initPhysics } from '@manifold/core';
 import { mount, type Hud, type InitialRecipe, type Mount, type Words } from '@manifold/presentation';
@@ -58,6 +59,8 @@ export async function startAdventure(container: HTMLElement): Promise<Mount> {
   return mount(AdventureCartridge, container, {
     recipes,
     camera: 'orbit',
+    // The games' character (stage 4a): the mannequin.
+    models: CHARACTER_MODELS,
     words: ADVENTURE_WORDS,
     hud: adventureHud,
     console: { game: 'adventure', examples: ['adventure.dungeon 7', 'adventure.depth 2', 'level.export', 'inspect'] },

@@ -46,5 +46,7 @@
  *      its next step), and a snapshot keeps which ones those are; a ray that starts inside a body gives
  *      a zero normal; Rapier does not put to sleep what slides past its friction angle or rolls down a
  *      slope; a map's floor goes under its walls too (fewer seams)
+ *  24  stage 4a: the games' character, shared (@manifold/character): its model is named
+ *      `character.mannequin`, and the adventure's explorer is the mannequin, with its poses
  */
-export const SIMULATION_VERSION = 23;
+export const SIMULATION_VERSION = 24;

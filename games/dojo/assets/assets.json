@@ -1,8 +1,4 @@
 {
-  "mannequin.glb": {
-    "what": "The Dojo's character: a mannequin the capsule's size, with the animations the presentation mixes: walking and running forward, back and to each side, turning on the spot, climbing up and to each side, rising, falling, gliding, a somersault and a landing.",
-    "madeBy": "art/mannequin.py"
-  },
   "door.glb": {
     "what": "The Dojo's door: 1.2 m wide, 2.2 m high and 0.12 m thick, the box a level gives a door, its origin at the slab's center (the simulation turns it around its hinge). Hinges on its left edge, a handle on each face, two panels sunk into each.",
     "madeBy": "art/door.py"

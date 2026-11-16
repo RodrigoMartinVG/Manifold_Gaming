@@ -774,7 +774,7 @@ test('the adventure (stage 3k): a gem taken, the game saved; the page again, the
 
 // ---------------------------------------------------------------- models and animations (stage 2e)
 
-test("in the course, the character is the Dojo's mannequin: its animation follows how it moves, and a jump does not bounce the camera", async ({
+test("in the course, the character is the games' mannequin: its animation follows how it moves, and a jump does not bounce the camera", async ({
   page,
 }) => {
   const list = errors(page);
