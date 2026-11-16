@@ -129,6 +129,7 @@ export function line(lab: Lab, o: { color: number; dashed?: boolean; opacity?: n
     ? new THREE.LineDashedMaterial({ ...look, dashSize: 0.12, gapSize: 0.08 })
     : new THREE.LineBasicMaterial(look);
   const object = new THREE.Line(geometry, material);
+  object.frustumCulled = false; // its ends move: bounds measured once would hide it wrongly
   lab.world.add(object);
   const handle = {
     object,
@@ -176,6 +177,7 @@ export function rightAngle(lab: Lab, o: { color: number; size?: number }) {
   const size = o.size ?? 0.22;
   const geometry = new THREE.BufferGeometry();
   const object = new THREE.Line(geometry, new THREE.LineBasicMaterial({ color: o.color }));
+  object.frustumCulled = false;
   lab.world.add(object);
   const u = new THREE.Vector3();
   const w = new THREE.Vector3();
@@ -196,18 +198,24 @@ export function rightAngle(lab: Lab, o: { color: number; size?: number }) {
   return handle;
 }
 
-/** A PATH through several points, as a line of one pixel: an arc, a trail, a curve sampled. */
-export function path(lab: Lab, o: { color: number; opacity?: number }) {
+/**
+ * A PATH through several points, as a line of one pixel: an arc, a trail, a curve sampled. With `pairs`, the
+ * points go two by two, each pair a segment of its own (rays from one point to several).
+ */
+export function path(lab: Lab, o: { color: number; opacity?: number; dashed?: boolean; pairs?: boolean }) {
   const geometry = new THREE.BufferGeometry();
-  const object = new THREE.Line(
-    geometry,
-    new THREE.LineBasicMaterial({ color: o.color, transparent: (o.opacity ?? 1) < 1, opacity: o.opacity ?? 1 }),
-  );
+  const look = { color: o.color, transparent: (o.opacity ?? 1) < 1, opacity: o.opacity ?? 1 };
+  const material = o.dashed
+    ? new THREE.LineDashedMaterial({ ...look, dashSize: 0.08, gapSize: 0.06 })
+    : new THREE.LineBasicMaterial(look);
+  const object = o.pairs ? new THREE.LineSegments(geometry, material) : new THREE.Line(geometry, material);
+  object.frustumCulled = false; // its points move: bounds measured once would hide it wrongly
   lab.world.add(object);
   const handle = {
     object,
     set(points: readonly V3[]) {
       geometry.setFromPoints(points.map(v));
+      if (o.dashed) object.computeLineDistances();
       return handle;
     },
     show(on: boolean) {
@@ -350,4 +358,15 @@ export function axes(lab: Lab, o: { length?: number; y?: boolean } = {}) {
     lab.label(name).color(css(color)).at(b);
   }
   lab.label('O').color(css(color)).at({ x: -0.25, y: 0, z: 0.25 });
+}
+
+/**
+ * ONLY IN THE FIGURE: what the figure's own camera sees and a picture taken from inside it (an `inset`) does not,
+ * such as the lines and planes that explain the scene. They go to layer 1, which only the figure's camera sees.
+ */
+export function figureOnly(...things: (THREE.Object3D | { object?: THREE.Object3D; mesh?: THREE.Object3D })[]) {
+  for (const thing of things) {
+    const object = thing instanceof THREE.Object3D ? thing : (thing.object ?? thing.mesh);
+    object?.traverse((o) => o.layers.set(1));
+  }
 }

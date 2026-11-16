@@ -1,7 +1,5 @@
 import * as THREE from 'three';
-import GUI from 'three/addons/libs/lil-gui.module.min.js';
-import { createScene } from './scene';
-import { createLabels, createPicture } from './overlay';
+import { circle, createLab, draggable, figureOnly, inset, numbers, path, point as dot3 } from 'lab';
 import {
   depthOf,
   fromEye,
@@ -15,14 +13,15 @@ import {
   type Point,
 } from './projection';
 
-// THE FIGURE, seen from behind the eye and to its left. The camera looks at a point to the right
-// of it, so the figure stays left of the panel. Drag to look around.
-const { scene, camera, controls, onFrame } = createScene({
-  camera: [-3.31, 2.38, 4.34],
-  target: [0.65, 0.5, 1.01],
+// THE FIGURE, seen from behind the eye and to its left: the tutorial's lab kit (its source is one click
+// away, under the editor). Drag to look around. What only explains the scene (the plane, the lines, the
+// eye) is `figureOnly`: the eye's own picture, in the corner, shows only the world.
+const lab = createLab({
+  title: 'the projection',
+  camera: [-3.6, 2.4, 4.6],
+  target: [-0.1, 0.7, 0.4],
 });
-camera.layers.enable(1); // the figure (layer 1) too; the eye's own picture shows only the world
-const { label, place } = createLabels(camera);
+const label = (text: string) => lab.label(text).lift(14);
 
 // THE EYE, at E, not turned: it looks along −Z. Its image plane is 1 m in front of it.
 const EYE: Point = { x: 0, y: 1, z: 2 };
@@ -46,6 +45,17 @@ const settings = {
   'picture (px)': '800 × 450',
   'rails turn (°)': 20,
 };
+const byHand = () => {
+  settings.autopilot = false;
+};
+lab.gui.add(settings, 'autopilot').listen();
+lab.gui.add(settings, 'point x (m)', -3, 3, 0.01).listen().onChange(byHand);
+lab.gui.add(settings, 'point y (m)', 0, 3, 0.01).listen().onChange(byHand);
+lab.gui.add(settings, 'point z (m)', -8, 3, 0.01).listen().onChange(byHand);
+lab.gui.add(settings, 'vertical fov (°)', 20, 120, 1);
+lab.gui.add(settings, 'picture (px)', Object.keys(PICTURES));
+lab.gui.add(settings, 'rails turn (°)', -35, 35, 1);
+// The panel's numbers, written on every frame (below) and shown by these rows.
 const shown = {
   'from the eye (m)': '',
   'depth d (m)': 0,
@@ -56,61 +66,29 @@ const shown = {
   'vanishing point': '',
   'horizontal fov (°)': 0,
 };
-const byHand = () => {
-  settings.autopilot = false;
-};
-const gui = new GUI({ title: 'the projection' });
-gui.add(settings, 'autopilot').listen();
-gui.add(settings, 'point x (m)', -3, 3, 0.01).listen().onChange(byHand);
-gui.add(settings, 'point y (m)', 0, 3, 0.01).listen().onChange(byHand);
-gui.add(settings, 'point z (m)', -8, 3, 0.01).listen().onChange(byHand);
-gui.add(settings, 'vertical fov (°)', 20, 120, 1);
-gui.add(settings, 'picture (px)', Object.keys(PICTURES));
-gui.add(settings, 'rails turn (°)', -35, 35, 1);
-gui.add(shown, 'from the eye (m)').disable().listen();
-gui.add(shown, 'depth d (m)').disable().listen();
-gui.add(shown, 'on the plane').disable().listen();
-gui.add(shown, 'normalized u, v').disable().listen();
-gui.add(shown, 'our pixel').disable().listen();
-gui.add(shown, 'three.js pixel').disable().listen();
-gui.add(shown, 'vanishing point').disable().listen();
-gui.add(shown, 'horizontal fov (°)').disable().listen();
+numbers(
+  lab.gui,
+  Object.fromEntries(Object.keys(shown).map((k) => [k, () => shown[k as keyof typeof shown]])),
+);
 
-/** LINES OF THE FIGURE (layer 1), always with as many points; call what it returns to move them. */
+/** LINES OF THE FIGURE (only in it), set again on every frame. */
 function lines(color: number, o: { opacity?: number; dashed?: boolean; pairs?: boolean } = {}) {
-  const material = o.dashed
-    ? new THREE.LineDashedMaterial({ color, dashSize: 0.08, gapSize: 0.06 })
-    : new THREE.LineBasicMaterial({ color });
-  material.transparent = true;
-  material.opacity = o.opacity ?? 1;
-  const geometry = new THREE.BufferGeometry();
-  const object = o.pairs
-    ? new THREE.LineSegments(geometry, material)
-    : new THREE.Line(geometry, material);
-  object.layers.set(1);
-  object.frustumCulled = false; // its points move; the bounds measured once would not
-  scene.add(object);
-  return (points: THREE.Vector3[]) => {
-    geometry.setFromPoints(points);
-    if (o.dashed) object.computeLineDistances();
-  };
+  const line = path(lab, { color, ...o });
+  figureOnly(line);
+  return line;
 }
-/** A small ball of the figure (layer 1), lit or not. */
+/** A small ball of the figure (only in it). */
 function ball(radius: number, color: number) {
-  const mesh = new THREE.Mesh(
-    new THREE.SphereGeometry(radius, 16, 8),
-    new THREE.MeshBasicMaterial({ color }),
-  );
-  mesh.layers.set(1);
-  scene.add(mesh);
-  return mesh;
+  const b = dot3(lab, { color, radius });
+  figureOnly(b);
+  return b;
 }
 
 // THE EYE, a small white ball, and THE IMAGE PLANE, 1 m in front of it: as tall as the field of
 // view lets in, as wide as the picture's proportions say.
 const BLUE = 0x9fc2e8;
-ball(0.06, 0xf2ece0).position.copy(eyeAt);
-label('eye').at.copy(eyeAt);
+ball(0.06, 0xf2ece0).set(eyeAt);
+label('eye').at(eyeAt);
 const plane = new THREE.Mesh(
   new THREE.PlaneGeometry(1, 1),
   new THREE.MeshBasicMaterial({
@@ -122,8 +100,8 @@ const plane = new THREE.Mesh(
   }),
 );
 plane.position.copy(atPlane({ x: 0, y: 0 }));
-plane.layers.set(1);
-scene.add(plane);
+lab.world.add(plane);
+figureOnly(plane);
 const outline = lines(BLUE);
 const pyramid = lines(BLUE, { opacity: 0.35, pairs: true }); // from the eye to the corners
 const planeLabel = label('image plane, 1 m');
@@ -137,14 +115,14 @@ for (const depth of [2.5, 5]) {
     new THREE.MeshStandardMaterial({ color: TEAL }),
   );
   post.position.set(-1.3, 0.5, EYE.z - depth);
-  scene.add(post);
+  lab.world.add(post);
   const bottom: Point = { x: -1.3, y: 0, z: EYE.z - depth };
   const top: Point = { x: -1.3, y: 1, z: EYE.z - depth };
   const rays = lines(TEAL, { opacity: 0.35 });
-  rays([new THREE.Vector3(top.x, top.y, top.z), eyeAt, new THREE.Vector3(bottom.x, 0, bottom.z)]);
+  rays.set([top, eyeAt, bottom]);
   const image = lines(TEAL);
   const ends = [onPlane(fromEye(bottom, EYE)), onPlane(fromEye(top, EYE))];
-  image(ends.flatMap((q) => (q ? [atPlane(q)] : [])));
+  image.set(ends.flatMap((q) => (q ? [atPlane(q)] : [])));
 }
 
 // TWO RAILS on the floor, parallel and 1 m apart, from 2.5 m in front of the eye to 40 m farther.
@@ -159,17 +137,13 @@ const rails = [-0.5, 0.5].map((side) => {
     new THREE.BoxGeometry(0.05, 0.05, RAIL),
     new THREE.MeshStandardMaterial({ color: VIOLET }),
   );
-  scene.add(mesh);
+  lab.world.add(mesh);
   return { side, mesh, image: lines(VIOLET), onward: lines(VIOLET, { dashed: true }) };
 });
 const railRays = lines(VIOLET, { opacity: 0.35, pairs: true }); // from the eye to each rail's start
 const parallel = lines(VIOLET, { dashed: true, opacity: 0.6 }); // from the eye, along the rails
-const vanishing = new THREE.Mesh(
-  new THREE.RingGeometry(0.025, 0.045, 24),
-  new THREE.MeshBasicMaterial({ color: 0xf0d0ff, side: THREE.DoubleSide }),
-);
-vanishing.layers.set(1);
-scene.add(vanishing);
+const vanishing = circle(lab, { color: 0xf0d0ff, radius: 0.035, width: 0.02 });
+figureOnly(vanishing);
 const vanishingLabel = label('vanishing point');
 
 // THE POINT P, which the autopilot moves (drag it, or use the sliders); its line to the eye; and
@@ -179,7 +153,7 @@ const point = new THREE.Mesh(
   new THREE.SphereGeometry(0.08, 24, 12),
   new THREE.MeshStandardMaterial({ color: GOLD, emissive: 0x4a3510 }),
 );
-scene.add(point);
+lab.world.add(point);
 const pointLabel = label('P');
 const ray = lines(GOLD);
 const drop = lines(GOLD, { dashed: true, opacity: 0.5 }); // down to the floor, to see where it is
@@ -191,51 +165,24 @@ const dotLabel = label('P′');
 const photo = new THREE.PerspectiveCamera(55, 16 / 9, 0.1, 100);
 photo.position.copy(eyeAt);
 photo.updateMatrixWorld();
-const picture = createPicture(scene, photo);
+const picture = inset(lab, photo);
 
-// DRAGGING P, on the horizontal plane at its height: x and z change (y, with its slider). While
-// dragging, the camera does not turn.
-const raycaster = new THREE.Raycaster();
-const level = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-const hit = new THREE.Vector3();
-let dragging = false;
-function aim(e: PointerEvent) {
-  const at = new THREE.Vector2((e.clientX / innerWidth) * 2 - 1, 1 - (e.clientY / innerHeight) * 2);
-  raycaster.setFromCamera(at, camera);
-  return raycaster.ray;
-}
-const onPoint = (e: PointerEvent) =>
-  e.target === controls.domElement && aim(e).distanceToPoint(point.position) < 0.25;
-addEventListener(
-  'pointerdown',
-  (e) => {
-    if (!onPoint(e)) return;
-    dragging = true;
-    controls.enabled = false;
-    settings.autopilot = false;
-    level.constant = -point.position.y;
+// DRAGGING P, on the horizontal plane at its height, y = h: the plane [n | d] with n = (0, 1, 0) and
+// d = −h. x and z change (y, with its slider).
+draggable(lab, point, {
+  plane: () => ({ normal: { x: 0, y: 1, z: 0 }, d: -point.position.y }),
+  move: (hit) => {
+    settings['point x (m)'] = THREE.MathUtils.clamp(hit.x, -3, 3);
+    settings['point z (m)'] = THREE.MathUtils.clamp(hit.z, -8, 3);
   },
-  true, // before the camera's controls see it
-);
-addEventListener('pointermove', (e) => {
-  if (!dragging) {
-    document.body.style.cursor = onPoint(e) ? 'grab' : '';
-    return;
-  }
-  if (!aim(e).intersectPlane(level, hit)) return;
-  settings['point x (m)'] = THREE.MathUtils.clamp(hit.x, -3, 3);
-  settings['point z (m)'] = THREE.MathUtils.clamp(hit.z, -8, 3);
-});
-addEventListener('pointerup', () => {
-  dragging = false;
-  controls.enabled = true;
+  start: byHand,
 });
 
 /** Two numbers, as the panel shows them. */
 const pair = (a: number, b: number, digits: number) => `${a.toFixed(digits)}, ${b.toFixed(digits)}`;
 
 let time = 0;
-onFrame((dt) => {
+lab.onFrame((dt) => {
   // THE AUTOPILOT: P wanders from 2 m to 5 m in front of the eye, side to side, up and down.
   if (settings.autopilot) {
     time += dt;
@@ -259,9 +206,9 @@ onFrame((dt) => {
   const topRight = atPlane({ x: aspect * h, y: h });
   const bottomRight = atPlane({ x: aspect * h, y: -h });
   const bottomLeft = atPlane({ x: -aspect * h, y: -h });
-  outline([topLeft, topRight, bottomRight, bottomLeft, topLeft]);
-  pyramid([eyeAt, topLeft, eyeAt, topRight, eyeAt, bottomRight, eyeAt, bottomLeft]);
-  planeLabel.at.copy(topLeft);
+  outline.set([topLeft, topRight, bottomRight, bottomLeft, topLeft]);
+  pyramid.set([eyeAt, topLeft, eyeAt, topRight, eyeAt, bottomRight, eyeAt, bottomLeft]);
+  planeLabel.at(topLeft);
 
   // P, STEP BY STEP: seen from the eye, its depth, on the plane, normalized, in pixels.
   const c = fromEye(P, EYE);
@@ -270,16 +217,17 @@ onFrame((dt) => {
   const n = q && normalized(q, fov, aspect);
   const pixel = n && toPixels(n, W, H);
   point.position.set(P.x, P.y, P.z);
-  pointLabel.at.copy(point.position);
-  drop([point.position, new THREE.Vector3(P.x, 0, P.z)]);
-  dot.visible = q !== null;
-  dotLabel.element.hidden = q === null;
+  pointLabel.at(point.position);
+  drop.set([point.position, { x: P.x, y: 0, z: P.z }]);
+  dot.show(q !== null);
+  dotLabel.show(q !== null);
   if (q) {
-    dot.position.copy(atPlane(q));
-    dotLabel.at.copy(dot.position);
+    const onIt = atPlane(q);
+    dot.set(onIt);
+    dotLabel.at(onIt);
     // The line from the eye goes to P; on to the plane, if P is nearer than it.
-    ray([eyeAt, d >= 1 ? point.position : dot.position]);
-  } else ray([eyeAt, point.position]);
+    ray.set([eyeAt, d >= 1 ? point.position : onIt]);
+  } else ray.set([eyeAt, point.position]);
 
   // THE RAILS: where they are, their pictures on the plane, and where those meet. The direction
   // w is the same seen from the eye: subtracting E from every point changes no difference.
@@ -307,14 +255,16 @@ onFrame((dt) => {
       far = atPlane(r);
       image.push(far);
     }
-    rail.image(image);
-    if (vp) rail.onward([far, atPlane(vp)]); // on, towards where it is going
+    rail.image.set(image);
+    if (vp) rail.onward.set([far, atPlane(vp)]); // on, towards where it is going
   }
-  railRays(starts);
+  railRays.set(starts);
+  vanishing.show(vp !== null);
+  vanishingLabel.show(vp !== null);
   if (vp) {
-    vanishing.position.copy(atPlane(vp));
-    vanishingLabel.at.copy(vanishing.position);
-    parallel([eyeAt, eyeAt.clone().add(new THREE.Vector3(w.x, w.y, w.z).multiplyScalar(RAIL))]);
+    vanishing.set(atPlane(vp), { x: 0, y: 0, z: 1 });
+    vanishingLabel.at(atPlane(vp));
+    parallel.set([eyeAt, eyeAt.clone().add(new THREE.Vector3(w.x, w.y, w.z).multiplyScalar(RAIL))]);
   }
 
   // THE SAME, BY THREE.JS: its camera at the eye, with this field of view and this picture.
@@ -339,7 +289,6 @@ onFrame((dt) => {
   shown['three.js pixel'] = pair(theirs.x, theirs.y, 1);
   shown['vanishing point'] = vp ? pair(vp.x, vp.y, 4) : 'none';
   shown['horizontal fov (°)'] = +horizontalFov(fov, aspect).toFixed(1);
-  place();
 });
 
 console.log('Drag the gold point P, or move it with the sliders; the autopilot gives it back.');

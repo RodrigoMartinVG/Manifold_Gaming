@@ -4,7 +4,23 @@
  * It grows with the curriculum.
  */
 export { createLab, type Lab, type LabOptions } from './lab';
-export { arrow, point, line, rod, rightAngle, path, fan, circle, plane, frame, axes, AXIS_COLOR, type Arrow } from './draw';
+export {
+  arrow,
+  point,
+  line,
+  rod,
+  rightAngle,
+  path,
+  fan,
+  circle,
+  plane,
+  frame,
+  axes,
+  figureOnly,
+  AXIS_COLOR,
+  type Arrow,
+} from './draw';
+export { inset, type Pixel } from './inset';
 export { draggable } from './drag';
 export { numbers } from './numbers';
 export { rayPlane, centreShift, type V3 } from './geometry';

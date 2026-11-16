@@ -49,6 +49,7 @@ export function createLab(o: LabOptions): Lab {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x1b1713);
   const camera = new THREE.PerspectiveCamera(50, 1, 0.05, 400);
+  camera.layers.enable(1); // what is only in the figure (`figureOnly`) too
   camera.position.set(...(o.camera ?? [6, 5, 8]));
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.target.set(...(o.target ?? [0, 0.5, 0]));

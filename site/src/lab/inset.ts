@@ -1,46 +1,19 @@
 import * as THREE from 'three';
-import type { Flat } from './projection';
+import type { Lab } from './lab';
 
-/**
- * NAMES ON THE FIGURE: a word that stays over a point of the scene. Not part of the lesson: an
- * HTML element, moved every frame to where that point is seen.
- */
-export function createLabels(camera: THREE.Camera) {
-  const all: { element: HTMLDivElement; at: THREE.Vector3 }[] = [];
-  const onScreen = new THREE.Vector3();
-
-  /** A label that says `text`: move its point `at`, and it goes along (hide it with `element`). */
-  function label(text: string) {
-    const element = document.createElement('div');
-    element.textContent = text;
-    element.style.cssText =
-      'position:fixed;transform:translate(-50%,-130%);font:11px/1.2 system-ui,sans-serif;' +
-      'color:#e8e2d6;white-space:pre;pointer-events:none;text-shadow:0 0 3px #000';
-    document.body.append(element);
-    const one = { element, at: new THREE.Vector3() };
-    all.push(one);
-    return one;
-  }
-
-  /** Puts every label where its point is seen now (none behind the camera). */
-  function place() {
-    for (const { element, at } of all) {
-      onScreen.copy(at).project(camera);
-      element.style.display = onScreen.z > 1 ? 'none' : '';
-      element.style.left = `${((onScreen.x + 1) / 2) * innerWidth}px`;
-      element.style.top = `${((1 - onScreen.y) / 2) * innerHeight}px`;
-    }
-  }
-
-  return { label, place };
+/** A point of a picture, in its pixels: x from the left, y from the top. */
+export interface Pixel {
+  x: number;
+  y: number;
 }
 
 /**
- * THE PICTURE THE EYE TAKES, small, in the bottom left corner. three.js draws the world from its
- * own camera (`photo`, at the eye: its own numbers), and over it we draw marks where OUR numbers
- * say things fall. The camera sees only layer 0: the figure's lines and plane are on layer 1.
+ * A PICTURE TAKEN FROM INSIDE THE FIGURE, small, in the bottom left corner: three.js draws the scene from
+ * another camera (`camera`, which sees only layer 0: not what is `figureOnly`), and over it the lesson draws
+ * marks in the picture's own pixels, where its numbers say things fall. `take(width, height)` draws a picture
+ * of that many pixels, as big as fits in the corner; `ring` and `line` then mark it.
  */
-export function createPicture(scene: THREE.Scene, photo: THREE.PerspectiveCamera) {
+export function inset(lab: Lab, camera: THREE.Camera) {
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   const marks = document.createElement('canvas');
   for (const canvas of [renderer.domElement, marks]) {
@@ -52,7 +25,6 @@ export function createPicture(scene: THREE.Scene, photo: THREE.PerspectiveCamera
   let scale = 1; // pixels of the corner per pixel of the picture
   let size = '';
 
-  /** Draws a picture of `width` × `height` pixels; `ring` and `line` then mark it, in its pixels. */
   function take(width: number, height: number) {
     // As big as fits in the corner: at most 30% of the window wide, and 40% high.
     scale = Math.min((0.3 * innerWidth) / width, (0.4 * innerHeight) / height);
@@ -68,7 +40,7 @@ export function createPicture(scene: THREE.Scene, photo: THREE.PerspectiveCamera
       marks.style.width = `${w}px`;
       marks.style.height = `${h}px`;
     }
-    renderer.render(scene, photo);
+    renderer.render(lab.scene, camera);
     if (!pen) return;
     pen.setTransform(ratio, 0, 0, ratio, 0, 0);
     pen.clearRect(0, 0, w, h);
@@ -84,7 +56,7 @@ export function createPicture(scene: THREE.Scene, photo: THREE.PerspectiveCamera
   }
 
   /** A ring around a pixel of the picture. */
-  function ring(at: Flat, color: string, radius = 6) {
+  function ring(at: Pixel, color: string, radius = 6) {
     if (!pen) return;
     pen.strokeStyle = color;
     pen.lineWidth = 1.5;
@@ -95,7 +67,7 @@ export function createPicture(scene: THREE.Scene, photo: THREE.PerspectiveCamera
   }
 
   /** A line between two pixels of the picture. */
-  function line(from: Flat, to: Flat, color: string, dashed = false) {
+  function line(from: Pixel, to: Pixel, color: string, dashed = false) {
     if (!pen) return;
     pen.strokeStyle = color;
     pen.lineWidth = 1;

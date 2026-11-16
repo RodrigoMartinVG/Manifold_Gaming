@@ -187,8 +187,9 @@ Con los rieles a $\alpha = 20^\circ$, el punto de fuga está en $x'_\infty = \ta
 - **`halfHeight` pasa a radianes:** `Math.tan` los pide, y la mitad del ángulo, en radianes, es `fov * Math.PI / 360`.
 - **`main.ts` arma la figura:** el ojo en `EYE`, el plano escalado a $2ah \times 2h$ en cada cuadro (_frame_), los postes, los rieles y $P$. Cada línea es un `lines(...)`, que recibe sus puntos de nuevo en cada cuadro. La imagen de un riel son 30 de sus puntos, proyectados uno por uno con `onPlane`: caen en línea recta, y apuntan al anillo que pone `vanishingPoint`.
 - **En cada cuadro, `onFrame`:** el piloto automático mueve $P$; los cuatro pasos dan las filas del panel; y una cámara de three.js puesta en el ojo (`photo`), con el mismo campo de visión y la misma proporción, da su propio píxel con `project`, que usa sus matrices.
-- **`overlay.ts`:** los nombres sobre la figura (`createLabels`) y la foto del rincón (`createPicture`), que three.js dibuja desde `photo`. Esa cámara ve solo la capa 0 (_layer_), la del mundo; el plano y las líneas están en la capa 1, que ve solo la cámara de la figura. Sobre la foto, los anillos van en los píxeles de nuestras cuentas.
-- **Arrastrar $P$:** un `THREE.Raycaster` lanza la recta que pasa por el puntero. Si pasa cerca de $P$, la cámara deja de girar, y $P$ sigue el punto donde esa recta corta el plano horizontal a su altura.
+- **La foto del rincón** es un `inset` del kit de laboratorio (`'lab'`): three.js dibuja la escena desde `photo`, y encima van los anillos en los píxeles de nuestras cuentas. Esa cámara ve solo la capa 0, la del mundo; el plano, las líneas y el ojo son `figureOnly`, en la capa 1, que ve solo la cámara de la figura.
+- **Arrastrar $P$:** `draggable` lo lleva por el plano horizontal a su altura $h$, los puntos con $y = h$, que se le dan como $[\mathbf{n} \mid d]$ con $\mathbf{n} = (0, 1, 0)$ y $d = -h$. Mientras se arrastra, la cámara se queda quieta.
+- **El resto del dibujo es el kit de laboratorio,** con su código en el enlace que hay debajo del editor: no es parte de la lección.
 
 ## Probalo
 
