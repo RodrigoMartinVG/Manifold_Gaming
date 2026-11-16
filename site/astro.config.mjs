@@ -101,6 +101,7 @@ export default defineConfig({
           label: 'Tutorial nuevo (piloto)',
           items: [
             { label: 'Empezar aquí', link: '/tutorial-nuevo/' },
+            { label: 'TypeScript para quien sabe JavaScript', link: '/tutorial-nuevo/typescript/' },
             { label: 'La notación', link: '/tutorial-nuevo/notacion/' },
             { label: 'Parte 1: algo que se mueve', items: [{ autogenerate: { directory: 'tutorial-nuevo/parte-1' } }] },
           ],

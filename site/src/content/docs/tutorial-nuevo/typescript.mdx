@@ -1,0 +1,114 @@
+---
+title: TypeScript para quien sabe JavaScript
+description: 'Lo que TypeScript le agrega a JavaScript y lo que hace falta para leer el código del proyecto: anotaciones, interfaces, tipos por su forma, uniones de palabras, null como respuesta, índices que pueden faltar, el signo de exclamación, readonly y tablas con claves tipadas.'
+---
+
+import LiveCode from '../../../components/LiveCode.astro';
+
+El código del tutorial está escrito en **TypeScript**: JavaScript con **tipos**, anotaciones que dicen qué recibe cada función, qué devuelve y qué forma tiene cada dato. Antes de correr, los tipos se borran, y lo que corre es JavaScript. Para qué sirven, entonces:
+
+- **El editor avisa antes de correr.** Pasarle dos números a una función que pide tres, o un texto donde va un número, queda marcado en rojo mientras se escribe, y no aparece después como un `NaN` lejos de donde nació.
+- **Los tipos documentan lo que una función promete.** `length(a: Vec): number` dice, sin leer el cuerpo, que recibe un vector y devuelve un número. Por eso el proyecto no cambia el significado de un nombre una vez enseñado: su tipo es parte de su promesa.
+
+Esta página enseña solo lo que el proyecto usa, cada cosa con un renglón de su código.
+
+<LiveCode lesson="typescript" autorun />
+
+:::note[El editor de este sitio no revisa los tipos]
+Borra los tipos y corre el JavaScript que queda, así que un error de tipos acá no frena nada: corre igual, y el problema aparece después. Lo muestra el segundo renglón de la consola del ejemplo: `vec(3, 4)`, sin la $z$, da un largo `NaN`. En tu editor (VS Code, por ejemplo), ese renglón quedaría marcado antes de correr. El tutorial revisa los tipos de todo su código con el compilador de TypeScript, y los ejemplos que ves están limpios.
+:::
+
+## 1. Anotaciones
+
+Después de un nombre, dos puntos y su tipo. En una función, el tipo de cada parámetro y, después de los paréntesis, el de lo que devuelve:
+
+```ts
+export const vec = (x: number, y: number, z: number): Vec => ({ x, y, z });
+export function length(a: Vec): number { ... }
+```
+
+Dentro de una función, casi nunca hace falta anotar: `const d = length(v)` ya es un `number`, porque el compilador lo **infiere**.
+
+## 2. La forma de un dato: `interface` y `type`
+
+Una `interface` describe un objeto por sus campos:
+
+```ts
+export interface Vec {
+  x: number;
+  y: number;
+  z: number;
+}
+```
+
+`type` le pone nombre a cualquier tipo, también a los que no son objetos. Más adelante el proyecto guarda un cuaternión como cuatro números en orden, una **tupla** con nombres para cada lugar:
+
+```ts
+type Quat = [x: number, y: number, z: number, w: number];
+```
+
+**Lo que cuenta es la forma, no el nombre.** Un `Point` con los mismos tres campos que un `Vec` entra donde va un `Vec`: para el compilador son iguales (la sección 2 del ejemplo). En el proyecto pasa todo el tiempo: `toScreen` pide un `Point`, y recibe `ball.position`, un `Vector3` de three.js, que tiene `x`, `y` y `z`. Por eso el tutorial nombra las cosas por lo que significan: que un punto y una dirección se muevan distinto (la lección 1.10) lo tiene que decir el código con sus nombres, porque los tipos solos no lo ven.
+
+## 3. Uniones de palabras
+
+Un tipo puede ser una lista cerrada de valores. La fase del juego de la parte 1 es una de tres palabras, y ninguna otra:
+
+```ts
+type Phase = 'aiming' | 'won' | 'lost';
+```
+
+Escribir `'wone'` es un error que el editor marca. Y un `switch` que las recorre todas puede terminar con un caso que no debería pasar nunca, de tipo `never`: si mañana se agrega una cuarta fase, el compilador señala ese `switch` porque le falta un caso (la sección 3 del ejemplo).
+
+## 4. `null` como respuesta
+
+Una función que a veces no tiene respuesta lo dice en su tipo. `toScreen`, la del proyecto, da el píxel de un punto y su profundidad, o `null` si el punto no está delante de la cámara. Su tipo de retorno no está escrito: el compilador lo infiere de sus dos `return`, y es
+
+```ts
+{ x: number; y: number; depth: number } | null
+```
+
+Quien la llama tiene que preguntar antes de usarla. Dentro del `if`, el compilador sabe que ya no es `null`: el tipo se **angosta** (_narrowing_).
+
+```ts
+const ours = toScreen(ball.position, eye, settings.fov, innerWidth, innerHeight);
+if (ours) {
+  mark.style.left = `${ours.x}px`; // acá, ours no es null
+}
+```
+
+Dos signos de JavaScript que el proyecto usa mucho, por si no los viste: `a ?? b` vale `a`, salvo que `a` sea `null` o `undefined`, y entonces vale `b`; `a?.x` vale `a.x`, o `undefined` si no hay `a`.
+
+## 5. Un índice puede caer afuera de la lista
+
+`targets[2]`, en una lista de dos, es `undefined`. JavaScript no avisa, y el tutorial le pide al compilador que tampoco lo olvide: con la opción `noUncheckedIndexedAccess`, la misma que usa el motor, `targets[i]` es de tipo `Vec | undefined`. Hay que preguntar, o prometer.
+
+El **signo de exclamación**, `targets[0]!`, es esa promesa: "acá hay uno". El compilador la cree y deja de preguntar, así que **cada `!` tiene que poder justificarse** con la razón al lado. Si la promesa es falsa, el error vuelve a aparecer al correr, lejos.
+
+```ts
+const stop = (i: number) => STOPS[i]!; // i siempre es menor que STOPS.length: lo asegura el %
+```
+
+## 6. `readonly` y tablas con claves tipadas
+
+`readonly` (o `Readonly<...>`) prohíbe cambiar algo después de crearlo: las tablas de datos del proyecto no se tocan mientras corre. Un `Record<Clave, Valor>` es una tabla con una entrada **por cada** clave: con las tres fases como claves, olvidarse una es un error.
+
+```ts
+const COLOR: Readonly<Record<Phase, string>> = { aiming: 'white', won: 'gold', lost: 'red' };
+```
+
+Los tipos entre `< >` son los **genéricos**: `Map<string, number>` es un `Map` de textos a números, `Set<string>` un conjunto de textos. El proyecto los usa así, sin escribir genéricos propios hasta la parte 2.
+
+## 7. Importar un tipo
+
+Un tipo se importa como cualquier otra cosa, con `type` delante: `import { length, vec, type Vec } from './vec'`. El `type` avisa que ese nombre desaparece al borrar los tipos, y el proyecto lo pide (con la opción `verbatimModuleSyntax`).
+
+## Probalo
+
+1. **Leé la consola del ejemplo:** cada renglón es una de las secciones de arriba, y el segundo es el `NaN` de un error de tipos que nadie revisó.
+2. **Cambiá `targets[2]?.z` por `targets[2].z`** y ejecutalo: JavaScript tira un error al correr (_Cannot read properties of undefined_), el que el `?.` evitaba. Tu editor lo habría marcado antes.
+3. **Agregá `'paused'` a `Phase` y a la lista de fases del `console.log`:** corre igual (acá nadie revisa), y `default` devuelve la palabra tal cual, sin mensaje. En tu editor, el `never` habría señalado el `switch` al que le falta un caso.
+
+## Para saber más
+
+- [_TypeScript for JavaScript Programmers_](https://www.typescriptlang.org/docs/handbook/typescript-in-5-minutes.html), la introducción oficial para quien viene de JavaScript (en inglés).
+- [El manual de TypeScript](https://www.typescriptlang.org/docs/handbook/intro.html) (en inglés), en particular [_Narrowing_](https://www.typescriptlang.org/docs/handbook/2/narrowing.html).

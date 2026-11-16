@@ -535,3 +535,20 @@ test('the notation: a positive turn takes each axis to the next one, and three.j
   await expect.poll(() => value(f, 'turned (ours)')).toBe('0.866, -0.500, 0.000');
   expect(await value(f, 'turned (three.js)')).toBe('0.866, -0.500, 0.000');
 });
+
+test('TypeScript for JavaScript programmers: the example writes each section, and an unchecked type error is a NaN', async ({
+  page,
+}) => {
+  await page.goto('tutorial-nuevo/typescript/');
+  const example = page.locator('.live-code').first();
+  await example.locator('.lc-result').scrollIntoViewIfNeeded();
+  const lines = example.locator('.lc-console .lc-line');
+  await expect(lines).toHaveCount(9);
+  const text = await lines.allInnerTexts();
+  expect(text[0]).toContain('length(vec(3, 4, 0)) = 5');
+  expect(text[1]).toContain('length(vec(3, 4)) = NaN');
+  expect(text[2]).toContain('a Point where a Vec goes: 3');
+  expect(text[5]).toContain('behind the camera, the depth or 0: 0');
+  expect(text[6]).toContain('the third target: there is none');
+  expect(await example.getAttribute('data-errors')).toBe('0');
+});

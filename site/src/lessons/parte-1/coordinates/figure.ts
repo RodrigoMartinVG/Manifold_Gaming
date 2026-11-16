@@ -73,7 +73,12 @@ export function createFigure(parent: THREE.Object3D) {
 
   /** The little square that marks a right angle at `corner`, between the sides towards a and b. */
   function rightAngle(color: number, size = 0.22) {
-    const points = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()];
+    // Exactly three points (a tuple): the compiler knows points[0], [1] and [2] exist.
+    const points: [THREE.Vector3, THREE.Vector3, THREE.Vector3] = [
+      new THREE.Vector3(),
+      new THREE.Vector3(),
+      new THREE.Vector3(),
+    ];
     const line = new THREE.Line(
       new THREE.BufferGeometry().setFromPoints(points),
       new THREE.LineBasicMaterial({ color }),

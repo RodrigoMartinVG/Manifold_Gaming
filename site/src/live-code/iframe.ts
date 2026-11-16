@@ -43,11 +43,21 @@ export function iframeDocument(): string {
   const parent = window.parent;
   const send = (m) => parent.postMessage({ fromLiveCode: true, ...m }, '*');
   const names = {};
+  // Numbers with four decimals at most. NaN, Infinity and undefined are written as themselves: JSON
+  // would write null (NaN is what a reader most needs to see), so inside an object they travel as
+  // marked strings, unquoted at the end.
+  const round = (x) => (Number.isInteger(x) ? x : Math.round(x * 1e4) / 1e4);
+  const RAW = '__live_code_raw__:';
   const asText = (v) => {
     if (typeof v === 'string') return v;
     if (v instanceof Error) return v.message;
+    if (typeof v === 'number') return String(Number.isFinite(v) ? round(v) : v);
+    if (v === undefined || typeof v === 'function' || typeof v === 'symbol' || typeof v === 'bigint') return String(v);
     try {
-      return JSON.stringify(v, (_, x) => (typeof x === 'number' && !Number.isInteger(x) ? Math.round(x * 1e4) / 1e4 : x));
+      const marked = JSON.stringify(v, (_, x) =>
+        typeof x === 'number' ? (Number.isFinite(x) ? round(x) : RAW + x) : x === undefined ? RAW + 'undefined' : x,
+      );
+      return marked.replace(new RegExp('"' + RAW + '([^"]*)"', 'g'), '$1');
     } catch {
       return String(v);
     }

@@ -89,16 +89,19 @@ const between = (p: Vec, q: Vec, s: number) => add(p, scale(sub(q, p), s));
 /** Slow at both ends of a move. */
 const ease = (s: number) => s * s * (3 - 2 * s);
 
+/** The stop number i. (`next` is always a valid number, kept below STOPS.length by the %: the `!`.) */
+const stop = (i: number) => STOPS[i]!;
+
 function autopilot(dt: number) {
   clock += dt;
   if (clock >= MOVE + REST) {
-    from = STOPS[next];
+    from = stop(next);
     next = (next + 1) % STOPS.length;
     clock = 0;
   }
   const s = ease(Math.min(1, clock / MOVE));
-  a = between(from.a, STOPS[next].a, s);
-  b = between(from.b, STOPS[next].b, s);
+  a = between(from.a, stop(next).a, s);
+  b = between(from.b, stop(next).b, s);
 }
 // Ticked again, it goes on to its next stop from where the tips are.
 pilot.onChange((on: boolean) => {

@@ -27,9 +27,12 @@ function sources(): Record<string, string> {
   return all;
 }
 
-/** The site's compiler options (site/tsconfig.json), so a step is checked as strictly as the rest. */
+/**
+ * The new tutorial's compiler options (site/tsconfig.tutorial.json: the site's, and an index into a list
+ * may be undefined, as in the engine), so a step is checked as strictly as the rest of the tutorial.
+ */
 function options(): ts.CompilerOptions {
-  const file = join(SITE, 'tsconfig.json');
+  const file = join(SITE, 'tsconfig.tutorial.json');
   const config = ts.readConfigFile(file, ts.sys.readFile).config as object;
   return { ...ts.parseJsonConfigFileContent(config, ts.sys, SITE).options, noEmit: true };
 }

@@ -140,7 +140,8 @@ describe('the links between pages arrive', () => {
   /** A page of the site at that address: a doc, a Dojo room (a page of its own), or a game's page (stage 3k). */
   const exists = (target: string) =>
     target === '' || PAGES.has(target) || /^jugar\/dojo\/[a-z0-9-]+$/.test(target) || target === 'jugar/aventura';
-  for (const [id, text] of [...PAGES].filter(([p]) => p.startsWith('tutorial'))) {
+  // Every page of the site, not only the tutorial's: the Bitácora and the play pages link into it.
+  for (const [id, text] of PAGES) {
     // A page is served at its id with a slash at the end: links are relative to that "folder".
     const base = id.endsWith('index') ? id.slice(0, -'index'.length) : `${id}/`;
     const links = [...text.matchAll(/\]\(((?:\.\.\/|[a-z0-9-]+\/)[^)\s]*)\)/g)].map((m) => m[1]!);
