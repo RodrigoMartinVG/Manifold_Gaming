@@ -22,9 +22,16 @@ The mathematics is part of what the tutorial is, not an extra: it is present, pr
 
 ### One project that grows
 
-**The reader follows one project that grows, lesson by lesson: a small world, which becomes a game.** Each lesson adds to it or changes it, and each part ends in something that is played, with rules (a goal, a score or a time, winning and losing, starting again).
+**The reader follows one project that grows: a small world, which becomes a game.** Each part ends in something that is played, with rules (a goal, a score or a time, winning and losing, starting again).
 
-How the code grows without being copied by hand:
+**The project is the thread, not a corset.** Not every lesson is a step of it: a concept that deserves its own space gets a lesson of its own, with an example made for it, when bending it into the project would explain it worse. The tutorial is longer for it, and that is fine (the author's words, refining this decision after the pilot). So there are two kinds of lessons, which a part alternates as the explanation needs:
+
+- **Concept lessons** teach one idea for itself: vectors, the projection, integrating in steps, the dot product, rotations. Their example is an experiment or a figure to play with, as clear as the idea asks, in a folder of its own (`src/lessons/`), and they end saying where the project will use it.
+- **Project lessons** take the idea to the project: a step of its code (`src/course/`), the project changed, played.
+
+Usually a concept lesson comes first and the project lesson that uses it after it; a small idea can live inside a project lesson, and a large one can take several concept lessons.
+
+How the project's code grows without being copied by hand:
 
 - **The project is one tree of modules.** Each lesson has a folder with only the files it adds or changes, whole (not as patches). A lesson's project is, for each file, its latest version up to that lesson.
 - **The editor shows what the lesson changed first**, and the rest of the project behind it. "En el proyecto" shows each changed file against its previous version.
@@ -35,7 +42,7 @@ How the code grows without being copied by hand:
 
 ### The mathematics, when the game asks for it
 
-**Each mathematical idea enters in the lesson where a problem of the game first needs it, and is taught whole there.** The dot product enters when a guard must know whether it sees you; quaternions when something has to turn without locking; integration when time has to advance in steps. There is no part of mathematics before the games.
+**Each mathematical idea enters when a problem of the game first needs it, and is taught whole there:** in a concept lesson of its own, right before the project lesson that uses it, or inside the project lesson when it is small. The dot product enters when a guard must know whether it sees you; quaternions when something has to turn without locking; integration when time has to advance in steps. There is no part of mathematics before the games.
 
 - **It has its own section, in the main path,** not in a closed box: where the question comes from (the game's problem), the definitions, the statement, the derivation step by step, and an example with the same numbers the live example shows. "Más a fondo" keeps long proofs and extensions; nothing in the main path depends on having opened one.
 - **It is typeset** (KaTeX, as Manifold Lab already does), with a fixed notation and its own page of symbols: vectors in bold, unit vectors with a hat, scalars in italics, matrices in bold capitals; a right-handed space with +Y up; units of the International System; angles in radians in the mathematics.
@@ -45,17 +52,17 @@ How the code grows without being copied by hand:
 
 ### A lesson
 
-One idea per lesson: a problem of the project, and what solves it. Its main path, which is at least 60% of the page:
+One idea per lesson, explained to be understood: first the intuition and a picture, then the definitions, the statement and its derivation, then worked examples; the precise form is never skipped, and a lesson takes the room its idea needs. Its main path, which is at least 60% of the page:
 
-1. **El problema:** what the project needs now, shown missing or failing, in the live example.
-2. **La matemática,** when the lesson has some (most do).
-3. **En el proyecto:** what changes in the code, file by file.
+1. **El problema:** the question the idea answers, or what the project needs now, shown in the live example.
+2. **La matemática,** when the lesson has some (most do; in a concept lesson, it is the lesson).
+3. **El código** (a concept lesson: the example's code, step by step) or **En el proyecto** (a project lesson: what changes, file by file).
 4. **Probalo:** what to try, each with what should happen.
 5. **Lo importante:** three or four sentences to keep.
 
 Around it, shorter than today: "Más a fondo" (at most two), "Sutilezas", "Patrón" when the code is one, "En los motores" (at most five lines, with "Dónde Manifold eligió otra cosa" in a few lines), "En Manifold" (one paragraph, or "Manifold todavía no lo tiene"), "Para practicar" (two or three exercises, each with what should come out and a hint) and "Para saber más". A test measures the main path's share and the layers' limits, as today's test checks the layers.
 
-Each part has an introduction page: what the reader will be able to do at its end, its lessons with the question each one answers, and the game that closes it. Before the first part, a short page of TypeScript for someone who knows JavaScript (types, interfaces, the `!`, the generics the code uses).
+Each part has an introduction page: what the reader will be able to do at its end, its lessons (which teach a concept, which take it to the project) with the question each one answers, and the game that closes it. Before the first part, a short page of TypeScript for someone who knows JavaScript (types, interfaces, the `!`, the generics the code uses).
 
 ### The tutorial and the engine
 
@@ -90,7 +97,7 @@ The inventory of both tutorials, lesson by lesson, refines this outline before p
 - **Good:** each part ends in something that is played, made of what the reader learned: one project, a thread from the first lesson to the last.
 - **Good:** the mathematics has its place, visible and precise, and arrives with a reason; a reader never needs a closed box to follow.
 - **Good:** two tutorials become one, without the engine pages that do not match the engine.
-- **Costs:** it is a large piece of work, a part at a time, and for a while the new tutorial has fewer lessons than the archived one.
+- **Costs:** it is a large piece of work, a part at a time, and for a while the new tutorial has fewer lessons than the archived one. With concept lessons beside the project's, it is also longer: chosen, for the explanation.
 - **Costs:** a project that grows binds lessons together: changing an early one can touch many. The stable names and the test that builds every lesson's project are what keeps that cost visible and small.
 - **Costs:** teaching ahead of the engine means some lessons have no Manifold code to point at.
 

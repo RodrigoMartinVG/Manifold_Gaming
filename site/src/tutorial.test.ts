@@ -90,14 +90,19 @@ const words = (text: string) =>
 
 describe('the new tutorial’s lessons: the main path first, the layers short (0021)', () => {
   it('there are lessons to check', () => expect(newLessons.length).toBeGreaterThan(0));
-  const MAIN = ['El problema', 'La matemática', 'En el proyecto', 'Probalo', 'Lo importante'];
+  // A concept lesson explains its own example's code ("El código"); a project lesson, what changed in the
+  // project ("En el proyecto").
+  const MAIN = ['El problema', 'La matemática', 'Probalo', 'Lo importante'];
   for (const [id, text] of newLessons)
     it(id, () => {
       for (const heading of [...MAIN, 'Más a fondo', 'En los motores', 'En Manifold', 'Para practicar', 'Para saber más'])
         expect(section(text, heading), `"${heading}"`).not.toBeNull();
-      expect(text, 'a step of the project, live').toMatch(/<LiveCode project="[^"]+"/);
+      const project = /<LiveCode project="[^"]+"/.test(text);
+      const code = project ? 'En el proyecto' : 'El código';
+      expect(section(text, code), `a ${project ? 'project' : 'concept'} lesson has "${code}"`).not.toBeNull();
+      if (!project) expect(text, 'a live example of its own').toMatch(/<LiveCode lesson="[^"]+"/);
       // The main path is most of the page.
-      const main = MAIN.reduce((sum, h) => sum + words(section(text, h) ?? ''), 0);
+      const main = [...MAIN, code].reduce((sum, h) => sum + words(section(text, h) ?? ''), 0);
       expect(main / words(text), 'the main path, at least 60% of the page').toBeGreaterThanOrEqual(0.6);
       // The layers around it, short.
       const deeper = (section(text, 'Más a fondo') ?? '').match(/<details>/g) ?? [];
