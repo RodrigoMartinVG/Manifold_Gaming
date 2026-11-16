@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { Quat, Vec3 } from '@manifold/common';
 import { upAt, type Appearance, type Entity, type EntityId, type Shape, type World } from '@manifold/core';
 import type { VariableInfo } from '@manifold/commands';
+import { surroundingsOf } from './hands';
 import { animate, motion, turnBody, type ModelInstance, type Models } from './models';
 import { own, ownMaterial, release } from './owned';
 import type { GamePage, Piece } from './page';
@@ -21,6 +22,8 @@ export interface Bodies extends Piece {
   meshFor(a: Appearance): { object: THREE.Object3D; model: ModelInstance | null };
   /** The entity whose mesh is under a point of the screen (x and y from −1 to 1), if any. */
   entityAt(x: number, y: number): EntityId | undefined;
+  /** Each character drawn with a model, its copy (its limbs, feet and hands: the `show.ik` view reads them). */
+  readonly models: ReadonlyMap<EntityId, ModelInstance>;
 }
 
 const ZONE_COLORS: Record<string, number> = { checkpoint: 0x5ad87a, goal: 0xe0c05a, fall: 0xd85a5a };
@@ -291,6 +294,7 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
   return {
     meshes,
     previousTurn,
+    models: instances,
     meshFor,
     entityAt(x, y) {
       pointer.set(x, y);
@@ -350,12 +354,17 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
         if (!e?.character || !t) continue;
         const before = previous.get(id);
         const moved = before ? motion(before.position, t.position, e.character) : ([0, 0, 0] as const);
-        animate(model, e.character, upAt(world, t.position), [...moved], turning.get(id) ?? 0, time);
+        const around = surroundingsOf(world, e, (other) => meshes.get(other));
+        animate(model, e.character, upAt(world, t.position), [...moved], turning.get(id) ?? 0, time, around);
       }
       // For the browser tests (probe.ts): the animation that weighs most in the player's model ('' while
       // it is drawn with its shape), written when it changes.
       const clip = (hero && instances.get(hero.id)?.playing) || '';
       if (page.container.dataset.clip !== clip) page.container.dataset.clip = clip;
+      // And what its hands hold (stage 4a: hands.ts), left and right ('-', nothing), written when it changes.
+      const hands = hero && instances.get(hero.id)?.hands;
+      const holds = hands ? `${hands.L.kind ?? '-'} ${hands.R.kind ?? '-'}` : '';
+      if (page.container.dataset.holds !== holds) page.container.dataset.holds = holds;
       // And each gesture as it starts (stage 3b), numbered: a landing is 0.3 s, and at a few frames per
       // second it may never weigh most in any frame, but it started.
       const started = hero ? instances.get(hero.id)?.gait.started : undefined;

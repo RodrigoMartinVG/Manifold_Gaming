@@ -14,6 +14,7 @@ import {
 import type { Vec3 } from '@manifold/common';
 import type { Match } from '@manifold/net';
 import type { Bodies } from './bodies';
+import { surroundingsOf } from './hands';
 import { animate, motion, turnBody, type ModelInstance } from './models';
 import { ownMaterial, release } from './owned';
 import type { PageMatch } from './match';
@@ -237,7 +238,7 @@ export function mountReplays(page: GamePage, match: PageMatch, bodies: Bodies): 
       ghost.mesh.quaternion.copy(ghost.drawn);
       if (ghost.model) {
         const moved = ghost.before ? motion(ghost.before, g.position, body.character) : [0, 0, 0];
-        animate(ghost.model, body.character, up, moved as Vec3, turning, time);
+        animate(ghost.model, body.character, up, moved as Vec3, turning, time, surroundingsOf(ghost.session.world, body));
       }
     },
     afterRender() {

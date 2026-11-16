@@ -76,16 +76,17 @@ show.vectors on
 
 Lo que hace del motor un laboratorio: ver lo que normalmente no se ve. Las vistas `show.*` no cuestan nada mientras están apagadas.
 
-| Escribí             | Y se ve                                                                                                                                          |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `show.stats on`     | el paso, la huella del mundo, las entidades y los cuadros por segundo                                                                            |
-| `show.wireframe on` | las mallas como alambre: los triángulos que dibuja la placa de video                                                                             |
-| `show.axes on`      | los ejes del mundo en el origen: x en rojo, y en verde, z en azul (3 metros)                                                                     |
-| `show.physics on`   | lo que ve el motor de física: el colisionador de cada cuerpo, como líneas (puede no coincidir con lo que se dibuja)                              |
-| `show.vectors on`   | la velocidad de cada cuerpo que se mueve (en amarillo, hasta donde llegaría en un cuarto de segundo) y hacia dónde mira cada personaje (en azul) |
-| `show.contacts on`  | dónde se tocan los cuerpos ahora: cada punto de contacto que usa la física, con su normal                                                        |
-| `show.gravity on`   | el campo de gravedad, como flechas: su largo es la intensidad                                                                                    |
-| `show.sensors on`   | las zonas del nivel, como cajas de alambre: los puntos de control en verde, la meta en dorado, el vacío en rojo                                  |
+| Escribí             | Y se ve                                                                                                                                                             |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `show.stats on`     | el paso, la huella del mundo, las entidades y los cuadros por segundo                                                                                               |
+| `show.wireframe on` | las mallas como alambre: los triángulos que dibuja la placa de video                                                                                                |
+| `show.axes on`      | los ejes del mundo en el origen: x en rojo, y en verde, z en azul (3 metros)                                                                                        |
+| `show.physics on`   | lo que ve el motor de física: el colisionador de cada cuerpo, como líneas (puede no coincidir con lo que se dibuja)                                                 |
+| `show.vectors on`   | la velocidad de cada cuerpo que se mueve (en amarillo, hasta donde llegaría en un cuarto de segundo) y hacia dónde mira cada personaje (en azul)                    |
+| `show.contacts on`  | dónde se tocan los cuerpos ahora: cada punto de contacto que usa la física, con su normal                                                                           |
+| `show.gravity on`   | el campo de gravedad, como flechas: su largo es la intensidad                                                                                                       |
+| `show.ik on`        | hasta dónde llega cada miembro: una línea desde cada cadera y cada hombro hasta su objetivo, y los contactos que persisten (pies, manos en una pared o en un borde) |
+| `show.sensors on`   | las zonas del nivel, como cajas de alambre: los puntos de control en verde, la meta en dorado, el vacío en rojo                                                     |
 
 Y para preguntar: `inspect` dice de qué está hecha una entidad (sus componentes, con sus números): por su número, o `me` (tu personaje) o `it` (la última que inspeccionaste o tocaste). `watch` la deja fija en una esquina de la pantalla, con sus valores al día mientras jugás y con la consola cerrada: `watch me` muestra dónde está tu personaje, cómo se mueve y sobre qué está parado, y `watch me character.mode` solo lo que pidas; `watch clear` la saca. `vars` lista las variables con sus valores, `changed` solo las que no están en su valor de siempre, `find` busca en los nombres y en las descripciones, `inputs` dice qué puede pedir un jugador en ese juego y con qué tecla, y `hash` da el paso y la huella del mundo.
 

@@ -50,5 +50,7 @@
  *      `character.mannequin`, and the adventure's explorer is the mannequin, with its poses
  *  25  stage 4a: a map's floor is one body, a compound of its slabs (`kind: 'compound'`) on the map's
  *      grid, which the physics makes Rapier's voxels: what rolls or slides across it does not hop or trip
+ *  26  stage 4a: a climbing character comes to its wall (a centimeter from touching it), instead of
+ *      climbing where its ray found it, up to 55 cm away: the view's hands hold on to it
  */
-export const SIMULATION_VERSION = 25;
+export const SIMULATION_VERSION = 26;

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { Vec3 } from '@manifold/common';
+import { reach, rootOf, type Limb, type LimbSpec } from './ik';
 import { FAMILIES, type Footing } from './locomotion';
 
 /**
@@ -15,23 +16,35 @@ import { FAMILIES, type Footing } from './locomotion';
  * So the feet are mixed where they are, not by their bones' turns: each cycle's path of each foot is read
  * once from the model (`footPaths`), and the view puts each foot where the cycles' feet are, mixed with
  * the cycles' weights (`mixedFeet`), turning its leg to reach it (two bones, the knee bending as the
- * animation bends it). That is the mix the strides assume, so a foot down already stays put; and a foot
- * that is down is also kept where it came down (a change of speed or of direction moves the mix a
- * little), until it lifts. Only the view: the world is not touched.
+ * animation bends it: ik.ts). That is the mix the strides assume, so a foot down already stays put; and
+ * a foot that is down is also kept where it came down (a change of speed or of direction moves the mix a
+ * little), until it lifts, or until the body has gone too far from it (stage 4a: beyond 1.05 of the
+ * leg's reach, it lets go). Only the view: the world is not touched.
  */
 
-/** A leg the view moves: its thigh and shin by name, and where its sole is in the shin's frame. */
-export interface Leg {
-  thigh: string;
-  shin: string;
-  sole: Vec3;
-}
+const deg = THREE.MathUtils.degToRad;
 
-/** The mannequin's legs (art/mannequin.py): two bones of 0.36 m, the sole at the end of the shin. */
-export const LEGS: Readonly<Record<'L' | 'R', Leg>> = {
-  L: { thigh: 'thigh_L', shin: 'shin_L', sole: [0, 0.36, 0] },
-  R: { thigh: 'thigh_R', shin: 'shin_R', sole: [0, 0.36, 0] },
-};
+/**
+ * A mannequin's leg (art/mannequin.py: two bones of 0.36 m, the sole at the end of the shin), as the
+ * solver takes it (ik.ts). Its stretch gives 1 mm at full reach: a third of the frames walking straight
+ * have the leg down at its full reach or past it (measured, stage 4a), and a foot on the floor that
+ * stayed a centimeter short would float. The knee bends at most 150°, forward when the leg is straight;
+ * the thigh points within 100° of down and a little forward (the ground's animations, within 50°), and
+ * twists at most 45° either way.
+ */
+const leg = (side: 'L' | 'R'): LimbSpec => ({
+  upper: `thigh_${side}`,
+  lower: `shin_${side}`,
+  end: [0, 0.36, 0],
+  slack: 0.001,
+  bend: deg(150),
+  pole: [0, 0, -1],
+  limit: { center: [0, -1, -0.35], cone: deg(100), twist: [deg(-45), deg(45)] },
+});
+export const LEGS: Readonly<Record<'L' | 'R', LimbSpec>> = { L: leg('L'), R: leg('R') };
+
+/** How far from a foot that is down its hip may go before the foot lets go, over the leg's reach. */
+export const LET_GO = 1.05;
 
 /** Where the soles are when the model stands, along its up (its origin is the capsule's center). */
 export const SOLE_HEIGHT = -0.8;
@@ -64,7 +77,7 @@ export function footPaths(
   actions: ReadonlyMap<string, THREE.AnimationAction>,
 ): FootPaths {
   const paths = new Map<string, Float32Array>();
-  const shins = SIDES.map((side) => object.getObjectByName(LEGS[side].shin));
+  const shins = SIDES.map((side) => object.getObjectByName(LEGS[side].lower));
   if (shins.some((s) => !s)) return paths;
   const at = new THREE.Vector3();
   for (const name of GROUND_CLIPS) {
@@ -77,7 +90,7 @@ export function footPaths(
       mixer.update(0);
       object.updateMatrixWorld(true);
       SIDES.forEach((side, k) => {
-        object.worldToLocal(shins[k]!.localToWorld(at.set(...LEGS[side].sole)));
+        object.worldToLocal(shins[k]!.localToWorld(at.set(...LEGS[side].end)));
         path.set([at.x, at.y, at.z], i * 6 + k * 3);
       });
     }
@@ -137,28 +150,43 @@ export interface Foot {
    * next to nothing).
    */
   held: number;
+  /** Let go, the body too far from where it stood: it is not taken again until it lifts. */
+  gone: boolean;
+  /** Where the solver took it, the last frame (the world's), and what it did (for `show.ik`). */
+  target: THREE.Vector3;
+  ratio: number;
+  missed: number;
 }
 export type Feet = Record<'L' | 'R', Foot>;
 
-export const newFeet = (): Feet => ({
-  L: { planted: null, leaving: null, held: 0 },
-  R: { planted: null, leaving: null, held: 0 },
+const newFoot = (): Foot => ({
+  planted: null,
+  leaving: null,
+  held: 0,
+  gone: false,
+  target: new THREE.Vector3(),
+  ratio: 0,
+  missed: 0,
 });
+export const newFeet = (): Feet => ({ L: newFoot(), R: newFoot() });
 
 const floor = new THREE.Vector3();
 const upward = new THREE.Vector3();
 const scratch = new THREE.Vector3();
 const aim = new THREE.Vector3();
+const hip = new THREE.Vector3();
 
 /**
  * After the animations are applied to `object` (its place and turn already the frame's): each foot goes
  * where the cycles' feet are, mixed (`paths`, from `footPaths`); one that is down stays where it came
- * down; one that lifts goes from there back to the mix; and none goes under the floor plane. A foot is
- * down in its time down (`where`: locomotion's `footing`), and, lifting, while the mix still has it on
- * the floor. (`dt`: the world's time; paused, nothing changes, and the legs are turned as they were.)
+ * down, while its hip is within `LET_GO` of the leg's reach; one that lifts goes from there back to the
+ * mix; and none goes under the floor plane. A foot is down in its time down (`where`: locomotion's
+ * `footing`), and, lifting, while the mix still has it on the floor. (`dt`: the world's time; paused,
+ * nothing changes, and the legs are turned as they were.)
  */
 export function plant(
   object: THREE.Object3D,
+  legs: Readonly<Record<'L' | 'R', Limb>> | null,
   paths: FootPaths,
   actions: ReadonlyMap<string, THREE.AnimationAction>,
   feet: Feet,
@@ -166,17 +194,12 @@ export function plant(
   up: Vec3,
   dt: number,
 ) {
-  if (paths.size === 0) return;
+  if (paths.size === 0 || !legs) return;
   object.updateMatrixWorld(true);
-  const bones = SIDES.map((side) => ({
-    thigh: object.getObjectByName(LEGS[side].thigh),
-    shin: object.getObjectByName(LEGS[side].shin),
-  }));
-  if (bones.some((b) => !b.thigh?.parent || !b.shin)) return;
   // Where the mixer put each foot (the model's frame), and where the cycles' feet are, mixed (the world's).
   const animated = {
-    L: object.worldToLocal(bones[0]!.shin!.localToWorld(new THREE.Vector3(...LEGS.L.sole))),
-    R: object.worldToLocal(bones[1]!.shin!.localToWorld(new THREE.Vector3(...LEGS.R.sole))),
+    L: object.worldToLocal(legs.L.lower.localToWorld(legs.L.end.clone())),
+    R: object.worldToLocal(legs.R.lower.localToWorld(legs.R.end.clone())),
   };
   const mixed = mixedFeet(paths, actions, animated);
   object.localToWorld(mixed.L);
@@ -185,12 +208,17 @@ export function plant(
   upward.set(...up).normalize();
   /** How far a point is above the floor plane. */
   const above = (p: THREE.Vector3) => scratch.subVectors(p, floor).dot(upward);
-  SIDES.forEach((side, k) => {
+  for (const side of SIDES) {
     const foot = feet[side];
+    const limb = legs[side];
     const mix = mixed[side];
     const touching = above(mix) < TOUCH;
+    const down = where[side] === 'down' || (where[side] === 'lifting' && touching && foot.planted !== null);
+    if (where[side] === 'up') foot.gone = false;
+    // The body too far from where the foot stood (carried off, pushed): it lets go until it lifts.
+    if (foot.planted && rootOf(limb, hip).distanceTo(foot.planted) > LET_GO * (limb.a + limb.b)) foot.gone = true;
     let target: THREE.Vector3;
-    if (where[side] === 'down' || (where[side] === 'lifting' && touching && foot.planted)) {
+    if (down && !foot.gone) {
       foot.planted ??= mix.clone().addScaledVector(upward, -above(mix));
       foot.leaving = null;
       target = foot.planted;
@@ -205,65 +233,9 @@ export function plant(
       if (low < 0) target = aim.copy(target).addScaledVector(upward, -low);
     }
     foot.held = target.distanceTo(mix);
-    reach(object, bones[k]!.thigh!, bones[k]!.shin!, LEGS[side], target);
-  });
-}
-
-const hip = new THREE.Vector3();
-const knee = new THREE.Vector3();
-const sole = new THREE.Vector3();
-const toward = new THREE.Vector3();
-const line = new THREE.Vector3();
-const bend = new THREE.Vector3();
-const bent = new THREE.Vector3();
-const from = new THREE.Vector3();
-const to = new THREE.Vector3();
-
-/**
- * Turns a thigh and its shin so that the sole reaches `target` (or points at it, out of reach): the
- * knee where the two bones' lengths put it, on the side the animation bends it (or forward, straight).
- */
-function reach(object: THREE.Object3D, thigh: THREE.Object3D, shin: THREE.Object3D, leg: Leg, target: THREE.Vector3) {
-  thigh.getWorldPosition(hip);
-  shin.getWorldPosition(knee);
-  shin.localToWorld(sole.set(...leg.sole));
-  const a = hip.distanceTo(knee);
-  const b = knee.distanceTo(sole);
-  toward.subVectors(target, hip);
-  const d = Math.min(Math.max(toward.length(), Math.abs(a - b) + 1e-4), a + b - 1e-4);
-  toward.normalize();
-  // The knee away from the line from the hip to the foot, as the animation has it; then square with the
-  // new line.
-  line.subVectors(sole, hip).normalize();
-  bend.subVectors(knee, hip);
-  bend.addScaledVector(line, -bend.dot(line));
-  bend.addScaledVector(toward, -bend.dot(toward));
-  if (bend.lengthSq() < 1e-10) {
-    bend.set(0, 0, -1).transformDirection(object.matrixWorld);
-    bend.addScaledVector(toward, -bend.dot(toward));
+    foot.target.copy(target);
+    const done = reach(object, limb, target);
+    foot.ratio = done.ratio;
+    foot.missed = done.missed;
   }
-  bend.normalize();
-  const cos = (a * a + d * d - b * b) / (2 * a * d);
-  const sin = Math.sqrt(Math.max(0, 1 - cos * cos));
-  bent
-    .copy(hip)
-    .addScaledVector(toward, a * cos)
-    .addScaledVector(bend, a * sin);
-  turn(thigh, from.subVectors(knee, hip), to.subVectors(bent, hip));
-  shin.getWorldPosition(knee);
-  shin.localToWorld(sole.set(...leg.sole));
-  turn(shin, from.subVectors(sole, knee), to.subVectors(target, knee));
-}
-
-const delta = new THREE.Quaternion();
-const world = new THREE.Quaternion();
-const parent = new THREE.Quaternion();
-
-/** Turns a bone (in the world) by the least turn that takes the direction `a` to `b`. */
-function turn(bone: THREE.Object3D, a: THREE.Vector3, b: THREE.Vector3) {
-  delta.setFromUnitVectors(a.normalize(), b.normalize());
-  bone.getWorldQuaternion(world);
-  bone.parent!.getWorldQuaternion(parent);
-  bone.quaternion.copy(parent.invert().multiply(delta.multiply(world)));
-  bone.updateMatrixWorld(true);
 }

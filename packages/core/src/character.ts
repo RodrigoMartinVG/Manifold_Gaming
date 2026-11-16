@@ -197,27 +197,46 @@ export function turned(facing: Vec3, up: Vec3, turn: number, turnSpeed: number, 
 /**
  * A WALL in that direction (stage 2c; with the world's ray since 2.5b): a ray from `from` along
  * `direction` (of length 1), as far as `reach`; if it hits something the physics does not move that
- * stands almost upright, the direction towards it, along the ground and of length 1; if not, zero.
- * Not with the character controller's collisions: those only exist while it pushes against the wall,
- * and pushing against a wall steeper than what it climbs, the controller does not let it rise along it.
+ * stands almost upright, the direction towards it, along the ground and of length 1, and how far along
+ * the ray it is; if not, zero. Not with the character controller's collisions: those only exist while
+ * it pushes against the wall, and pushing against a wall steeper than what it climbs, the controller
+ * does not let it rise along it.
  */
-function wallAhead(world: World, e: Entity, from: Vec3, direction: Vec3, reach: number, up: Vec3): Vec3 {
+function wallAhead(
+  world: World,
+  e: Entity,
+  from: Vec3,
+  direction: Vec3,
+  reach: number,
+  up: Vec3,
+): { wall: Vec3; distance: number } {
+  const none = { wall: [0, 0, 0] as Vec3, distance: 0 };
   const hit = world.castRay(from, direction, reach, { skip: e.id, dynamic: false });
-  if (!hit) return [0, 0, 0];
+  if (!hit) return none;
   const n = hit.normal;
   const along = vec3.dot(n, up);
-  if (along < -0.35 || along > 0.35) return [0, 0, 0]; // a floor, a ceiling, a slope: not a wall
+  if (along < -0.35 || along > 0.35) return none; // a floor, a ceiling, a slope: not a wall
   // The surface's normal points out of it, towards the character: the wall is the other way.
   const flat = vec3.sub(vec3.scale(up, along), n);
   const length = vec3.length(flat);
-  return length > 1e-6 ? vec3.scale(flat, 1 / length) : [0, 0, 0];
+  return length > 1e-6 ? { wall: vec3.scale(flat, 1 / length), distance: hit.distance } : none;
 }
+
+/**
+ * HOW FAST A CLIMBING CHARACTER COMES TO ITS WALL (stage 4a), m/s at most. It finds the wall with a ray
+ * up to 55 cm ahead, and climbed where it found it: 22 cm off the wall, the hands of the view could not
+ * reach it. So it comes in until it is `WALL_GAP` from touching, never into the wall (the controller
+ * would not let it rise along something that steep).
+ */
+const WALL_APPROACH = 2;
+const WALL_GAP = 0.01;
 
 /**
  * WHETHER A WALL IT CLIMBED ENDED AT ITS TOP (closing phase 2), and not at a side edge. At the top,
  * the wall's face is still there just below its feet (they have only just passed the edge): a ray
- * towards the wall from 15 cm under them finds it, and says how far it is (a character climbs as far
- * from the wall as its ray found it, up to 55 cm, not touching it). Then, 10 cm beyond that face, a
+ * towards the wall from 15 cm under them finds it, and says how far it is (a character climbs close to
+ * the wall, a centimeter from touching it, since stage 4a; it used to climb where its ray found it, up
+ * to 55 cm away, and this ray still looks as far). Then, 10 cm beyond that face, a
  * short ray down from a little above its feet finds the top it can get onto. Past a side edge there
  * is no face in front, at any height. (A first version looked a fixed 40 cm ahead: from 48 cm away,
  * that was in front of the face, it found no top, and the hop did not come.)
@@ -447,9 +466,12 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
   // to go (a little beyond its radius). From its feet, so it keeps climbing until they pass the top.
   const climbed = c.wall;
   const feet = vec3.add(e.transform!.position, vec3.scale(up, -0.5));
+  let wallDistance = 0;
   if (c.can.climb) {
     const towards = isZero(c.wall) ? (vec3.length(move) > 0.1 ? vec3.normalize(move) : null) : c.wall;
-    c.wall = towards ? wallAhead(world, e, feet, towards, 0.55, up) : [0, 0, 0];
+    const found = towards ? wallAhead(world, e, feet, towards, 0.55, up) : null;
+    c.wall = found ? found.wall : [0, 0, 0];
+    wallDistance = found ? found.distance : 0;
   } else c.wall = [0, 0, 0];
   // What it stands on (stage 2d; with its whole capsule since 2.5b), if it stands: below, what moves
   // carries it; here, its surface's friction decides how much its feet push (stage 3b: the floor's
@@ -463,6 +485,12 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
   c.mode = modeFor(c, move, jumping, vUp);
   let mode = MODES[c.mode];
   vH = mode.steer(c, vH, wanted, move, dt, traction);
+  // Climbing, it comes to its wall (stage 4a): as far as touching it less `WALL_GAP`, at `WALL_APPROACH`
+  // at most (its body's radius from its axis, where the ray went from, and the controller's own gap).
+  if (c.mode === 'climb' && body.shape.kind === 'capsule') {
+    const off = wallDistance - body.shape.radius - CHARACTER_GAP - WALL_GAP;
+    if (off > 0) vH = vec3.add(vH, vec3.scale(c.wall, Math.min(WALL_APPROACH, off / dt)));
+  }
   // The top of a wall: it was climbing and the wall ended under its feet. A hop up and over, so it gets
   // onto it: up, and towards the wall it climbed at its climbing speed (closing phase 2: the hop was
   // only up, and with no control in the air nothing took it over the edge; it fell back beside the

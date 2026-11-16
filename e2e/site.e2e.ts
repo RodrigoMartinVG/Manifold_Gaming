@@ -426,6 +426,7 @@ const VIEW_VALUES: Record<string, string> = {
   'show.contacts': 'on',
   'show.sensors': 'on',
   'show.gravity': 'on',
+  'show.ik': 'on',
   'show.signals': 'on',
   'show.light': 'on',
   'show.vision': 'on',
@@ -1091,5 +1092,38 @@ test('capabilities, live: in front of the tower, a character stays below; with d
   await page.keyboard.down('KeyW');
   await expect(consoleLog(page)).toContainText('a star: 1 taken, 2 left', { timeout: 90_000 });
   await page.keyboard.up('KeyW');
+  expect(list).toEqual([]);
+});
+
+test('its hands on the tower (stage 4a): on its wall while it climbs, on its top before it gets over; show.ik draws them', async ({
+  page,
+}) => {
+  test.setTimeout(150_000);
+  const list = errors(page);
+  await page.goto('jugar/dojo/capabilities/#recipe=view.camera+free;show.ik+on');
+  await expect.poll(async () => (await position(page, 'player')).length, { timeout: 15_000 }).toBe(3);
+  await afterSteps(page, 90);
+  // Every hold the hands take, as the page writes it ("wall -": the left hand on the wall, the right
+  // one on nothing), however briefly: a frame may last several steps here.
+  await page.evaluate(() => {
+    const game = document.querySelector<HTMLElement>('#game')!;
+    const seen = new Set<string>();
+    (window as unknown as { holds: Set<string> }).holds = seen;
+    new MutationObserver(() => seen.add(game.dataset.holds ?? '')).observe(game, { attributeFilter: ['data-holds'] });
+  });
+  const holds = () => page.evaluate(() => [...(window as unknown as { holds: Set<string> }).holds]);
+  await page.keyboard.press('Backquote');
+  await typeInConsole(page, 'dojo.goto 8 1 5');
+  await page.keyboard.press('Escape');
+  await page.keyboard.down('KeyW');
+  await expect.poll(async () => (await holds()).some((h) => h.includes('wall')), { timeout: 60_000 }).toBe(true);
+  // While a hand holds, show.ik draws more than the legs' two lines: a shoulder's to its hold.
+  await expect
+    .poll(async () => Number(await page.locator('#game').getAttribute('data-ik')), { timeout: 30_000 })
+    .toBeGreaterThan(2);
+  await expect(consoleLog(page)).toContainText('a star: 1 taken, 2 left', { timeout: 90_000 });
+  await page.keyboard.up('KeyW');
+  const all = await holds();
+  expect(all, all.join(', ')).toContain('ledge ledge');
   expect(list).toEqual([]);
 });

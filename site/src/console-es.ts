@@ -18,6 +18,8 @@ export const CONSOLE_ES: Readonly<Record<string, string>> = {
   'show.vectors': 'velocidades, y hacia dónde mira cada personaje',
   'show.contacts': 'los puntos de contacto, con su normal',
   'show.gravity': 'el campo de gravedad, como flechas',
+  'show.ik':
+    'hasta dónde llega cada miembro de cada personaje: una línea desde cada cadera y cada hombro hasta su objetivo, más brillante cuanto más pesa la cinemática inversa; y los contactos que persisten, como puntos (un pie apoyado en verde, una mano en una pared en naranja, en un borde en amarillo, buscando lo que sostiene en celeste)',
   'show.light': 'el alcance de las lámparas: amarillo mientras están prendidas, gris mientras están apagadas',
   'show.vision':
     'lo que mira cada observador: el borde de su campo de visión, y una línea a cada personaje en él, verde si lo ve',

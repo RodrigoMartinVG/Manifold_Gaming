@@ -14,7 +14,9 @@ import {
   type CharacterClip,
   type Gait,
 } from './locomotion';
-import { footPaths, newFeet, plant, type Feet, type FootPaths } from './feet';
+import { footPaths, LEGS, newFeet, plant, type Feet, type FootPaths } from './feet';
+import { ARMS, grip, newHands, type Hands, type Surroundings } from './hands';
+import { limbOf, type Limb } from './ik';
 
 /** A copy of a model, ready to draw, and the animations it plays. */
 export interface ModelInstance {
@@ -27,6 +29,11 @@ export interface ModelInstance {
   readonly feet: Feet;
   /** Its ground animations' foot paths (read once for every copy of the model). */
   readonly paths: FootPaths;
+  /** Its legs and arms as the solver takes them (ik.ts), if the model has those bones. */
+  readonly legs: Readonly<Record<'L' | 'R', Limb>> | null;
+  readonly arms: Readonly<Record<'L' | 'R', Limb>> | null;
+  /** What its hands hold (hands.ts), from one frame to the next. */
+  readonly hands: Hands;
   /** The animation that weighs most now (null: none yet). */
   playing: string | null;
 }
@@ -75,6 +82,14 @@ const pathsOf = new WeakMap<readonly THREE.AnimationClip[], FootPaths>();
 /** A new copy of a loaded model (its scene and its animations), with its own bones and animations. */
 export function modelInstance(model: { scene: THREE.Object3D; clips: readonly THREE.AnimationClip[] }): ModelInstance {
   const object = cloneSkeleton(model.scene);
+  // Its limbs, from its bones at rest, before any animation moves them.
+  const limbs = (specs: typeof LEGS) => {
+    const L = limbOf(object, specs.L);
+    const R = limbOf(object, specs.R);
+    return L && R ? { L, R } : null;
+  };
+  const legs = limbs(LEGS);
+  const arms = limbs(ARMS);
   const mixer = new THREE.AnimationMixer(object);
   // Every animation plays at once, each with its weight, at the time the gait says (stage 2e2):
   // the mixer does not move them on by itself.
@@ -98,6 +113,9 @@ export function modelInstance(model: { scene: THREE.Object3D; clips: readonly TH
     gait: newGait({ flip: length('flip', 0.45), land: length('land', 0.3) }),
     feet: newFeet(),
     paths,
+    legs,
+    arms,
+    hands: newHands(),
     playing: null,
   };
 }
@@ -142,9 +160,18 @@ export function turnBody(drawn: THREE.Quaternion, target: THREE.Quaternion, up: 
  * Moves a copy's animations on by `dt` seconds (already scaled by the match's speed), as the
  * character asks: its mode, how it really moved (`moved`, from `motion`), and how fast its body is
  * drawn turning (`turning`, degrees per second, from `turnBody`); its place and turn must already be
- * the frame's (its feet are planted in the world). The view only reads the world.
+ * the frame's (its feet are planted in the world, its hands hold on to what `around` finds). The view
+ * only reads the world.
  */
-export function animate(model: ModelInstance, c: Character, up: Vec3, moved: Vec3, turning: number, dt: number) {
+export function animate(
+  model: ModelInstance,
+  c: Character,
+  up: Vec3,
+  moved: Vec3,
+  turning: number,
+  dt: number,
+  around?: Surroundings,
+) {
   const spin = THREE.MathUtils.radToDeg(c.ground.spin);
   advance(
     model.gait,
@@ -177,6 +204,8 @@ export function animate(model: ModelInstance, c: Character, up: Vec3, moved: Vec
   model.mixer.update(0);
   // And the feet where the cycles' feet are, mixed; on the ground, they stay there (feet.ts).
   const where = { L: footing(model.gait, 'L', c.grounded), R: footing(model.gait, 'R', c.grounded) };
-  plant(model.object, model.paths, model.actions, model.feet, where, up, dt);
+  plant(model.object, model.legs, model.paths, model.actions, model.feet, where, up, dt);
+  // And the hands on what they hold: a wall, a ledge, what is carried (hands.ts).
+  grip(model.object, model.arms, model.hands, c, around, model.gait.climbPhase, moved, up, dt);
   model.playing = dominant(weights);
 }
