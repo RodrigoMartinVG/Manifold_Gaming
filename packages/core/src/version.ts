@@ -54,5 +54,7 @@
  *      climbing where its ray found it, up to 55 cm away: the view's hands hold on to it
  *  27  stage 4b: a character aims (`pitch`, from its input): where it aims is part of its state, and
  *      the Dojo's ball leaves along the aim
+ *  28  stage 4b: crouching, a mode with its capability and numbers (`crouch`): the controller moves a
+ *      lower body, it stands only where it fits, and it is seen and heard less
  */
-export const SIMULATION_VERSION = 27;
+export const SIMULATION_VERSION = 28;

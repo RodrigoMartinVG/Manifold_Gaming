@@ -11,13 +11,15 @@ Blender without a screen (`npm run art`), never by hand. It writes `packages/cha
 - Its animations, the ones the presentation mixes (packages/presentation/src/locomotion.ts:
   `CHARACTER_CLIPS`): quiet (`idle`); walking and running, each forward, back and to each side
   (`walk`, `walk_back`, `walk_left`, `walk_right`, and `run…`); stepping on the spot while it turns
-  (`turn`); climbing up and to each side (`climb`, `climb_left`, `climb_right`); rising and falling
+  (`turn`); crouching, quiet and moving the four ways (`crouch_idle`, `crouch`, `crouch_back`,
+  `crouch_left`, `crouch_right`: stage 4b); climbing up and to each side (`climb`, `climb_left`,
+  `climb_right`); rising and falling
   (`rise`, `fall`); gliding (`glide`); and two gestures played once over the rest: a somersault for
   the jump in the air (`flip`) and the weight of a landing (`land`). Made of keyframes computed here
   (sines and angles; walking and running, from where each foot must be: see "walking and running"),
   with no root motion: the simulation moves the character, the animation moves its limbs, and only
   the hips go up and down.
-- The cycles of one family (walking, running, climbing) have one length and one timing: the left
+- The cycles of one family (walking, running, crouching, climbing) have one length and one timing: the left
   leg is the one that steps in the first half of every cycle, the right one in the second. So the
   presentation can mix forward with a side, at 45°, and the feet do not fight.
 
@@ -426,6 +428,90 @@ animate(
 )
 animate("run_right", RUN, lambda t: {"spine": lean(3, 7), **gait(t, RIGHT, 0.4, 0.14, 0.1, **RUN_LEGS), **arms(t, 8, 30, 18)})
 animate("run_left", RUN, lambda t: {"spine": lean(3, -7), **gait(t, LEFT, 0.4, 0.14, 0.1, **RUN_LEGS), **arms(t, 8, 30, 18)})
+
+# Crouching (stage 4b: the engine's crouch, 2 m/s, its body 1 m tall where standing it is 1.6): the hips
+# 0.4 m down and the knees deep; the back bent 45° forward, so that the head stays under the crouched
+# capsule's top (0.2 m above the standing one's center); the head raised to look ahead; the arms
+# forward, a little apart. Its feet follow paths as walking's do, with a shorter sweep: 0.36 m for a
+# foot on the ground, 1.44 m a cycle (1.4 cycles a second at 2 m/s); back, 0.3 m; to a side, 0.24 m,
+# the feet wider. Quiet, the same body on its two feet.
+CROUCH = CYCLE
+CROUCH_LEGS = dict(low=0.3, bounce=0.0)
+CROUCH_BACK = 55
+CROUCH_HEAD = -45
+
+
+def crouch_arms(t, swing, elbow=50, out=10):
+    """The arms of a crouch: hanging from the bent back (so forward and down), swinging a little."""
+    a = swing * math.cos(2 * math.pi * (t - DOWN_AT["L"] - STANCE / 2))
+    return {
+        "upper_arm_L": swing_limb(a, out, "L"),
+        "forearm_L": bend_elbow(elbow),
+        "upper_arm_R": swing_limb(-a, out, "R"),
+        "forearm_R": bend_elbow(elbow),
+    }
+
+
+def crouched_still(t):
+    """Quiet, low: the feet under the hips, a little apart and ahead (the weight forward with the back)."""
+    height = -CROUCH_LEGS["low"]
+    pose = {HIPS_HEIGHT: height}
+    for side, x in (("L", 1), ("R", -1)):
+        hx, hy, hz = HIP[side]
+        pose[f"thigh_{side}"], pose[f"shin_{side}"] = leg(x * 0.06, -0.04, FLOOR - (hz + height))
+    return pose
+
+
+animate(
+    "crouch_idle",
+    2.0,
+    lambda t: {
+        "spine": lean(CROUCH_BACK + wave(t, 1.5)),
+        "head": lean(CROUCH_HEAD + wave(t, -1.0, 0.1)),
+        **crouched_still(t),
+        **crouch_arms(t, 2),
+    },
+)
+animate(
+    "crouch",
+    CROUCH,
+    lambda t: {
+        "spine": lean(CROUCH_BACK, 0, twist(t, 3)),
+        "head": lean(CROUCH_HEAD),
+        **gait(t, AHEAD, 0.36, 0.04, 0.08, **CROUCH_LEGS),
+        **crouch_arms(t, 12),
+    },
+)
+animate(
+    "crouch_back",
+    CROUCH,
+    lambda t: {
+        "spine": lean(CROUCH_BACK, 0, twist(t, -2)),
+        "head": lean(CROUCH_HEAD),
+        **gait(t, BACK, 0.3, 0.04, 0.07, **CROUCH_LEGS),
+        **crouch_arms(t, -10),
+    },
+)
+animate(
+    "crouch_right",
+    CROUCH,
+    lambda t: {
+        "spine": lean(CROUCH_BACK, 4),
+        "head": lean(CROUCH_HEAD),
+        **gait(t, RIGHT, 0.24, 0.14, 0.06, **CROUCH_LEGS),
+        **crouch_arms(t, 4, out=14),
+    },
+)
+animate(
+    "crouch_left",
+    CROUCH,
+    lambda t: {
+        "spine": lean(CROUCH_BACK, -4),
+        "head": lean(CROUCH_HEAD),
+        **gait(t, LEFT, 0.24, 0.14, 0.06, **CROUCH_LEGS),
+        **crouch_arms(t, 4, out=14),
+    },
+)
 
 # Turning on the spot: small steps, one foot then the other, the arms quiet.
 animate(

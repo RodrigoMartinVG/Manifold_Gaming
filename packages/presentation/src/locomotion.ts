@@ -8,7 +8,8 @@ import type { ModeName } from '@manifold/core';
  *
  * In 2e one animation followed the mode and the speed, and walking sideways or backwards played the
  * forward cycle. Now, on the ground, four cycles for each pace (forward, back, each side) are mixed by
- * the angle between where it goes and where it looks; climbing, up and each side; in the air, rising
+ * the angle between where it goes and where it looks (and crouched, from stage 4b, four more, and its
+ * own quiet); climbing, up and each side; in the air, rising
  * and falling. Each family shares one length and one phase, which advances with the distance really
  * travelled, one cycle per stride (`STRIDES`: how far the model's foot on the ground goes back in a
  * cycle): mixed, the feet stay in step, and a foot on the ground stays where it is. The velocity is the
@@ -28,6 +29,11 @@ export const CHARACTER_CLIPS = [
   'run_back',
   'run_left',
   'run_right',
+  'crouch_idle',
+  'crouch',
+  'crouch_back',
+  'crouch_left',
+  'crouch_right',
   'turn',
   'climb',
   'climb_left',
@@ -44,6 +50,7 @@ export type CharacterClip = (typeof CHARACTER_CLIPS)[number];
 export const FAMILIES = {
   walk: ['walk', 'walk_back', 'walk_left', 'walk_right'],
   run: ['run', 'run_back', 'run_left', 'run_right'],
+  crouch: ['crouch', 'crouch_back', 'crouch_left', 'crouch_right'],
   climb: ['climb', 'climb_left', 'climb_right'],
 } as const satisfies Record<string, readonly CharacterClip[]>;
 
@@ -68,7 +75,8 @@ export interface Stride {
 export const STRIDES = {
   walk: { forward: 2.64, back: 2.24, side: 1.36 },
   run: { forward: 3.04, back: 2.4, side: 1.6 },
-} as const satisfies Record<'walk' | 'run', Stride>;
+  crouch: { forward: 1.44, back: 1.2, side: 0.96 },
+} as const satisfies Record<'walk' | 'run' | 'crouch', Stride>;
 /** How far one climbing cycle takes it along the wall (m), and how far it turns in one turning cycle (degrees). */
 const CLIMB_STRIDE = 2;
 const TURN_CYCLE = 180;
@@ -161,7 +169,7 @@ export type Footing = 'down' | 'lifting' | 'up';
 export function footing(g: Gait, side: 'L' | 'R', grounded: boolean): Footing {
   if (!grounded) return 'up';
   let ground = 0;
-  for (const clip of [...FAMILIES.walk, ...FAMILIES.run]) ground += g.weights[clip];
+  for (const clip of [...FAMILIES.walk, ...FAMILIES.run, ...FAMILIES.crouch]) ground += g.weights[clip];
   if (ground < 0.5) return 'up';
   const u = (((g.phase - FOOTING.middle[side] + FOOTING.stance / 2) % 1) + 1) % 1;
   return u < FOOTING.stance ? 'down' : u < FOOTING.stance + FOOTING.lift ? 'lifting' : 'up';
@@ -235,6 +243,17 @@ export function targets(r: Reading, g: Pick<Gait, 'angle' | 'climbAngle'>): Part
   const speed = vec3.length(flat);
   const angle = speed > 0.05 ? degrees(Math.atan2(vec3.dot(flat, right), vec3.dot(flat, r.facing))) : g.angle;
   const moving = smoothstep(0.2, 1, speed);
+  if (r.mode === 'crouch') {
+    // Crouched (stage 4b): its own quiet, or its cycles by the four directions (turning on the spot, quiet).
+    const low = directions(angle, STRIDES.crouch);
+    return {
+      crouch_idle: 1 - moving,
+      crouch: moving * low.forward,
+      crouch_right: moving * low.right,
+      crouch_back: moving * low.back,
+      crouch_left: moving * low.left,
+    };
+  }
   const turning = (1 - moving) * clamp01(Math.abs(r.turning) / 90);
   const run = clamp01((speed - WALK) / (RUN - WALK));
   const walking = directions(angle, STRIDES.walk);
@@ -280,7 +299,11 @@ export function advance(g: Gait, r: Reading, dt: number) {
   // at one phase, their feet on the ground going back along the same line, add up as they are weighed);
   // climbing's, by the distance along the wall; turning's, by the angle.
   const run = clamp01((speed - WALK) / (RUN - WALK));
-  const stride = (1 - run) * strideAlong(g.angle, STRIDES.walk) + run * strideAlong(g.angle, STRIDES.run);
+  // (Crouched, its own strides, at the same phase: its feet are down when walking's are.)
+  const stride =
+    r.mode === 'crouch'
+      ? strideAlong(g.angle, STRIDES.crouch)
+      : (1 - run) * strideAlong(g.angle, STRIDES.walk) + run * strideAlong(g.angle, STRIDES.run);
   g.phase = (g.phase + (dt * speed) / stride) % 1;
   if (r.mode === 'climb') g.climbPhase = (g.climbPhase + (dt * vec3.length(r.velocity)) / CLIMB_STRIDE) % 1;
   g.turnPhase = (g.turnPhase + (dt * Math.abs(r.turning)) / TURN_CYCLE) % 1;
@@ -327,7 +350,11 @@ export function dominant(weights: Record<CharacterClip, number>): CharacterClip 
 
 /** Where in its cycle each animation is (0 to 1), or, for the ones with their own clock, the seconds. */
 export function cycleTime(g: Gait, clip: CharacterClip): { phase: number } | { seconds: number } {
-  if ((FAMILIES.walk as readonly string[]).includes(clip) || (FAMILIES.run as readonly string[]).includes(clip))
+  if (
+    (FAMILIES.walk as readonly string[]).includes(clip) ||
+    (FAMILIES.run as readonly string[]).includes(clip) ||
+    (FAMILIES.crouch as readonly string[]).includes(clip)
+  )
     return { phase: g.phase };
   if ((FAMILIES.climb as readonly string[]).includes(clip)) return { phase: g.climbPhase };
   if (clip === 'turn') return { phase: g.turnPhase };

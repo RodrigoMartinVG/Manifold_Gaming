@@ -4,7 +4,7 @@ import { tractionOf } from './materials';
 import { CHARACTER_GAP, STANDS_ON } from './physics';
 import { STRIDE, stepRadius } from './sound';
 import { axisOf, isDown, NO_INPUT, pressed, vectorOf } from './input';
-import type { Body, Character, CharacterSpec, CollisionPose, Entity, ModeName, Movement } from './types';
+import type { Body, Character, CharacterSpec, CollisionPose, Entity, ModeName, Movement, Shape } from './types';
 import type { World } from './world';
 
 /**
@@ -17,6 +17,7 @@ export const DEFAULT_MOVEMENT: Readonly<Movement> = Object.freeze({
   jump: { speed: 6.5, coyote: 6, buffer: 6, air: 1 },
   glide: { fall: 1.5, control: 20 },
   climb: { speed: 2.5, top: 4, off: 4 },
+  crouch: { speed: 2, seen: 0.5, heard: 0.5 },
   turn: 3,
 });
 
@@ -28,13 +29,14 @@ export function newCharacter(spec: CharacterSpec): Character {
     jump: { ...DEFAULT_MOVEMENT.jump, ...m.jump },
     glide: { ...DEFAULT_MOVEMENT.glide, ...m.glide },
     climb: { ...DEFAULT_MOVEMENT.climb, ...m.climb },
+    crouch: { ...DEFAULT_MOVEMENT.crouch, ...m.crouch },
     turn: m.turn ?? DEFAULT_MOVEMENT.turn,
   };
   return {
     player: spec.player,
     movement,
     // Without capabilities, unless the game gives them (stage 2c).
-    can: { doubleJump: false, glide: false, climb: false, ...spec.can },
+    can: { doubleJump: false, glide: false, climb: false, crouch: false, ...spec.can },
     airJumps: movement.jump.air,
     wall: [0, 0, 0],
     mode: 'air',
@@ -67,10 +69,42 @@ const structuredPoses = (poses: Partial<Record<ModeName, CollisionPose>>): Parti
 
 /**
  * THE SHAPE A CHARACTER'S BODY TAKES NOW (stage 2e, for phase 4): its pose for the mode it is in, if
- * the game gave one; if not, its body's shape, centered and upright.
+ * the game gave one; crouching, if it gave none, its body made lower (`crouchPoseOf`); if not, its
+ * body's shape, centered and upright.
  */
 export function poseOf(c: Character, body: Pick<Body, 'shape'>): CollisionPose {
+  if (c.mode === 'crouch') return crouchPoseOf(c, body);
   return c.poses?.[c.mode] ?? { shape: body.shape, offset: [0, 0, 0], rotation: quat.identity() };
+}
+
+/** How tall a crouched body is, of the standing one, when the game gives no pose for it (1.6 m: 1 m). */
+export const CROUCHED = 0.625;
+
+/**
+ * A CROUCHED BODY (stage 4b): the pose the game gives for crouching; if none, its capsule as tall as
+ * `CROUCHED` of the standing one, its bottom where the standing one's is. The controller moves it while
+ * the character crouches, so it passes under what the standing one could not.
+ */
+export function crouchPoseOf(c: Character, body: Pick<Body, 'shape'>): CollisionPose {
+  const given = c.poses?.crouch;
+  if (given) return given;
+  const s = body.shape;
+  if (s.kind !== 'capsule') return { shape: s, offset: [0, 0, 0], rotation: quat.identity() };
+  const tall = 2 * (s.halfHeight + s.radius);
+  const low = Math.max(2 * s.radius, tall * CROUCHED);
+  return {
+    shape: { kind: 'capsule', halfHeight: low / 2 - s.radius, radius: s.radius },
+    offset: [0, (low - tall) / 2, 0],
+    rotation: quat.identity(),
+  };
+}
+
+/**
+ * WHETHER A SHAPE FITS WHERE A CHARACTER IS (stage 4b: room to stand up): upright, at its place, it
+ * touches nothing but the character itself (a shape swept up by the controller's gap meets nothing).
+ */
+function fits(world: World, e: Entity, shape: Shape, up: Vec3): boolean {
+  return world.castShape(shape, e.transform!.position, e.transform!.rotation, up, CHARACTER_GAP, { skip: e.id }) === null;
 }
 
 /**
@@ -118,19 +152,28 @@ const MODES: Record<ModeName, Mode> = {
     steer: (c, _now, _wanted, move) => vec3.scale(vec3.onPlane(move, c.wall), c.movement.climb.speed),
     holds: (c, move) => c.movement.climb.speed * Math.max(0, vec3.dot(move, c.wall)),
   },
+  // Crouching (stage 4b): as walking, slower (running does not hurry it), its body low.
+  crouch: {
+    steer: (c, now, _wanted, move, dt, traction) =>
+      approach(now, vec3.scale(move, c.movement.crouch.speed), c.movement.walk.acceleration * traction * dt),
+  },
 };
 
 /**
  * WHICH MODE, decided here and only here (stage 2b), with what it can do (stage 2c):
+ * - crouched with no room to stand up (stage 4b: under a low gap): it stays crouched, whatever it asks;
  * - pushing against a wall it touches, if it can climb: it climbs (from the ground, or going on
  *   climbing, or in the air while it is not going up: just after jumping off a wall, it does not grab
  *   it again before it starts to fall);
+ * - standing on something, holding `crouch`, if it can: it crouches;
  * - standing on something: it walks;
  * - falling while it holds the jump, if it can glide: it glides;
  * - otherwise: it is in the air.
  */
-const modeFor = (c: Character, move: Vec3, jumping: boolean, vUp: number): ModeName => {
+const modeFor = (c: Character, move: Vec3, jumping: boolean, vUp: number, crouching: boolean, room: boolean): ModeName => {
+  if (c.mode === 'crouch' && !room) return 'crouch';
   if (c.can.climb && vec3.dot(move, c.wall) > 0.5 && (c.grounded || c.mode === 'climb' || vUp <= 0)) return 'climb';
+  if (c.grounded && crouching && c.can.crouch) return 'crouch';
   if (c.grounded) return 'walk';
   if (c.can.glide && jumping && vUp < 0) return 'glide';
   return 'air';
@@ -405,8 +448,12 @@ function push(world: World, e: Entity, touched: readonly number[], wanted: Vec3,
  * slides along a wall. How far it really goes.
  */
 function sweep(world: World, e: Entity, from: Vec3, by: Vec3, platform: number): Vec3 {
-  const shape = e.body!.shape;
+  // The body the controller moves: crouched, the low one (stage 4b), where it is from the center.
+  const c = e.character!;
   const rotation = e.transform!.rotation;
+  const pose = c.mode === 'crouch' ? crouchPoseOf(c, e.body!) : null;
+  const shape = pose ? pose.shape : e.body!.shape;
+  if (pose) from = vec3.add(from, quat.rotate(rotation, pose.offset));
   let moved: Vec3 = [0, 0, 0];
   let rest = by;
   for (let i = 0; i < 2; i++) {
@@ -497,7 +544,14 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
   const floor = under ? world.entities.get(under.entity)?.body : undefined;
   const traction = floor ? tractionOf(floor.friction) : 1;
   const before = c.mode;
-  c.mode = modeFor(c, move, jumping, vUp);
+  // Crouched, whether it could stand up where it is (stage 4b): its standing body, there, touching nothing.
+  const room = before !== 'crouch' || fits(world, e, body.shape, up);
+  c.mode = modeFor(c, move, jumping, vUp, isDown(input, 'crouch'), room);
+  // Going low or standing up, the controller moves the crouched body, or the standing one, from then on.
+  if ((before === 'crouch') !== (c.mode === 'crouch')) {
+    const pose = c.mode === 'crouch' ? crouchPoseOf(c, body) : { shape: body.shape, offset: [0, 0, 0] as Vec3 };
+    world.physics.setCharacterPose(body.handle, pose.shape, pose.offset);
+  }
   let mode = MODES[c.mode];
   vH = mode.steer(c, vH, wanted, move, dt, traction);
   // Climbing, it comes to its wall (stage 4a): as far as touching it less `WALL_GAP`, at `WALL_APPROACH`
@@ -647,7 +701,7 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
       radius: stepRadius(surface, fell, c.movement.walk.speed),
     });
   const along = vec3.length(vec3.onPlane(movement, up));
-  if (grounded && wasGrounded && c.mode === 'walk' && along > 0) {
+  if (grounded && wasGrounded && (c.mode === 'walk' || c.mode === 'crouch') && along > 0) {
     c.stride += along;
     if (c.stride >= STRIDE) {
       c.stride -= STRIDE;
@@ -660,7 +714,8 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
         surface,
         speed,
         energy: 0,
-        radius: stepRadius(surface, speed, c.movement.walk.speed),
+        // (Crouched, less: stage 4b, its posture.)
+        radius: stepRadius(surface, speed, c.movement.walk.speed) * (c.mode === 'crouch' ? c.movement.crouch.heard : 1),
       });
     }
   } else if (!grounded) c.stride = STRIDE / 2;

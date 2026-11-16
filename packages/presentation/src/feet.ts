@@ -50,7 +50,14 @@ export const LET_GO = 1.05;
 export const SOLE_HEIGHT = -0.8;
 
 /** The animations whose feet are mixed where they are: the ones on the ground (the others' feet are theirs). */
-export const GROUND_CLIPS: readonly string[] = ['idle', 'turn', ...FAMILIES.walk, ...FAMILIES.run];
+export const GROUND_CLIPS: readonly string[] = [
+  'idle',
+  'turn',
+  ...FAMILIES.walk,
+  ...FAMILIES.run,
+  'crouch_idle',
+  ...FAMILIES.crouch,
+];
 
 /** How many points of each cycle a foot's path keeps (the cycles have 32 keys). */
 const SAMPLES = 128;

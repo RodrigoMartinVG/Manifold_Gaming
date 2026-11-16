@@ -1,5 +1,5 @@
 import RAPIER from '@dimforge/rapier3d-deterministic-compat';
-import { quat, type Quat, type Vec3 } from '@manifold/common';
+import { quat, vec3, type Quat, type Vec3 } from '@manifold/common';
 import type { Profile } from './profile';
 import type { Body, BodySpec, CollisionGroups, CompoundPart, Shape, Transform } from './types';
 
@@ -182,6 +182,8 @@ export interface PhysicsBackend {
     up: Vec3,
     standingOn?: number,
   ): { movement: Vec3; grounded: boolean; ceiling: boolean; touched: number[] };
+  /** Changes the shape a character's controller moves (stage 4b: crouching), and where it is from the body's center (in its frame). */
+  setCharacterPose(handle: number, shape: Shape, offset: Vec3): void;
   castRay(from: Vec3, direction: Vec3, reach: number, o?: QueryOptions): PhysicsHit | null;
   castShape(shape: Shape, position: Vec3, rotation: Quat, direction: Vec3, reach: number, o?: QueryOptions): PhysicsHit | null;
   motionOf(handle: number): { kinematic: boolean; linear: Vec3; angular: Vec3; center: Vec3 } | null;
@@ -386,6 +388,18 @@ export class RapierPhysics implements PhysicsBackend {
     }
     const movement = this.stopAtUnseen(collider, handle, toVec(c.computedMovement()));
     return { movement, grounded: c.computedGrounded(), ceiling, touched };
+  }
+
+  setCharacterPose(handle: number, shape: Shape, offset: Vec3) {
+    const rigid = this.world.getRigidBody(handle);
+    const collider = rigid?.collider(0);
+    if (!rigid || !collider) return;
+    collider.setShape(shapeOf(shape));
+    collider.setTranslationWrtParent(v(offset));
+    // Where it is in the world, now: Rapier would put it there at its next step, and the controller,
+    // this step, would move the new shape from the old place (the low body, 30 cm in the air).
+    const r = rigid.rotation();
+    collider.setTranslation(v(vec3.add(toVec(rigid.translation()), quat.rotate(toQuat(r), offset))));
   }
 
   /**

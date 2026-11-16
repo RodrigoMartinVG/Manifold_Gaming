@@ -36,6 +36,7 @@ export const CHARACTER_ACTIONS: readonly InputAction[] = [
   },
   { name: 'jump', kind: 'button', description: 'jumping' },
   { name: 'run', kind: 'button', description: 'running' },
+  { name: 'crouch', kind: 'button', description: 'crouching, while it is held, on the ground (stage 4b)' },
   { name: 'use', kind: 'button', description: 'using what it stands in: a button (stage 3c)' },
   { name: 'grab', kind: 'button', description: 'grabbing what is in front of it, and letting it go (stage 3g)' },
 ];

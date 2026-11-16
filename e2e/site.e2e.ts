@@ -1095,6 +1095,38 @@ test('capabilities, live: in front of the tower, a character stays below; with d
   expect(list).toEqual([]);
 });
 
+test('crouching (stage 4b): standing, the low passage stops it; crouched (C), it goes through, playing its crouch', async ({
+  page,
+}) => {
+  test.setTimeout(150_000);
+  const list = errors(page);
+  await page.goto('jugar/dojo/moves/#recipe=view.camera+free');
+  await expect.poll(async () => (await position(page, 'player')).length, { timeout: 15_000 }).toBe(3);
+  await afterSteps(page, 60);
+  // Every animation that weighed most, however briefly.
+  await page.evaluate(() => {
+    const game = document.querySelector<HTMLElement>('#game')!;
+    const seen = new Set<string>();
+    (window as unknown as { clips: Set<string> }).clips = seen;
+    new MutationObserver(() => seen.add(game.dataset.clip ?? '')).observe(game, { attributeFilter: ['data-clip'] });
+  });
+  // In front of the passage (its slab from z = 0 to −4), looking into it (−Z): W, standing, stops at it.
+  await page.keyboard.press('Backquote');
+  await typeInConsole(page, 'dojo.goto 0 1 2');
+  await page.keyboard.press('Escape');
+  await page.keyboard.down('KeyW');
+  await afterSteps(page, 120);
+  expect((await position(page, 'player'))[2]).toBeGreaterThan(0.2);
+  // With C held too, it goes through, and out the other end.
+  await page.keyboard.down('KeyC');
+  await expect.poll(async () => (await position(page, 'player'))[2], { timeout: 60_000 }).toBeLessThan(-4.5);
+  await page.keyboard.up('KeyC');
+  await page.keyboard.up('KeyW');
+  const clips = await page.evaluate(() => [...(window as unknown as { clips: Set<string> }).clips]);
+  expect(clips, clips.join(', ')).toContain('crouch');
+  expect(list).toEqual([]);
+});
+
 test('its hands on the tower (stage 4a): on its wall while it climbs, on its top before it gets over; show.ik draws them', async ({
   page,
 }) => {

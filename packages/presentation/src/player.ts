@@ -50,8 +50,10 @@ export const CHARACTER_KEYS: Record<string, string> = {
   side: 'Q and E, or A and D with Alt held, in `controls.scheme tank` (or the shoulder buttons)',
   turn: 'A and D, in `controls.scheme tank` (or the left stick)',
   face: 'the mouse, in `view.camera aim`',
+  pitch: 'the mouse, up and down, in `view.camera aim`',
   jump: 'Space (or A)',
   run: 'Shift (or B, or pressing the left stick)',
+  crouch: 'C (or pressing the right stick)',
   use: 'E, or R in `controls.scheme tank`, where E goes to the side (or Y)',
   grab: 'G (or the right trigger)',
 };
@@ -79,7 +81,7 @@ const MOVE_KEYS: Record<string, [forward: number, right: number]> = {
 };
 /** To the sides without turning, in the `tank` scheme. */
 const SIDE_KEYS: Record<string, number> = { KeyQ: -1, KeyE: 1 };
-const OTHER_KEYS = new Set(['Space', 'ShiftLeft', 'ShiftRight', 'AltLeft', 'AltRight', 'KeyE', 'KeyR', 'KeyG']);
+const OTHER_KEYS = new Set(['Space', 'ShiftLeft', 'ShiftRight', 'AltLeft', 'AltRight', 'KeyE', 'KeyR', 'KeyG', 'KeyC']);
 /** Below this, a gamepad's stick is resting (sticks never return exactly to zero). */
 const DEAD_ZONE = 0.2;
 const axis = (pad: Gamepad, i: number) => (Math.abs(pad.axes[i] ?? 0) > DEAD_ZONE ? pad.axes[i]! : 0);
@@ -137,6 +139,8 @@ export function mountPlayerControls(o: { blocked(): boolean; buttons?: readonly 
       let use = keys.has(scheme === 'tank' ? 'KeyR' : 'KeyE');
       // Grabbing and letting go (stage 3g): G.
       let grab = keys.has('KeyG');
+      // Crouching while held (stage 4b): C.
+      let crouch = keys.has('KeyC');
       const alt = keys.has('AltLeft') || keys.has('AltRight');
 
       const pad = navigator.getGamepads?.()[0];
@@ -148,6 +152,7 @@ export function mountPlayerControls(o: { blocked(): boolean; buttons?: readonly 
         run ||= (pad.buttons[1]?.pressed ?? false) || (pad.buttons[10]?.pressed ?? false);
         use ||= pad.buttons[3]?.pressed ?? false;
         grab ||= pad.buttons[7]?.pressed ?? false;
+        crouch ||= pad.buttons[11]?.pressed ?? false;
       }
 
       // The game's buttons, by their keys (or the gamepad's).
@@ -166,6 +171,7 @@ export function mountPlayerControls(o: { blocked(): boolean; buttons?: readonly 
           run,
           use,
           grab,
+          crouch,
           ...own,
         };
 
@@ -175,7 +181,7 @@ export function mountPlayerControls(o: { blocked(): boolean; buttons?: readonly 
       let move = vec3.add(vec3.scale(ahead, forward), vec3.scale(side, right));
       const length = vec3.length(move);
       if (length > 1) move = vec3.scale(move, 1 / length);
-      return { move, jump, run, use, grab, ...own };
+      return { move, jump, run, use, grab, crouch, ...own };
     },
     cameraStick() {
       const pad = navigator.getGamepads?.()[0];

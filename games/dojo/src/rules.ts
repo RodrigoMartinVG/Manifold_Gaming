@@ -51,6 +51,7 @@ const copyMovement = (m: Movement): Movement => ({
   jump: { ...m.jump },
   glide: { ...m.glide },
   climb: { ...m.climb },
+  crouch: { ...m.crouch },
   turn: m.turn,
 });
 
@@ -307,13 +308,14 @@ export function createDojo(levels: Readonly<Record<string, Level>>): Cartridge {
         default: 'empty',
       });
       // What the characters can do besides walking and jumping (stage 2c): on and off, live, for all.
-      const capability = (name: string, key: keyof Capabilities, description: string) =>
+      // (Off unless said: crouching, on, as the games' character comes, stage 4b.)
+      const capability = (name: string, key: keyof Capabilities, description: string, on = false) =>
         registry.declareVariable({
           name,
           description,
           scope: 'world',
           type: { kind: 'boolean' },
-          default: false,
+          default: on,
           onWorld(world, value) {
             for (const e of world.entities.values()) if (e.character) e.character.can[key] = value === true;
           },
@@ -329,6 +331,12 @@ export function createDojo(levels: Readonly<Record<string, Level>>): Cartridge {
         'Holding the jump while falling, the characters glide: they fall slowly, and steer more (stage 2c).',
       );
       capability('dojo.doublejump', 'doubleJump', 'One more jump in the air, pressing jump again (stage 2c).');
+      capability(
+        'dojo.crouch',
+        'crouch',
+        'Holding C on the ground, the characters crouch: slower, under what they could not stand under, seen and heard less (stage 4b).',
+        true,
+      );
       registry.declareVariable({
         name: 'dojo.air',
         description:

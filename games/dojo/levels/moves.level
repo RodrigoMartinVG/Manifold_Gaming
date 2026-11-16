@@ -1,0 +1,23 @@
+# Manifold level 7
+# What a body can do (stage 4b), growing with the stage: aim and throw on the open floor; crouch under
+# a low passage that standing does not fit; and walk towards a lamp an eye watches: standing, it sees
+# you soon; crouched (lower, and half as easy to see), only much closer.
+title What a body can do
+spawn -5 1 6
+facing 0 0 -1
+ambient 0.15
+
+box 0 -0.5 0  10 0.5 10  grid  name floor
+
+# The low passage, 4 m long and 2.4 m wide: two walls and a slab whose bottom is 1.15 m up. Standing
+# (1.6 m) it does not fit; crouched (1.1 m), it passes.
+box -1.6 0.95 -2  0.4 0.95 2    color #6f6a62
+box 1.6 0.95 -2   0.4 0.95 2    color #6f6a62
+box 0 1.4 -2      1.2 0.25 2    color #5a4a38  name low
+
+# The lamp and the eye (beside the post, so the post does not hide you): walking from the far end (z = 9)
+# towards the lamp, standing, the eye sees you
+# about 5 m from it; crouched, under 2 m.
+box 5 1.4 0       0.06 1.4 0.06 color #4a4440
+lamp 5 3 0        7 1           name lamp
+watcher 7 2 -9    16 70 0.35    rotate y 180  name eye

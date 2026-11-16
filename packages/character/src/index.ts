@@ -17,10 +17,14 @@ export const CHARACTER_SHAPE = { kind: 'capsule', halfHeight: 0.5, radius: 0.3 }
 /**
  * What the mannequin's body is in each way of moving where it is not the standing capsule (stage 2e,
  * for phase 4's blows), from its animations: crouched in the air, its knees up; gliding, tilted 55°
- * forward. (The controller moves the capsule always.)
+ * forward; crouching. (The controller moves the standing capsule, except crouching: stage 4b.)
  */
 export const POSES: Partial<Record<ModeName, CollisionPose>> = {
   air: { shape: { kind: 'capsule', halfHeight: 0.35, radius: 0.3 }, offset: [0, 0.1, 0], rotation: quat.identity() },
+  // Crouched (stage 4b): 1.1 m tall, its feet where they were, the mannequin's crouch inside it (its
+  // head, 1.09 m up at most: its back bent 55°). The controller moves this one while it crouches: it
+  // passes under a gap of 1.12 m (the controller keeps 2 cm).
+  crouch: { shape: { kind: 'capsule', halfHeight: 0.25, radius: 0.3 }, offset: [0, -0.25, 0], rotation: quat.identity() },
   glide: {
     shape: { kind: 'capsule', halfHeight: 0.5, radius: 0.3 },
     offset: [0, 0, 0],
@@ -40,7 +44,8 @@ export function characterParts(o: { player: number; facing: Vec3; color: number 
 } {
   return {
     body: { type: 'character', shape: { ...CHARACTER_SHAPE } },
-    character: { player: o.player, facing: [...o.facing], poses: POSES },
+    // It can crouch (stage 4b): every game's character goes low; a game may take it away.
+    character: { player: o.player, facing: [...o.facing], poses: POSES, can: { crouch: true } },
     appearance: { shape: 'capsule', size: [0.6, 1.6, 0.6], color: o.color, model: MANNEQUIN },
   };
 }

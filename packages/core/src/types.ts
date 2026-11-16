@@ -301,12 +301,17 @@ export interface Movement {
    * (m/s up), so it gets onto it; and how fast a jump from the wall takes it away from it (m/s).
    */
   climb: { speed: number; top: number; off: number };
+  /**
+   * Crouching (stage 4b): how fast it goes (m/s), and how much of it a watcher sees and how far its
+   * steps are heard, as parts of standing's (posture, decision 0000's stealth).
+   */
+  crouch: { speed: number; seen: number; heard: number };
   /** How fast it turns on its own axis when asked to (`turn` at 1), radians per second. */
   turn: number;
 }
 
-/** The ways of moving (stage 2b): exactly one at each step. Gliding and climbing came with stage 2c. */
-export type ModeName = 'walk' | 'air' | 'glide' | 'climb';
+/** The ways of moving (stage 2b): exactly one at each step. Gliding and climbing came with stage 2c; crouching with 4b. */
+export type ModeName = 'walk' | 'air' | 'glide' | 'climb' | 'crouch';
 
 /**
  * WHAT A CHARACTER CAN DO besides walking and jumping (stage 2c): each one, on or off, and it can
@@ -320,6 +325,8 @@ export interface Capabilities {
   glide: boolean;
   /** Pushing against a wall, it climbs it; jumping from it, it leaps off. */
   climb: boolean;
+  /** Holding `crouch` on the ground, it goes low (stage 4b): slower, under what it could not stand under, seen and heard less. */
+  crouch: boolean;
 }
 
 /**
@@ -420,6 +427,7 @@ export type CharacterSpec = Pick<Character, 'player'> & {
     jump?: Partial<Movement['jump']>;
     glide?: Partial<Movement['glide']>;
     climb?: Partial<Movement['climb']>;
+    crouch?: Partial<Movement['crouch']>;
     turn?: number;
   };
   can?: Partial<Capabilities>;

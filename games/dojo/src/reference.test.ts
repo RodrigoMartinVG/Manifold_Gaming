@@ -37,6 +37,10 @@ interface Seen {
   balls: number;
   /** How high each ball went (its center, m), in the order they were made. */
   heights: Map<number, number>;
+  /** Where player 1 was (its z) each time a watcher saw it. */
+  seenAt: number[];
+  /** Player 1's mode at each step, and where it was (its z). */
+  trail: { z: number; mode: string }[];
 }
 
 const hero = (s: Session, player = 1): Entity | undefined =>
@@ -47,7 +51,7 @@ function run(recipe: string, acts: Act[]): { session: Session; seen: Seen } {
   const errors = registry.run(recipe, 'recipe').filter((m) => m.level === 'error');
   expect(errors).toEqual([]);
   const session = new Session(DojoCartridge, { registry });
-  const seen: Seen = { notices: [], modes: new Set(), carried: 0, balls: 0, heights: new Map() };
+  const seen: Seen = { notices: [], modes: new Set(), carried: 0, balls: 0, heights: new Map(), seenAt: [], trail: [] };
   for (const act of acts) {
     const lines = typeof act.lines === 'function' ? act.lines(session) : (act.lines ?? []);
     for (const line of lines) expect(session.registry.run(line, 'console').filter((m) => m.level === 'error')).toEqual([]);
@@ -55,10 +59,14 @@ function run(recipe: string, acts: Act[]): { session: Session; seen: Seen } {
       session.setInput(1, act.drive?.(step) ?? NO_INPUT);
       if (session.world.players.has(2)) session.setInput(2, act.second?.(step) ?? NO_INPUT);
       session.step();
-      for (const ev of session.world.stepEvents)
-        if (ev.type === 'notice') seen.notices.push([ev.say, ...(ev.values ?? [])].join(' '));
       const h = hero(session);
+      for (const ev of session.world.stepEvents)
+        if (ev.type === 'notice') {
+          seen.notices.push([ev.say, ...(ev.values ?? [])].join(' '));
+          if (ev.say === 'dojo.seen' && h?.transform) seen.seenAt.push(h.transform.position[2]);
+        }
       if (h?.character) {
+        seen.trail.push({ z: h.transform!.position[2], mode: h.character.mode });
         seen.modes.add(h.character.mode);
         if (h.character.ground.velocity.some((v) => v !== 0)) seen.carried++;
       }
@@ -253,25 +261,32 @@ describe('the reference replays (stage 2.5a), recorded from their scripts', () =
 });
 
 describe('the reference replays of phase 4, growing with it', () => {
-  test('phase 4, what a body can do (from 4b): aiming up and down apart from where it looks, a ball thrown where it aims', async () => {
-    // On the course's open floor, looking at −Z: up, a little down, and almost straight up, each throw
-    // where it aims (its pitch, a quarter turn per unit); the last one looking at +X.
-    const aimed =
-      (pitch: number, face: [number, number, number] = [0, 0, -1]) =>
-      (s: number) => ({
-        face,
-        pitch,
-        'dojo.throw': s === 5,
-      });
-    const { session, seen } = run('seed 9\ndojo.level course', [
+  test('phase 4, what a body can do (from 4b): aiming up and down, a ball thrown where it aims; crouching under a low passage; seen later crouched', async () => {
+    // The room `moves`, written here. On its open floor, looking at −Z: up, a little down, and almost
+    // straight up, each throw where it aims (its pitch, a quarter turn per unit); the last one looking
+    // at +X.
+    const aimed = (pitch: number, face: [number, number, number] = [0, 0, -1]) => (s: number) => ({
+      face,
+      pitch,
+      'dojo.throw': s === 5,
+    });
+    const { session, seen } = run('seed 9\ndojo.level moves', [
       { steps: 30 },
-      { lines: ['dojo.goto 0 1 6'], steps: 90, drive: aimed(0.4) },
+      { steps: 90, drive: aimed(0.4) },
       { steps: 90, drive: aimed(-0.15) },
       { steps: 120, drive: aimed(0.8, [1, 0, 0]) },
+      // Standing, into the low passage along −Z: it does not fit; crouched, it passes, letting go of
+      // crouch halfway (it stays low until it is out), and stands.
+      { lines: ['dojo.goto 0 1 2'], steps: 120, drive: () => ({ move: [0, 0, -1] }) },
+      // (Two seconds crouched at 2 m/s: from z = 2, to about the middle of the passage.)
+      { lines: ['dojo.goto 0 1 2'], steps: 240, drive: (s) => ({ move: [0, 0, -1], crouch: s < 120 }) },
+      // From the far end towards the lamp: standing, then (from the dark again) crouched.
+      { lines: ['dojo.goto 5 1 9.5'], steps: 150, drive: () => ({ move: [0, 0, -1] }) },
+      { lines: ['dojo.goto 5 1 9.5'], steps: 60 },
+      { steps: 260, drive: () => ({ move: [0, 0, -1], crouch: true }) },
     ]);
     const c = hero(session)!.character!;
-    expect(c.pitch).toBe(72);
-    expect(c.facing).toEqual([1, 0, 0]);
+    expect(c.facing).toEqual([0, 0, -1]);
     // Thrown from the chest (1.2 m up): up at 36°, it rises about 2.7 m; at −13.5°, hardly at all; at
     // 72°, about 4.4 m.
     const [up, low, high] = [...seen.heights.values()];
@@ -279,10 +294,21 @@ describe('the reference replays of phase 4, growing with it', () => {
     expect(up! - 1.2).toBeGreaterThan(2.4);
     expect(low! - 1.2).toBeLessThan(0.1);
     expect(high! - 1.2).toBeGreaterThan(4);
+    // Under the slab (z from 0 to −4, and the body's radius past each end), always crouched; out of it,
+    // standing again. (Standing, it stopped before it: the first time it got there was crouched.)
+    const under = seen.trail.filter((t) => t.z < -0.3 && t.z > -3.7);
+    expect(under.length).toBeGreaterThan(60);
+    expect(new Set(under.map((t) => t.mode))).toEqual(new Set(['crouch']));
+    expect(seen.trail.some((t) => t.z < -4.5 && t.mode === 'walk')).toBe(true);
+    // Seen standing about 5 m from the lamp (at z = 0); crouched, under 2 m.
+    expect(seen.seenAt).toHaveLength(2);
+    expect(seen.seenAt[0]).toBeGreaterThan(4.5);
+    expect(seen.seenAt[1]).toBeLessThan(2);
+    expect(seen.notices.filter((n) => n === 'dojo.seen' || n === 'dojo.lost')).toEqual(['dojo.seen', 'dojo.lost', 'dojo.seen']);
     await expect(
       referenceText(
         session,
-        'Phase 4, what a body can do: aiming up and down apart from where it looks, a ball thrown where it aims.',
+        'Phase 4, what a body can do: aiming up and down, a ball thrown where it aims; crouching under a low passage; seen later crouched.',
       ),
     ).toMatchFileSnapshot('../replays/phase-4.replay');
     session.world.dispose();

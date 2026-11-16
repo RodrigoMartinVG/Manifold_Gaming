@@ -47,10 +47,10 @@ const at = (speed: number, degrees: number): Vec3 => {
  * average and at most; how much of the time a foot is on the ground; and how far, at most, the view held
  * a foot that was down from where the cycles' feet, mixed, had gone (feet.ts).
  */
-function slide(velocity: Vec3) {
+function slide(velocity: Vec3, mode = 'walk') {
   const copy = modelInstance(model);
   const character = {
-    mode: 'walk',
+    mode,
     grounded: true,
     facing: [0, 0, -1],
     pitch: 0,
@@ -104,6 +104,17 @@ describe("the mannequin's feet (after the tutorial's pass)", () => {
         expect(held, where).toBeLessThan(0.01);
       }
     console.log(report.join('\n'));
+  });
+
+  test('crouched (stage 4b), a foot on the ground stays where it is too: at 2 m/s, every way', () => {
+    for (const degrees of [0, 30, -45, 90, -90, 135, 180]) {
+      const { mean, most, down, held } = slide(at(2, degrees), 'crouch');
+      const where = `crouched at ${degrees}°: ${(mean * 100).toFixed(2)} cm/s (at most ${(most * 100).toFixed(1)}), down ${(down * 100).toFixed(0)}%, held ${(held * 100).toFixed(1)} cm`;
+      expect(down, where).toBeGreaterThan(0.45);
+      expect(mean, where).toBeLessThan(0.02);
+      expect(most, where).toBeLessThan(0.15);
+      expect(held, where).toBeLessThan(0.01);
+    }
   });
 
   test('paused, the feet stay as they are, and so do the legs (to a micron)', () => {

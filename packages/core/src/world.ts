@@ -1,5 +1,5 @@
 import { Random, quat, vec3, type Quat, type Vec3 } from '@manifold/common';
-import { moveCharacter, newCharacter } from './character';
+import { moveCharacter, newCharacter, poseOf } from './character';
 import { pressed } from './input';
 import { COMPONENT_NAME } from './components';
 import { EARTH, gravityAt } from './gravity';
@@ -877,9 +877,14 @@ export class World {
     const lamps = this.lampsOn();
     const fogs = this.attenuators();
     const characters: Entity[] = [];
+    // Where each one's body is (stage 4b: crouched, lower than its center), where light and sight reach.
+    const centers = new Map<EntityId, Vec3>();
     for (const e of this.entities.values())
       if (e.character && e.transform) {
-        e.character.light = this.lit(e.transform.position, e.id, lamps, fogs);
+        const offset = e.body ? poseOf(e.character, e.body).offset : ([0, 0, 0] as Vec3);
+        const center = vec3.add(e.transform.position, quat.rotate(e.transform.rotation, offset));
+        centers.set(e.id, center);
+        e.character.light = this.lit(center, e.id, lamps, fogs);
         characters.push(e);
       }
     for (const eye of this.entities.values()) {
@@ -889,14 +894,17 @@ export class World {
       const forward = quat.rotate(eye.transform.rotation, [0, 0, -1]);
       const now: EntityId[] = [];
       for (const e of characters) {
-        const to = vec3.sub(e.transform!.position, from);
+        const at = centers.get(e.id)!;
+        const to = vec3.sub(at, from);
         const d = vec3.length(to);
         if (d > w.range || d < 1e-9) continue;
         const direction = vec3.scale(to, 1 / d);
         if (vec3.dot(direction, forward) < w.cone) continue;
         const hit = this.castRay(from, direction, d, { skip: eye.id, besides: e.id });
         if (hit && hit.distance < d - 1e-6) continue;
-        if (e.character!.light * this.through(from, e.transform!.position, fogs) < w.threshold) continue;
+        // Crouched, a watcher sees less of it (stage 4b: its posture): it needs that much more light.
+        const posture = e.character!.mode === 'crouch' ? e.character!.movement.crouch.seen : 1;
+        if (e.character!.light * this.through(from, at, fogs) * posture < w.threshold) continue;
         now.push(e.id);
       }
       for (const id of w.sees) if (!now.includes(id)) this.emit({ type: 'lost', watcher: eye.id, entity: id });

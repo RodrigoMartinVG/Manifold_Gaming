@@ -4,6 +4,7 @@ import type { Cartridge } from './cartridge';
 import { aimOf, DEFAULT_MOVEMENT, faceFor, poseOf, turned } from './character';
 import { buildLevel, levelFromText } from './level';
 import { NO_INPUT } from './input';
+import { stepRadius } from './sound';
 import { stateHash } from './hash';
 import { initPhysics } from './physics';
 import { Session } from './session';
@@ -465,6 +466,119 @@ describe('the character (stage 1b)', () => {
     const withIt = climb(true);
     expect(withIt.modes.has('climb')).toBe(true);
     expect(withIt.onTop).toBe(true);
+  });
+
+  test('crouch (stage 4b): holding crouch on the ground it goes low and slow; let go, it stands; without the capability, nothing', () => {
+    const { world, hero } = setUp();
+    const c = hero.character!;
+    c.can.crouch = true;
+    run(world, 60);
+    // Low from the first step, every step: the low body is where it goes at once, its feet on the floor
+    // (Rapier would have moved it at its next step: for one step it hung 30 cm up, and fell).
+    const modes = new Set<string>();
+    run(world, 60, () => {
+      modes.add(c.mode);
+      return { ...input([1, 0, 0], false, true), crouch: true };
+    });
+    modes.delete('walk');
+    expect([...modes]).toEqual(['crouch']);
+    expect(c.grounded).toBe(true);
+    expect(c.mode).toBe('crouch');
+    // Running does not hurry it: its crouching speed.
+    expect(vec3.length(c.velocity)).toBeCloseTo(DEFAULT_MOVEMENT.crouch.speed, 6);
+    // Its body for blows is the low one, its feet where they were.
+    expect(poseOf(c, hero.body!).offset[1]).toBeCloseTo(-0.3, 9);
+    run(world, 2, () => input([1, 0, 0]));
+    expect(c.mode).toBe('walk');
+    c.can.crouch = false;
+    run(world, 10, () => ({ ...input([1, 0, 0]), crouch: true }));
+    expect(c.mode).toBe('walk');
+    // In the air, holding it is nothing: jumping from a crouch, it is in the air.
+    c.can.crouch = true;
+    run(world, 10, () => ({ ...input(), crouch: true }));
+    run(world, 5, (s) => ({ ...input([0, 0, 0], s === 1), crouch: true }));
+    expect(c.mode).toBe('air');
+    world.dispose();
+  });
+
+  test('crouch (stage 4b): standing, a beam 1.05 m up stops it; crouched, it passes; under it, let go, it stays low until there is room', () => {
+    // A beam across the way, from x = 2 to 4, its bottom 1.05 m above the floor.
+    const beam = (): [Vec3, Vec3][] => [
+      [
+        [3, 1.3, 0],
+        [1, 0.25, 3],
+      ],
+    ];
+    const standing = setUp({ boxes: beam() });
+    run(standing.world, 60);
+    run(standing.world, 120, () => input([1, 0, 0]));
+    expect(standing.hero.transform!.position[0]).toBeLessThan(1.75);
+    standing.world.dispose();
+
+    const { world, hero } = setUp({ boxes: beam() });
+    const c = hero.character!;
+    c.can.crouch = true;
+    run(world, 60);
+    // Crouched to the middle of it; there, it lets go of crouch and goes on: it stays low.
+    run(world, 300, () => ({ ...input([1, 0, 0]), crouch: hero.transform!.position[0] < 3 }));
+    const x = () => hero.transform!.position[0];
+    expect(x()).toBeGreaterThan(4.4);
+    const modes: [number, string][] = [];
+    const { world: w2, hero: h2 } = setUp({ boxes: beam() });
+    h2.character!.can.crouch = true;
+    run(w2, 60);
+    run(w2, 300, () => {
+      modes.push([h2.transform!.position[0], h2.character!.mode]);
+      return { ...input([1, 0, 0]), crouch: h2.transform!.position[0] < 3 };
+    });
+    // Low all the way under it (its body's radius, 0.3 m, past each end), standing again once out.
+    for (const [at, mode] of modes) if (at > 1.75 && at < 4.25) expect(mode, `at ${at}`).toBe('crouch');
+    expect(modes.at(-1)![1]).toBe('walk');
+    // And standing again, its body is the standing one: walking back, the beam stops it.
+    run(w2, 200, () => input([-1, 0, 0]));
+    expect(h2.transform!.position[0]).toBeGreaterThan(4.25);
+    world.dispose();
+    w2.dispose();
+  });
+
+  test('crouch (stage 4b): a snapshot taken crouched under the beam goes on exactly as the world it came from', () => {
+    const { world, hero } = setUp({
+      boxes: [
+        [
+          [3, 1.3, 0],
+          [1, 0.25, 3],
+        ],
+      ],
+    });
+    hero.character!.can.crouch = true;
+    run(world, 60);
+    // Crouched to under the beam; then, let go of crouch, on: it stays low until it is out.
+    run(world, 90, () => ({ ...input([1, 0, 0]), crouch: true }));
+    expect(hero.character!.mode).toBe('crouch');
+    expect(hero.transform!.position[0]).toBeGreaterThan(2);
+    const copy = World.restore(world.snapshot());
+    const go = () => input([1, 0, 0]);
+    run(world, 120, go);
+    run(copy, 120, go);
+    expect(stateHash(copy)).toBe(stateHash(world));
+    expect(hero.character!.mode).toBe('walk');
+    world.dispose();
+    copy.dispose();
+  });
+
+  test('crouch (stage 4b): its steps are heard half as far as standing ones at the same speed', () => {
+    const { world, hero } = setUp();
+    hero.character!.can.crouch = true;
+    run(world, 60);
+    const steps: { radius: number; speed: number }[] = [];
+    for (let i = 0; i < 180; i++) {
+      world.inputs.set(1, { ...input([1, 0, 0]), crouch: true });
+      world.step();
+      for (const ev of world.stepEvents) if (ev.type === 'sound' && ev.sound === 'step') steps.push(ev);
+    }
+    expect(steps.length).toBeGreaterThan(2);
+    for (const s of steps) expect(s.radius).toBeCloseTo(0.5 * stepRadius(null, s.speed, DEFAULT_MOVEMENT.walk.speed), 9);
+    world.dispose();
   });
 
   test('climb (stage 4a): it comes to its wall, to a centimeter from touching it, and never into it', () => {

@@ -124,6 +124,25 @@ describe('a watcher (stage 3d)', () => {
     world.dispose();
   });
 
+  test('crouched, it is seen less (stage 4b): lit at its lower center, and needing twice the light', () => {
+    const { world, step } = room();
+    world.setSignal('lights', 1);
+    // 3.6 m from the lamp when it stands: lit 0.45, over the eye's 0.3.
+    const a = hero(world, [0, 1, 2.85]);
+    a.character!.can.crouch = true;
+    step(30);
+    const standing = a.character!.light;
+    expect(world.named('eye')!.watcher!.sees).toEqual([a.id]);
+    world.inputs.set(1, { crouch: true });
+    step(5);
+    expect(a.character!.mode).toBe('crouch');
+    // Lower, a little farther from the lamp; and half seen: 0.42 × 0.5, under 0.3.
+    expect(a.character!.light).toBeLessThan(standing);
+    expect(a.character!.light).toBeCloseTo(0.05 + 1 - Math.hypot(2.5, 2.85) / 6, 2);
+    expect(world.named('eye')!.watcher!.sees).toEqual([]);
+    world.dispose();
+  });
+
   test('not behind a wall, not outside its field of view, not through a fog bank it would see it without', () => {
     const { world, step } = room();
     world.setSignal('lights', 1);
