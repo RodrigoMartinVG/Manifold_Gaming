@@ -1,0 +1,150 @@
+---
+title: Un personaje animado
+description: 'Un modelo es un esqueleto y unos clips: el giro de cada hueso en el tiempo. La vista elige y mezcla los clips según lo que dice la simulación (cuán rápido va, hacia dónde va y hacia dónde mira) y hace avanzar el ciclo con la distancia, para que los pies no patinen. La simulación no se entera.'
+sidebar:
+  order: 6
+---
+
+import LiveCode from '../../../../components/LiveCode.astro';
+
+Hasta acá, el personaje era una cápsula con un visor. Uno de verdad tiene piernas, que siguen al cuerpo: si va de costado, pasos de costado; si acelera, más largos y más seguidos; si se frena, quietas. Y el pie apoyado tiene que quedarse donde pisó: si se desliza, el personaje parece patinar sobre hielo.
+
+Un modelo animado tiene dos partes. Un **esqueleto** (_skeleton_): **huesos** (_bones_) en una jerarquía (la cadera, de ella el muslo, del muslo la canilla), y lo que se ve cuelga de los huesos. Y unos **clips** (_clips_): cómo gira cada hueso a lo largo del tiempo, guardado en **cuadros clave** (_keyframes_). Caminar hacia adelante es un clip; caminar hacia la derecha, otro.
+
+La idea de esta lección: **los clips los elige la vista**. La simulación dice dónde está el personaje, adónde mira y en qué [modo](../02-un-modo-por-paso/) está; la vista decide qué clips se ven, cuánto de cada uno y en qué punto de su ciclo. La simulación no se entera, como en [Simulación y dibujo](../../etapa-0/05-simulacion-y-dibujo/): cambiar una animación no cambia ninguna repetición. Y el ciclo avanza con la **distancia recorrida**, no con el reloj, para que el pie apoyado no patine.
+
+<LiveCode lesson="stage-2/06-animation" autorun />
+
+Una figura de cajas da vueltas sola a un cuadrado (es el piloto automático), más despacio en las esquinas. En la primera vuelta mira siempre al norte, hacia el fondo: cada lado lo recorre en otra dirección, hacia adelante, a su derecha, para atrás y a su izquierda. En la segunda mira adonde va; en la tercera, para atrás. La flecha amarilla dice adónde va; el visor, adónde mira. El pie apoyado se ilumina, y cada pie que aterriza deja una huella.
+
+**Qué probar:**
+
+1. **Mirá la primera vuelta.** _motion vs facing (°)_ (el movimiento contra adónde mira) pasa por 0, 90, 180 y −90, y _direction weights_ (los pesos por dirección) dice qué se mezcla: en un lado, un clip; en una esquina, dos. _foot slide (cm/s)_ (cuánto patina el pie apoyado) queda entre 2 y 9.
+2. **Apagá _phase by distance_** (la fase por la distancia). Cada clip corre con su propio reloj: los pies se van de las huellas, y _foot slide_ pasa de 20, hasta 65.
+3. **Apagá _blend directions_** (mezclar direcciones) y mirá una esquina de la primera vuelta: a los 45° cambia de clip de golpe, y en la diagonal los pies van hacia donde no va el cuerpo. Con _crossfade (s)_ (el fundido) en 0, el cambio es un salto.
+4. **Manejala.** Hacé clic en el dibujo y apretá WASD o las flechas (Shift corre). Mientras la manejás mira al norte: D la lleva de costado, S para atrás. Subí _speed (m/s)_ y mirá _run weight_ (el peso de correr). _autopilot_ (piloto automático) la devuelve a su camino.
+
+## El código, paso a paso
+
+- **El modelo es un árbol de objetos** (`buildFigure`, en `figure.ts`): cada hueso es un `Object3D` vacío en su articulación, y las cajas cuelgan de los huesos.
+- **Un clip son pistas de cuaterniones** (`QuaternionKeyframeTrack`), una por hueso, que lo encuentran por el nombre (`thigh_L.quaternion`). Se hacen desde los pies (`footAt` y `leg`), todos con el mismo largo y el mismo ritmo: el pie izquierdo da su paso en la primera mitad. Por eso se pueden mezclar.
+- **La simulación no sabe de clips** (`step`, en `main.ts`): mueve el punto, por su camino o por las teclas, y dice adónde mira.
+- **La vista lee cuánto avanzó de verdad** y saca la velocidad y el ángulo contra adónde mira. `gait` (en `gait.ts`) da los pesos por dirección (`byDirection`) y por velocidad (`runWeight`); `follow` los alcanza con un fundido (_crossfade_).
+- **Todas las acciones se reproducen a la vez** (`AnimationAction`), cada una con su peso (`setEffectiveWeight`) y en el mismo punto del ciclo (`action.time`), y el mezclador (`AnimationMixer`) combina los giros.
+- **La fase avanza con la distancia:** lo que avanzó el cuerpo, dividido por lo que lleva un ciclo de la mezcla (`strideOf`). Y el cuerpo dibujado gira a lo sumo 360° por segundo (`rotateTowards`), aunque la simulación lo dé vuelta de golpe.
+
+## Lo importante
+
+- **Un modelo es un esqueleto y unos clips:** huesos en una jerarquía, y el giro de cada hueso en el tiempo.
+- **La vista elige y mezcla, la simulación no se entera.** La vista lee lo que pasó de verdad: cuán rápido, hacia dónde, adónde mira y, en el motor, el modo.
+- **Por dirección, las dos más cercanas**, con pesos que hacen que el paso mezclado apunte adonde va el cuerpo.
+- **Una sola fase para todos los clips, que avanza con la distancia:** los pies no patinan, y si el cuerpo no avanza, el ciclo se detiene.
+
+## Más a fondo
+
+<details>
+<summary>Por qué la fase va con la distancia, y un clip que no patina</summary>
+
+Un ciclo de caminar lleva al cuerpo `D` = 1,2 m y dura `T` = 1 s: se hizo para `v₀ = D / T` = 1,2 m/s. Durante medio ciclo un pie está en el piso, y va para atrás, respecto de la cadera, `D / 2` = 0,6 m.
+
+**Con el reloj**, ese medio ciclo dura 0,5 s: el pie va para atrás a 1,2 m/s mientras el cuerpo va a `v`, y en el mundo se mueve a `v − v₀`. Entre 0,72 y 1,68 m/s, como en el ejemplo, patina hasta 48 cm/s.
+
+**Con la distancia**, la fase avanza `dφ = dx / D` cuando el cuerpo avanza `dx`, y el pie va para atrás `D · dφ = dx`: lo mismo que avanzó el cuerpo. En el mundo, no se mueve. Quieto, el ciclo se detiene. Por eso `dx` tiene que ser lo que avanzó **de verdad**: contra una pared, con la velocidad pedida, caminaría en el lugar.
+
+Esto vale si el clip barre de verdad `D`. El ejemplo lo arma desde el pie: en el piso, su distancia a la cadera es `A · (1 − 2u)`, con `A = D / 4` y `u` de 0 a 1, a paso parejo; en el aire vuelve con una curva que sale y llega a la velocidad del piso. La pierna sale de la **ley de los cosenos** (es **cinemática inversa**, _inverse kinematics_): con el muslo `L₁`, la canilla `L₂` y el pie a `d` de la cadera, el ángulo `α` entre el muslo y la recta al pie cumple `cos α = (L₁² + d² − L₂²) / (2 · L₁ · d)`. Con 0,45 m cada uno y el pie a 0,78 m, justo debajo, `α` = 30°, y la rodilla se dobla 60°.
+
+</details>
+
+<details>
+<summary>Pesos para que el paso apunte adonde va</summary>
+
+Cada clip barre los pies en su dirección: hacia adelante, 1,2 m por ciclo; hacia la derecha, 0,6 m (pasos más cortos, para que los pies no se crucen). Una mezcla barre la suma pesada, `w_a · (1,2; 0) + w_d · (0; 0,6)`, en metros hacia adelante y hacia la derecha.
+
+A 45°, mitad y mitad da (0,6; 0,3), que apunta a 27°: los pies van 18° de costado, y patinan `2 · v · sen 9°` ≈ 0,32 · `v`, 38 cm/s a 1,2 m/s. La suma tiene que apuntar al ángulo `θ` del movimiento: `w_a · D_a : w_b · D_b = cos θ : sen θ`, con `w_a + w_b = 1`. Despejando:
+
+`w_a = (cos θ / D_a) / (cos θ / D_a + sen θ / D_b)`
+
+A 45°: `cos θ / 1,2` = 0,589 y `sen θ / 0,6` = 1,179, un tercio hacia adelante y dos tercios a la derecha. La mezcla barre (0,4; 0,4), 0,57 m por ciclo: eso mide `strideOf`.
+
+Three.js mezcla hueso por hueso, con `slerp` ([la interpolación esférica](../../etapa-0/02-cuaterniones/)): el segundo clip entra con `w₂ / (w₁ + w₂)`, el tercero con `w₃ / (w₁ + w₂ + w₃)`. Mezclar giros no es exactamente mezclar pies: en diagonal quedan 2 o 3 cm/s.
+
+</details>
+
+<details>
+<summary>Cómo llega un modelo al motor: glTF</summary>
+
+Los modelos animados viajan en **glTF**: un JSON que describe la escena y los números en binario (en un `.glb`, juntos), en metros, con +Y arriba y el frente hacia +Z. Tiene **nodos** (_nodes_), un árbol con la posición, el giro (un cuaternión) y la escala de cada uno: un hueso es un nodo. Tiene **mallas**, **pieles** (_skins_: los huesos de un esqueleto, para una malla cuyos vértices siguen a varios) y **animaciones**: qué nodo mueven y qué cosa (`translation`, `rotation`, `scale`), con tiempos, valores y cómo interpolar (`LINEAR`, `STEP` o `CUBICSPLINE`). `GLTFLoader` lo convierte en un árbol de `Object3D` y unos `AnimationClip`: lo que el ejemplo arma a mano.
+
+El maniquí del Dojo lo modela y lo anima un guion, `art/mannequin.py`, que corre Blender sin pantalla. Once huesos, y de cada uno cuelga una pieza rígida, como en el ejemplo, sin piel. Al exportar hay tres trampas:
+
+- el exportador quita las pistas que no cambian: un codo doblado todo el ciclo pierde la suya, y el brazo camina estirado. Cada hueso guarda su pista en cada clip;
+- con las claves desde el cuadro 1, el ciclo sostiene su primera pose dos cuadros por vuelta. Se corren a 0 s;
+- un ciclo que no cae en cuadros enteros (0,45 s a 30 por segundo son 13,5) sale deformado, porque cada clave va al cuadro más cercano. Cada clip se arma en cuadros enteros.
+
+Una prueba lee el archivo tal cual y revisa todo eso.
+
+</details>
+
+:::caution[Sutilezas]
+
+- **Los pesos tienen que sumar 1.** Three.js completa lo que falta con la pose de reposo: si suman 0,8, la figura queda un 20% en reposo, con las piernas estiradas. `follow` mueve todos al mismo ritmo para que la suma no cambie.
+- **Cambiar la mezcla con un pie apoyado lo mueve.** En las esquinas la dirección cambia a mitad de un paso, y el pie patina unos centímetros por segundo; girando sobre sí mismo, igual (el promedio deja afuera los giros). Los motores lo tapan con cinemática inversa en los pies.
+- **El paso que supone la vista tiene que ser el que barre el clip.** Si no, el pie patina aun con la fase por la distancia (lo prueba el primer ejercicio). En el ejemplo, los dos salen de la misma tabla, `PACES`.
+- **El motor reparte en línea recta por el ángulo:** `directions` pone mitad y mitad a 45° y promedia los largos de los pasos; es más simple, y en una diagonal los pies apuntan un poco al costado. Además mide el ángulo contra adónde mira la simulación, y dibuja el giro a 900° por segundo.
+
+:::
+
+:::tip[Patrón: presentación separada]
+La simulación dice dónde está la figura y adónde mira; la vista elige los clips, sus pesos y su fase, y no escribe nada en el mundo. Es la **presentación separada** (_separated presentation_) de [Simulación y dibujo](../../etapa-0/05-simulacion-y-dibujo/), llevada hasta las piernas. [Todos los patrones del tutorial](../../patrones/#presentación-separada).
+:::
+
+## En los motores
+
+- **Unity:** en el `Animator`, un estado puede ser un árbol de mezcla (_blend tree_). El tipo _2D Freeform Directional_ pone los clips en un plano según su velocidad, y mezcla en tiempo normalizado: los pies tienen que tocar el piso en los mismos momentos de cada clip (el izquierdo en 0, el derecho en 0,5). _Apply Root Motion_ decide si la animación mueve al personaje.
+- **Unreal:** los espacios de mezcla (_Blend Spaces_), con ejes como la dirección y la velocidad. Los _Sync Groups_ alinean ciclos de distinto largo: uno manda (_leader_) y los demás lo siguen, o por marcas en las pisadas (_sync markers_).
+- **Godot:** un `AnimationTree` con un `AnimationNodeBlendSpace2D`: los clips son puntos en un plano, y se mezclan los tres del triángulo que contiene la entrada.
+- **En los libros:** Jason Gregory, _Game Engine Architecture_, cap. "Animation Systems": esqueletos, poses y clips, su tiempo normalizado (la fase), la mezcla y los fundidos, y el movimiento que mira hacia un lado y va hacia otro.
+
+**Dónde Manifold eligió otra cosa.** Sin movimiento de la raíz (_root motion_): la simulación mueve la cápsula y la animación la sigue, así una repetición o la red nunca dependen del arte. Qué clips y cuánto lo decide código puro, que se prueba sin pantalla, y no un grafo armado en un editor. Y el arte sale de un guion que se vuelve a correr.
+
+## En Manifold
+
+En [`locomotion.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/presentation/src/locomotion.ts), `directions`, `targets` y `advance` deciden los pesos y la fase, con números y sin three.js; en [`models.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/presentation/src/models.ts), `motion` mide cuánto avanzó de verdad, `turnBody` limita el giro y `animate` lo aplica al mezclador. El maniquí lo hace [`art/mannequin.py`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/art/mannequin.py) y lo revisa [`assets.test.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/games/dojo/src/assets.test.ts). Camina, corre y trepa en la sala [`circuit`](../../../jugar/dojo/circuit/) del Dojo, y la [Bitácora](../../../bitacora/etapa-2e2/) cuenta cómo se hizo.
+
+## Para practicar
+
+**1. Mentile a la vista.** En `strideOf`, multiplicá el resultado por 1,25. Antes de correrlo, predecí _foot slide (cm/s)_ en la segunda vuelta, que va hacia adelante a unos 1,2 m/s.
+
+<details>
+<summary>Una pista</summary>
+
+La fase avanza `dx / (1,25 · D)`: el pie va para atrás 0,8 de lo que avanza el cuerpo, y patina 0,2 · `v`.
+
+</details>
+
+**2. Pesos en línea recta, como el motor.** Cambiá `byDirection` para que a 45° dé mitad y mitad, y mirá las esquinas de la primera vuelta. ¿Cuánto sube _foot slide_?
+
+<details>
+<summary>Una pista</summary>
+
+`const f = inside / (Math.PI / 2)`, y después `w[here] = 1 - f` y `w[next] = f`. El recuadro de los pesos calcula cuánto patina a 45°.
+
+</details>
+
+**3. Una pared.** Poné una pared en x = 3 que la figura no pueda cruzar, y empujala contra ella con las teclas: tiene que quedarse quieta. Después hacé que la vista use la velocidad que piden las teclas.
+
+<details>
+<summary>Una pista</summary>
+
+En `step`, después de mover `sim.at`, limitá su `x` a 2,7 y dibujá una caja en x = 3. Para la versión equivocada, tomá la velocidad de `sim.velocity` y hacé avanzar la fase con `speed * dt` en vez de `went`.
+
+</details>
+
+## Para saber más
+
+- Jason Gregory, _Game Engine Architecture_, cap. "Animation Systems" (en inglés).
+- [Los árboles de mezcla de Unity](https://docs.unity3d.com/Manual/class-BlendTree.html) (en inglés): por qué los clips tienen que tocar el piso en los mismos momentos.
+- [Los _Sync Groups_ de Unreal](https://dev.epicgames.com/documentation/en-us/unreal-engine/animation-sync-groups-in-unreal-engine) (en inglés): ciclos de distinto largo, alineados por sus pisadas.
+- [La especificación de glTF 2.0](https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html) (en inglés).
+- [Cargar un glTF, en el manual de three.js](https://threejs.org/manual/#en/load-gltf), y [un ejemplo que mezcla y funde animaciones](https://threejs.org/examples/#webgl_animation_skinning_blending) (en inglés).
+- Simon Clavet, "Motion Matching and The Road to Next-Gen Animation", GDC 2016 (en inglés): en vez de mezclar unos pocos clips, buscar en mucha captura de movimiento el pedacito que mejor sigue.

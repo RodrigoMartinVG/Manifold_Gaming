@@ -67,6 +67,14 @@ El radio es de la simulación: hasta dónde un guardia oye ese sonido. El volume
 
 </details>
 
+:::caution[Sutilezas]
+
+- **Dos pasos en un cuadro.** En una máquina lenta, un cuadro puede traer dos pasos o más. Si cada paso vaciara la lista de eventos, el dibujo vería solo los del último, y se perdería un sonido. El ejemplo vacía la lista al empezar cada cuadro, y los pasos de ese cuadro la llenan: el dibujo los lee todos.
+- **Las paredes no tapan el sonido, todavía.** El radio es en el aire libre: un paso detrás de una pared se oye como si no estuviera. Para los parlantes casi no se nota; para un guardia, sí. Qué tapa el sonido (un rayo, o el camino que da la vuelta) es una decisión pendiente, para cuando haya guardias que oigan.
+- **Una pelota que ya no rebota sigue tocando.** Apoyada, la física le da choques minúsculos en cada paso; sin un mínimo, el metal sonaría para siempre. El ejemplo no oye un golpe de menos de 0,05 J, y el motor tiene el suyo.
+
+:::
+
 :::tip[Patrón: cola de eventos]
 La simulación no hace sonar nada: deja eventos en una lista, y el dibujo los lee en cada cuadro, aunque hayan pasado dos pasos. Es el patrón **cola de eventos** (_event queue_). [Todos los patrones del tutorial](../../patrones/#cola-de-eventos).
 :::

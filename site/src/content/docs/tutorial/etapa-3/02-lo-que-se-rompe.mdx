@@ -66,6 +66,14 @@ Cada cuerpo que la física de la simulación mueve cuesta en cada paso, en cada 
 
 </details>
 
+:::caution[Sutilezas]
+
+- **Un golpe es el paso en que empieza a tocar.** Mientras la pelota sigue tocando el jarrón, ya se está frenando. Si se anotara la energía en cada uno de esos pasos, quedaría la del último: una pelota que llegó con 38,5 J diría 23,5. El ejemplo y el motor miran solo el primer paso, con la velocidad con que llegó.
+- **Los fragmentos no pueden decidir nada.** Nadie los suma al hash, así que un fragmento que frena una pelota en una copia puede no frenarla en otra. Si un juego quiere escombros que paren un tiro, tienen que ser de la simulación: por ejemplo, un cuerpo simple para todo el montón, el mismo en cada copia.
+- **La semilla sale del azar del mundo, siempre en el mismo orden.** Si saliera de `Math.random` o del reloj, cada copia dibujaría otras astillas. Y si dos cosas se rompen en el mismo paso, el orden en que toman sus números tiene que ser el mismo en todos lados: el motor las recorre en un orden fijo, no en el que lleguen los choques.
+
+:::
+
 :::tip[Patrón: presentación separada]
 La simulación no sabe que hay fragmentos: deja un evento con una semilla, y el dibujo hace con él lo que quiere, en su propia física. Es el patrón **presentación separada** (_separated presentation_): lo que pasa, por un lado, y cómo se ve, por otro. [Todos los patrones del tutorial](../../patrones/#presentación-separada).
 :::

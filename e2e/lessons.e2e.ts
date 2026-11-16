@@ -305,3 +305,142 @@ test('saving as data: the progress loads after the engine changes, the photo doe
   await click(f, 'load an old save (v1)');
   await expect.poll(() => value(f, 'message')).toMatch(/version 1 save, brought forward/);
 });
+
+/** Ticks or unticks a checkbox of the example's panel, by the name of its row. */
+async function toggle(f: FrameLocator, name: string) {
+  const row = f.locator('.lil-gui .controller', { has: f.locator('.name', { hasText: name }) }).first();
+  await row.locator('input[type="checkbox"]').click();
+}
+const number = async (f: FrameLocator, name: string) => Number(await value(f, name));
+
+test('rays and sweeps: the ball stops a radius before the ray, only the ray fits the slot, a new box is seen a step later', async ({
+  page,
+}) => {
+  const f = await open(page, 'tutorial/etapa-2/05-rayos-y-barridos/');
+  await expect.poll(() => value(f, 'west, the wall')).toBe('5.00 / 4.75');
+  expect(await value(f, 'east, the slot')).toBe('5.00 / 2.75');
+  expect(await value(f, 'north, the glass')).toBe('3.00 / 2.75');
+  expect(await value(f, 'before the first step')).toBe('nothing');
+  await set(f, 'ball radius', '0.15');
+  await expect.poll(() => value(f, 'east, the slot')).toBe('5.00 / 4.85');
+  // (With the 15 cm ball, the far wall is 15 cm before the ray.)
+  await toggle(f, 'see the glass');
+  await expect.poll(() => value(f, 'north, the glass')).toBe('5.00 / 4.85');
+  await click(f, 'add a box in the way');
+  await expect.poll(() => value(f, 'new box: seen at once')).toBe('no');
+  await expect.poll(() => value(f, 'new box: seen after')).toBe('1');
+});
+
+test('an animated character: with the phase by distance the planted foot barely slides; by the clock it slides', async ({
+  page,
+}) => {
+  const f = await open(page, 'tutorial/etapa-2/06-un-personaje-animado/');
+  // The first lap looks north: its north side walks to its right, one clip alone.
+  await expect.poll(() => value(f, 'direction weights'), { timeout: 20_000 }).toBe('right 1.00');
+  const slide = await number(f, 'foot slide');
+  expect(slide).toBeGreaterThan(0);
+  expect(slide).toBeLessThan(12);
+  await toggle(f, 'phase by distance');
+  await expect.poll(() => number(f, 'foot slide'), { timeout: 20_000 }).toBeGreaterThan(18);
+});
+
+test('friction and bounce: ice slides where stone stays, rubber comes back up e² of the height, ice takes 65 steps to stop', async ({
+  page,
+}) => {
+  const f = await open(page, 'tutorial/etapa-3/05-friccion-y-rebote/');
+  await expect.poll(() => number(f, 'ice slid'), { timeout: 20_000 }).toBeGreaterThan(0.5);
+  expect(await number(f, 'stone slid')).toBeLessThan(0.01);
+  expect(await value(f, 'rubber: e²')).toBe('0.5');
+  await expect.poll(() => number(f, 'rubber bounced'), { timeout: 20_000 }).toBeGreaterThan(0.45);
+  expect(await number(f, 'rubber bounced')).toBeLessThan(0.5);
+  await expect.poll(() => value(f, 'stops on stone'), { timeout: 20_000 }).toBe('6');
+  await expect.poll(() => value(f, 'stops on ice'), { timeout: 20_000 }).toBe('65');
+  await set(f, 'combine rule', 'max');
+  await expect.poll(() => value(f, 'rubber: e²')).toBe('1.28');
+});
+
+test('mass: the capped push moves the crate and not the block; the crate is carried and stops at the wall', async ({ page }) => {
+  const f = await open(page, 'tutorial/etapa-3/06-la-masa/');
+  expect(await value(f, 'crate (kg)')).toBe('44.8');
+  expect(await value(f, 'block (kg)')).toBe('1228.8');
+  expect(await value(f, 'crate friction (N)')).toBe('242');
+  expect(await value(f, 'block friction (N)')).toBe('7233');
+  await expect.poll(() => number(f, 'crate pushed'), { timeout: 15_000 }).toBeGreaterThan(4);
+  expect(await number(f, 'block pushed')).toBeLessThan(0.1);
+  // Held against the see-through wall: the hand goes on, the crate does not go through.
+  await expect.poll(() => number(f, 'hand to crate'), { timeout: 15_000 }).toBeGreaterThanOrEqual(30);
+  expect(await number(f, 'into the wall')).toBeLessThanOrEqual(2);
+  expect(await number(f, 'block lifted')).toBeLessThan(5);
+  await toggle(f, 'cap the force');
+  await expect.poll(() => value(f, 'push, hold at most')).toBe('no limit');
+  await expect.poll(() => number(f, 'block lifted'), { timeout: 15_000 }).toBeGreaterThan(30);
+});
+
+test('the camera against walls: with the sweep it never gets near a wall or behind one; without it, it does', async ({
+  page,
+}) => {
+  const f = await open(page, 'tutorial/etapa-3/07-la-camara-contra-las-paredes/');
+  // Through the tunnel and round the first corners, the walls take something from the camera.
+  await expect.poll(() => number(f, 'cut (m)'), { timeout: 15_000 }).toBeGreaterThan(2);
+  expect(await number(f, 'closest to a wall')).toBeGreaterThanOrEqual(20);
+  expect(await value(f, 'frames with a wall between')).toBe('0');
+  await toggle(f, 'leash learns the wall');
+  await expect.poll(() => number(f, 'leash (m)'), { timeout: 15_000 }).toBeLessThan(4);
+  await toggle(f, 'leash learns the wall');
+  await toggle(f, 'sweep');
+  await expect.poll(() => number(f, 'frames with a wall between'), { timeout: 15_000 }).toBeGreaterThan(0);
+});
+
+test('the game’s interface: the language changes the words, never the key or the world', async ({ page }) => {
+  // Two runs of 300 steps each: on a slow machine the world steps slower than the clock (the frames are
+  // capped), so the waits are for the world's steps, with room.
+  test.setTimeout(180_000);
+  const f = await open(page, 'tutorial/etapa-3/08-la-interfaz-del-juego/');
+  await expect.poll(() => value(f, 'last notice (key)')).toMatch(/^notice\.(star|goal) \[/);
+  await expect.poll(() => value(f, 'last notice (words)')).toMatch(/estrella|Vuelta|La última/);
+  expect(await value(f, 'keys missing')).toBe('none');
+  await expect.poll(() => value(f, 'world hash'), { timeout: 60_000 }).toMatch(/^[0-9a-f]{8}$/);
+  const spanish = await value(f, 'world hash');
+  await set(f, 'language', 'en');
+  await expect.poll(() => value(f, 'last notice (words)')).toMatch(/A star|Lap done|The last one/);
+  await expect.poll(() => value(f, 'last subtitle')).toMatch(/^(Steps on (wood|metal)|A chime|A door) /);
+  await click(f, 'restart');
+  await expect.poll(() => value(f, 'world hash')).toBe('…');
+  await expect.poll(() => value(f, 'world hash'), { timeout: 60_000 }).toMatch(/^[0-9a-f]{8}$/);
+  expect(await value(f, 'world hash')).toBe(spanish);
+});
+
+test('a level that tests itself: few boxes, the export is the map, and its recipe passes; per cell, the ball hops', async ({
+  page,
+}) => {
+  const f = await open(page, 'tutorial/etapa-3/09-un-nivel-que-se-prueba-solo/');
+  expect(await value(f, 'cells')).toBe('135');
+  expect(await value(f, 'boxes')).toBe('17');
+  expect(await value(f, 'export = map')).toBe('yes');
+  await expect.poll(() => value(f, 'asserts passed'), { timeout: 30_000 }).toBe('3 of 3');
+  expect(await value(f, 'steps to the goal')).toBe('430');
+  await toggle(f, 'merge rectangles');
+  await expect.poll(() => value(f, 'boxes')).toBe('137');
+  expect(await value(f, 'export = map')).toBe('yes');
+  await expect.poll(() => value(f, 'asserts passed'), { timeout: 30_000 }).toBe('1 of 3');
+  expect(await number(f, 'highest hop')).toBeGreaterThan(2);
+});
+
+test('a dungeon from a seed: the same seed gives the same dungeon, all connected; another generator, another one', async ({
+  page,
+}) => {
+  const f = await open(page, 'tutorial/etapa-3/10-un-calabozo-con-una-semilla/');
+  await expect.poll(() => value(f, 'hash (map)')).toBe('744db12f');
+  expect(await value(f, 'rooms')).toBe('6 of 6');
+  expect(await value(f, 'floor cells')).toBe('182');
+  expect(await value(f, 'connected')).toBe('yes');
+  await click(f, 'same seed again');
+  await expect.poll(() => value(f, 'same as before')).toBe('yes');
+  await toggle(f, 'generator v2');
+  await expect.poll(() => value(f, 'hash (map)')).toBe('1a200ba1');
+  expect(await value(f, 'same as before')).toBe('no');
+  await toggle(f, 'generator v2');
+  await expect.poll(() => value(f, 'hash (map)')).toBe('744db12f');
+  await set(f, 'seed', '8');
+  await expect.poll(() => value(f, 'hash (map)')).toBe('2c2d14c7');
+});

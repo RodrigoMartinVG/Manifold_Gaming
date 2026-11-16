@@ -82,7 +82,7 @@ Para volver detrás del personaje, la cámara tiene que saber cuánto le falta g
 :::caution[Sutilezas]
 
 - **La cámara de la [lección del personaje](../02-un-personaje/) suaviza por cuadro:** `controls.target.lerp(…, 0.1)` recorre un 10 % de lo que falta en cada cuadro. Es el error de _per frame_: el segundo ejercicio lo arregla.
-- **La cámara atraviesa las paredes.** Una cámara de verdad lanza un rayo (o una esfera) desde la cabeza hasta donde quiere estar, y si choca con algo, se pone antes. La de este ejemplo no lo hace; la del motor sí, desde la etapa 3h.
+- **La cámara atraviesa las paredes.** Una cámara de verdad lanza un rayo (o una esfera) desde la cabeza hasta donde quiere estar, y si choca con algo, se pone antes. La de este ejemplo no lo hace; cómo se hace lo cuenta [La cámara contra las paredes](../../etapa-3/07-la-camara-contra-las-paredes/).
 - **La cámara puede usar `Math.atan2`.** No cambia el mundo, así que no importa si en otro navegador da otro bit. Lo único que la cámara le pasa al mundo es hacia dónde es "adelante" para el jugador, y eso entra redondeado a grados enteros: lo cuenta la [lección siguiente](../04-entradas-como-acciones/).
 - **Hay que seguir lo que se dibuja, no lo que se simula.** El motor dibuja al personaje entre sus dos últimos pasos (la interpolación de la etapa 0); una cámara que siguiera la posición del último paso temblaría.
   :::

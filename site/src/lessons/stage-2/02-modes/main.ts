@@ -211,7 +211,7 @@ onFrame((dt) => {
   const p = body.translation();
   hero.position.set(p.x, p.y, p.z);
   look.color.setHex(COLORS[c.mode]);
-  controls.target.lerp(new THREE.Vector3(p.x, p.y, p.z), 0.1); // the camera looks at it
+  controls.target.lerp(new THREE.Vector3(p.x, p.y, p.z), 1 - Math.exp(-6 * dt)); // the camera looks at it
   readout.mode = c.mode;
   readout.speed = `${c.v.length().toFixed(2)} m/s`;
   readout.vy = `${c.vy.toFixed(2)} m/s`;

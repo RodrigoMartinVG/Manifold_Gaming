@@ -62,6 +62,14 @@ Si empujaste una caja a otro lado y guardaste, al cargar la caja está donde emp
 
 </details>
 
+:::caution[Sutilezas]
+
+- **El progreso nombra lugares, no números de entidad.** Si guardara "tomó la gema número 17", una versión nueva del nivel con una gema más numeraría distinto, y la partida sacaría la equivocada. El ejemplo guarda celdas (`taken`); lo que se guarda tiene que significar lo mismo en la próxima versión del nivel: celdas, nombres.
+- **Una semilla vale lo que el código que la usa.** La misma semilla con otro generador da otro tablero (lo muestra [Un calabozo con una semilla](../10-un-calabozo-con-una-semilla/)), y las celdas guardadas ya no son las de las gemas. Cambiar el generador es cambiar lo que se guarda: otra versión del progreso y su migración, o el generador viejo guardado para las partidas viejas.
+- **Una partida guardada viene de afuera.** Es un texto que cualquiera puede abrir y cambiar. Al cargarla, se revisa como cualquier entrada, antes de tocar el mundo: en el motor, `readSave` rechaza una de otro formato, de otro juego o de una versión más nueva, diciendo por qué, en vez de romper el juego a la mitad. Lo que hay adentro del progreso lo revisa el juego, que es quien sabe qué significa.
+
+:::
+
 :::tip[Patrón: memento]
 La foto del mundo es un **memento** (_memento_): el objeto entrega algo que solo él sabe leer, y sabe volver a ello. Sirve, dentro de una versión. El progreso es lo contrario: datos que cualquiera puede leer, porque el juego los definió para durar. [Todos los patrones del tutorial](../../patrones/#memento).
 :::

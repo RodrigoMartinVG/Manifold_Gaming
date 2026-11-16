@@ -91,7 +91,7 @@ El arreglo sirve para las dos: mientras calcula, la plataforma que pisa es fija 
 - **Unity:** el truco más común es hacer al jugador **hijo** de la plataforma (`transform.SetParent`) al pisarla, y soltarlo al salir. Pero una plataforma con escala despareja deforma al hijo, y la física no se entera: el padre mueve al hijo como un teletransporte, sin velocidad, y al saltar no sale con la de la plataforma.
 - **Unreal:** el `CharacterMovementComponent` tiene una **base** de movimiento (_movement base_), lo que el personaje pisa. Guarda su lugar relativo a ella (`FBasedMovementInfo`) y en cada cuadro la sigue (_based movement_). Al despegarse, `bImpartBaseVelocityX`, `Y`, `Z` deciden si sale con su velocidad.
 - **Godot:** el `CharacterBody3D` se mueve con la velocidad del piso que pisa (`get_platform_velocity()`) en `move_and_slide()`, y al despegarse, `platform_on_leave` decide si la suma, solo la que va para arriba, o nada.
-- **En los libros:** Jason Gregory, _Game Engine Architecture_ (3.ª ed.), cap. 13 "Collision and Rigid Body Dynamics": los cuerpos que mueve el juego y no la física (_game-driven bodies_), y cómo se mueve un personaje entre ellos.
+- **En los libros:** Jason Gregory, _Game Engine Architecture_, el capítulo "Collision and Rigid Body Dynamics": los cuerpos que mueve el juego y no la física (_game-driven bodies_), y cómo se mueve un personaje entre ellos.
 
 **Dónde Manifold eligió otra cosa.** No hay jerarquía: el personaje nunca es hijo de nada. En cada paso, el motor calcula cuánto lleva la plataforma el punto donde está, con lo que se mueve en ese paso (que sale de su función), y lo suma después del controlador, que la vio fija, barriendo la cápsula a lo largo de ese viaje para que una pared lo detenga. Se parece a la base de Unreal, pero sin un lugar relativo guardado: solo se acumula el giro (`carriedTurn`). No hay escalas heredadas, nada se mueve a espaldas de la física, y cualquier paso se puede volver a calcular, como piden las repeticiones y la red. El costo: el piso hay que encontrarlo bien en cada paso.
 
@@ -121,7 +121,7 @@ Un ascensor es un `ferry` cuyo `from` y `to` difieren en `y`. Agregalo a la list
 
 </details>
 
-**3. Con la cápsula, no con el rayo.** Buscá lo que pisa con una cápsula un poco más delgada que la del personaje, barrida hacia abajo, para que la plataforma lo siga llevando hasta que sus pies dejen el borde.
+**3. Con la cápsula, no con el rayo.** (Los barridos los cuenta [Preguntarle al mundo](../05-rayos-y-barridos/).) Buscá lo que pisa con una cápsula un poco más delgada que la del personaje, barrida hacia abajo, para que la plataforma lo siga llevando hasta que sus pies dejen el borde.
 
 <details>
 <summary>Una pista</summary>
@@ -132,6 +132,6 @@ Un ascensor es un `ferry` cuyo `from` y `to` difieren en `y`. Agregalo a la list
 
 ## Para saber más
 
-- Jason Gregory, _Game Engine Architecture_, 3.ª ed., cap. 13 "Collision and Rigid Body Dynamics".
+- Jason Gregory, _Game Engine Architecture_, el capítulo "Collision and Rigid Body Dynamics".
 - [El controlador de personaje de Rapier](https://rapier.rs/docs/user_guides/javascript/character_controller) (en inglés): la holgura, los escalones, las pendientes y pegarse al piso.
 - La Bitácora de la [etapa 2d](../../../bitacora/etapa-2d/): de dónde salió todo esto, con sus hallazgos y lo que midió.

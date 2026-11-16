@@ -1,0 +1,152 @@
+---
+title: 'De qué está hecha cada cosa: fricción y rebote'
+description: 'Una caja de hielo resbala por una rampa donde una de piedra se queda quieta, y una pelota de caucho rebota donde una de madera casi no. Dos números por superficie, guardados como materiales con nombre; cómo se combinan los de dos superficies, y por qué al personaje la fricción no lo toca.'
+sidebar:
+  order: 5
+---
+
+import LiveCode from '../../../../components/LiveCode.astro';
+
+En la [lección del motor de física](../../etapa-1/00-motor-de-fisica/), cada forma tenía su rebote y su rozamiento, y nadie los cambiaba. Pero una caja de hielo tiene que resbalar por una rampa donde una de piedra se queda quieta, y una pelota de caucho tiene que rebotar donde una de madera apenas salta. Para un motor de física, eso son **dos números por superficie**.
+
+La **fricción** (_friction_), o rozamiento, dice cuánto sostiene una superficie lo que se apoya en ella. En el modelo de **Coulomb**, el de casi todos los motores, el roce llega como mucho a `μ` veces lo que se aprietan las dos superficies; `μ` es el **coeficiente de fricción**. De ahí sale una regla concreta: una caja en una rampa resbala cuando la tangente del ángulo pasa a `μ`, `tan θ > μ`, pese lo que pese. El **rebote** (_restitution_) es la parte de la velocidad que vuelve después de un choque, el **coeficiente de restitución** `e`, de 0 a 1: una pelota que cae de una altura `h` vuelve a subir `e² · h`.
+
+El motor guarda esos números como **materiales** (_materials_), con nombre: trae piedra, madera, metal, vidrio y hielo, y un nivel puede declarar los suyos. Cada cuerpo nombra su material y toma de ahí su fricción y su rebote. Queda una pregunta: un contacto tiene dos superficies, cada una con su número, y usa uno solo. ¿Cuál?
+
+<LiveCode lesson="stage-3/05-materials" autorun />
+
+Una rampa de piedra con seis cajas quietas: los cinco materiales del motor y el caucho (_rubber_), que el ejemplo declara como lo haría un nivel. Sobre cada caja, su `μ` contra la piedra. Adelante, seis pelotas de los mismos materiales caen 2 m sobre el piso de piedra; debajo de cada una, su `e`. A la izquierda, dos caminantes, sobre piedra y sobre hielo, corren, frenan y vuelven. Cada 8 segundos todo empieza de nuevo.
+
+**Qué probar:**
+
+1. **Mirá la rampa a 25°.** _tan(angle)_ (la tangente del ángulo) dice 0,466: resbalan las cajas de `μ` menor, el hielo (0,33) rápido y el vidrio (0,45) despacio. _ice slid (m)_ (cuánto se deslizó el hielo) llega a 4,3 m; _stone slid (m)_ queda en 0. **Subí _ramp angle_** (el ángulo de la rampa) a 27, 29 y 31,5: se van el metal, la madera y la piedra.
+2. **Cambiá _combine rule_** (la regla para combinar) a _min_: el hielo pasa a 0,05, y a 25° resbala también el metal. Con _max_, ninguna caja baja de 0,6 y nada se mueve; la pelota de caucho rebota con 0,8 y _rubber bounced (m)_ (hasta dónde rebotó) llega a 1,25 m.
+3. **Compará el rebote con la cuenta.** Con _average_, _rubber bounced (m)_ marca 0,484 y _rubber: e² × 2 m_, 0,5: casi, pero no exacto.
+4. **Mirá a los caminantes.** _stops on stone (steps)_ (en cuántos pasos frena sobre piedra) dice 6, y _stops on ice (steps)_, 65. **Hacé clic en el dibujo y caminá con W y S** (o las flechas): van los dos a la vez; soltá, y el del hielo sigue de largo. Con _traction_ (la tracción) apagada, los dos frenan en 6. _autopilot_ (el piloto automático) los vuelve a mover solos.
+
+## El código, paso a paso
+
+- **Un material es un nombre y cuatro números** (`Material`, en `materials.ts`): fricción, rebote, densidad y arrastre. Los del motor están en `MATERIALS`; el caucho sale de una línea de texto, como en un nivel (`readMaterial`).
+- **Cada forma dice de qué está hecha** (`madeOf`): `setFriction`, `setRestitution`, y la regla del panel para combinarlos (`setFrictionCombineRule`, `setRestitutionCombineRule`).
+- **Las cajas nacen quietas sobre la rampa** (`onRamp`), giradas como ella, y no pueden dormirse (`setCanSleep(false)`).
+- **`combine` hace la cuenta de Rapier** para escribir el `μ` y el `e` de cada contacto.
+- **Los caminantes no están en el mundo de Rapier** (`walk`): son cinemáticos, como un personaje. Su velocidad se acerca a la pedida como mucho `ACCELERATION · tracción · dt` por paso, con la tracción del piso (`tractionOf`).
+- **Cada 8 segundos, o cuando cambia el panel, el mundo se arma de nuevo** (`build`).
+
+## Lo importante
+
+- **La fricción sostiene hasta `μ` veces lo que se aprietan las superficies:** una caja resbala por una rampa cuando `tan θ > μ`, sin importar su masa.
+- **El rebote es la parte de la velocidad que vuelve,** `e`; la altura vuelve multiplicada por `e²`.
+- **Un contacto tiene dos superficies y usa un número:** Rapier saca el promedio, salvo que se le pida el menor, el producto o el mayor.
+- **Los materiales son datos del mundo, con nombre.** Al personaje, que es cinemático, la fricción no lo toca: el juego lee la del piso y la vuelve tracción.
+
+## Más a fondo
+
+<details>
+<summary>Por qué la tangente: el modelo de Coulomb, paso a paso</summary>
+
+Una caja de masa `m` sobre una rampa de ángulo `θ`. Su peso, `m · g`, se reparte en dos: `m · g · sen θ` a lo largo de la rampa, hacia abajo, y `m · g · cos θ` contra ella. La rampa empuja igual hacia afuera: es la fuerza normal, `N = m · g · cos θ`.
+
+Para Coulomb (y antes, Amontons, en 1699), la fricción es cualquier fuerza a lo largo de la superficie, contra el deslizamiento, **hasta** `μ · N`. Mientras alcance, la caja no se mueve. Alcanza si
+
+`m · g · sen θ ≤ μ · m · g · cos θ`
+
+La masa y la gravedad se van de los dos lados, y dividiendo por `cos θ` queda `tan θ ≤ μ`. El hielo contra la piedra (0,325) aguanta hasta `arctan 0,325 = 18,0°`, sea pesada o liviana la caja.
+
+Cuando resbala, la fricción vale justo `μ · N`, y lo que sobra la acelera: `a = g · (sen θ − μ · cos θ)`. Para el hielo a 25°, `9,81 · (0,423 − 0,325 · 0,906) = 1,26 m/s²`: en un segundo, `½ · 1,26 · 1² = 0,63 m`. En el ejemplo, la caja hizo 0,64 m.
+
+Los materiales de verdad tienen un coeficiente para arrancar (el **estático**) y otro, más chico, para seguir (el **dinámico**): por eso algo trabado arranca de golpe. Rapier usa uno solo para las dos cosas.
+
+</details>
+
+<details>
+<summary>Del rebote a la altura: por qué e²</summary>
+
+El coeficiente compara velocidades a lo largo de la normal del choque: `e = velocidad al salir / velocidad al llegar`.
+
+Una pelota que cae desde `h` llega con `v = √(2 · g · h)`: toda su energía de altura, `m · g · h`, se volvió energía de movimiento, `½ · m · v²`. Sale con `e · v`, y sube hasta que esa energía vuelve a ser altura:
+
+`h' = (e · v)² / (2 · g) = e² · v² / (2 · g) = e² · h`
+
+Cada rebote multiplica la altura por `e²`, así que el camino total (bajar, y después subir y bajar cada vez) es una serie geométrica: `h · (1 + e²) / (1 − e²)`. La de caucho, con `e = 0,5` desde 2 m, recorre `2 · 1,25 / 0,75 = 3,33 m`.
+
+`e²` es también la parte de la energía que le queda: la de caucho guarda un cuarto en cada golpe, y el resto se va en deformarse, en calor y en el ruido que oye un guardia en la [lección del sonido](../03-el-sonido-sale-de-los-eventos/). Rapier cumple la regla exacta en las velocidades: la pelota llega a 6,213 m/s y sale a 3,106.
+
+</details>
+
+<details>
+<summary>Combinar dos materiales: cuatro reglas, ninguna es la física</summary>
+
+La fricción de verdad es de un **par**: hielo contra acero no es hielo contra caucho. En vez de una tabla de pares, los motores le dan a cada material un número y combinan los dos con una regla. Las de Rapier, con el hielo (0,05) sobre la piedra (0,6):
+
+- **Promedio** (_average_, la que usa si no se le pide otra, y la del motor): `0,325`. Hielo sobre piedra agarra más de seis veces lo que hielo sobre hielo.
+- **Mínimo** (_min_): `0,05`. Gana el más resbaloso, y el hielo resbala sobre cualquier cosa, como el de verdad.
+- **Producto** (_multiply_): `0,03`. Pero piedra contra piedra da `0,36`, menos que la piedra.
+- **Máximo** (_max_): `0,6`. Gana el que más agarra: el caucho se sostiene sobre hielo.
+
+El rebote se combina igual. Si dos formas piden reglas distintas, Rapier usa la de más abajo en la lista. Cambiando el código del ejemplo se ve: con _max_ solo en la caja de hielo, a 25° se queda quieta, como con 0,6. Unity tiene el mismo orden. Box2D, el motor 2D de Erin Catto, usa por defecto la raíz del producto para la fricción, `√(μ₁ · μ₂)`, y el mayor de los dos rebotes.
+
+</details>
+
+:::caution[Sutilezas]
+
+- **Una caja que apenas resbala se duerme.** Rapier duerme un cuerpo que se mueve muy despacio durante un rato, y dormido ya no se mueve. A 18,5°, la de hielo acelera 0,09 m/s²; en medio segundo va a 5 cm/s, y Rapier la duerme después de 1,5 cm. Pasa hasta unos 19°: por eso las cajas del ejemplo no pueden dormirse. En el motor, una caja apenas por encima de su ángulo puede quedarse así en la rampa.
+- **El rebote queda un poco corto.** Rapier devuelve `e` veces la velocidad que la pelota trae en el paso del choque, y ese paso empieza antes de tocar el piso: 6,21 m/s, y no los 6,26 de caer 2 m enteros. Además, la subida se cuenta de a pasos. Sube 0,484 m en vez de 0,5, un 3% menos.
+- **Al personaje la fricción no lo toca.** Es cinemático (la [lección del personaje](../../etapa-1/02-un-personaje/) cuenta por qué): sus contactos no lo frenan. El motor lee la fricción del piso sola, sin combinarla, y la vuelve tracción: completa desde la de la piedra para arriba (sobre caucho no camina más rápido) y una doceava parte sobre hielo, donde a 4,5 m/s frena en 65 pasos y 2,39 m, en vez de 6 pasos y 0,17 m. Y como mientras toca el suelo no guarda velocidad, baja lento una pendiente empinada: 14 cm en dos segundos en una de 40°.
+
+:::
+
+:::tip[Patrón: objeto tipo]
+No hay una clase para la caja de hielo y otra para la de piedra: hay cajas, y cada una nombra un material, un dato con sus números. Un nivel inventa uno nuevo con una línea, sin tocar el código. Es el patrón **objeto tipo** (_type object_): los tipos son datos, no subclases. [Todos los patrones del tutorial](../../patrones/#objeto-tipo).
+:::
+
+## En los motores
+
+- **Unity:** un `PhysicsMaterial` (`PhysicMaterial` antes de Unity 6) tiene fricción dinámica y estática, rebote (_bounciness_) y cómo se combinan (`frictionCombine`, `bounceCombine`): promedio, mínimo, producto o máximo.
+- **Unreal:** un material físico (_Physical Material_) tiene fricción, rebote, las mismas cuatro reglas, una densidad y un tipo de superficie (_Surface Type_), que los juegos leen para elegir el sonido de un paso o la marca de un disparo.
+- **Godot:** un `PhysicsMaterial` tiene `friction` y `bounce`. De dos fricciones usa la menor, salvo que un material sea `rough` (áspero); los rebotes se suman, salvo que uno sea `absorbent` (absorbente).
+- **En los libros:** Ian Millington, _Game Physics Engine Development_, los capítulos "Collision Resolution" (la restitución) y "Resting Contacts and Friction" (Coulomb, la fricción estática y la dinámica). Jason Gregory, _Game Engine Architecture_, el capítulo "Collision and Rigid Body Dynamics": la respuesta a un choque, con el rebote y el rozamiento.
+
+**Dónde Manifold eligió otra cosa.** Un solo coeficiente de fricción, como Rapier, y el promedio en todos los contactos. Los materiales son datos del mundo, con nombre, en la huella y en las instantáneas: un nivel declara los suyos con una línea. El nombre es también la superficie, y el sonido de un paso se busca por él, sin un tipo de superficie aparte. Y al personaje no lo frena la fricción sino la tracción, una regla del juego, para que siga obedeciendo al jugador.
+
+## En Manifold
+
+Los materiales del motor y la tracción (`MATERIALS`, `tractionOf`) están en [`materials.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/materials.ts); el mundo los guarda por nombre (`World.materials`, `addMaterial`) y, en `createEntity`, un cuerpo toma su fricción, su rebote y su densidad ([`world.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/world.ts)). Un nivel declara los suyos con `material oil friction 0.02 bounce 0 density 900 drag 0.4`, y una caja dice `material ice` ([`level.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/level.ts)); `moveCharacter` lee la tracción del piso ([`character.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/character.ts)). La sala [`surfaces`](../../../jugar/dojo/surfaces/) del Dojo tiene una pista de hielo, y en la consola `inspect rink` dice de qué está hecha. La [Bitácora](../../../bitacora/etapa-3b/) cuenta cómo se hizo.
+
+## Para practicar
+
+**1. ¿A qué ángulo resbala?** Con _average_, calculá a qué ángulo empieza a resbalar cada caja, y comprobalo con _ramp angle_: medio grado por debajo, quieta; medio grado por encima, se va. Después, con _min_.
+
+<details>
+<summary>Una pista</summary>
+
+`θ = arctan μ`, con el `μ` escrito sobre cada caja. La de metal (0,5): `arctan 0,5 = 26,6°`; probá 26 y 27.
+
+</details>
+
+**2. Un material del nivel.** Declará el aceite, `material oil friction 0.02 bounce 0 density 900 drag 0.4`, con su caja y su pelota. Antes de mirar, predecí a qué ángulo resbala la caja y cuánto rebota la pelota.
+
+<details>
+<summary>Una pista</summary>
+
+Otro `readMaterial`, guardado en `materials` como el caucho. Con siete columnas, la rampa tiene que ser más ancha (su `cuboid` y su malla). Por promedio, `μ = 0,31` y `e = 0,1`: unos 17°, y 2 cm de rebote.
+
+</details>
+
+**3. Que se duerman.** Sacale a las cajas `setCanSleep(false)` y buscá entre qué ángulos la de hielo arranca, se mueve un poco y se queda quieta para siempre.
+
+<details>
+<summary>Una pista</summary>
+
+Mostrá en el panel `box.isSleeping()` y probá de a medio grado desde 18°. Por encima de cierto ángulo, en medio segundo ya va bastante rápido para que Rapier no la duerma.
+
+</details>
+
+## Para saber más
+
+- [Los colliders de Rapier](https://rapier.rs/docs/user_guides/javascript/colliders) (en inglés): la fricción, el rebote y sus reglas para combinarlos.
+- [El `PhysicsMaterial` de Godot](https://docs.godotengine.org/en/stable/classes/class_physicsmaterial.html) (en inglés): `rough` y `absorbent`.
+- [El coeficiente de restitución, en Wikipedia](https://en.wikipedia.org/wiki/Coefficient_of_restitution) (en inglés).
+- Ian Millington, _Game Physics Engine Development_, capítulos "Collision Resolution" y "Resting Contacts and Friction" (en inglés).
+- Robert Nystrom, ["Type Object"](https://gameprogrammingpatterns.com/type-object.html), en _Game Programming Patterns_ (en inglés): los tipos como datos.
+- La [Bitácora](../../../bitacora/etapa-3b/): los materiales, el hielo y la corriente del Dojo, con lo que se midió.

@@ -1,0 +1,140 @@
+---
+title: Un calabozo con una semilla
+description: 'Salas donde caben, pasillos que doblan una vez, más salas cuanto más hondo: un calabozo armado a partir de una semilla, el mismo en cualquier navegador. Una prueba lo recorre, y una huella lo resume para compararlo.'
+sidebar:
+  order: 10
+---
+
+import LiveCode from '../../../../components/LiveCode.astro';
+
+Un calabozo (_dungeon_) hecho a mano es un archivo: alguien dibujó cada sala. Uno hecho por **generación por procedimiento** (_procedural generation_) lo arma un programa: tira dados, prueba dónde poner una sala, la une con la anterior. Así tienen otro calabozo en cada partida los juegos que siguieron a Rogue, de 1980.
+
+Pero un mundo determinista no puede tirar dados de verdad: una repetición, una partida guardada y dos jugadores en red necesitan el mismo calabozo. Por eso el azar sale de una [semilla](../../etapa-0/04-azar-con-semilla/) (_seed_): los mismos números, y con ellos **el mismo calabozo, en cualquier navegador**. Guardar un calabozo entero es guardar un número.
+
+Para confiar en eso, una prueba **recorre** el mapa sin creerle al procedimiento, y una **huella** (_hash_), un número corto que cambia si cambia cualquier celda, compara un calabozo hecho aquí con uno hecho en otro lado.
+
+<LiveCode lesson="stage-3/10-dungeon" autorun />
+
+Primero, cada sala que el procedimiento intenta poner aparece un momento: las que caben quedan verdes, las que pisan otra (o quedan pegadas a ella) destellan en rojo. Después, el calabozo, hecho de cajas: gemas azules, la llave dorada y la salida, una luz roja. Un explorador lo recorre de la primera sala a la salida, una y otra vez. En la consola, el mismo calabozo como texto.
+
+**Qué probar:**
+
+1. **Tocá _same seed again_** (la misma semilla, otra vez). Las mismas pruebas, en el mismo orden, y el mismo calabozo: _same as before_ (igual que antes) dice yes, y _hash (map)_ (la huella del mapa) sigue en 744db12f. Cambiá la semilla (_seed_) a 8 y volvé a 7: vuelve el primero.
+2. **Subí la profundidad** (_depth_). El mapa crece y pide una sala más: _rooms_ (salas) dice 7 of 7 a profundidad 3, _tries_ (pruebas) cuenta las que hicieron falta, y _connected_ (unido) sigue en yes.
+3. **Prendé _generator v2_** (el generador, versión 2). Pide un solo número más, al principio, para el color del piso. Ese número corre a todos los demás un lugar, y la semilla 7 es otro calabozo: otra huella, y _same as before_ dice no.
+4. **Manejá al explorador:** hacé clic en el dibujo y usá WASD o las flechas. Camina solo por donde hay piso; _autopilot_ (piloto automático) lo devuelve a su recorrido.
+
+## El código, paso a paso
+
+- **El azar del calabozo es solo suyo** (`randomFor`, en `dungeon.ts`): nace de la semilla y la profundidad, revueltas, y nadie más le pide números. `between` lo convierte en enteros.
+- **Más hondo, más grande:** a profundidad 1, un mapa de 21 × 21 celdas y 5 salas; cada nivel, 4 celdas más por lado y una sala más, hasta 37 y 9.
+- **Salas donde caben** (`apart`): un rectángulo al azar, de 3 a 6 celdas por lado, que se queda solo si entre él y cada sala queda una celda, para una pared. Hasta 400 pruebas (`tries`).
+- **Pasillos que doblan una vez** (`dig`): del centro de cada sala al de la anterior, primero por la fila y después por la columna, o al revés, según un número de la semilla.
+- **Lo que hay adentro:** la salida en la última sala, la llave en la del medio, una gema en las demás menos la primera, donde empieza el explorador. Y paredes donde el piso las toca, también en diagonal.
+- **Las pruebas** (`checks.ts`): `reachable` cuenta a cuántas celdas de piso se llega desde la primera sala; `textHash` resume el mapa en ocho cifras hexadecimales, con la cuenta del motor (FNV-1a).
+- **El dibujo lee el mapa** (`build`, en `main.ts`): una caja por cada tramo de pared o de piso de una fila. El explorador sigue el recorrido de los pasillos (`route`), o las teclas, y con ellas pisa solo donde hay piso (`free`).
+
+## Lo importante
+
+- **Un calabozo de semilla es una función** de la semilla y la profundidad al mapa: lo mismo, siempre y en todos lados.
+- **Probar y descartar**, o muestreo por rechazo (_rejection sampling_): un rectángulo al azar se queda si cabe, con un tope de pruebas para que termine.
+- **Al procedimiento no se le cree: se lo recorre.** Un relleno por inundación (_flood fill_) desde la primera sala tiene que llegar a todo el piso.
+- **La semilla vale lo que el código que la usa:** un número de más en el generador cambia todos los calabozos.
+
+## Más a fondo
+
+<details>
+<summary>Por qué da lo mismo en cualquier navegador</summary>
+
+Tres reglas:
+
+- **Solo enteros.** El generador da `estado / 2³²`, una división por una potencia de 2, exacta. Multiplicada por la cantidad de valores (de 3 a 6 son 4) y redondeada para abajo, da un entero, también exacto. Nunca un seno ni una potencia, que cada navegador calcula a su manera ([Números que no son exactos](../../etapa-0/06-numeros-que-no-son-exactos/)).
+- **Un azar propio.** Si el calabozo compartiera el azar con el mundo, un número que otro pidiera antes (un sonido, una astilla) correría a todos los que siguen.
+- **El mismo orden.** El ancho, el alto, la columna y la fila; las salas, en una lista. (En Go, recorrer un mapa da otro orden en cada corrida, a propósito.)
+
+Y la semilla se **revuelve** antes de usarla, con las cuentas del motor (multiplicaciones y corrimientos de bits): con este generador, el primer número de la semilla 7 y el de la 8 difieren en 0,0004, y sus primeras salas serían casi iguales.
+
+</details>
+
+<details>
+<summary>Por qué todo queda unido, paso a paso</summary>
+
+1. **Un pasillo es un camino.** Va del centro de la sala anterior, `(c₀, r₀)`, a una esquina, `(c₁, r₀)` o `(c₀, r₁)`, y de ahí al centro de la nueva, `(c₁, r₁)`. Dos tramos rectos que comparten la esquina: de un centro al otro se camina sin saltar, a lo largo de `|c₁ − c₀| + |r₁ − r₀| + 1` celdas.
+2. **Una sala está unida por dentro:** es un rectángulo de piso.
+3. **Por inducción.** La sala 0 está unida consigo misma. Si las salas 0 a `i − 1` están unidas con la 0, la `i` también, porque su pasillo la une con la `i − 1`. Entonces, todas.
+4. **Nada lo rompe después.** Lo que hay en las salas se pone sobre el piso; las paredes, solo donde no hay piso.
+
+El relleno por inundación lo comprueba sin creer nada de eso. Una cola (_queue_) empieza con el centro de la primera sala; se saca una celda, y cada vecina (arriba, abajo, a los costados) que sea piso y no se haya visto se marca y se agrega. Cuando la cola se termina, lo marcado es lo que se alcanza: cada celda entra una vez y mira cuatro vecinas. Si un cambio hace falso el paso 4, el razonamiento no se entera; la prueba, sí.
+
+</details>
+
+<details>
+<summary>Probar y descartar: de dónde viene, y cuánto tarda</summary>
+
+Es el **método de rechazo** (_rejection method_), que John von Neumann describió en 1951: para sacar algo difícil de sacar directamente, se saca de algo fácil (cualquier rectángulo) y se descarta lo que no cumple (que pise otra sala).
+
+Si una prueba cabe con probabilidad `p`, el promedio `E` de pruebas hasta la primera que cabe cumple `E = p · 1 + (1 − p) · (1 + E)`: o la primera cabe, o no cabe y todo empieza de nuevo, con una gastada. Desarmando, `E = 1 + E − p · E`; restando `E` de los dos lados, `p · E = 1`, o sea `E = 1 / p`. Si cabe una de cada cuatro, cuatro pruebas.
+
+Pero `p` baja a medida que el mapa se llena: con la semilla 7 a profundidad 2, las salas entran en las pruebas 1, 2, 4, 9, 17 y 28. Por eso el tope: sin él, en un mapa donde ya no cabe nada, se probaría para siempre. En 10.000 calabozos del ejemplo (semillas 0 a 999, profundidades 1 a 5, las dos versiones), el promedio es de 13,7 pruebas, y el que más usó, 108.
+
+</details>
+
+:::caution[Sutilezas]
+
+- **Puede poner menos salas de las que pide**, siempre igual para la misma semilla. En el ejemplo no le pasa a ninguna de 0 a 999; en el motor, de las semillas 0 a 100.000 a profundidad 1, la 455 y la 83.971 ponen 4 salas de 5. Lo que viene después cuenta las que entraron: la llave y la salida se reparten entre esas.
+- **El orden de las preguntas es parte del generador.** Los mismos números en otro orden son otro calabozo; hasta el orden de los campos de `{ cols, rows, col: …, row: … }` decide. _generator v2_ lo muestra.
+- **La misma semilla, con otro generador, es otro calabozo.** Una partida guardada apunta a una semilla ([Guardar como datos](../04-guardar-como-datos/)): si el generador cambia, carga otro calabozo, y las celdas de donde el jugador tomó algo ya no son las de las gemas. Comparar Node con un navegador no lo ve, porque los dos corren el código nuevo: hay que anotar la huella de algunos calabozos y compararla con cada cambio.
+- **El calabozo del ejemplo no es el del motor.** Las reglas son las mismas, pero el azar no (el ejemplo usa el generador de [Azar con semilla](../../etapa-0/04-azar-con-semilla/); el motor, uno mejor, SFC32): la semilla 7 de aquí y la de la aventura dan calabozos distintos. Y el motor saca la huella del nivel entero escrito como texto, no solo del mapa.
+
+:::
+
+## En los motores
+
+- **Rogue (1980):** una grilla de 3 × 3 en la pantalla, una sala en cada lugar (a veces, solo un cruce de pasillos), y las vecinas unidas. Por él, sus herederos se llaman _roguelikes_.
+- **Diablo (1996):** cada nivel sale de una semilla propia, sacada de la de la partida; en red, todas las computadoras arman los mismos niveles sin mandárselos.
+- **Spelunky (2008):** una grilla de 4 × 4 salas. Primero, un camino de arriba abajo, para que siempre se llegue a la salida; después, cada sala desde una plantilla (_template_) hecha a mano, con partes al azar.
+- **The Binding of Isaac: Rebirth (2014):** salas hechas a mano, puestas en una grilla; muestra la semilla, y se puede escribir otra para jugar los pisos de alguien.
+- **Unity, Unreal y Godot no traen un generador de calabozos**, sino azar con semilla: `Random.InitState` en Unity (un solo azar para todo el juego), `FRandomStream` en Unreal, `RandomNumberGenerator` en Godot. El marco de generación por procedimiento de Unreal (_PCG framework_) es para poblar un terreno (árboles, rocas), no para armar salas.
+- **Las maneras clásicas:** salas que se prueban y se descartan, como aquí; partir el mapa en dos, y cada mitad en dos (un **árbol de partición binaria**, _BSP tree_); y un **autómata celular** (_cellular automaton_), que alisa ruido hasta que parece una cueva.
+- **En los libros:** Noor Shaker, Julian Togelius y Mark J. Nelson, _Procedural Content Generation in Games_ (Springer, 2016), cap. 3, "Constructive generation methods for dungeons and levels": la partición del espacio, los agentes que cavan, los autómatas celulares.
+
+**Dónde Manifold eligió otra cosa.** **El generador no construye nada: escribe un nivel como texto**, con un mapa de caracteres, que el motor construye como cualquier nivel hecho a mano ([Un nivel que se prueba solo](../09-un-nivel-que-se-prueba-solo/)). Así hay un solo camino para todos los niveles, y una huella de ese texto que se compara entre navegadores. Y un calabozo de semilla **no es contenido sin fin** ([decisión 0017](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/docs/decisions/0017-phase-5-scope.md)): son unas pocas salas armadas de otra manera, para un juego corto.
+
+## En Manifold
+
+En [`games/adventure/src/dungeon.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/games/adventure/src/dungeon.ts), `dungeon(seed, depth)` arma el calabozo con su azar propio y lo escribe como nivel, y `textHash` saca su huella; [`dungeon.test.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/games/adventure/src/dungeon.test.ts) recorre 180 calabozos desde el comienzo, y [`rules.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/games/adventure/src/rules.ts) los construye (`buildDungeon`). Se juegan en [la aventura](../../../jugar/aventura/), y [La misma huella](../../../jugar/la-misma-huella/#el-mismo-calabozo) hace seis en tu navegador. La sala [`maze`](../../../jugar/dojo/maze/) del Dojo es un mapa dibujado a mano. La [Bitácora](../../../bitacora/etapa-3k/) cuenta cómo se hizo.
+
+## Para practicar
+
+**1. Menos pruebas.** Bajá el tope de 400 pruebas a 20. ¿Cuántas salas pone la semilla 7 a profundidad 2, que usaba 28? ¿Sigue unido? ¿Están la llave y la salida?
+
+<details>
+<summary>Una pista</summary>
+
+El tope está en el `while` de `makeDungeon`. Antes de cambiarlo, mirá en qué pruebas entran las salas (las verdes) y predecí. Los pasillos unen las salas que entraron, sean cuantas sean.
+
+</details>
+
+**2. Romperlo a propósito.** Saltá el pasillo de la tercera sala y probá semillas hasta que _connected_ diga no. Con la 7 sigue en yes: ¿por qué?
+
+<details>
+<summary>Una pista</summary>
+
+En el `for` de los pasillos, `if (previous && room !== rooms[2])` en vez de `if (previous)`. Mirá el mapa en la consola: un pasillo puede atravesar otra sala, y la une igual. A profundidad 2, casi tres semillas de cada cuatro siguen unidas; la 4 y la 8, no.
+
+</details>
+
+**3. Un color que no mueve nada.** Que la versión 2 elija el color del piso sin cambiar el calabozo: con _generator v2_ prendido, _same as before_ tiene que decir yes.
+
+<details>
+<summary>Una pista</summary>
+
+Dos maneras: pedir el número del color al final, después de todo lo demás, o darle al color su propio generador, como el motor le da el suyo a cada calabozo (`createRandom(seed + 1)`). La segunda aguanta mejor el próximo cambio, que quizás agregue algo al final.
+
+</details>
+
+## Para saber más
+
+- Noor Shaker, Julian Togelius y Mark J. Nelson, _Procedural Content Generation in Games_ (Springer, 2016), cap. 3 (en inglés; los capítulos se leen libres en [pcgbook.com](http://pcgbook.com/)).
+- Bob Nystrom, ["Rooms and Mazes: A Procedural Dungeon Generator"](https://journal.stuffwithstuff.com/2014/12/21/rooms-and-mazes/) (2014, en inglés): salas al azar descartadas si se pisan, como aquí, y laberintos que llenan el resto.
+- [RogueBasin](https://www.roguebasin.com/) (en inglés): artículos sobre la partición binaria ("Basic BSP Dungeon generation") y las cuevas con autómatas celulares ("Cellular Automata Method for Generating Random Cave-Like Levels").

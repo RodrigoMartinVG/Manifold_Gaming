@@ -66,6 +66,14 @@ El vigía mira en una dirección `m` (de largo 1). Un punto está en su campo de
 
 </details>
 
+:::caution[Sutilezas]
+
+- **Lo que se ve llega más lejos que lo que cuenta.** Las luces de three.js del ejemplo se apagan con el cuadrado de la distancia y llegan hasta una vez y media el radio; la luz lógica cae en línea recta y termina en el radio. En ese borde, el personaje puede verse iluminado y contar como oscuro. Decide la simulación; si la diferencia confunde, que el dibujo muestre el radio (en el Dojo, `show.light`).
+- **La luz se mide en un punto.** En el ejemplo y en el motor, la de un personaje es la de su centro. Con medio cuerpo asomado detrás de la columna, está entero en la luz o entero en la sombra, según dónde caiga ese punto. Medir en varios (la cabeza, el pecho, los pies) es más justo, y cuesta un rayo por lámpara por cada punto.
+- **Cada pregunta recorre todas las lámparas.** La luz de un punto pide un rayo por lámpara, y la niebla, una cuenta por cada banco. Con muchos personajes y muchas lámparas eso suma: el motor junta las lámparas prendidas y las nieblas una vez por paso, no en cada pregunta, y una prueba de rendimiento lo vigila (la [Bitácora](../../../bitacora/etapa-3d/) cuenta cómo se midió).
+
+:::
+
 ## En los motores
 
 - **Thief (1998):** el juego de sigilo que lo inventó. Cada punto del mapa tenía una luz precalculada, y el medidor de luz de la pantalla decía cuán visible estabas; los guardias lo leían.

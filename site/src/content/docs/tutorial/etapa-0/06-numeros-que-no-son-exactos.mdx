@@ -93,6 +93,7 @@ Medido en este tutorial contra el valor exacto, en cada grado entero: el seno y 
 - **`NaN` no es igual a nada**, ni a sí mismo: `NaN === NaN` es falso. Y `JSON.stringify` lo convierte en `null`.
 - **Los enteros son exactos hasta 2⁵³** (9.007.199.254.740.992). Desde ahí, `2 ** 53 + 1` da `2 ** 53`: ya no hay lugar para el 1. Un contador de pasos no llega nunca: a 60 pasos por segundo, tardaría casi cinco millones de años.
 - **El dibujo también cuenta con 32 bits.** Por eso el ejemplo dibuja cada pelota relativa al punto, y no en su lugar verdadero: lejos del origen, la placa de video haría temblar hasta a la verde.
+- **En los ejemplos del tutorial, la regla no rige.** Cada ejemplo corre en un solo navegador y nadie compara sus bits con los de otro, así que usan `Math.sin`, `Math.hypot` o `setFromAxisAngle` cuando se leen mejor. La regla es del motor: su simulación tiene que dar los mismos bits en Chrome, Firefox, Safari y Node, y por eso el revisor de código la hace cumplir solo ahí.
   :::
 
 ## En los motores

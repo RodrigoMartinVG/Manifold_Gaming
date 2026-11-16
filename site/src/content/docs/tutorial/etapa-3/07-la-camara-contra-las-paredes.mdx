@@ -1,0 +1,143 @@
+---
+title: La cámara contra las paredes
+description: 'Una cámara en tercera persona barre una esfera desde la cabeza del personaje hasta donde quiere estar. Si encuentra una pared, se muestra antes, de golpe, y cuando el camino se despeja vuelve despacio. Lo que toma una pared es solo de lo que se muestra.'
+sidebar:
+  order: 7
+---
+
+import LiveCode from '../../../../components/LiveCode.astro';
+
+En [La cámara que sigue](../../etapa-1/03-la-camara-que-sigue/), la cámara iba atada al personaje con una correa (_leash_), en un campo abierto. En un pasillo, esa correa la mete en las paredes: en cada vuelta queda detrás del muro que el personaje acaba de doblar, y debajo de un techo bajo queda arriba del techo. El jugador ve una pared.
+
+Casi todos los juegos en tercera persona lo resuelven igual. En cada cuadro **barren una esfera** (_sphere cast_) desde la cabeza del personaje hasta donde la cámara quiere estar, como en [Rayos y barridos](../../etapa-2/05-rayos-y-barridos/). Si encuentra algo, la cámara **se muestra antes, de golpe**: un solo cuadro detrás de una pared ya tapa al personaje. Cuando el camino se despeja, **vuelve despacio**, para no saltar hacia atrás cada vez que una esquina deja de taparla.
+
+Y una idea que se pierde con facilidad: lo que una pared le saca a la cámara es solo de **lo que se muestra**. La correa sigue trabajando desde donde la cámara **quiere** estar. Si no, aprende la distancia de cada pared, y la cámara se queda cerca para siempre.
+
+<LiveCode lesson="stage-3/07-camera-walls" autorun />
+
+Un pasillo de cajas: un anillo de 2 m de ancho alrededor de un bloque, con paredes de 4,5 m y un túnel con techo a 3 m (desde arriba, ese techo se ve transparente). El personaje da una vuelta cada 12,4 segundos, con la cámara atada detrás. En la vista grande, desde arriba, la bola naranja es la cámara, la de alambre es donde quiere estar, y la línea es el barrido, roja cuando encuentra algo. Abajo a la izquierda, lo que ve el jugador.
+
+**Qué probar:**
+
+1. **Mirá una vuelta.** En cada esquina la cámara se acerca de golpe y vuelve en un segundo y medio. _closest to a wall (cm)_ (lo más cerca que estuvo de una caja) queda en 25, y _frames with a wall between_ (cuadros con algo en el medio) en 0. En el túnel, _cut (m)_ (lo que tomó una pared) marca 2,29. Para manejarlo vos, **hacé clic en el dibujo y usá WASD o las flechas** (W va hacia arriba en la vista grande); _autopilot_ (piloto automático) lo devuelve a su vuelta.
+2. **Apagá _sweep_** (el barrido). En las esquinas la cámara entra en el bloque o queda detrás de la pared de afuera, y en el túnel, 10 cm por encima del techo. _frames with a wall between_ crece y _closest to a wall_ baja a 0.
+3. **Apagá _ease out_** (volver despacio). Cuando la línea deja la esquina del bloque, la cámara salta 2 m hacia atrás en un cuadro: _fastest out (m/s)_ (lo más rápido que se alejó) pasa de menos de 15 a más de 40.
+4. **Prendé _leash learns the wall_** (la correa aprende la pared). En la primera esquina, _leash (m)_ (el largo de la correa) baja de 5,92 a 1,1 y no vuelve a crecer.
+
+## El código, paso a paso
+
+- **`createCameraRig`, en `camera.ts`, guarda dos lugares:** `wanted`, donde la cámara quiere estar, y `at`, donde se muestra. Entre los dos, `cut`: lo que tomó una pared, en metros.
+- **La correa** arranca de `wanted`, nunca de `at`, y guarda la altura y la distancia sobre el piso que tenía hasta la cabeza. Además gira de a poco hacia atrás del personaje, `1 − e^(−2 · dt)` del ángulo que falta, como la cámara que persigue.
+- **El barrido** es `world.castShape`: una `RAPIER.Ball` de 25 cm, de la cabeza a `wanted`, sin el personaje (`hero`) ni lo que mueve la física (`EXCLUDE_DYNAMIC`). `time_of_impact` dice a qué distancia toca algo.
+- **`takes` es lo que una pared toma ahora, y `kept` lo que quedaba**, por `e^(−3 · dt)`. `cut` es el mayor: entra de golpe y sale despacio. `at` queda a `wants − cut` de la cabeza.
+- **`main.ts` mide sin el barrido:** `away`, la distancia a la caja más cercana, con las medidas de las cajas; y un rayo de la cámara a la cabeza (`castRay`), si hay algo en el medio.
+- **`view.ts` dibuja** las marcas en la capa 1, que solo ve la vista de arriba, y lo que ve el jugador con un segundo `WebGLRenderer`, en su propio lienzo.
+
+## Lo importante
+
+- **Barré una esfera desde la cabeza hasta donde quiere estar la cámara**, en cada cuadro. Si encuentra algo, mostrá la cámara antes.
+- **De golpe al entrar, despacio al salir.** Si entra tarde, una pared tapa al personaje; si sale de golpe, la cámara salta.
+- **Dos lugares: donde la cámara quiere estar y donde se muestra.** La correa mueve el primero; la pared solo toca el segundo.
+- **Devolvé despacio solo lo que tomó una pared.** Sin paredes, la cámara está exactamente donde quiere estar.
+
+## Más a fondo
+
+<details>
+<summary>Por qué una esfera, y no un rayo</summary>
+
+Barrer una esfera de radio `r` contra una caja da lo mismo que lanzar un rayo contra la caja agrandada `r` para todos lados, con las esquinas redondeadas: la **suma de Minkowski** (_Minkowski sum_) de las dos. Donde la esfera se detiene, su centro queda a `r` de la pared más cercana.
+
+Hace falta porque la cámara no es un punto. La imagen se forma en un rectángulo chico delante del ojo, el **plano cercano** (_near plane_), y lo que está más cerca no se dibuja. En el motor y en este ejemplo está a 5 cm, con un lente de 60° de alto:
+
+- su mitad de alto es `0,05 · tan 30° ≈ 0,029` m;
+- en una pantalla de 16:9, su mitad de ancho es `0,029 · 16/9 ≈ 0,051` m;
+- su esquina queda a `√(0,05² + 0,029² + 0,051²) ≈ 0,077` m del ojo: unos 8 cm.
+
+Una cámara apoyada en la pared, que es lo que da un rayo, tendría ese rectángulo adentro de ella, y se vería a través. Con 25 cm de esfera, nunca. Y una esfera no se cuela por una rendija más angosta que ella.
+
+</details>
+
+<details>
+<summary>Dónde se detiene la cámara, y cómo vuelve</summary>
+
+En el túnel del ejemplo:
+
+1. La cabeza está a 1,4 m del piso: el centro de la cápsula, a 0,8, más 0,6.
+2. La cámara quiere estar 5,5 m detrás y 2,2 m arriba: a `√(5,5² + 2,2²) ≈ 5,92` m. Es _leash (m)_.
+3. La línea sube `2,2 / 5,5 = 0,4` m por metro hacia atrás.
+4. Con el techo a 3 m, el centro de la esfera sube hasta 2,75: 1,35 m sobre la cabeza, a `1,35 / 0,4 = 3,375` m hacia atrás.
+5. Sobre la línea: `3,375 · √(1 + 0,4²) ≈ 3,63` m. Es `time_of_impact`.
+6. La pared toma `5,92 − 3,63 = 2,29` m: _cut (m)_. La cámara queda a 2,75 m de alto y 3,4 m detrás.
+
+`Math.max(Math.min(CLOSEST, wants), …)` pone un piso: ninguna pared trae la cámara a menos de 35 cm de la cabeza.
+
+Para volver, `cut` se multiplica por `e^(−3 · dt)` en cada cuadro: después de `t` segundos sin paredes queda `cut · e^(−3t)`. La mitad vuelve en `ln 2 / 3 ≈ 0,23` s, y al segundo queda un 5 %. Como en la cámara que persigue, da igual a 30 cuadros por segundo que a 144. La velocidad con que se aleja es la derivada, `3 · cut · e^(−3t)`: nunca más de 3 veces lo que falta, y por eso _fastest out_ no pasa de unos 15 m/s. Sin suavizar, cuando la línea deja la esquina del bloque, `cut` cae en un cuadro de 3 m a 0,8: 2,2 m en 1/60 s, más de 100 m/s.
+
+</details>
+
+<details>
+<summary>Dos lugares para una cámara</summary>
+
+La correa no tiene un largo fijo: guarda el que tiene la cámara, porque en el motor la rueda del mouse lo cambia. Si la cámara fuera un solo lugar, el que pone la pared, la correa empezaría el cuadro siguiente desde ahí, y ese largo pasaría a ser el suyo. Nada lo devolvería: sin paredes, la cámara ya está donde la correa quiere. Por eso el motor guarda cuánto la corrió la pared (`pulled`) y, al principio de cada cuadro y antes de cada arrastre o de la rueda, se lo devuelve (`unpull`).
+
+La segunda trampa está más escondida: guardar a qué distancia de la cabeza se muestra la cámara, y suavizar cada vez que esa distancia crece. La distancia también crece sin paredes. El motor no sube y baja la cámara con cada salto (tiene una zona muerta vertical), así que al bajar de un salto la cabeza se aleja de la cámara, y suavizar eso la atrasa 10 cm donde tendría que quedarse quieta. Lo encontró la integración continua (_continuous integration_, las pruebas que corren con cada cambio). Por eso se guarda `cut`, lo que tomó una pared, y se devuelve solo eso: sin paredes, `cut` vale 0.
+
+</details>
+
+:::caution[Sutilezas]
+
+- **La cámara puede usar `Math.exp`.** Es de la vista: si en otro navegador da otro bit, no cambia lo que pasa. La simulación no puede, y el linter del motor lo prohíbe solo ahí. En el ejemplo, el personaje gira en el paso fijo con una fracción fija (un décimo por paso), y la cámara, en cada cuadro, con `1 − e^(−k · dt)`.
+- **El barrido sale de la cabeza, en cada cuadro**, no de donde estaba la cámara. Lo que importa es que no haya nada entre las dos, y una pared que se mete en el medio cuando el personaje dobla no está en el camino que hizo la cámara. Y la cabeza siempre está en un lugar libre.
+- **Los personajes y lo que mueve la física no detienen a la cámara.** La esfera arranca adentro de la cápsula del personaje, y sin dejarlo afuera choca a distancia 0 (el primer ejercicio). Otro jugador que pasa, o una pelota que rueda, la harían saltar. Lo que mueve el programa, como una plataforma, sí la detiene.
+- **Afuera de las paredes no es lo mismo que ver al personaje.** Sin el barrido, en el túnel la cámara no está adentro de ninguna caja: está 10 cm por encima del techo. Por eso el ejemplo mide dos cosas: cuán cerca está de una caja, y si hay algo entre ella y la cabeza.
+
+:::
+
+## En los motores
+
+- **Unreal:** el brazo con resorte (_spring arm_, `USpringArmComponent`) mantiene la cámara a `TargetArmLength`. Con `bDoCollisionTest`, barre una esfera de radio `ProbeSize` por un canal de colisión (`ProbeChannel`) y, si choca, acorta el brazo. `bEnableCameraLag` deja que la cámara se atrase al seguir.
+- **Unity:** en Cinemachine, la extensión `CinemachineCollider` (`CinemachineDeoccluder` en Cinemachine 3) pone la cámara delante de lo que tapa, a `Camera Radius` de los obstáculos, con dos tiempos: `Damping When Occluded` para acercarse y `Damping` para volver.
+- **Godot:** `SpringArm3D` lanza su `shape` (o un rayo) a lo largo de su eje Z, hasta `spring_length`, y pone a sus hijos donde choca, a `margin` de la pared. `add_excluded_object()` deja afuera al jugador.
+- **En los libros:** Mark Haigh-Hutchinson, _Real-Time Cameras_ (2009), en sus capítulos sobre la oclusión y sobre cómo una cámara evita chocar. Y la charla de John Nesky en la GDC de 2014, _50 Game Camera Mistakes_.
+
+**Dónde Manifold eligió otra cosa.** Entra de golpe y devuelve despacio solo lo que tomó una pared, como Cinemachine con `Damping When Occluded` en cero. Guarda aparte donde la cámara quiere estar, así ni la correa, ni un arrastre, ni la rueda aprenden la pared. Deja afuera a todos los personajes, no solo al propio. Y le pregunta al mundo, no a Rapier: cuando haya espacios que se pegan consigo mismos, el barrido cruzará la costura en un solo lugar.
+
+## En Manifold
+
+En [`packages/presentation/src/camera.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/presentation/src/camera.ts), `mountCamera` hace todo esto en su parte `AGAINST WALLS`: el barrido desde la cabeza, `cut`, `pulled` y `unpull`, con `CLEARANCE` (25 cm), `CLOSEST` (35 cm) y `OUT` (3 por segundo). La consulta es `castShape` del mundo, en [`packages/core/src/world.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/world.ts), con `characters: false` y `dynamic: false`. En la sala [`corridor`](../../../jugar/dojo/corridor/) del Dojo, manteniendo W se recorre un pasillo con dos túneles, y en cada vuelta una zona sugiere hacia dónde mirar (su `view`). La [Bitácora](../../../bitacora/etapa-3h/) cuenta cómo se hizo.
+
+## Para practicar
+
+**1. Sin dejar afuera al personaje.** En `camera.ts`, cambiá `hero`, el último argumento de `castShape`, por `undefined`. Antes de ejecutar, predecí a qué distancia de la cabeza queda la cámara y cuánto marca _cut (m)_.
+
+<details>
+<summary>Una pista</summary>
+
+La esfera arranca adentro de la cápsula: la toca a distancia 0. ¿Qué da `Math.max(Math.min(CLOSEST, wants), 0)`? La pared toma `wants` menos eso.
+
+</details>
+
+**2. La correa sola.** Poné `TURN = 0` en `camera.ts`: la cámara ya no vuelve detrás del personaje. ¿Cuánto de la vuelta pasa con _cut (m)_ por encima de cero? ¿Por qué el pasillo del Dojo necesita zonas que sugieran hacia dónde mirar?
+
+<details>
+<summary>Una pista</summary>
+
+Con la correa sola, la cámara corta cada esquina y queda del lado del bloque. Una zona por lado haría lo del paso 2 de `frame`, pero girando hacia donde sigue ese lado del pasillo.
+
+</details>
+
+**3. Otro personaje.** Agregá una segunda cápsula que recorra el anillo al revés. Mirá qué hace la cámara cuando pasa entre ella y el personaje, y después dejala afuera del barrido, como el motor deja a todos los personajes.
+
+<details>
+<summary>Una pista</summary>
+
+Un cuerpo `kinematicPositionBased` con su cápsula, movido como el primero pero con las esquinas en el otro orden (sin controlador: que se atraviesen no importa acá). Para dejar afuera más de un cuerpo, poné `undefined` donde estaba `hero` y agregá después una función que dice qué mirar: `(c) => c.parent()?.handle !== hero.handle && c.parent()?.handle !== other.handle`.
+
+</details>
+
+## Para saber más
+
+- Mark Haigh-Hutchinson, _Real-Time Cameras: A Guide for Game Designers and Developers_ (2009, en inglés): un libro entero sobre cámaras de juegos, la oclusión incluida.
+- John Nesky, _50 Game Camera Mistakes_, GDC 2014 (en inglés): está en video, en la GDC Vault.
+- [SpringArm3D, en la referencia de Godot](https://docs.godotengine.org/en/stable/classes/class_springarm3d.html) (en inglés).
+- [Las consultas de escena de Rapier](https://rapier.rs/docs/user_guides/javascript/scene_queries) (en inglés): rayos, formas que se barren y filtros.

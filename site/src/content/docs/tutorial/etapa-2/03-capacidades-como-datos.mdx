@@ -93,7 +93,7 @@ En vez de una jerarquía de clases de personajes (el que trepa, el que planea, e
 - **Unreal** tiene el _Gameplay Ability System_: cada habilidad (_ability_) es un objeto (`UGameplayAbility`) que se le da y se le quita a un componente del personaje (`GiveAbility`, `ClearAbility`), y unas etiquetas jerárquicas (_gameplay tags_, como `State.Gliding`) dicen qué puede activarse y qué lo bloquea. Para lo más simple, ni eso: el doble salto es un número de `ACharacter`, `JumpMaxCount`.
 - **Unity** arma sus objetos con componentes: una capacidad puede ser uno, que se agrega (`AddComponent`), se quita (`Destroy`) o se apaga (`enabled = false`).
 - **En el diseño de niveles,** los _metroidvanias_ arman el mapa alrededor de las capacidades. _Super Metroid_ (1994) es el clásico: se ven lugares a los que todavía no se llega, y cada capacidad nueva abre una parte del mapa. _Ori and the Blind Forest_ (2015) usa justamente estas tres.
-- **En los libros:** Robert Nystrom, _Game Programming Patterns_, caps. "Component" y "Type Object". Jason Gregory, _Game Engine Architecture_ (3.ª ed.), cap. 16: los modelos de objetos del juego, de la jerarquía de clases a la composición.
+- **En los libros:** Robert Nystrom, _Game Programming Patterns_, caps. "Component" y "Type Object". Jason Gregory, _Game Engine Architecture_, el capítulo "Runtime Gameplay Foundation Systems": los modelos de objetos del juego, de la jerarquía de clases a la composición.
 
 **Dónde Manifold eligió otra cosa.** Ni objetos de habilidad ni etiquetas: tres booleanos en los datos del personaje, leídos en un solo lugar. Se cambian desde la consola del Dojo como cualquier valor del mundo (`dojo.climb on`) y quedan grabados en la repetición, en su paso. Es la decisión 0004: el mundo es datos, para copiarlo, compararlo con una huella y guardarlo en una instantánea, y un objeto con comportamiento propio no se copia ni se compara así. El costo: una capacidad nueva es código nuevo en el motor (una rama más donde se elige el modo), no algo que un diseñador agrega desde afuera. Con tres, alcanza ([Bitácora de la etapa 2c](../../../bitacora/etapa-2c/)).
 
@@ -136,5 +136,5 @@ Un booleano más en `can`, su casilla en el panel, y un contador como `airJumps`
 
 - [Game Programming Patterns: Component](https://gameprogrammingpatterns.com/component.html), de Robert Nystrom (en inglés): de una clase enorme a un objeto hecho de piezas.
 - [Game Programming Patterns: Type Object](https://gameprogrammingpatterns.com/type-object.html), de Robert Nystrom (en inglés): tipos que son datos, en vez de una subclase por tipo.
-- Jason Gregory, _Game Engine Architecture_, 3.ª ed., cap. 16 "Runtime Gameplay Foundation Systems": los modelos de objetos del juego, de la jerarquía de clases a los componentes.
+- Jason Gregory, _Game Engine Architecture_, el capítulo "Runtime Gameplay Foundation Systems": los modelos de objetos del juego, de la jerarquía de clases a los componentes.
 - [Gameplay Ability System](https://dev.epicgames.com/documentation/en-us/unreal-engine/gameplay-ability-system-for-unreal-engine), en la documentación de Unreal (en inglés).

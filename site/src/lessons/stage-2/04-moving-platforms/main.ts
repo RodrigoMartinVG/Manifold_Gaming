@@ -245,7 +245,7 @@ onFrame((dt) => {
   hero.position.set(p.x, p.y, p.z);
   hero.rotation.y = Math.atan2(-facing.x, -facing.z); // the visor, where it looks
   // The camera looks at it, but does not turn with the platform: the world stays still on screen.
-  controls.target.lerp(new THREE.Vector3(p.x, p.y, p.z), 0.1);
+  controls.target.lerp(new THREE.Vector3(p.x, p.y, p.z), 1 - Math.exp(-6 * dt));
   readout.turned = turned.toFixed(1);
   readout.kept = kept.length().toFixed(2);
 });

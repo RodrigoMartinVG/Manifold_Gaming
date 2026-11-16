@@ -62,6 +62,10 @@ describe('every lesson has its main path and the four layers around it (0013)', 
       expect(text, 'its live example').toMatch(/<LiveCode lesson="[^"]+"/);
       const deeper = section(text, 'Más a fondo') ?? '';
       expect((deeper.match(/<details>/g) ?? []).length, 'at least two "Más a fondo"').toBeGreaterThanOrEqual(2);
+      // The traps, which every lesson of stages 0 to 2 had and stage 3's were born without (the index
+      // promises them in every lesson): a callout, with at least two.
+      const traps = /:::caution\[Sutilezas\]\n([\s\S]*?)\n\s*:::/.exec(text)?.[1] ?? '';
+      expect((traps.match(/^- \*\*/gm) ?? []).length, 'at least two "Sutilezas"').toBeGreaterThanOrEqual(2);
       const engines = section(text, 'En los motores') ?? '';
       expect(engines, '"En los motores", with where Manifold chose otherwise').toContain('**Dónde Manifold eligió otra cosa.**');
       const practice = section(text, 'Para practicar') ?? '';

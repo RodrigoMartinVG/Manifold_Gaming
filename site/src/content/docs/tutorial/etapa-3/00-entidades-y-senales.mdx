@@ -72,6 +72,15 @@ con `T` lo que tarda en abrirse. Cerrándose, el signo cambia. Si la señal camb
 
 </details>
 
+:::caution[Sutilezas]
+
+- **`used` dura un paso.** Apretar el botón prende `used` solo en el paso en que se apretó; mantenerlo apretado no lo vuelve a prender. Lo que tiene que durar lo guarda otra señal: un `toggle` o un `latch`.
+- **Lo que recuerda un `toggle` es parte del mundo.** Para darse vuelta solo en el borde, guarda si lo que lee estaba prendido (`kept`). Si eso quedara afuera del estado, una copia restaurada de una instantánea justo mientras alguien apretaba el botón se daría vuelta otra vez, y las copias dejarían de coincidir. En el motor, esa memoria va en el hash y en las instantáneas.
+- **Una puerta que sigue a una placa se cierra al cruzarla.** Si `open` es solo "alguien está en la placa", al bajarse de ella para pasar, la puerta se cierra adelante. La salida es un cerrojo que se prende con la placa y no se apaga nunca (lo apaga una entrada que nadie toca): así está hecha la última puerta de la [fortaleza](../../../jugar/dojo/keep/) del Dojo.
+- **Una señal calculada no se escribe a mano.** En el motor, `signal lights 1` cambia una señal de entrada; a una calculada, la consola se niega y dice por qué: al final del paso, su cuenta la pisaría.
+
+:::
+
 :::tip[Patrón: doble búfer]
 La puerta lee `open` del paso anterior mientras el paso calcula el nuevo: lo que se lee y lo que se escribe no se pisan. Es el patrón **doble búfer** (_double buffer_), como la placa de video que dibuja un cuadro mientras muestra el anterior. [Todos los patrones del tutorial](../../patrones/#doble-búfer).
 :::

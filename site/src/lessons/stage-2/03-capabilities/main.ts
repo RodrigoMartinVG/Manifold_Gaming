@@ -289,7 +289,7 @@ onFrame((dt) => {
   for (const s of stars) s.mesh.rotation.set(0.5, s.mesh.rotation.y + 2 * dt, 0);
   // The camera goes with it.
   const before = controls.target.clone();
-  controls.target.lerp(new THREE.Vector3(p.x, p.y, p.z), 0.1);
+  controls.target.lerp(new THREE.Vector3(p.x, p.y, p.z), 1 - Math.exp(-6 * dt));
   camera.position.add(controls.target.clone().sub(before));
   readout.mode = character.mode;
   readout.airJumps = character.airJumps;
