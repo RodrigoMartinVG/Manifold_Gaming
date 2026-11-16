@@ -202,7 +202,7 @@ One shared module for the concept lessons' figures, importable, with its source 
 - **Time controls** for anything that moves: pause, single step, slow motion; a seed box and a hash readout where
   determinism is the point.
 
-### 4.3 Capsules: three named kinds of Sutileza
+### 4.3 Capsules: three named kinds of Sutileza, and the note for whoever already knows
 
 Each capsule has the same shape: **context → the hidden danger → the engineering rule**, with a measurement when it
 is about cost.
@@ -214,6 +214,14 @@ is about cost.
   order of operations and determinism.
 - **Del modelo al motor** (the asset pipeline): Blender to glb with our axes (a rotation with det +1, never a
   mirror); the collision shape is not the drawn mesh; units and scale; metadata in nodes.
+
+**Para quien ya sabe** (added 2026-11-16, at the author's request) is not a Sutileza: it is a callout
+(`:::tip[Para quien ya sabe]`) for the reader with some experience, wherever the tutorial does something that reader
+would find odd. Its shape: **what you would expect → what the tutorial does → why, with what was measured**, so that the
+oddity turns out to have its reasons. It goes in every lesson where one of the decisions across parts appears
+([`tutorial-lessons/README.md`](tutorial-lessons/README.md)), and wherever else a choice departs from common practice:
+a projection taught before its matrix (1.2), the world as plain data and not three.js's scene (1.3), functions that
+return a new vector and `Math.sqrt` over `Math.hypot` (1.4), our own matrices beside three.js's (1.12).
 
 ### 4.4 Verification in the console
 

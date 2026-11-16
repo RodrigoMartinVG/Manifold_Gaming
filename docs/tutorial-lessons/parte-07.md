@@ -85,6 +85,7 @@ preference for a variable step is a disagreement, said once in 7.13.
   [Shiffman ch. 5](https://natureofcode.com/autonomous-agents/). Reuses ML 5.3's `steering.ts` and tests; its
   tangent-plane projection waits for 10.4.
 - **Open:** the curriculum's "the same algebra as the turret's aim in part 1" should read "5.5's spring" (problem 1).
+- **Para quien ya sabe** (curriculum §4.3): the analysis of a linear (exponential) motor against 5.2's saturating one: README decision 7.
 
 ### 7.2 Grafos y el camino más corto: Dijkstra (C)
 
@@ -271,6 +272,7 @@ preference for a variable step is a disagreement, said once in 7.13.
   phase 4.0 lists it as 🔒. The tutorial runs it in the simulation and says why (7.13).
 - **Sources:** MA §14.1, §14.2.1; GPP ch. 2, ch. 14.
 - **Open:** the command record's name and fields as parts 2 and 5 fix them (problem 6).
+- **Para quien ya sabe** (curriculum §4.3): a mind emits a quantized direction, not a whole-degree heading, so it needs no `atan2`: README decision 3.
 
 ### 7.8 Los modos del guardia: máquinas de estado jerárquicas (C)
 

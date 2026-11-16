@@ -218,6 +218,7 @@ a chirality glyph (a red right hand); a universal-cover view (3 × 3 copies of a
 - **Reuses:** part 5's character and camera (from archived 1-02, 1-03); Manifold Lab 5.2's carried chase camera.
 - **Open:** that parts 2 and 4 name gravity `gravityAt(p)` from 2.8, or this lesson renames it, announced (0021);
   Rapier's controller up setter in JavaScript; the hash constants, measured.
+- **Para quien ya sabe** (curriculum §4.3): `gravityAt(p)` has been a field since 2.8, though constant until now: README decision 1.
 
 ### 10.5 Llevar un marco a lo largo de una curva (C)
 

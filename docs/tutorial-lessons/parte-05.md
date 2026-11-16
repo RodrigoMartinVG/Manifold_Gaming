@@ -121,6 +121,7 @@ two parameters; the perturbations "15 fps", "frame spike of 250 ms" and "_h_ = 1
   camera-relative input as a quantized command.
 - **Sources:** GPP ch. 14 ([online](https://gameprogrammingpatterns.com/component.html)); G §5.3.12.3; decision 0004.
 - **Open:** align 4.11's boundary name, and keep `moveToward` distinct from 2.8's smoothing function.
+- **Para quien ya sabe** (curriculum §4.3): constant acceleration, not 2.3's exponential; and a quantized direction in the record, not Manifold's whole degrees: README decisions 7 and 3.
 
 ### 5.3 Un salto que se siente bien (C) ◇
 

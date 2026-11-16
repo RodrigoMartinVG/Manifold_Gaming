@@ -567,6 +567,7 @@ show.agreement` prints at least 98%; `view.shadow.bias 0` drops it (acne), `view
 - **Sources:** RTR 12.1–12.5, 13.6, 13.8, 14.2.1, 15.1–15.2; L2 §8.5, §10.1–10.3; MF §4.2–4.4; GPP ch. 17, ch. 19. Reuses
   ML 2.5's pooled particles and inverted-hull outlines, and archived 3-02's breaks through 6.11.
 - **Open:** the drawn fog must be the logic's law (problem 3).
+- **Para quien ya sabe** (curriculum §4.3): particles only drawn, never hashed: README decision 6.
 
 ### 8.17 El juego: la sala de noche (P)
 

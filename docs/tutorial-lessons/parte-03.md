@@ -97,6 +97,7 @@ Two rules run through the whole part (curriculum, part 3): **every test is shown
 - **Sources:** RTR 22.1; L2 §6.1, §6.3.1; G2 §14.5.3.2; G §10.2.1. Free: the [three.js manual](https://threejs.org/manual/) (picking).
 - **Reuses:** the pilot's `course/parte-1/01-ventana/screen.ts` (`toScreen`), inverted step by step; the pilot's projection figure (1.2).
 - **Open:** the curriculum's "the inverse of the projection" must be the geometric inverse (see the problems below). Whether the world point is quantized (say to 1 mm) before entering the simulation, so two machines in part 9 never disagree on the last bits.
+- **Para quien ya sabe** (curriculum §4.3): the record's payload, a world point: README decision 3.
 
 ### 3.6 Coordenadas baricéntricas (C) ◇
 

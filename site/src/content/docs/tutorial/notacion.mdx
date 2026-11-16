@@ -43,6 +43,14 @@ $$
 
 **Probalo:** elegí un eje en _about_ y tocá _look from the tip_: visto desde la punta, el giro va al revés de las agujas del reloj. Arrastrá la punta dorada: _turned (ours)_ y _turned (three.js)_ dicen lo mismo.
 
+:::tip[Para quien ya sabe: una excepción, los grados]
+Esperarías radianes en todos lados, y la matemática del tutorial está en radianes: son la única unidad en la que $(\sin x)' = \cos x$. Pero desde la lección 2.13 el proyecto calcula sus senos y cosenos con funciones propias (`trig.ts`), y esas funciones **reciben grados**.
+
+La razón no es el determinismo: cualquier cuenta hecha siempre con las mismas operaciones da los mismos bits, también en radianes. Es la **exactitud donde importa**. $\pi$ no se puede escribir exacto en coma flotante, así que en radianes un cuarto de vuelta nunca es exacto: `Math.cos(Math.PI / 2)` da $6{,}1 \cdot 10^{-17}$, no $0$. En grados, $90$ sí es exacto, y llevar un ángulo a su primer cuadrante (restar vueltas de $360$ y cuartos de $90$) es una resta exacta: todo múltiplo de $90^\circ$ da seno y coseno exactamente $0$ o $\pm 1$. Una torreta girada un cuarto queda alineada de verdad, y un nivel simétrico sigue simétrico. Además, los datos ya vienen en grados (pasos de $15^\circ$, "girar 90"), y el motor Manifold hace lo mismo.
+
+Solo la entrada y esa reducción son en grados: el ángulo que queda, entre $-45^\circ$ y $45^\circ$, se pasa a radianes, y lo que se calcula es la serie de Taylor de siempre.
+:::
+
 ## Vectores y matrices
 
 Los vectores son **columnas**, y una matriz los transforma multiplicándolos por la izquierda: $\mathbf{v}' = \mathbf{M}\mathbf{v}$. Una cadena de transformaciones se lee **de derecha a izquierda**: en $\mathbf{T}\mathbf{R}\mathbf{S}\,\mathbf{v}$, primero actúa la escala $\mathbf{S}$, después el giro $\mathbf{R}$ y al final la traslación $\mathbf{T}$.

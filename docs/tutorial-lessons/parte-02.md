@@ -407,6 +407,7 @@ marker and the figure re-simulates to it).
   speed readouts, the clamp "Más a fondo"); its `vec.ts` arrived in 1.7.
 - **Open:** whether the ball's velocity approach uses its own τ_v_ (as here) or Manifold's constant acceleration as a
   console option for comparison.
+- **Para quien ya sabe** (curriculum §4.3): gravity as the field `gravityAt(p)` though it is constant here: README decision 1.
 
 ### 2.9 Números que no son exactos (C)
 
@@ -623,6 +624,7 @@ marker and the figure re-simulates to it).
 - **Reuses:** none from the pilots; archived 0-04's level-from-a-seed idea.
 - **Open:** all design numbers (eight coins, 60 s, τ = 0,4 s, 6°, 8 m, 30 and 60 steps, 5 s) are first guesses to tune
   in play; the reference values for the console check are recorded when the lesson is written.
+- **Para quien ya sabe** (curriculum §4.3): `trig.ts` in degrees, against the notation's radians: README decision 2 (the notation page carries the same note).
 
 ### 2.14 Repeticiones: lo mismo, otra vez (C)
 

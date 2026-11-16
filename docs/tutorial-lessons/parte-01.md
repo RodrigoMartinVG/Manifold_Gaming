@@ -189,6 +189,7 @@ takes the seventeen lessons and _la torreta_.
 - **Reuses:** pilot 02 (text, `projection/` example with `projection.ts`, `overlay.ts`). Archived 0-00 §3.
 - **Open:** the pilot is marked unfinished: what remains is the paragraph naming _g_, the kit migration, the browser
   test, and a check that the inset photo and the rings agree at every picture size (the 450 × 800 portrait case).
+- **Para quien ya sabe** (curriculum §4.3): a projection taught before its matrix: the division by depth is the whole idea, and the 4 × 4 matrix with _w_ (1.10) is the same computation with machinery the reader does not have yet.
 
 ### 1.3 Una ventana al mundo (P)
 
@@ -232,6 +233,7 @@ takes the seventeen lessons and _la torreta_.
   turret's targets as data; camera sliders; start-up and shut-down.
 - **Open:** whether `onFrame` keeps passing `dt` in part 1 (the pilot's signature): the sheet keeps it, unused until
   2.6, so the name keeps one meaning.
+- **Para quien ya sabe** (curriculum §4.3): the world as plain data, not three.js's scene: the simulation must run without the browser (tests in Node, replays, a server in part 9) and be hashed; three.js only draws it (Manifold's decisions 0003 and 0004).
 
 ### 1.4 Vectores (C)
 
@@ -262,6 +264,7 @@ takes the seventeen lessons and _la torreta_.
   adding and scaling lights are vector operations, multiplying two colours component by component is not; the RGB cube
   as a small figure). The forward links to "Moverse" now point to 1.7 (the turret's forward) and 2.8.
 - **Open:** `vectors/vec.ts` says it is "the project's": it becomes so in 1.7, not in Moverse.
+- **Para quien ya sabe** (curriculum §4.3): functions that return a new vector (garbage per operation, which three.js avoids by mutating): clear code first, reused temporaries only where a measurement asks (3.13 measures it); and `Math.sqrt` of the sum of squares over `Math.hypot`, which avoids overflow but is implementation-approximated in ECMA-262 (2.9).
 
 ### 1.5 El producto escalar: proyectar y rechazar (C)
 
@@ -613,6 +616,7 @@ takes the seventeen lessons and _la torreta_.
 - **Reuses:** nothing from the pilots; archived 0-07's `matrixAutoUpdate = false` technique.
 - **Open:** `mat.ts` uses `Math.sin` and `Math.cos`, allowed before 2.9's rule; decide in 2.13 whether `mat.ts` stays
   out of the hashed simulation (it can: from 1.16 the state is quaternions, and matrices are only for drawing).
+- **Para quien ya sabe** (curriculum §4.3): our own `mat.ts` beside three.js's `Matrix4`: the lessons 1.8–1.11 taught matrices, and the project shows them working, column-major like three.js so the view copies them in; from 1.16 the state is quaternions and matrices are only drawn.
 
 ### 1.13 Rotaciones I: los ángulos y el bloqueo de cardán (C)
 

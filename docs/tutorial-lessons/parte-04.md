@@ -187,6 +187,7 @@ The design each lesson of part 4 is written from, under the approved [curriculum
 - **Sources:** G2 §14.5.1–14.5.2; MF §17.1, ch. 20; E §2.2–2.4; GPP ch. 4, 6, 15. Free: [Rapier's guide](https://rapier.rs/docs/) ([bodies](https://rapier.rs/docs/user_guides/javascript/rigid_bodies), [colliders](https://rapier.rs/docs/user_guides/javascript/colliders), [events and sensors](https://rapier.rs/docs/user_guides/javascript/advanced_collision_detection_js)).
 - **Reuses:** 1-00 (motor de física): `RAPIER.init`, the world, the kinds of body, colliders, reading back, sleep, `world.free()`, 32-bit floats, its exercises (bounce 1, the paddle, the step's cost), and its example `stage-1/00-physics-engine` as the base; Manifold's `physics.ts` boundary and Bitácora 1a's measurements.
 - **Open:** 4.6's rope bridge cannot carry a Rapier body (see the problems; proposal: it stays in the toy room and returns jointed in 5.11); verify the 0.21 deterministic-compat names (the event queue, the velocity-based kinematic body).
+- **Para quien ya sabe** (curriculum §4.3): Rapier's sensors taught but not adopted: README decision 5 (measure their one-step lag in the figure).
 
 ### 4.12 Cuando la física falla: estabilidad y sueño (C)
 

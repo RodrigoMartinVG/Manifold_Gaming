@@ -189,6 +189,7 @@ panel with errors by line and a diff; a grid view; the two-viewport figure; seed
 - **Sources:** GPP ch. 4 ([Observer](https://gameprogrammingpatterns.com/observer.html)); G2 §14.3.7.3, §17.8; E
   §4.2.1; [Rapier, advanced collision detection](https://rapier.rs/docs/user_guides/javascript/advanced_collision_detection_js).
 - **Open:** 6.7 should use these world zones, not Rapier's sensors (4.11 met those).
+- **Para quien ya sabe** (curriculum §4.3): zones of our own for every region: README decision 5.
 
 ### 6.5 La cola de eventos (C) ◇
 
@@ -420,6 +421,7 @@ panel with errors by line and a diff; a grid view; the two-viewport figure; seed
   exercises. Changes: the criterion derived from 4.3. New: the structure graph, piece inertia, the pool measured.
 - **Sources:** G2 §14.5.3.5; MF §17.2.2; GPP ch. 19 ([Object Pool](https://gameprogrammingpatterns.com/object-pool.html)).
 - **Open:** the curriculum's "Antes" (6.5, 4.11) misses 4.3 and 4.14.
+- **Para quien ya sabe** (curriculum §4.3): debris and effects only drawn, never hashed: README decision 6.
 
 ### 6.12 La interfaz: del mundo a la pantalla (C)
 
