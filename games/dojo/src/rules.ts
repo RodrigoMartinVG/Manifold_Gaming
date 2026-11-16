@@ -181,12 +181,14 @@ function currents(world: World) {
  * travels in snapshots, and a replay plays it the same.
  */
 function levelLoop(world: World, events: readonly Event[]) {
-  const notice = (player: number, text: string) => world.emit({ type: 'notice', text, player });
+  // What it tells a player, as a key of its words (interface.ts) and its numbers (decision 0019).
+  const notice = (player: number, say: string, values?: readonly number[]) =>
+    world.emit({ type: 'notice', say, player, ...(values ? { values } : {}) });
   for (const ev of events) {
     // A watcher (stage 3d): the character it began to see, or lost, is told.
     if (ev.type === 'seen' || ev.type === 'lost') {
       const player = world.entities.get(ev.entity)?.character?.player;
-      if (player !== undefined) notice(player, ev.type === 'seen' ? 'the watcher sees you' : 'the watcher lost you');
+      if (player !== undefined) notice(player, ev.type === 'seen' ? 'dojo.seen' : 'dojo.lost');
       continue;
     }
     if (ev.type !== 'sensorEntered') continue;
@@ -204,30 +206,27 @@ function levelLoop(world: World, events: readonly Event[]) {
         } else if (run && player !== undefined) {
           world.place(e, run.checkpoint);
           run.falls++;
-          notice(player, 'you fell: back to the checkpoint');
+          notice(player, 'dojo.fell');
         }
         break;
       case 'checkpoint':
         if (run && player !== undefined && !vec3.equals(run.checkpoint, zone.transform.position)) {
           run.checkpoint = [...zone.transform.position];
-          notice(player, 'checkpoint');
+          notice(player, 'dojo.checkpoint');
         }
         break;
       case 'star':
         if (run && player !== undefined) {
           world.removeEntity(zone.id);
           run.stars++;
-          notice(player, `a star (${run.stars} taken, ${stars(world).length} left)`);
+          notice(player, 'dojo.star', [run.stars, stars(world).length]);
         }
         break;
       case 'goal':
         if (run && player !== undefined && run.finish < 0) {
           run.finish = world.tick;
-          const seconds = ((run.finish - run.start) * STEP).toFixed(2);
-          notice(
-            player,
-            `the goal: ${seconds} s, ${run.falls === 1 ? '1 fall' : `${run.falls} falls`}, ${run.stars === 1 ? '1 star' : `${run.stars} stars`}`,
-          );
+          // Its time, its falls, the stars it took and those it left.
+          notice(player, 'dojo.goal', [(run.finish - run.start) * STEP, run.falls, run.stars, stars(world).length]);
         }
         break;
     }

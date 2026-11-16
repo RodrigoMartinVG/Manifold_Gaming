@@ -311,3 +311,24 @@ describe('the help commands', () => {
     expect(texts(r.run('reset'))).toContain('nothing to reset');
   });
 });
+
+describe('watching the view (stage 3i)', () => {
+  it('tells who watches every change of a view value, from wherever it comes, and only changes; not the world or startup values', () => {
+    const { r } = build();
+    const told: [string, Value, string][] = [];
+    const stop = r.watch((name, value, source) => told.push([name, value, source]));
+    r.run('show.axes on; show.axes on; seed 4; physics.gravity 0 -1 0');
+    r.run('view.timescale 0.5', 'recipe');
+    expect(told).toEqual([
+      ['show.axes', true, 'console'],
+      ['view.timescale', 0.5, 'recipe'],
+    ]);
+    // Back to their defaults: told too.
+    told.length = 0;
+    r.reset();
+    expect(told.map(([name]) => name).sort()).toEqual(['show.axes', 'view.timescale']);
+    stop();
+    r.run('show.axes on');
+    expect(told).toHaveLength(2);
+  });
+});

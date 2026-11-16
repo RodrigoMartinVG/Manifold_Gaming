@@ -1,4 +1,4 @@
-export { Registry, type Scheduler } from './registry';
+export { Registry, type Scheduler, type Watcher } from './registry';
 export { declareHelp, type HelpOptions } from './help';
 export { recipeFromLink, recipeToLink, recipeTitle, LINK_PREFIX } from './recipes';
 export { formatValue, splitLines } from './values';

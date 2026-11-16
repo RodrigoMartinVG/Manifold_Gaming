@@ -24,7 +24,7 @@ function circuit() {
   const step = (input: PlayerInput) => {
     session.setInput(1, input);
     session.step();
-    for (const ev of session.world.stepEvents) if (ev.type === 'notice') notices.push(ev.text);
+    for (const ev of session.world.stepEvents) if (ev.type === 'notice') notices.push([ev.say, ...(ev.values ?? [])].join(' '));
   };
   /** The way to a point on the ground (x, z), from where it is. */
   const toward = (x: number, z: number): Vec3 => {
@@ -95,12 +95,12 @@ function circuit() {
    * it fell into the void.
    */
   const attempt = (x: number, z: number, edge: () => boolean, o: { run?: boolean; glide?: boolean; twice?: boolean } = {}) => {
-    const falls = notices.filter((n) => n.startsWith('you fell')).length;
+    const falls = notices.filter((n) => n.startsWith('dojo.fell')).length;
     let jumps = 0;
     let held = false;
     let flying = false;
     for (let i = 0; i < 900; i++) {
-      if (notices.filter((n) => n.startsWith('you fell')).length > falls) return null;
+      if (notices.filter((n) => n.startsWith('dojo.fell')).length > falls) return null;
       if (jumps > 0 && !c().grounded) flying = true;
       if (flying && c().grounded) return at()[1]!;
       let jump = false;
@@ -148,7 +148,7 @@ describe('the circuit (closing phase 2)', () => {
     leap('3 m and a meter up', 0, -14, on(1), () => at()[2]! < -9.75);
     leap('3.5 m and half a meter down', 0, -20, on(0.5), () => at()[2]! < -14.75);
     go('along the beam, to the first checkpoint', 0, -32);
-    expect(notices.at(-1)).toBe('checkpoint');
+    expect(notices.at(-1)).toBe('dojo.checkpoint');
     // 7 m: only running.
     go('back, to take a run', 0, -31);
     leap('7 m, running', 0, -44.5, on(0.5), () => at()[2]! < -35.2, { run: true });
@@ -180,7 +180,7 @@ describe('the circuit (closing phase 2)', () => {
       700,
     );
     go('to the second checkpoint', 0, -63.5);
-    expect(notices.at(-1)).toBe('checkpoint');
+    expect(notices.at(-1)).toBe('dojo.checkpoint');
     // The lift, up to its ledge and its star; and down again, walking off the ledge.
     const lift = machine([3, 0.35, -64]);
     const onLift = () => c().grounded && Math.abs(at()[0]! - 3) < 0.8 && Math.abs(at()[2]! + 64) < 0.8;
@@ -198,7 +198,7 @@ describe('the circuit (closing phase 2)', () => {
       600,
     );
     go('onto the ledge, to its star', 6.5, -64);
-    expect(notices.at(-1)).toMatch(/^a star/);
+    expect(notices.at(-1)).toMatch(/^dojo\.star/);
     until(
       'down from the ledge',
       () => standingAt(on(0.5)) && at()[0]! < 2,
@@ -209,13 +209,13 @@ describe('the circuit (closing phase 2)', () => {
     go("to the pad's end", 0, -65.5);
     leap('onto the carousel', 0, -72, on(0.5), () => at()[2]! < -66.2);
     leap('off the carousel', 1.5, -79, on(0.5), () => at()[2]! < -73.4);
-    expect(notices.at(-1)).toBe('checkpoint');
+    expect(notices.at(-1)).toBe('dojo.checkpoint');
 
     // 4. The pillar, climbed straight up, for its star; down again; and the wall, to the plateau.
     go('to the pillar', 5, -82.6);
     until(
       'up the pillar, to its star',
-      () => /^a star/.test(notices.at(-1) ?? ''),
+      () => /^dojo\.star/.test(notices.at(-1) ?? ''),
       () => ({ move: [0, 0, -1] }),
       600,
     );
@@ -228,7 +228,7 @@ describe('the circuit (closing phase 2)', () => {
     go('to the wall', 0, -82.6);
     until(
       'up the wall, to the fourth checkpoint',
-      () => notices.at(-1) === 'checkpoint' && standingAt(on(6)),
+      () => notices.at(-1) === 'dojo.checkpoint' && standingAt(on(6)),
       () => ({ move: [0, 0, -1] }),
       600,
     );
@@ -240,10 +240,10 @@ describe('the circuit (closing phase 2)', () => {
     // 6. The far islet's star, gliding running; falling from it, back to the fourth checkpoint.
     go('back on the shelf', 0, -92);
     leap('a running glide to the islet', 6, -132, on(3), () => at()[2]! < -93.7, { run: true, glide: true });
-    expect(notices.at(-1)).toMatch(/^a star \(3 taken/);
+    expect(notices.at(-1)).toMatch(/^dojo\.star 3 /);
     until(
       'falling back to the checkpoint',
-      () => notices.at(-1) === 'you fell: back to the checkpoint',
+      () => notices.at(-1) === 'dojo.fell',
       () => ({ move: [1, 0, 0] }),
       600,
     );
@@ -259,8 +259,9 @@ describe('the circuit (closing phase 2)', () => {
     go('back on the shelf, again', 0, -92);
     leap('the glide to the goal', 0, -119.5, on(2), () => at()[2]! < -93.7, { glide: true });
     for (let i = 0; i < 10; i++) step(NO_INPUT);
-    expect(notices.at(-1)).toMatch(/^the goal: [\d.]+ s, 1 fall, 3 stars$/);
-    expect(notices.filter((n) => n === 'checkpoint')).toHaveLength(4);
+    // The goal: its time, 1 fall, 3 stars taken and none left.
+    expect(notices.at(-1)).toMatch(/^dojo\.goal [\d.]+ 1 3 0$/);
+    expect(notices.filter((n) => n === 'dojo.checkpoint')).toHaveLength(4);
   });
 
   test('each part asks for exactly what it tests: with less, it is not enough', () => {

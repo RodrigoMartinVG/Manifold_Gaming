@@ -31,6 +31,9 @@ export type Scheduler<W> = (line: string, apply: (world: W) => void) => void;
  *
  * `W` is the type of the world (the core uses `Registry<World>`); this package does not know it.
  */
+/** Who is told of a view value's change: its name, its new value, and where the change came from. */
+export type Watcher = (name: string, value: Value, source: Source) => void;
+
 export class Registry<W = unknown> {
   private readonly vars = new Map<string, Stored<W>>();
   private readonly cmds = new Map<string, Command<W>>();
@@ -42,6 +45,8 @@ export class Registry<W = unknown> {
   onStartupChange: (() => void) | null = null;
   /** Whether there is a view to apply view values to (`applyToView`): until then, they are only stored. */
   private viewLive = false;
+  /** Who wants to know when a view value changes, and from where (stage 3i: the player's settings, to save them). */
+  private readonly watchers = new Set<Watcher>();
 
   // ---------------------------------------------------------------- declaring
 
@@ -55,6 +60,15 @@ export class Registry<W = unknown> {
     )
       throw new Error(`${v.name}: the default value is not ${describeType(v.type)}`);
     this.vars.set(v.name, { decl: v, value: copy(v.default) });
+  }
+
+  /**
+   * Told every time a view value changes, with where the change came from (`console`: a person, typing
+   * or through a menu, or `reset`; `recipe`: a room's, a link's); returns how to stop being told.
+   */
+  watch(f: Watcher): () => void {
+    this.watchers.add(f);
+    return () => this.watchers.delete(f);
   }
 
   declareCommand(c: Command<W>) {
@@ -119,7 +133,12 @@ export class Registry<W = unknown> {
       if (sameValue(s.value, s.decl.default)) continue;
       s.value = copy(s.decl.default);
       if (s.decl.scope === 'view' && this.viewLive) s.decl.onChange?.(copy(s.value));
+      if (s.decl.scope === 'view') this.told(s.decl.name, s.value, 'console');
     }
+  }
+
+  private told(name: string, value: Value, source: Source) {
+    for (const f of this.watchers) f(name, copy(value), source);
   }
 
   /**
@@ -220,7 +239,7 @@ export class Registry<W = unknown> {
         out.write(`${name}: extra "${rest[used]!.text}"`, 'error');
         return false;
       }
-      return this.set(variable, parsed.value, out);
+      return this.set(variable, parsed.value, out, source);
     }
 
     const command = this.cmds.get(name);
@@ -257,7 +276,7 @@ export class Registry<W = unknown> {
     return false;
   }
 
-  private set(s: Stored<W>, value: Value, out: Output): boolean {
+  private set(s: Stored<W>, value: Value, out: Output, source: Source): boolean {
     const name = s.decl.name;
     const changed = !sameValue(s.value, value);
     s.value = copy(value);
@@ -274,6 +293,7 @@ export class Registry<W = unknown> {
       }
       case 'view':
         if (this.viewLive) s.decl.onChange?.(copy(value));
+        if (changed) this.told(name, value, source);
         out.write(`${name} = ${written}`);
         return false;
     }

@@ -312,10 +312,10 @@ test('the watcher (stage 3d): in a pool of light it sees you, in the dark it los
   };
   await go('dojo.goto -4 1 3');
   await expect.poll(() => page.locator('#game').getAttribute('data-seen'), { timeout: 15_000 }).toBe('1');
-  await expect(page.locator('.mg-notice')).toContainText('the watcher sees you');
+  await expect(page.locator('.mg-notice')).toContainText('El vigía te ve');
   await go('dojo.goto 0 1 9');
   await expect.poll(() => page.locator('#game').getAttribute('data-seen'), { timeout: 15_000 }).toBe('0');
-  await expect(page.locator('.mg-notice')).toContainText('the watcher lost you');
+  await expect(page.locator('.mg-notice')).toContainText('El vigía te perdió');
   expect(list).toEqual([]);
 });
 
@@ -430,6 +430,12 @@ const VIEW_VALUES: Record<string, string> = {
   'show.stats': 'on',
   'view.timescale': '0.5',
   'view.volume': '0.3',
+  'view.mouse': '2',
+  'view.stick': '0.5',
+  'view.invert': 'on',
+  'view.calm': 'on',
+  'view.subtitles': 'on',
+  'view.hud': 'off',
   'view.paused': 'on',
   'controls.scheme': 'tank',
   'view.camera': 'aim',
@@ -570,6 +576,120 @@ test('the corridor: holding W walks it all, and the camera never ends inside a w
   expect(hidden, 'frames where something was between the camera and the head').toEqual([]);
   // And it did come in: under the ceilings (at 3 m), where without walls it would be at 3.6.
   expect(seen.some(({ camera }) => camera[1]! < 2.9 && camera[2]! < 0)).toBe(true);
+  expect(list).toEqual([]);
+});
+
+// ---------------------------------------------------------------- the game's interface (stage 3i)
+
+test('pausing (stage 3i): Escape opens the menu and the steps stop; Enter on "Seguir" resumes; P too', async ({ page }) => {
+  const list = errors(page);
+  const game = page.locator('#game');
+  await page.goto('jugar/dojo/circuit/');
+  await expect.poll(async () => (await position(page, 'player')).length, { timeout: 20_000 }).toBe(3);
+  await page.keyboard.press('Escape');
+  await expect.poll(() => game.getAttribute('data-menu')).toBe('pause');
+  await expect(page.getByRole('dialog', { name: 'Pausa' })).toBeVisible();
+  // While the page keeps drawing (20 frames more), the world takes no step.
+  const step = await game.getAttribute('data-step');
+  const frames = Number(await game.getAttribute('data-frames'));
+  await expect.poll(async () => Number(await game.getAttribute('data-frames')), { timeout: 30_000 }).toBeGreaterThan(frames + 20);
+  expect(await game.getAttribute('data-step')).toBe(step);
+  // The focus is on "Seguir": Enter, and the world goes on.
+  await expect(page.getByRole('button', { name: 'Seguir' })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect.poll(() => game.getAttribute('data-menu')).toBe(null);
+  await afterSteps(page, 10);
+  // P opens it too, and closes it.
+  await page.keyboard.press('KeyP');
+  await expect.poll(() => game.getAttribute('data-menu')).toBe('pause');
+  await page.keyboard.press('KeyP');
+  await expect.poll(() => game.getAttribute('data-menu')).toBe(null);
+  expect(list).toEqual([]);
+});
+
+test('the menus work with the keyboard alone, and the settings are still there next time (stage 3i)', async ({ page }) => {
+  const list = errors(page);
+  const game = page.locator('#game');
+  await page.goto('jugar/dojo/circuit/');
+  await expect.poll(async () => (await position(page, 'player')).length, { timeout: 20_000 }).toBe(3);
+  // Escape, down to "Ajustes", Enter.
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('ArrowDown');
+  await expect(page.getByRole('button', { name: 'Ajustes' })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect.poll(() => game.getAttribute('data-menu')).toBe('settings');
+  // The volume first: four steps to the left (0.6 → 0.4). Then down to "invert", and Space ticks it.
+  const volume = page.locator('input[name="view.volume"]');
+  await expect(volume).toBeFocused();
+  for (let i = 0; i < 4; i++) await page.keyboard.press('ArrowLeft');
+  await expect(volume).toHaveValue('0.4');
+  for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowDown');
+  const invert = page.locator('input[name="view.invert"]');
+  await expect(invert).toBeFocused();
+  await page.keyboard.press('Space');
+  await expect(invert).toBeChecked();
+  // Escape goes back, and Escape again resumes.
+  await page.keyboard.press('Escape');
+  await expect.poll(() => game.getAttribute('data-menu')).toBe('pause');
+  await page.keyboard.press('Escape');
+  await expect.poll(() => game.getAttribute('data-menu')).toBe(null);
+  // Kept in this browser, for this game, and there after a reload.
+  const kept = () => page.evaluate(() => JSON.parse(localStorage.getItem('manifold.dojo.settings') ?? 'null'));
+  expect(await kept()).toEqual({ 'view.volume': 0.4, 'view.invert': true });
+  await page.reload();
+  await expect.poll(async () => (await position(page, 'player')).length, { timeout: 20_000 }).toBe(3);
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Ajustes' }).click();
+  await expect(volume).toHaveValue('0.4');
+  await expect(invert).toBeChecked();
+  // Back at its default, it is forgotten.
+  await invert.press('Space');
+  expect(await kept()).toEqual({ 'view.volume': 0.4 });
+  expect(list).toEqual([]);
+});
+
+test("the HUD (stage 3i): the course's time, falls and stars, in Spanish; at the goal, a box that starts it over", async ({
+  page,
+}) => {
+  const list = errors(page);
+  const game = page.locator('#game');
+  const hud = () => game.getAttribute('data-hud');
+  await page.goto('jugar/dojo/course/');
+  await expect.poll(hud, { timeout: 20_000 }).toMatch(/^Tiempo \d:\d\d,\d \| Caídas 0 \| Estrellas 0 de 3$/);
+  // A fall into the void: one more.
+  await page.keyboard.press('Backquote');
+  await typeInConsole(page, 'dojo.goto 20 -6 20');
+  await page.locator('.mg-console input').press('Escape');
+  await expect.poll(hud).toContain('Caídas 1');
+  // The goal: the time stops, and a box says how it went; its first button, "Otra vez", starts over.
+  await page.keyboard.press('Backquote');
+  await typeInConsole(page, 'dojo.goto -3 4.4 -7');
+  await page.locator('.mg-console input').press('Escape');
+  await expect.poll(() => game.getAttribute('data-dialog')).toBe('¡Llegaste!');
+  const box = page.getByRole('dialog', { name: '¡Llegaste!' });
+  await expect(box).toContainText('caídas 1 · estrellas 0 de 3');
+  await expect(page.getByRole('button', { name: 'Otra vez' })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect.poll(() => game.getAttribute('data-dialog')).toBe(null);
+  await expect.poll(hud).toContain('Caídas 0');
+  expect(list).toEqual([]);
+});
+
+test('subtitles for sounds (stage 3i): walking on stone, written with where it comes from, with or without sound', async ({
+  page,
+}) => {
+  const list = errors(page);
+  const game = page.locator('#game');
+  await page.goto('jugar/dojo/surfaces/#recipe=view.subtitles+on');
+  await expect.poll(async () => (await position(page, 'player')).length, { timeout: 20_000 }).toBe(3);
+  await settled(page, 'player');
+  // (Each line stays a couple of seconds: the start is stone for 4 m, then the rink, ice.)
+  await page.keyboard.down('KeyW');
+  await expect(page.locator('.mg-subtitles')).toContainText('Pasos en piedra', { timeout: 20_000 });
+  await page.keyboard.up('KeyW');
+  // Ahead of the camera, below it: an arrow up.
+  await expect(page.locator('.mg-subtitles')).toContainText(/Pasos en piedra ↑/);
+  expect(await game.getAttribute('data-subtitle')).toMatch(/^Pasos en /);
   expect(list).toEqual([]);
 });
 
@@ -844,8 +964,7 @@ test("the course's loop: falling off the floor brings the character back, with a
   await page.locator('#game').evaluate((el) => {
     const w = window as unknown as { fellBackAt?: string };
     new MutationObserver(() => {
-      if (w.fellBackAt === undefined && el.dataset.notice === 'you fell: back to the checkpoint')
-        w.fellBackAt = el.dataset.player;
+      if (w.fellBackAt === undefined && el.dataset.notice === 'dojo.fell') w.fellBackAt = el.dataset.player;
     }).observe(el, { attributes: true, attributeFilter: ['data-notice', 'data-player'] });
   });
   // S: towards the camera, off the floor's edge (4 m behind), into the void.
@@ -891,7 +1010,7 @@ test('capabilities, live: in front of the tower, a character stays below; with d
   await typeInConsole(page, 'dojo.climb on');
   await page.keyboard.press('Escape');
   await page.keyboard.down('KeyW');
-  await expect(consoleLog(page)).toContainText('a star (1 taken, 2 left)', { timeout: 90_000 });
+  await expect(consoleLog(page)).toContainText('a star: 1 taken, 2 left', { timeout: 90_000 });
   await page.keyboard.up('KeyW');
   expect(list).toEqual([]);
 });

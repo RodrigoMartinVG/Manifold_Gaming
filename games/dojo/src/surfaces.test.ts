@@ -20,7 +20,7 @@ function surfaces() {
     for (let i = 0; i < n; i++) {
       session.setInput(1, input);
       session.step();
-      for (const ev of session.world.stepEvents) if (ev.type === 'notice') notices.push(ev.text);
+      for (const ev of session.world.stepEvents) if (ev.type === 'notice') notices.push([ev.say, ...(ev.values ?? [])].join(' '));
     }
   };
   const put = (x: number, y: number, z: number) => {
@@ -70,7 +70,7 @@ describe('surfaces (stage 3b): what a floor is made of, and a zone that carries'
     m.step(NO_INPUT, 60);
     expect(m.at()[0]! - x).toBeCloseTo(3, 1);
     m.step(NO_INPUT, 120);
-    expect(m.notices).toContain('you fell: back to the checkpoint');
+    expect(m.notices).toContain('dojo.fell');
   });
 
   test('walking against it, it advances 4.5 − 3 = 1.5 m/s: the current is one more contribution to its movement', () => {
@@ -91,7 +91,7 @@ describe('surfaces (stage 3b): what a floor is made of, and a zone that carries'
       const entered = m.at()[0]!;
       for (let i = 0; i < 120 && m.at()[2]! > -14; i++) m.step(move);
       m.step(walk(0, -1), 15);
-      return { drift: m.at()[0]! - entered, z: m.at()[2]!, fell: m.notices.includes('you fell: back to the checkpoint') };
+      return { drift: m.at()[0]! - entered, z: m.at()[2]!, fell: m.notices.includes('dojo.fell') };
     };
     // 4 m at 4.5 m/s, carried 3 m/s: 2.7 m.
     const straight = across(walk(0, -1));

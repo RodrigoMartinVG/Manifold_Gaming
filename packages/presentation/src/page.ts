@@ -3,6 +3,7 @@ import type { Registry } from '@manifold/commands';
 import type { Cartridge, Entity, Event, Session, World } from '@manifold/core';
 import type { Match } from '@manifold/net';
 import type { GameConsole } from './console';
+import type { Language, Say } from './words';
 
 /**
  * THE PAGE A GAME IS MOUNTED IN (stage 2.5a): what every piece of the presentation shares. The
@@ -25,6 +26,21 @@ export interface GamePage {
   player(): Entity | undefined;
   /** Says something: in the console if there is one; if not, warnings and errors go to the browser's. */
   say(text: string, level?: 'info' | 'warn' | 'error'): void;
+  /** The player's language (stage 3i, decision 0019: the page's). */
+  readonly language: Language;
+  /** What a key of the games' words says in it (the game's tables first, then the engine's). */
+  words: Say;
+  /** The same, in another language (the console's notices, in English). */
+  wordsIn(language: Language): Say;
+  /** The world created again, with the registry's current values (the menu's "start again"). */
+  restart(): void;
+  /**
+   * Takes the keys from the player's character while a panel is open (a menu, a dialogue box): call
+   * what it returns to give them back. Several can hold them at once.
+   */
+  hold(): () => void;
+  /** Whether a panel holds them now. */
+  readonly held: boolean;
 }
 
 /** What the 3D is drawn with: the renderer, the scene and the camera (stage.ts). */

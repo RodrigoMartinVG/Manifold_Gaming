@@ -53,7 +53,8 @@ function run(recipe: string, acts: Act[]): { session: Session; seen: Seen } {
       session.setInput(1, act.drive?.(step) ?? NO_INPUT);
       if (session.world.players.has(2)) session.setInput(2, act.second?.(step) ?? NO_INPUT);
       session.step();
-      for (const ev of session.world.stepEvents) if (ev.type === 'notice') seen.notices.push(ev.text);
+      for (const ev of session.world.stepEvents)
+        if (ev.type === 'notice') seen.notices.push([ev.say, ...(ev.values ?? [])].join(' '));
       const h = hero(session);
       if (h?.character) {
         seen.modes.add(h.character.mode);
@@ -163,10 +164,10 @@ describe('the reference replays (stage 2.5a), recorded from their scripts', () =
       { lines: ['dojo.air 14', 'dojo.glide off'], steps: 90, drive: (s) => ({ jump: s >= 5 && s < 60 }) },
     ]);
     const has = (start: string) => seen.notices.filter((n) => n.startsWith(start)).length;
-    expect(has('checkpoint')).toBe(1);
-    expect(has('you fell')).toBe(2);
-    expect(has('a star')).toBe(3);
-    expect(has('the goal')).toBe(1);
+    expect(has('dojo.checkpoint')).toBe(1);
+    expect(has('dojo.fell')).toBe(2);
+    expect(has('dojo.star')).toBe(3);
+    expect(has('dojo.goal')).toBe(1);
     expect([...seen.modes].sort()).toEqual(['air', 'climb', 'glide', 'walk']);
     expect(seen.carried).toBeGreaterThan(300);
     await expect(
@@ -194,7 +195,7 @@ describe('the reference replays (stage 2.5a), recorded from their scripts', () =
       { lines: ['dojo.goto 4.6 1 -4'], steps: 220 },
     ]);
     expect(signal(session, 'gate')).toBe(1);
-    expect(seen.notices.filter((n) => n.startsWith('a star'))).toHaveLength(1);
+    expect(seen.notices.filter((n) => n.startsWith('dojo.star'))).toHaveLength(1);
     expect(session.world.named('lift')!.transform!.position[1]).toBeCloseTo(0.15, 4);
     expect(seen.carried).toBeGreaterThan(150);
     await expect(
@@ -227,13 +228,13 @@ describe('the reference replays (stage 2.5a), recorded from their scripts', () =
     ]);
     // Seen in the pool, lost in the dark; seen a step aside from the pillar (still, beside the fog), lost
     // in it; seen in the pool the switch lit (still, in the near one); lost when its lamp broke.
-    expect(seen.notices.filter((n) => n.startsWith('the watcher')).map((n) => n.split(' ')[2])).toEqual([
-      'sees',
-      'lost',
-      'sees',
-      'lost',
-      'sees',
-      'lost',
+    expect(seen.notices.filter((n) => n === 'dojo.seen' || n === 'dojo.lost')).toEqual([
+      'dojo.seen',
+      'dojo.lost',
+      'dojo.seen',
+      'dojo.lost',
+      'dojo.seen',
+      'dojo.lost',
     ]);
     expect(session.world.named('lamp_switch')!.lamp!.on).toBe(true);
     expect(session.world.named('lamp_near')!.breakable!.broken).toBe(true);

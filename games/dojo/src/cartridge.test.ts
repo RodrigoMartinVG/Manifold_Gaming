@@ -220,18 +220,18 @@ test("the course's loop: a checkpoint, a fall back to it, the goal with its time
   const steps = (n: number) => {
     for (let i = 0; i < n; i++) {
       session.step();
-      for (const ev of world().stepEvents) if (ev.type === 'notice') notices.push(ev.text);
+      for (const ev of world().stepEvents) if (ev.type === 'notice') notices.push([ev.say, ...(ev.values ?? [])].join(' '));
     }
   };
   steps(60);
   // The character gets to the checkpoint (put there, as if it had jumped: the test is the loop, not the jumps).
   world().place(hero(), zone('checkpoint').transform!.position);
   steps(2);
-  expect(notices).toEqual(['checkpoint']);
+  expect(notices).toEqual(['dojo.checkpoint']);
   // It falls off the floor's edge: back to the checkpoint.
   world().place(hero(), [12, 1, 0]);
   steps(120);
-  expect(notices).toEqual(['checkpoint', 'you fell: back to the checkpoint']);
+  expect(notices).toEqual(['dojo.checkpoint', 'dojo.fell']);
   expect(runner(hero())!.falls).toBe(1);
   expect(hero().transform!.position[2]).toBeCloseTo(-4, 1);
   // The goal: once, with the time since it started.
@@ -239,9 +239,8 @@ test("the course's loop: a checkpoint, a fall back to it, the goal with its time
   steps(30);
   world().place(hero(), zone('goal').transform!.position);
   steps(30);
-  expect(notices.filter((n) => n.startsWith('the goal'))).toEqual([
-    `the goal: ${(runner(hero())!.finish * STEP).toFixed(2)} s, 1 fall, 0 stars`,
-  ]);
+  // (Its time, 1 fall, no star taken, the course's 3 left.)
+  expect(notices.filter((n) => n.startsWith('dojo.goal'))).toEqual([`dojo.goal ${runner(hero())!.finish * STEP} 1 0 3`]);
   // A ball thrown off the floor is gone when it falls into the void.
   const before = world().entities.size;
   session.registry.run('dojo.spawn 15 2 0');

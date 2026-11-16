@@ -468,10 +468,11 @@ export type Event =
   | { type: 'sensorEntered'; sensor: EntityId; entity: EntityId }
   | { type: 'sensorLeft'; sensor: EntityId; entity: EntityId }
   /**
-   * Something the game wants the players to know ("checkpoint", "the goal in 23.4 s"): the
-   * presentation shows it. For one player, or (without `player`) for everybody.
+   * Something the game wants the players to know ("checkpoint", "the goal in 23.4 s"), as a key of its
+   * words and the numbers it needs (stage 3i, decision 0019: the world carries no sentence; the page
+   * says it in the player's language). For one player, or (without `player`) for everybody.
    */
-  | { type: 'notice'; text: string; player?: number }
+  | { type: 'notice'; say: string; values?: readonly number[]; player?: number }
   /** A signal changed its value (stage 3c), at the end of the step: what it is now, and what it was. */
   | { type: 'signalChanged'; signal: string; value: number; was: number }
   /** A watcher began to see a character (stage 3d), or lost it. */

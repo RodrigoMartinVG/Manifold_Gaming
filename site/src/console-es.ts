@@ -25,6 +25,13 @@ export const CONSOLE_ES: Readonly<Record<string, string>> = {
     'las señales: una línea desde cada mecanismo hasta las zonas de donde sale su señal, verde mientras está prendida',
   'view.volume':
     'qué tan fuerte se oyen los sonidos, de 0 (nada) a 1: se hacen en el navegador con lo que dice la simulación, sin archivos',
+  'view.mouse': 'qué tan rápido gira la cámara el mouse, arrastrando o apuntando (1, como viene; 2, el doble)',
+  'view.stick': 'qué tan rápido gira la cámara el stick derecho de un mando (1, como viene)',
+  'view.invert': 'invertir el eje vertical: el mouse apuntando, o el stick, hacia arriba mira hacia abajo',
+  'view.calm':
+    'menos movimiento de la cámara, para quien se marea: no sigue girando después de un arrastre, y vuelve atrás del personaje más despacio',
+  'view.subtitles': 'subtítulos de los sonidos: cada sonido cerca de la cámara, escrito abajo, con una flecha hacia donde vino',
+  'view.hud': 'lo que el juego muestra arriba a la izquierda: en el Dojo, el tiempo, las caídas y las estrellas de un nivel',
   'view.timescale': 'mostrar el mundo más lento (0.2) o más rápido (2), sin cambiar la física',
   'view.paused': 'el mundo frenado (con `step` avanza de a un paso)',
   'controls.scheme': 'cómo manejan las teclas al personaje ([las dos maneras](../como-se-juega/#las-teclas-de-dos-maneras))',

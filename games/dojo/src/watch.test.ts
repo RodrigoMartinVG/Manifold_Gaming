@@ -16,7 +16,7 @@ function watch() {
     for (let i = 0; i < n; i++) {
       session.setInput(1, input);
       session.step();
-      for (const ev of session.world.stepEvents) if (ev.type === 'notice') notices.push(ev.text);
+      for (const ev of session.world.stepEvents) if (ev.type === 'notice') notices.push([ev.say, ...(ev.values ?? [])].join(' '));
     }
   };
   /** Put somewhere, standing, and a few steps more: what the eye sees there. */
@@ -36,7 +36,7 @@ describe('the watcher (stage 3d): seen in the light, lost in the dark', () => {
     expect(w.session.world.signal('spotted')).toBe(0);
     expect(w.at(-4, 3)).toMatchObject({ seen: true });
     expect(w.at(0, 9)).toEqual({ light: expect.closeTo(0.08, 6), seen: false });
-    expect(w.notices).toEqual(['the watcher sees you', 'the watcher lost you']);
+    expect(w.notices).toEqual(['dojo.seen', 'dojo.lost']);
   });
 
   test('right behind the pillar, lit, it does not see you; a step aside, it does', () => {
@@ -73,7 +73,7 @@ describe('the watcher (stage 3d): seen in the light, lost in the dark', () => {
     expect(lamp.lamp!.on).toBe(false);
     expect(w.me().character!.light).toBeCloseTo(0.08, 6);
     expect(w.session.world.signal('spotted')).toBe(0);
-    expect(w.notices.slice(-2)).toEqual(['the watcher sees you', 'the watcher lost you']);
+    expect(w.notices.slice(-2)).toEqual(['dojo.seen', 'dojo.lost']);
   });
 
   test('the switch: E at the post lights the pool on the right, and there it sees you', () => {

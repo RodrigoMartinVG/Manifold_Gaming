@@ -18,7 +18,7 @@ function machines() {
   const step = (input: PlayerInput = NO_INPUT) => {
     session.setInput(1, input);
     session.step();
-    for (const ev of session.world.stepEvents) if (ev.type === 'notice') notices.push(ev.text);
+    for (const ev of session.world.stepEvents) if (ev.type === 'notice') notices.push([ev.say, ...(ev.values ?? [])].join(' '));
   };
   const machine = (from: Vec3) =>
     [...session.world.entities.values()].find((e) => e.mover && e.mover.from.every((v, i) => Math.abs(v - from[i]!) < 1e-6))!;
@@ -75,7 +75,7 @@ describe('the machines: a button and a door, plates and a lift (stage 3c)', () =
     expect(off, 'steps it did not stand').toBe(0);
     // Onto the ledge, and the star.
     for (let i = 0; i < 30; i++) m.step({ move: [0.25, 0, -1] });
-    expect(m.notices.some((n) => n.startsWith('a star'))).toBe(true);
+    expect(m.notices.some((n) => n.startsWith('dojo.star'))).toBe(true);
   });
 
   test('the plate beside it calls it down; while someone stands where it comes down, it does not (the call up wins)', () => {
@@ -169,7 +169,7 @@ describe('the machines (stage 3a)', () => {
       if (ferry.on()) on = i;
     }
     expect(on, 'on the ferry').toBeGreaterThan(0);
-    expect(m.notices).not.toContain('you fell: back to the checkpoint');
+    expect(m.notices).not.toContain('dojo.fell');
   });
 
   test("caught on the ferry's rear edge as it pulls away over the pit, it gets on (before 3a it was dragged along on it)", () => {
@@ -184,7 +184,7 @@ describe('the machines (stage 3a)', () => {
       if (ferry.on()) on = i;
     }
     expect(on, 'on the ferry').toBeGreaterThan(0);
-    expect(m.notices).not.toContain('you fell: back to the checkpoint');
+    expect(m.notices).not.toContain('dojo.fell');
   });
 
   test('riding the platform under the beam, the beam stops the character, and it lands on the floor (before 3a the carry took it into the beam)', () => {

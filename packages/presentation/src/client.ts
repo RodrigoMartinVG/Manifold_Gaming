@@ -19,6 +19,11 @@ import { mountDebris } from './debris';
 import { mountLights } from './lights';
 import { mountSignals } from './signals';
 import { mountViews } from './views';
+import { mountHud, type Hud } from './hud';
+import { mountMenu } from './menu';
+import { mountSettings } from './settings';
+import { mountSubtitles } from './subtitles';
+import { ENGINE_WORDS, languageOf, sayer, type Words } from './words';
 
 /** A recipe to start with, and where it comes from (for the warnings: "the link's recipe…"). */
 export interface InitialRecipe {
@@ -57,6 +62,13 @@ export interface MountOptions {
    * An appearance that names one is drawn with it, once it loaded.
    */
   models?: Readonly<Record<string, string>>;
+  /**
+   * The game's words (stage 3i, decision 0019): its notices, its HUD, its dialogue, in Spanish and in
+   * English, by keys that start with its name. The page says them in its language.
+   */
+  words?: Words;
+  /** What the game's HUD shows (stage 3i), read from the world on every frame. */
+  hud?: Hud;
 }
 
 export interface Mount {
@@ -105,6 +117,12 @@ export function mount(cartridge: Cartridge, container: HTMLElement, o: MountOpti
   let gameConsole: GameConsole | null = null;
   const say = (text: string, level: 'info' | 'warn' | 'error' = 'info') =>
     gameConsole ? gameConsole.write(text, level) : level !== 'info' && console.warn(text);
+  // The games' words (decision 0019): the game's tables first, then the engine's, in the page's language.
+  const language = languageOf();
+  const tables = o.words ? [o.words, ENGINE_WORDS] : [ENGINE_WORDS];
+  const words = sayer(tables, language);
+  /** How many panels hold the keys now (a menu, a dialogue box). */
+  let holding = 0;
 
   // Around each step this page's copy takes: the pieces before, in order; after, in the opposite order.
   const match = createMatch({
@@ -137,6 +155,21 @@ export function mount(cartridge: Cartridge, container: HTMLElement, o: MountOpti
     },
     player: () => [...match.session.world.entities.values()].find((e) => e.character?.player === match.me),
     say,
+    language,
+    words,
+    wordsIn: (l) => sayer(tables, l),
+    restart: () => match.restart(),
+    hold() {
+      holding++;
+      let given = false;
+      return () => {
+        if (!given) holding--;
+        given = true;
+      };
+    },
+    get held() {
+      return holding > 0;
+    },
   };
 
   // The console, if the game mounts it.
@@ -144,7 +177,7 @@ export function mount(cartridge: Cartridge, container: HTMLElement, o: MountOpti
   if (gameConsole) declareHelp(registry, { examples: o.console ? o.console.examples : undefined });
 
   // The pieces, in the order they draw (the bodies first, what is drawn on them after, the camera last).
-  const playerControls = mountPlayerControls({ blocked: () => gameConsole?.isOpen ?? false, buttons: o.buttons });
+  const playerControls = mountPlayerControls({ blocked: () => (gameConsole?.isOpen ?? false) || page.held, buttons: o.buttons });
   const bodies = mountBodies(page, loadModels(o.models), { timeScale: () => (match.paused ? 0 : match.timescale) });
   const replays = mountReplays(page, match, bodies);
   const rig = mountCamera(page, bodies, match, {
@@ -159,6 +192,7 @@ export function mount(cartridge: Cartridge, container: HTMLElement, o: MountOpti
     mountLights(page, bodies),
     mountDebris(page, { timeScale: () => (match.paused ? 0 : match.timescale) }),
     mountAudio(page),
+    mountSubtitles(page),
     replays,
     mountStats(page, match),
     mountNotices(page),
@@ -166,8 +200,12 @@ export function mount(cartridge: Cartridge, container: HTMLElement, o: MountOpti
     rig,
     mountDrive(page, match, rig, { controls: playerControls, buttons: o.buttons, replaying: () => replays.playing }),
     mountProbe(page, match),
+    ...(o.hud ? [mountHud(page, o.hud)] : []),
+    mountMenu(page, match, { blocked: () => gameConsole?.isOpen ?? false }),
     ...(o.pieces ?? []).map((make) => make(page)),
   );
+  // The player's settings (stage 3i), once every piece declared its variables: before any recipe.
+  pieces.push(mountSettings(page));
 
   // The recipes the world is born with (the startup one, if there is a console; then the game's). Their
   // view values are only kept, until every piece exists (below).

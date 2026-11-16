@@ -3,6 +3,7 @@ import { initPhysics } from '@manifold/core';
 import { GHOST_PREFIX, mount, REPLAY_PREFIX, replayFromFragment, type InitialRecipe, type Mount } from '@manifold/presentation';
 import { DojoCartridge } from './cartridge';
 import { ROOMS } from './rooms';
+import { DOJO_WORDS, dojoGoal, dojoHud } from './interface';
 // The mannequin (stage 2e), made by art/mannequin.py: served as a file, by its address.
 import mannequin from '../assets/mannequin.glb?url';
 // The door (stage 3c), made by art/door.py: what the machines room's door is drawn with.
@@ -51,6 +52,10 @@ export async function startDojo(container: HTMLElement, o: DojoOptions = {}): Pr
     buttons: [{ action: 'dojo.throw', keys: ['KeyF'], pad: 2 }],
     // Its models, by the name its appearances give (stage 2e).
     models: { 'dojo.mannequin': mannequin, 'dojo.door': door, 'dojo.lamp': lamp },
+    // Its words, its HUD and the box at the goal (stage 3i).
+    words: DOJO_WORDS,
+    hud: dojoHud,
+    pieces: [dojoGoal],
     console: {
       game: 'dojo',
       rooms: ROOMS,
@@ -69,4 +74,4 @@ export async function startDojo(container: HTMLElement, o: DojoOptions = {}): Pr
   });
 }
 
-export { DojoCartridge, ROOMS };
+export { DojoCartridge, ROOMS, DOJO_WORDS };

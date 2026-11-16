@@ -7,6 +7,8 @@ import {
   type Message,
   type Registry,
 } from '@manifold/commands';
+import { storage } from './storage';
+import { focusPanel } from './ui';
 
 export interface ConsoleOptions {
   /** To keep each game's things apart (the history, the bindings, the startup recipe): "dojo". */
@@ -159,6 +161,8 @@ export function mountConsole(
     isOpen = false;
     root.dataset.open = 'false';
     input.blur();
+    // A panel that opened meanwhile (a menu, a dialogue box: stage 3i) gets the keys.
+    focusPanel(container);
   }
   button.addEventListener('click', () => (isOpen ? close() : open()));
 
@@ -212,9 +216,8 @@ export function mountConsole(
       return;
     }
     // The bindings: only with the console closed, and if nothing else is being typed into.
-    const target = e.target as HTMLElement | null;
     if (isOpen || e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
-    if (target?.closest('input, textarea, select, [contenteditable]')) return;
+    if (e.target instanceof Element && e.target.closest('input, textarea, select, [contenteditable]')) return;
     const command = binds[e.key.toLowerCase()];
     if (command) {
       e.preventDefault();
@@ -376,34 +379,6 @@ function appendWithButtons(div: HTMLElement, line: string) {
     button.title = 'Put it in the line';
     div.append(button);
   });
-}
-
-/** Saving in the browser, separately for each game. If it cannot (a private window), nothing happens. */
-function storage(prefix: string) {
-  return {
-    read<T>(key: string): T | null {
-      try {
-        const v = localStorage.getItem(`${prefix}.${key}`);
-        return v === null ? null : (JSON.parse(v) as T);
-      } catch {
-        return null;
-      }
-    },
-    write(key: string, value: unknown) {
-      try {
-        localStorage.setItem(`${prefix}.${key}`, JSON.stringify(value));
-      } catch {
-        // no storage: it lasts only while the page is open
-      }
-    },
-    remove(key: string) {
-      try {
-        localStorage.removeItem(`${prefix}.${key}`);
-      } catch {
-        // idem
-      }
-    },
-  };
 }
 
 /** The styles, once per page: the site's metal and ink (decision 0008). */

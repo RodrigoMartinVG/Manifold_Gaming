@@ -2,8 +2,10 @@ import { overlay, type GamePage, type Piece } from './page';
 
 /**
  * THE GAME'S NOTICES (stage 2a): "checkpoint", "the goal in 23.4 s"… The world emits them, for one
- * player or for everybody; this page shows the ones for its player, a few seconds in the middle of
- * the screen (and in the console, if there is one).
+ * player or for everybody, as a key of the game's words and its numbers (stage 3i, decision 0019);
+ * this page shows the ones for its player, a few seconds in the middle of the screen, in the player's
+ * language (and in the console, if there is one, in English, the console's). For the browser tests:
+ * `data-notice`, the last one's key.
  */
 export function mountNotices(page: GamePage): Piece {
   const box = overlay(page.container, 'mg-notice', {
@@ -22,12 +24,13 @@ export function mountNotices(page: GamePage): Piece {
     transition: 'opacity 0.4s',
   });
   let timer = 0;
-  const show = (text: string) => {
-    box.textContent = text;
+  const english = page.wordsIn('en');
+  const show = (say: string, values: readonly number[]) => {
+    box.textContent = page.words(say, values);
     box.hidden = false;
     box.style.opacity = '1';
-    page.container.dataset.notice = text;
-    page.console?.write(text);
+    page.container.dataset.notice = say;
+    page.console?.write(english(say, values));
     clearTimeout(timer);
     timer = window.setTimeout(() => {
       box.style.opacity = '0';
@@ -36,7 +39,7 @@ export function mountNotices(page: GamePage): Piece {
   };
   return {
     event(ev) {
-      if (ev.type === 'notice' && (ev.player === undefined || ev.player === page.me)) show(ev.text);
+      if (ev.type === 'notice' && (ev.player === undefined || ev.player === page.me)) show(ev.say, ev.values ?? []);
     },
     stop() {
       clearTimeout(timer);

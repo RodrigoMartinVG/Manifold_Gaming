@@ -29,6 +29,38 @@ export const CAMERA_VARIABLES = {
     type: { kind: 'option', options: ['follow', 'chase', 'aim', 'free'] },
     default: 'follow',
   },
+  // The player's settings (stage 3i): the menu shows them, and they are kept in the browser.
+  mouse: {
+    name: 'view.mouse',
+    description: 'How fast the mouse turns the camera, dragging or aiming (stage 3i): 1 as it comes, 2 twice as fast.',
+    scope: 'view',
+    type: { kind: 'number', min: 0.2, max: 3 },
+    default: 1,
+  },
+  stick: {
+    name: 'view.stick',
+    description:
+      "How fast a gamepad's right stick turns the camera (stage 3i): 1 as it comes (2.5 radians per second, pushed all the way).",
+    scope: 'view',
+    type: { kind: 'number', min: 0.2, max: 3 },
+    default: 1,
+  },
+  invert: {
+    name: 'view.invert',
+    description:
+      'Up is down (stage 3i): moving the mouse while aiming, or the right stick, up turns the camera to look down, like a plane. Dragging is not inverted: what is dragged follows the finger.',
+    scope: 'view',
+    type: { kind: 'boolean' },
+    default: false,
+  },
+  calm: {
+    name: 'view.calm',
+    description:
+      'Less camera motion, for whoever gets dizzy (stage 3i): a drag does not keep turning it once let go, and coming back behind the character, or turning where a zone says, goes half as fast.',
+    scope: 'view',
+    type: { kind: 'boolean' },
+    default: false,
+  },
 } as const satisfies Record<string, VariableInfo>;
 export const CAMERA_COMMANDS = {
   reset: {
@@ -118,6 +150,8 @@ export function mountCamera(
   const drift = { x: 0, y: 0 };
   /** The pointers on the screen (a finger, the mouse), where they were at the last move, and their buttons. */
   const pointers = new Map<number, { x: number; y: number; buttons: number; at: number }>();
+  /** The player's settings (stage 3i): how fast the mouse and the stick turn it, whether up is down, and less motion. */
+  const settings = { mouse: 1, stick: 1, invert: false, calm: false };
   /**
    * AGAINST WALLS (stage 3h): how far the camera was brought in front of a wall at the last frame (taken
    * back at the start of the next, so the leash keeps its own distance: it never learns the wall's), and
@@ -172,7 +206,7 @@ export function mountCamera(
 
   // ---------- By hand: a drag turns it, the wheel or a pinch gets closer, the right button or two fingers move it ----------
   /** A drag across the whole height of the screen turns it a whole turn (as OrbitControls did). */
-  const perPixel = () => (2 * Math.PI) / Math.max(1, canvas.clientHeight);
+  const perPixel = () => ((2 * Math.PI) / Math.max(1, canvas.clientHeight)) * settings.mouse;
   const spread = () => {
     const [a, b] = [...pointers.values()];
     return a && b ? { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, apart: Math.hypot(a.x - b.x, a.y - b.y) } : null;
@@ -240,7 +274,9 @@ export function mountCamera(
   // Aiming, with the mouse taken (pointer lock), it turns the camera around the character's head, with
   // a button held or not (in a shooter, one aims while firing).
   function onAimMove(e: MouseEvent) {
-    if (mode === 'aim' && document.pointerLockElement === canvas) orbit(e.movementX * 0.0025, e.movementY * 0.0025);
+    const turn = 0.0025 * settings.mouse;
+    if (mode === 'aim' && document.pointerLockElement === canvas)
+      orbit(e.movementX * turn, e.movementY * turn * (settings.invert ? -1 : 1));
   }
 
   /** Behind the character and a little above, looking at its head. Or, without a character, where it started. */
@@ -278,6 +314,10 @@ export function mountCamera(
         if (mode !== 'aim' && document.pointerLockElement === canvas) document.exitPointerLock();
       },
     });
+    page.registry.declareVariable({ ...CAMERA_VARIABLES.mouse, onChange: (v) => (settings.mouse = Number(v)) });
+    page.registry.declareVariable({ ...CAMERA_VARIABLES.stick, onChange: (v) => (settings.stick = Number(v)) });
+    page.registry.declareVariable({ ...CAMERA_VARIABLES.invert, onChange: (v) => (settings.invert = v === true) });
+    page.registry.declareVariable({ ...CAMERA_VARIABLES.calm, onChange: (v) => (settings.calm = v === true) });
     page.registry.declareCommand({
       ...CAMERA_COMMANDS.reset,
       run: (_, out) => {
@@ -312,10 +352,13 @@ export function mountCamera(
       // A gamepad's right stick turns the camera (2.5 radians per second, pushed all the way).
       const [stickX, stickY] = o.stick();
       if (stickX || stickY) {
-        orbit(stickX * 2.5 * dt, stickY * 2.5 * dt);
+        const turn = 2.5 * settings.stick * dt;
+        orbit(stickX * turn, stickY * turn * (settings.invert ? -1 : 1));
         turnedByHand = now;
       }
       // What is left of a drag: it turns the camera once let go, and it dies out (also while held).
+      // With less motion (stage 3i), none.
+      if (settings.calm) drift.x = drift.y = 0;
       if (drift.x || drift.y) {
         if (pointers.size === 0) {
           orbit(drift.x * dt, drift.y * dt);
@@ -407,7 +450,8 @@ export function mountCamera(
           if (towards) {
             towards.addScaledVector(up, -towards.dot(up));
             const angle = Math.atan2(new THREE.Vector3().crossVectors(along, towards).dot(up), along.dot(towards));
-            along.applyAxisAngle(up, angle * (1 - Math.exp(-(suggested ? SUGGESTED : 4) * dt)));
+            const rate = (suggested ? SUGGESTED : 4) * (settings.calm ? 0.5 : 1);
+            along.applyAxisAngle(up, angle * (1 - Math.exp(-rate * dt)));
           }
           along.setLength(reach);
           target.copy(head);
