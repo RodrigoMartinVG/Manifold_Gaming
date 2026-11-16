@@ -1,5 +1,6 @@
 {
   "extends": "astro/tsconfigs/strict",
+  "compilerOptions": { "paths": { "lab": ["./src/lab/index.ts"] } },
   "include": [".astro/types.d.ts", "**/*"],
   "exclude": ["dist", "public/vendor", "src/course"]
 }

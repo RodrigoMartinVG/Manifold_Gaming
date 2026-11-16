@@ -1,0 +1,282 @@
+---
+title: La proyección
+description: 'Cómo un mundo de tres dimensiones se vuelve una foto plana: un ojo, un plano a 1 m delante, y cada punto visto donde su recta al ojo cruza el plano. Proyectar es dividir por la profundidad; de ahí salen lo lejano que se achica, el punto de fuga de las paralelas y el campo de visión, que decide cuánto entra.'
+sidebar:
+  order: 2
+---
+
+import LiveCode from '../../../../components/LiveCode.astro';
+
+## El problema
+
+Un juego muestra un mundo de tres dimensiones en una pantalla plana, y lo vuelve a dibujar decenas de veces por segundo. Cada vez, para cada punto del mundo, tiene que saber **en qué píxel cae**. Las [coordenadas](../01-coordenadas/) dicen dónde está un punto; falta decir dónde se lo ve.
+
+Una cámara de fotos lo resuelve con luz. Esta lección lo resuelve con una cuenta, y de paso explica dos cosas que se ven en cualquier foto: lo lejano sale chico, y las vías del tren, que son paralelas, parecen juntarse a lo lejos.
+
+<LiveCode lesson="parte-1/projection" autorun />
+
+La bolita blanca es el **ojo**; el rectángulo azul, a 1 m delante de él, es el **plano de imagen**. El punto dorado $P$ se mueve solo: la línea dorada va del ojo a $P$, y $P'$ marca dónde cruza el plano. Hay dos postes iguales, uno al doble de distancia que el otro, y dos rieles violetas que se alejan. En el plano están sus imágenes: el poste lejano, de la mitad de alto, y los rieles, que se juntan hacia el **punto de fuga**. Abajo a la izquierda está la foto que saca el ojo, dibujada por three.js, con nuestras marcas encima: el anillo dorado en el píxel que dan nuestras cuentas para $P$, y el violeta en el punto de fuga. El panel sigue a $P$ paso por paso.
+
+## La matemática
+
+### Un ojo y un plano
+
+Una **cámara de agujero** (_pinhole camera_) es una caja cerrada con un agujero muy chico en una cara. La luz de cada punto del mundo entra por el agujero en línea recta y pega en la pared del fondo: ahí se forma la imagen, dada vuelta.
+
+Una cámara de computadora es la misma idea, ordenada. El agujero es un punto, el **ojo** (o centro de la proyección). Y en vez de la pared del fondo, donde la imagen sale dada vuelta, se pone un plano **delante** del ojo, a distancia 1: el **plano de imagen** (_image plane_). La imagen es la misma, pero derecha.
+
+La **proyección central** (_central projection_) de un punto $P$ es el punto $P'$ donde la recta que va del ojo a $P$ cruza el plano de imagen. En la figura: la línea dorada, y $P'$.
+
+Todos los puntos de esa recta tienen la misma proyección: la foto pierde la profundidad. Por eso, con una sola foto no se puede saber a qué distancia estaba algo.
+
+### Visto desde el ojo
+
+Un punto es $P = (x, y, z)$, en metros, en un espacio de mano derecha con $+Y$ hacia arriba, como en [Coordenadas](../01-coordenadas/). **Supongamos que el ojo está en $E = (e_x, e_y, e_z)$ y no está girado:** su derecha es $+X$, su arriba es $+Y$, y mira hacia $-Z$. (Cómo se gira una cámara tiene su propia lección, más adelante.)
+
+Visto desde el ojo, un punto tiene las coordenadas que resultan de restarle las del ojo:
+
+$$
+x_c = x - e_x, \qquad y_c = y - e_y, \qquad z_c = z - e_z.
+$$
+
+En estas coordenadas, las **de la cámara**, el ojo es el origen. La **profundidad** (_depth_) de un punto es cuánto está delante del ojo. Como el ojo mira hacia $-Z$, es
+
+$$
+d = -z_c = e_z - z.
+$$
+
+Si $d > 0$, el punto está delante; si $d \le 0$, al costado del ojo o detrás.
+
+El plano de imagen son los puntos de profundidad 1, los de $z_c = -1$. Un punto del plano se describe con dos números, $(x', y')$, medidos desde su centro, que es el punto justo delante del ojo: en coordenadas de la cámara, es $(x',\ y',\ -1)$.
+
+### Por semejanza de triángulos
+
+Miremos de costado, a lo largo del eje $X$. El ojo está en el origen, el plano a distancia 1, y $P$ a la profundidad $d$ y a la altura $y_c$. La recta del ojo a $P$ cruza el plano a la altura $y'$.
+
+Quedan dos triángulos rectángulos con un vértice en el ojo y el mismo ángulo ahí. El chico tiene catetos $1$ (hasta el plano) e $y'$; el grande, $d$ (hasta $P$) e $y_c$. Dos triángulos con los mismos ángulos son **semejantes**: sus lados son proporcionales. Entonces
+
+$$
+\frac{y'}{1} = \frac{y_c}{d}.
+$$
+
+Mirando desde arriba, a lo largo de $Y$, pasa lo mismo con $x$. Así que
+
+$$
+x' = \frac{x_c}{d}, \qquad y' = \frac{y_c}{d}.
+$$
+
+**Proyectar es dividir por la profundidad.**
+
+### La misma cuenta, con la recta
+
+Los triángulos miden largos, sin signo. La recta da el resultado con sus signos, y además dice qué pasa detrás del ojo. En coordenadas de la cámara, los puntos de la recta que sale del ojo y pasa por $P$ se obtienen multiplicando cada coordenada de $P$ por un mismo número $t \ge 0$:
+
+$$
+(t\,x_c,\ t\,y_c,\ t\,z_c), \qquad t \ge 0.
+$$
+
+Con $t = 0$ es el ojo; con $t = 1$, el punto $P$; con $t = 2$, el doble de lejos en la misma dirección. Están en línea recta: cada vez que $t$ aumenta en 1, las tres coordenadas cambian lo mismo, $x_c$, $y_c$ y $z_c$.
+
+El punto de parámetro $t$ tiene profundidad $-t\,z_c = t\,d$. El plano está donde la profundidad es 1, o sea donde $t\,d = 1$. Si $d > 0$, eso pasa en $t = 1/d$, y el punto de la recta ahí es
+
+$$
+\left(\frac{x_c}{d},\ \frac{y_c}{d},\ -1\right), \qquad \text{o sea} \qquad x' = \frac{x_c}{d}, \quad y' = \frac{y_c}{d}.
+$$
+
+Si $d \le 0$, ningún $t \ge 0$ cumple $t\,d = 1$: la recta del ojo hacia un punto que está detrás nunca llega al plano. Ese punto no sale en la foto.
+
+### Lo lejano se ve chico
+
+Un segmento de largo $s$ puesto de frente al ojo (todos sus puntos a la misma profundidad $d$) tiene una imagen de largo $s/d$, porque sus dos puntas se dividen por el mismo $d$. **Al doble de distancia, la mitad de grande.** En la figura, los postes miden 1 m y están a 2,5 m y a 5 m: sus imágenes miden $1/2{,}5 = 0{,}4$ m y $1/5 = 0{,}2$ m.
+
+Y un punto que se aleja sin moverse de costado ni de altura ($x_c$ e $y_c$ fijos, $d$ creciendo) cae cada vez más cerca de $(0, 0)$, el centro: lo lejano se amontona en el medio de la foto.
+
+### Las paralelas se juntan: el punto de fuga
+
+Los rieles son paralelos y nunca se tocan, pero en la foto se juntan. ¿Por qué, y dónde?
+
+Una recta queda dada por un punto de partida, $P_0 = (x_0, y_0, z_0)$ en coordenadas de la cámara, y una **dirección**: tres números $\mathbf{w} = (w_x, w_y, w_z)$ que dicen cuánto cambia cada coordenada por cada unidad de $t$. (Va en negrita porque es lo que la lección de [vectores](../04-vectores/) llama un vector; acá alcanzan sus tres números.) Sus puntos son
+
+$$
+P(t) = (x_0 + t\,w_x,\ \ y_0 + t\,w_y,\ \ z_0 + t\,w_z), \qquad t \ge 0.
+$$
+
+Dos rectas son **paralelas** si tienen la misma dirección. Una recta **se aleja** si $w_z \lt 0$: su profundidad, $d(t) = d_0 - t\,w_z$ con $d_0 = -z_0$, crece sin límite.
+
+Su imagen, dividiendo por la profundidad, es
+
+$$
+x'(t) = \frac{x_0 + t\,w_x}{d_0 - t\,w_z}, \qquad y'(t) = \frac{y_0 + t\,w_y}{d_0 - t\,w_z}.
+$$
+
+Para ver qué pasa lejos, dividimos arriba y abajo por $t$, que es positivo:
+
+$$
+x'(t) = \frac{x_0/t + w_x}{d_0/t - w_z}.
+$$
+
+Cuando $t$ crece, $x_0/t$ y $d_0/t$ se acercan a 0. Lo mismo pasa con $y'$. Entonces la imagen se acerca al punto
+
+$$
+x'_\infty = \frac{w_x}{-w_z}, \qquad y'_\infty = \frac{w_y}{-w_z}.
+$$
+
+En el resultado no aparece $P_0$: **todas las rectas con la misma dirección se acercan al mismo punto de la foto**, su **punto de fuga** (_vanishing point_). La imagen de cada riel se le acerca sin llegar nunca, porque ningún punto del riel está infinitamente lejos.
+
+Hay otra manera de verlo. La recta que sale del ojo con esa misma dirección, $(t\,w_x,\ t\,w_y,\ t\,w_z)$, llega a profundidad 1 cuando $-t\,w_z = 1$, en $t = 1/(-w_z)$, justo en $(x'_\infty,\ y'_\infty)$. **El punto de fuga es donde la paralela que pasa por el ojo cruza el plano.** En la figura, es la línea violeta punteada que sale del ojo.
+
+Los rieles están en el piso, girados un ángulo $\alpha$ desde $-Z$: por cada metro avanzan $\sin\alpha$ en $x$ y $-\cos\alpha$ en $z$, así que $\mathbf{w} = (\sin\alpha,\ 0,\ -\cos\alpha)$ y
+
+$$
+x'_\infty = \frac{\sin\alpha}{\cos\alpha} = \tan\alpha, \qquad y'_\infty = 0.
+$$
+
+Restar el ojo no cambia la dirección: restarle lo mismo a dos puntos no cambia cuánto se diferencian. Toda recta horizontal tiene $w_y = 0$, así que fuga a la altura $y' = 0$, la del ojo: esa línea de la foto es el **horizonte** (_horizon_). Las puntas de los postes, a 1 m de altura como el ojo, también caen sobre ella.
+
+### Lo que entra en la foto: el campo de visión
+
+El plano de imagen no termina; la foto es un rectángulo de él. El **campo de visión** (_field of view_) vertical, $\varphi$, es el ángulo, en el ojo, entre la recta al borde de arriba y la recta al borde de abajo. La mirada de frente lo parte en dos triángulos rectángulos, cada uno con el ángulo $\varphi/2$ en el ojo, cateto adyacente 1 (hasta el plano) y cateto opuesto $h$, medio alto visible:
+
+$$
+\tan\frac{\varphi}{2} = \frac{h}{1}, \qquad h = \tan\frac{\varphi}{2}.
+$$
+
+La foto tiene $W \times H$ píxeles, y su **proporción** (_aspect ratio_) es $a = W/H$. El rectángulo visible del plano tiene las mismas proporciones: su medio ancho es $a\,h$.
+
+Dividiendo por esas mitades, los bordes de la foto quedan en $-1$ y $1$. Son las **coordenadas normalizadas** (_normalized coordinates_):
+
+$$
+u = \frac{x'}{a\,h}, \qquad v = \frac{y'}{h}.
+$$
+
+Un punto sale en la foto si $-1 \le u \le 1$ y $-1 \le v \le 1$.
+
+El **campo de visión horizontal**, $\theta$, es el ángulo entre los bordes izquierdo y derecho. El mismo triángulo, acostado, tiene cateto opuesto $a\,h$:
+
+$$
+\tan\frac{\theta}{2} = a\,\tan\frac{\varphi}{2}.
+$$
+
+No es $\theta = a\,\varphi$: los ángulos no son proporcionales a sus tangentes.
+
+### A píxeles
+
+Una pantalla cuenta los píxeles desde la esquina **de arriba** a la izquierda: $x$ hacia la derecha, $y$ **hacia abajo**. Y $u$ va de $-1$ (borde izquierdo) a $1$ (derecho), y $v$ de $1$ (arriba) a $-1$ (abajo):
+
+$$
+p_x = \frac{u + 1}{2}\, W, \qquad p_y = \frac{1 - v}{2}\, H.
+$$
+
+En resumen, cuatro pasos: restar el ojo, dividir por la profundidad, dividir por medio ancho y medio alto, y pasar a píxeles.
+
+### Un ejemplo con números
+
+El ojo de la figura está en $E = (0,\ 1,\ 2)$, con $\varphi = 55^\circ$ y una foto de $800 \times 450$. Sea $P = (1,\ 1{,}5,\ -3)$:
+
+- visto desde el ojo, $x_c = 1$, $y_c = 0{,}5$ y $z_c = -5$, así que la profundidad es $d = 5$;
+- en el plano, $x' = 1/5 = 0{,}2$ e $y' = 0{,}5/5 = 0{,}1$;
+- $h = \tan 27{,}5^\circ \approx 0{,}5206$ y $a = 800/450 \approx 1{,}778$, así que $a\,h \approx 0{,}9255$;
+- normalizado, $u \approx 0{,}2/0{,}9255 \approx 0{,}2161$ y $v \approx 0{,}1/0{,}5206 \approx 0{,}1921$: sale en la foto;
+- en píxeles, $p_x \approx \frac{1{,}2161}{2} \cdot 800 \approx 486{,}4$ y $p_y \approx \frac{0{,}8079}{2} \cdot 450 \approx 181{,}8$: un poco a la derecha del centro, y un poco arriba.
+
+Con los rieles a $\alpha = 20^\circ$, el punto de fuga está en $x'_\infty = \tan 20^\circ \approx 0{,}3640$, $y'_\infty = 0$: $u \approx 0{,}3933$, $v = 0$, en el píxel $(557{,}3,\ 225)$. Los postes miden $0{,}4$ m y $0{,}2$ m en el plano; en la foto, $0{,}4 \cdot 450/(2h) \approx 172{,}9$ y $86{,}4$ píxeles. Y el campo de visión horizontal es $\theta = 2\arctan 0{,}9255 \approx 85{,}6^\circ$, no $\tfrac{16}{9} \cdot 55^\circ \approx 97{,}8^\circ$.
+
+## El código
+
+- **`projection.ts`, los cuatro pasos, una función cada uno:** `fromEye` resta el ojo; `onPlane` divide por la profundidad (`depthOf`, que es $-z_c$) y devuelve `null` si el punto no está delante; `normalized` divide por `halfHeight(fov)` y por `aspect` veces eso; `toPixels` pasa a píxeles, con la $y$ hacia abajo. Son los cuatro renglones de `toScreen`, el del proyecto, separados para ver cada número. También están las fórmulas del punto de fuga (`vanishingPoint`) y del campo de visión horizontal (`horizontalFov`).
+- **`halfHeight` pasa a radianes:** `Math.tan` los pide, y la mitad del ángulo, en radianes, es `fov * Math.PI / 360`.
+- **`main.ts` arma la figura:** el ojo en `EYE`, el plano escalado a $2ah \times 2h$ en cada cuadro (_frame_), los postes, los rieles y $P$. Cada línea es un `lines(...)`, que recibe sus puntos de nuevo en cada cuadro. La imagen de un riel son 30 de sus puntos, proyectados uno por uno con `onPlane`: caen en línea recta, y apuntan al anillo que pone `vanishingPoint`.
+- **En cada cuadro, `onFrame`:** el piloto automático mueve $P$; los cuatro pasos dan las filas del panel; y una cámara de three.js puesta en el ojo (`photo`), con el mismo campo de visión y la misma proporción, da su propio píxel con `project`, que usa sus matrices.
+- **`overlay.ts`:** los nombres sobre la figura (`createLabels`) y la foto del rincón (`createPicture`), que three.js dibuja desde `photo`. Esa cámara ve solo la capa 0 (_layer_), la del mundo; el plano y las líneas están en la capa 1, que ve solo la cámara de la figura. Sobre la foto, los anillos van en los píxeles de nuestras cuentas.
+- **Arrastrar $P$:** un `THREE.Raycaster` lanza la recta que pasa por el puntero. Si pasa cerca de $P$, la cámara deja de girar, y $P$ sigue el punto donde esa recta corta el plano horizontal a su altura.
+
+## Probalo
+
+1. **Mirá el panel con el piloto automático:** _our pixel_ (nuestro píxel) y _three.js pixel_ (el de three.js) dicen lo mismo, al décimo, y en la foto el anillo dorado no se despega de la pelota.
+2. **Llevá $P$ al ejemplo:** _point x (m)_, _point y (m)_ y _point z (m)_ (las coordenadas de $P$) en 1, 1,5 y −3. El panel dice lo del ejemplo: _depth d (m)_ (la profundidad) 5, _on the plane_ (en el plano) 0,2 y 0,1, _our pixel_ 486,4 y 181,8. Llevá después _point z (m)_ a −8: la profundidad se duplica, a 10, y $x'$ e $y'$ se reducen a la mitad.
+3. **Girá los rieles:** con _rails turn (°)_ (el giro de los rieles) en 0, _vanishing point_ (el punto de fuga) es $(0, 0)$, el centro; en 35, es $\tan 35^\circ \approx 0{,}7002$. Las imágenes de los dos rieles van siempre hacia el anillo, y la línea punteada que sale del ojo lo cruza.
+4. **Cambiá el campo de visión y la foto:** con _vertical fov (°)_ (el campo de visión vertical) en 90, el plano crece y en la foto todo se achica; _on the plane_ no cambia, _normalized u, v_ (las coordenadas normalizadas) sí, y _horizontal fov (°)_ (el horizontal) dice 121,3. Con _picture (px)_ (el tamaño de la foto) en 1600 × 900, los píxeles se duplican y $u$ y $v$ no cambian; en 450 × 800, el plano se para.
+
+## Lo importante
+
+- **Una cámara es un ojo y un plano a 1 m delante de él:** cada punto se ve donde su recta al ojo cruza el plano.
+- **Proyectar es dividir por la profundidad,** $x' = x_c/d$, $y' = y_c/d$: al doble de distancia, la mitad de grande; y las paralelas que se alejan se juntan en su punto de fuga, $\big(w_x/(-w_z),\ w_y/(-w_z)\big)$.
+- **El campo de visión decide cuánto entra:** medio alto visible, a 1 m, es $\tan(\varphi/2)$. Dividiendo por medio ancho y medio alto, los bordes quedan en $\pm 1$, y de ahí se pasa a píxeles, con la $y$ hacia abajo.
+- **El proyecto lo usa en [Una ventana al mundo](../03-una-ventana-al-mundo/):** esos mismos cuatro pasos son su `toScreen`, que pone una pelota en el mismo píxel que three.js.
+
+## Más a fondo
+
+<details>
+<summary>La imagen de una recta es una recta (y su punto medio no es el medio)</summary>
+
+Una recta que no pasa por el ojo, y el ojo, determinan un plano. Todas las rectas del ojo a los puntos de la recta están en ese plano, así que sus cruces con el plano de imagen también: caen en la intersección de dos planos, que es una recta. En coordenadas: un plano que pasa por el ojo (el origen) es $A\,x_c + B\,y_c + C\,z_c = 0$, y los puntos del plano de imagen son $(x', y', -1)$, así que la imagen cumple $A\,x' + B\,y' - C = 0$, la ecuación de una recta. (Salvo si $A = B = 0$: entonces el plano es $z_c = 0$, el de profundidad cero, que no tiene imagen.) Por eso los 30 puntos proyectados de cada riel caen alineados.
+
+Lo que la proyección no conserva son las proporciones. Un segmento justo delante del ojo, a la altura $y_c = -1$, de la profundidad 2 a la 6, tiene su imagen de $y' = -0{,}5$ a $y' \approx -0{,}1667$. Su punto medio, a la profundidad 4, cae en $y' = -0{,}25$, pero el medio de la imagen es $y' \approx -0{,}3333$. Pasos iguales sobre un riel dan pasos cada vez más cortos en la foto. La placa de video lo tiene en cuenta al pintar una textura sobre un triángulo que se aleja: es la interpolación con perspectiva (_perspective-correct interpolation_), que vuelve en la parte del dibujo.
+
+</details>
+
+<details>
+<summary>Un plano a otra distancia: la distancia focal</summary>
+
+Si el plano de imagen está a una distancia $f$ en vez de 1, los mismos triángulos dan $x' = f\,x_c/d$ e $y' = f\,y_c/d$: todo se agranda $f$ veces. Pero el medio alto visible también, a $f\tan(\varphi/2)$, y al normalizar $f$ se cancela: $u$ y $v$ no cambian. Lo que decide la foto es el ángulo, no a qué distancia se pone el plano; por eso alcanza con ponerlo a 1.
+
+En una cámara de verdad, $f$ es la **distancia focal** (_focal length_), y la pared del fondo es el sensor. Uno de 24 mm de alto, con $f = 50$ mm, ve $\varphi = 2\arctan(12/50) \approx 27{,}0^\circ$ de arriba abajo; con $f = 24$ mm, $\approx 53{,}1^\circ$. Hacer zoom es cambiar $f$, o sea, cambiar el campo de visión.
+
+</details>
+
+:::caution[Sutilezas]
+
+- **Detrás del ojo, la fórmula da un número igual.** Con $d \lt 0$, dividir cambia los signos: un punto que está a la derecha y arriba cae a la izquierda y abajo, dado vuelta. `onPlane` devuelve `null`; three.js devuelve el número, y es la placa de video la que recorta todo lo que está más cerca que el plano cercano de la cámara (_near plane_).
+- **El campo de visión horizontal no es $a\,\varphi$.** Pasar el número de un motor a otro con una regla de tres da otra foto: 55° verticales en 16:9 son 85,6° horizontales, no 97,8°.
+- **Las verticales no se juntan, mientras la cámara no se incline.** Una recta vertical tiene $\mathbf{w} = (0, 1, 0)$, con $w_z = 0$: no se aleja, y no tiene punto de fuga. Por eso los postes salen derechos. Con la cámara mirando hacia arriba, las verticales sí se alejan, y se juntan: son los edificios que "se caen" en las fotos tomadas desde abajo.
+
+:::
+
+## En los motores
+
+- **three.js:** `PerspectiveCamera(fov, aspect, near, far)`, con `fov` el campo de visión **vertical**, en grados; `vector.project(camera)` da $u$ y $v$ (y una profundidad), entre $-1$ y $1$ dentro de la foto.
+- **Unity:** `Camera.fieldOfView` es vertical; `Camera.WorldToScreenPoint` da el píxel, pero contado desde **abajo** a la izquierda.
+- **Unreal:** el campo de visión de una cámara (`FieldOfView`, 90° por omisión) es **horizontal**: el mismo número da otra foto que en three.js.
+- **Godot:** `Camera3D.fov` es vertical mientras `keep_aspect` mantenga el alto (`KEEP_HEIGHT`, lo habitual), y horizontal con `KEEP_WIDTH`; `unproject_position` da el píxel.
+- **En los libros:** Tomas Akenine-Möller y otros, _Real-Time Rendering_ (4.ª ed., 2018), cap. 4 "Transforms", la sección de proyecciones.
+
+**Dónde Manifold eligió otra cosa.** En la proyección, nada distinto: usa la cámara de three.js, con 60° de campo de visión vertical. Lo que elige es dónde vive la cámara: en la presentación, nunca en la simulación. El mundo no sabe que alguien lo mira.
+
+## En Manifold
+
+La cámara del motor se arma en [`stage.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/presentation/src/stage.ts) (una `PerspectiveCamera` de 60° vertical, con el plano cercano a 5 cm) y se mueve en [`camera.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/presentation/src/camera.ts), que usa el medio alto de esta lección: para correr la cámara de costado bajo el puntero, un píxel a la distancia $D$ mide $2D\tan(\varphi/2)/H$ metros. Las dos están en la presentación; el núcleo, que simula el mundo, no importa three.js. Se ve en cualquier sala del [Dojo](../../../jugar/dojo/).
+
+## Para practicar
+
+**1. La punta de un poste, a mano.** Calculá el píxel de la punta del poste lejano, $(-1{,}3,\ 1,\ -3)$, con $\varphi = 55^\circ$ y $800 \times 450$, y comprobalo poniendo $P$ ahí. Tiene que dar $(287{,}6,\ 225)$.
+
+<details>
+<summary>Una pista</summary>
+
+La profundidad es $2 - (-3) = 5$, e $y_c = 0$: la punta está a la altura del ojo, sobre el horizonte, así que $v = 0$ y $p_y = H/2$.
+
+</details>
+
+**2. De horizontal a vertical.** Escribí en `projection.ts` una función `verticalFov(horizontal, aspect)`, la inversa de `horizontalFov`, y mostrá en el panel qué campo de visión vertical corresponde a 90° horizontales (los de Unreal) en la foto elegida. En 16:9 tiene que dar unos 58,7°; y con 59 en _vertical fov (°)_, _horizontal fov (°)_ dice 90,3.
+
+<details>
+<summary>Una pista</summary>
+
+Despejá $\varphi$ de $\tan(\theta/2) = a\tan(\varphi/2)$: $\varphi = 2\arctan\big(\tan(\theta/2)/a\big)$. En código, `Math.atan` y `Math.tan`, en radianes.
+
+</details>
+
+**3. Detrás del ojo.** Poné $P$ en $(0{,}5,\ 1{,}3,\ 2{,}5)$, medio metro detrás del ojo, y predecí qué dice _three.js pixel_ haciendo la cuenta sin el `if` de `onPlane`. Tiene que dar unos $(-32{,}2,\ 484{,}3)$: fuera de la foto, a la izquierda y abajo, aunque $P$ está a la derecha del ojo y más arriba.
+
+<details>
+<summary>Una pista</summary>
+
+Visto desde el ojo, $P$ está en $(0{,}5,\ 0{,}3,\ 0{,}5)$, y $d = -0{,}5$. Dividí igual: $x' = -1$ e $y' = -0{,}6$.
+
+</details>
+
+## Para saber más
+
+- [Computing the pixel coordinates of a 3D point](https://www.scratchapixel.com/), en Scratchapixel (en inglés): la misma cuenta, con dibujos.
+- Tomas Akenine-Möller y otros, _Real-Time Rendering_ (4.ª ed., 2018), cap. 4 "Transforms" (en inglés).
+- [La cámara de perspectiva de three.js](https://threejs.org/docs/#api/en/cameras/PerspectiveCamera) (en inglés).

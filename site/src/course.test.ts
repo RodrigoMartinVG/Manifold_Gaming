@@ -35,7 +35,7 @@ function options(): ts.CompilerOptions {
 }
 
 /** What a step's code may import: its own files and the libraries the live examples have. */
-const LIBRARIES = /^(three|three\/addons\/.+|@dimforge\/rapier3d-deterministic-compat)$/;
+const LIBRARIES = /^(three|three\/addons\/.+|@dimforge\/rapier3d-deterministic-compat|lab)$/;
 
 const all = sources();
 const steps = stepsOf(Object.keys(all));

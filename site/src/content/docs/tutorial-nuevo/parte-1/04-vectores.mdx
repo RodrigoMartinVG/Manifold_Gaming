@@ -1,0 +1,310 @@
+---
+title: Vectores
+description: 'Un punto dice dónde; un vector, cuánto y hacia dónde. Sumarlos, restarlos y estirarlos, componente a componente; su largo, por Pitágoras; su dirección, dividiendo por el largo. Una figura con dos flechas para arrastrar, y las cuentas de cada una.'
+sidebar:
+  order: 4
+---
+
+import LiveCode from '../../../../components/LiveCode.astro';
+
+## El problema
+
+Un juego está lleno de cosas que se mueven, y de preguntas sobre ellas: hacia dónde va la pelota, cuánto le falta para llegar a la moneda, cuán rápido corre. Las coordenadas, de la lección [Coordenadas](../01-coordenadas/), dicen **dónde** está cada cosa. Para decir **cuánto se mueve y hacia dónde** hace falta otra idea, el **vector** (_vector_): con vectores se escriben un desplazamiento, una velocidad y una dirección, y se hacen cuentas con ellos como con los números. Se suman, se restan, se estiran y se miden.
+
+<LiveCode lesson="parte-1/vectors" autorun />
+
+El piso visto desde arriba, con sus ejes: $+X$ hacia la derecha, $+Z$ hacia vos (hacia abajo en la pantalla), y $+Y$ saliendo del piso, hacia arriba. Cada cuadrado mide 1 m. Las flechas $\mathbf{a}$ (roja) y $\mathbf{b}$ (azul) salen del origen $O$, y sus puntas se pueden arrastrar, tomándolas por el anillo. La dorada es la suma, $\mathbf{a} + \mathbf{b}$; las dos tenues son $\mathbf{b}$ dibujada desde la punta de $\mathbf{a}$, y $\mathbf{a}$ desde la punta de $\mathbf{b}$. La verde es la resta, $\mathbf{a} - \mathbf{b}$; la violeta, $\mathbf{a}$ multiplicada por el número $k$ del panel; la blanca, $\hat{\mathbf{a}}$, mide 1 y tiene la punta sobre el círculo de radio 1. Mientras nadie arrastra, un piloto automático lleva las puntas de parada en parada. El panel muestra cada vector y cada largo, calculados por nuestras funciones.
+
+## La matemática
+
+### Dónde, y cuánto y hacia dónde
+
+Un punto dice dónde: $P = (x, y, z)$, en metros, medidos desde el origen $O$. Un vector dice **cuánto y hacia dónde**: "tres metros a la derecha y uno hacia el fondo" es un vector. No dice desde dónde. Es una instrucción que se puede seguir desde cualquier lugar, y desde cualquiera lleva tres metros a la derecha y uno hacia el fondo de donde se empezó.
+
+Por eso un vector se dibuja como una flecha, pero **la misma flecha dibujada en otro lugar es el mismo vector**. En la figura, la flecha roja tenue es el mismo vector $\mathbf{a}$ que la roja que sale del origen: está en otro lugar, y dice lo mismo.
+
+### Componentes
+
+Un vector se escribe en negrita, con sus tres **componentes** (_components_), cuánto a lo largo de cada eje:
+
+$$
+\mathbf{v} = (v_x,\, v_y,\, v_z).
+$$
+
+Dos vectores son iguales si sus tres componentes son iguales. En la figura todos están sobre el piso: su componente $y$ es 0.
+
+Entre dos puntos hay un vector, el que lleva del primero al segundo. De $P$ a $Q$ es su diferencia, coordenada a coordenada:
+
+$$
+Q - P = (q_x - p_x,\ q_y - p_y,\ q_z - p_z).
+$$
+
+Son las diferencias $\Delta x$, $\Delta y$ y $\Delta z$ de [Coordenadas](../01-coordenadas/), juntas en un solo objeto. Al revés, un punto más un vector es el punto al que se llega siguiendo la flecha: $P + \mathbf{v} = Q$ dice lo mismo que $\mathbf{v} = Q - P$. Ahora se puede decir con precisión qué es "la misma flecha en otro lugar": una flecha de $P$ a $Q$ y otra de $P'$ a $Q'$ son el mismo vector si $Q - P = Q' - P'$.
+
+Una flecha dibujada desde el origen termina en el punto $O + \mathbf{v}$, que tiene los mismos tres números que $\mathbf{v}$, porque $O = (0, 0, 0)$. Por eso se confunden tan seguido puntos y vectores; más abajo, por qué no son lo mismo.
+
+### Sumar: una flecha a continuación de la otra
+
+Dos vectores se suman componente a componente:
+
+$$
+\mathbf{a} + \mathbf{b} = (a_x + b_x,\ a_y + b_y,\ a_z + b_z).
+$$
+
+Es hacer un desplazamiento y después el otro. Desde $O$, $\mathbf{a}$ lleva a $O + \mathbf{a}$; desde ahí, $\mathbf{b}$ lleva a $O + \mathbf{a} + \mathbf{b}$. Dibujado, la cola de $\mathbf{b}$ va en la punta de $\mathbf{a}$, una flecha a continuación de la otra (_tip to tail_), y la suma va de la cola de la primera a la punta de la segunda. En la figura, la flecha azul tenue sale de la punta de la roja y termina en la punta de la dorada.
+
+**El orden no importa:** $\mathbf{a} + \mathbf{b} = \mathbf{b} + \mathbf{a}$. Primero $\mathbf{b}$ y después $\mathbf{a}$ (la roja tenue, que sale de la punta de la azul) llega al mismo punto. Los dos caminos son los cuatro lados de un **paralelogramo**, y la suma es su diagonal. La razón está en las componentes: $a_x + b_x = b_x + a_x$, porque la suma de números no depende del orden, y lo mismo en $y$ y en $z$. Es la propiedad **conmutativa**.
+
+**Tampoco importa cómo se agrupan:** $(\mathbf{a} + \mathbf{b}) + \mathbf{c} = \mathbf{a} + (\mathbf{b} + \mathbf{c})$, porque en cada componente $(a_x + b_x) + c_x = a_x + (b_x + c_x)$. Es la propiedad **asociativa**, y por ella se escribe $\mathbf{a} + \mathbf{b} + \mathbf{c}$ sin paréntesis: tres flechas, una a continuación de la otra.
+
+El **vector cero**, $\mathbf{0} = (0, 0, 0)$, no lleva a ningún lado: $\mathbf{a} + \mathbf{0} = \mathbf{a}$.
+
+### El opuesto, y restar
+
+El **opuesto** de $\mathbf{a}$ es la misma flecha dada vuelta:
+
+$$
+-\mathbf{a} = (-a_x,\ -a_y,\ -a_z), \qquad \mathbf{a} + (-\mathbf{a}) = \mathbf{0}.
+$$
+
+Restar es sumar el opuesto:
+
+$$
+\mathbf{a} - \mathbf{b} = \mathbf{a} + (-\mathbf{b}) = (a_x - b_x,\ a_y - b_y,\ a_z - b_z).
+$$
+
+En el dibujo, $\mathbf{a} - \mathbf{b}$ va **de la punta de $\mathbf{b}$ a la punta de $\mathbf{a}$**, porque $\mathbf{b} + (\mathbf{a} - \mathbf{b}) = \mathbf{a}$: desde la punta de $\mathbf{b}$, sumarle $\mathbf{a} - \mathbf{b}$ lleva a la punta de $\mathbf{a}$. Es la otra diagonal del paralelogramo, la verde. Y es la cuenta de antes, $Q - P$, con las puntas como puntos: $(O + \mathbf{a}) - (O + \mathbf{b}) = \mathbf{a} - \mathbf{b}$.
+
+La resta sí depende del orden: $\mathbf{b} - \mathbf{a} = -(\mathbf{a} - \mathbf{b})$, la misma flecha al revés.
+
+### Multiplicar por un número
+
+Un número suelto, que no es un vector, es un **escalar** (_scalar_), y se escribe en itálica. Multiplicar un vector por un escalar $k$ es multiplicar cada componente:
+
+$$
+k\,\mathbf{a} = (k\,a_x,\ k\,a_y,\ k\,a_z).
+$$
+
+Si $k \gt 1$, la flecha se **estira**; si $0 \lt k \lt 1$, se **achica**; si $k \lt 0$, además se **da vuelta**. $0\,\mathbf{a} = \mathbf{0}$, y $(-1)\,\mathbf{a} = -\mathbf{a}$. El resultado queda siempre sobre la recta de $\mathbf{a}$: dos vectores son **paralelos** (_parallel_) cuando uno es el otro multiplicado por un escalar. En la figura, la flecha violeta es $k\,\mathbf{a}$, con el $k$ del panel.
+
+Las dos operaciones se combinan como con los números: $k\,(\mathbf{a} + \mathbf{b}) = k\,\mathbf{a} + k\,\mathbf{b}$ y $(k + m)\,\mathbf{a} = k\,\mathbf{a} + m\,\mathbf{a}$. En cada componente es la propiedad distributiva: $k\,(a_x + b_x) = k\,a_x + k\,b_x$.
+
+### El largo
+
+El largo de un vector (también **módulo** o **norma**; en inglés, _length_ o _magnitude_) se escribe $\lvert \mathbf{v} \rvert$, y sale de Pitágoras dos veces, como la distancia de Coordenadas. Sobre el piso, $(v_x, 0, v_z)$ es la hipotenusa de un triángulo rectángulo de catetos $\lvert v_x \rvert$ y $\lvert v_z \rvert$. Esa hipotenusa y la altura $\lvert v_y \rvert$ son los catetos de otro triángulo rectángulo, vertical:
+
+$$
+\lvert \mathbf{v} \rvert = \sqrt{\left(\sqrt{v_x^2 + v_z^2}\right)^2 + v_y^2} = \sqrt{v_x^2 + v_y^2 + v_z^2}.
+$$
+
+Pitágoras vale porque los tres ejes son perpendiculares entre sí y los tres miden en metros. El largo es la distancia entre la cola y la punta. Por eso **la distancia entre dos puntos es el largo del vector que va de uno al otro**:
+
+$$
+d(P, Q) = \lvert Q - P \rvert = \sqrt{(q_x - p_x)^2 + (q_y - p_y)^2 + (q_z - p_z)^2}.
+$$
+
+Es la fórmula de Coordenadas, con un nombre corto. Un largo nunca es negativo, y solo el vector cero mide 0: una suma de cuadrados es cero solo si cada cuadrado lo es.
+
+**Multiplicar por $k$ multiplica el largo por $\lvert k \rvert$.** Paso a paso:
+
+$$
+\begin{aligned}
+\lvert k\,\mathbf{v} \rvert &= \sqrt{(k\,v_x)^2 + (k\,v_y)^2 + (k\,v_z)^2} = \sqrt{k^2\,(v_x^2 + v_y^2 + v_z^2)} \\
+&= \sqrt{k^2}\,\sqrt{v_x^2 + v_y^2 + v_z^2} = \lvert k \rvert\, \lvert \mathbf{v} \rvert.
+\end{aligned}
+$$
+
+El último paso usa que $\sqrt{k^2} = \lvert k \rvert$, el valor absoluto de $k$: con $k = -0{,}5$, la flecha mide la mitad, hacia el otro lado.
+
+### Una dirección: el vector unitario
+
+Un vector de largo 1 es **unitario** (_unit vector_): solo dice hacia dónde. Todo vector que no sea el cero da uno, si se lo divide por su largo (es decir, si se lo multiplica por el escalar $1/\lvert \mathbf{v} \rvert$). Se escribe con un sombrero:
+
+$$
+\hat{\mathbf{v}} = \frac{\mathbf{v}}{\lvert \mathbf{v} \rvert}.
+$$
+
+Hacerlo es **normalizar** (_normalize_). Que mide 1 sale de la regla anterior, con $k = 1/\lvert \mathbf{v} \rvert$, que es positivo:
+
+$$
+\lvert \hat{\mathbf{v}} \rvert = \frac{1}{\lvert \mathbf{v} \rvert}\, \lvert \mathbf{v} \rvert = 1.
+$$
+
+Al revés, todo vector es su largo por su dirección, $\mathbf{v} = \lvert \mathbf{v} \rvert\, \hat{\mathbf{v}}$: el cuánto y el hacia dónde, por separado. En la figura, la flecha blanca es $\hat{\mathbf{a}}$. Cambia cuando $\mathbf{a}$ gira, no cuando se estira, y su punta no sale del círculo de radio 1. (En la escuela se dice módulo, dirección y sentido: la dirección es la recta, y el sentido, hacia cuál de sus dos lados. Acá, como en los juegos, "dirección" es las dos cosas juntas.)
+
+**El vector cero no tiene dirección:** mide 0, y dividir por 0 no está definido. No hay un $\hat{\mathbf{0}}$. Un programa tiene que decidir qué hacer ahí; el nuestro devuelve el cero.
+
+### La base
+
+Hay tres vectores unitarios especiales, uno a lo largo de cada eje:
+
+$$
+\mathbf{i} = (1, 0, 0), \qquad \mathbf{j} = (0, 1, 0), \qquad \mathbf{k} = (0, 0, 1).
+$$
+
+(El $\mathbf{k}$ en negrita es un vector; el $k$ en itálica, un escalar.) Todo vector es una combinación de los tres, con sus componentes como coeficientes:
+
+$$
+v_x\,\mathbf{i} + v_y\,\mathbf{j} + v_z\,\mathbf{k} = (v_x, 0, 0) + (0, v_y, 0) + (0, 0, v_z) = (v_x,\, v_y,\, v_z) = \mathbf{v}.
+$$
+
+Y de una sola manera: si $x\,\mathbf{i} + y\,\mathbf{j} + z\,\mathbf{k} = \mathbf{v}$, la misma cuenta dice que $(x, y, z) = (v_x, v_y, v_z)$. Por eso $\mathbf{i}$, $\mathbf{j}$ y $\mathbf{k}$ forman una **base** (_basis_): las componentes de un vector son cuánto de cada uno hace falta. "Tres metros a la derecha y uno hacia el fondo" es $3\,\mathbf{i} - \mathbf{k}$, porque el fondo es $-Z$.
+
+### La desigualdad triangular
+
+Ir derecho nunca es más largo que dar la vuelta. Los vectores $\mathbf{a}$, $\mathbf{b}$ y $\mathbf{a} + \mathbf{b}$ son los tres lados de un triángulo, y un lado nunca mide más que los otros dos juntos:
+
+$$
+\lvert \mathbf{a} + \mathbf{b} \rvert \le \lvert \mathbf{a} \rvert + \lvert \mathbf{b} \rvert.
+$$
+
+Es la **desigualdad triangular** (_triangle inequality_). Vale la igualdad exactamente cuando uno de los dos es el otro multiplicado por un escalar $c \ge 0$: cuando apuntan hacia el mismo lado, o alguno es cero, y el triángulo se aplasta en un segmento. El panel la muestra en cada cuadro: _length |a + b|_ nunca pasa a _|a| + |b|_, y en la tercera parada del piloto, donde $\mathbf{b} = \tfrac12\,\mathbf{a}$, son iguales. Se demuestra con lo que ya está en esta lección; la demostración está en "Más a fondo".
+
+### Puntos y vectores no son lo mismo
+
+Los dos se escriben con tres números, pero no admiten las mismas cuentas:
+
+- punto menos punto es un vector: $Q - P$, lo que lleva de $P$ a $Q$;
+- punto más vector es un punto: $P + \mathbf{v}$;
+- vector más o menos vector es un vector, y un escalar por un vector también;
+- punto más punto **no tiene sentido**: el resultado depende de dónde se puso el origen, que es una elección nuestra y no algo del mundo.
+
+Lo que sí tiene sentido es una **combinación afín** (_affine combination_), $\alpha P + \beta Q$ con $\alpha + \beta = 1$, porque se puede escribir como un punto más un vector:
+
+$$
+(1 - s)\,P + s\,Q = P + s\,(Q - P).
+$$
+
+Con $s = \tfrac12$ es el punto medio; con $s$ de 0 a 1 recorre el segmento de $P$ a $Q$. Puntos y vectores, con estas reglas, forman un **espacio afín** (_affine space_). El piloto automático de la figura lleva cada punta de una parada a la otra así.
+
+### Un ejemplo con números
+
+Los de la primera parada del piloto automático: $\mathbf{a} = (3, 0, -1)$, $\mathbf{b} = (1, 0, -2)$ y $k = -0{,}5$.
+
+- La suma: $\mathbf{a} + \mathbf{b} = (3 + 1,\ 0 + 0,\ -1 - 2) = (4, 0, -3)$.
+- La resta: $\mathbf{a} - \mathbf{b} = (3 - 1,\ 0 - 0,\ -1 + 2) = (2, 0, 1)$. Desde la punta de $\mathbf{b}$, el punto $(1, 0, -2)$, lleva a $(3, 0, -1)$, la punta de $\mathbf{a}$; la distancia entre las puntas es $\lvert \mathbf{a} - \mathbf{b} \rvert = \sqrt{4 + 1} = \sqrt{5} \approx 2{,}236$.
+- El escalar: $-0{,}5\,\mathbf{a} = (-1{,}5,\ 0,\ 0{,}5)$, hacia el otro lado.
+- Los largos: $\lvert \mathbf{a} \rvert = \sqrt{9 + 0 + 1} = \sqrt{10} \approx 3{,}162$; $\lvert \mathbf{b} \rvert = \sqrt{1 + 4} = \sqrt{5} \approx 2{,}236$; $\lvert \mathbf{a} + \mathbf{b} \rvert = \sqrt{16 + 9} = 5$.
+- La desigualdad triangular: $5 \le 3{,}162 + 2{,}236 = 5{,}398$.
+- El largo de $k\,\mathbf{a}$: $\lvert -0{,}5\,\mathbf{a} \rvert = \sqrt{2{,}25 + 0{,}25} = \sqrt{2{,}5} \approx 1{,}581$, que es $0{,}5 \cdot 3{,}162$.
+- La dirección: $\hat{\mathbf{a}} = \mathbf{a}/\sqrt{10} \approx (0{,}949,\ 0,\ -0{,}316)$, y $\lvert \hat{\mathbf{a}} \rvert^2 = \tfrac{9}{10} + \tfrac{1}{10} = 1$.
+- En la base: $\mathbf{a} = 3\,\mathbf{i} - \mathbf{k}$ y $\mathbf{b} = \mathbf{i} - 2\,\mathbf{k}$.
+
+## El código
+
+- **`vec.ts`: los vectores, los mismos del proyecto.** Un vector es un objeto con `x`, `y` y `z` (`Vec`), y cada operación es una función que devuelve uno nuevo: `add`, `sub`, `scale`, `length` y `normalize`, que deja el cero como cero. El opuesto es `scale(a, -1)`; la distancia entre dos puntos, `length(sub(q, p))`. Es el archivo que el proyecto suma en [Moverse](../05-moverse/).
+- **En cada cuadro, las cuentas:** `main.ts` calcula `sum`, `difference`, `stretched` y `unit` con esas funciones. `a` y `b` no cambian.
+- **Y las flechas:** `draw.sum.set(O, sum)` dibuja la suma desde el origen; `draw.bAfterA.set(a, sum)`, $\mathbf{b}$ desde la punta de $\mathbf{a}$; `draw.difference.set(b, a)`, la resta, de punta a punta. Las flechas van de un punto a otro: la punta de $\mathbf{a}$ es el punto $O + \mathbf{a}$, con los números de `a`.
+- **Arrastrar una punta:** un `THREE.Raycaster` tira un rayo desde el ojo por el puntero, y `ray.intersectPlane` lo corta con el piso, el plano $y = 0$. `tipNear` elige la punta que está a menos de medio metro, con `length(sub(p, a))`: la distancia es el largo de la diferencia. El punto se redondea a medios metros (`snap`), para poder llegar a números exactos. Tomar una punta apaga el piloto automático y deja quieta la cámara (`controls.enabled = false`): el evento se escucha en la ventana, antes que los controles de la cámara.
+- **El piloto automático** lleva cada punta de una parada a la siguiente con `between(p, q, s)`, que es $P + s\,(Q - P)$: una combinación afín, con $s$ de 0 a 1. `ease` hace que arranque y frene despacio.
+- **Lo mismo, con three.js:** con su `Vector3`, `a3.clone().add(b3)` y `a3.clone().normalize()`. El `clone()` hace falta: los métodos de three.js cambian el vector sobre el que se llaman.
+- **`figure.ts`, el dibujo:** las flechas planas sobre el piso, los anillos y los nombres. No es parte de la lección.
+
+## Probalo
+
+1. **Mirá la primera parada:** _vector a_ (el vector $\mathbf{a}$) dice $(3, 0, -1)$; _sum a + b_ (la suma), $(4, 0, -3)$; _length |a + b|_ (el largo de la suma), 5, y _|a| + |b|_ (la suma de los largos), 5,398. Seguí al piloto: el largo de la suma nunca pasa a la suma de los largos, y en la tercera parada son iguales.
+2. **Arrastrá la punta de $\mathbf{b}$** (su anillo azul): el piloto se apaga, la dorada y el paralelogramo la siguen, y la verde va siempre de la punta de $\mathbf{b}$ a la de $\mathbf{a}$. Soltá las dos puntas en el mismo lugar (se acomodan de a medio metro): _difference a − b_ (la resta) da $(0, 0, 0)$, la verde desaparece, y la dorada es $\mathbf{a} + \mathbf{a} = 2\,\mathbf{a}$.
+3. **Mové _scalar k_** (el escalar $k$) a 2, y después a −1: la flecha violeta se estira sobre la recta de $\mathbf{a}$, y después se da vuelta. _length |k a|_ (el largo de $k\,\mathbf{a}$) es siempre $\lvert k \rvert$ por _length |a|_ (el largo de $\mathbf{a}$): con $k = -1$, el mismo.
+4. **Llevá la punta de $\mathbf{a}$ al origen:** _unit â_ ($\mathbf{a}$ normalizado) da $(0, 0, 0)$, _length |â|_ (su largo) 0, y la flecha blanca desaparece: el cero no tiene dirección. Soltala en cualquier otro lugar: _length |â|_ vuelve a 1, y _three.js â_ (lo mismo, calculado por three.js) coincide con _unit â_. Tildá _autopilot_ (el piloto automático) y sigue desde ahí.
+
+## Lo importante
+
+- **Un punto dice dónde; un vector, cuánto y hacia dónde.** $Q - P$ lleva de $P$ a $Q$, y $P + \mathbf{v}$ es otro punto. La misma flecha en otro lugar es el mismo vector.
+- **Se suman y se estiran componente a componente:** la suma es una flecha a continuación de la otra, y un escalar estira, achica o da vuelta.
+- **El largo sale de Pitágoras,** $\lvert \mathbf{v} \rvert = \sqrt{v_x^2 + v_y^2 + v_z^2}$. La distancia entre dos puntos es $\lvert Q - P \rvert$, y $\lvert \mathbf{a} + \mathbf{b} \rvert \le \lvert \mathbf{a} \rvert + \lvert \mathbf{b} \rvert$.
+- **Dividido por su largo queda una dirección,** de largo 1; el cero no tiene. El proyecto lo usa en [Moverse](../05-moverse/): las teclas arman una dirección, y la dirección normalizada, multiplicada por la rapidez, es la velocidad.
+
+## Más a fondo
+
+<details>
+<summary>Por qué vale la desigualdad triangular</summary>
+
+Los dos miembros de la desigualdad son largos, que no son negativos: alcanza con comparar sus cuadrados. Componente a componente,
+
+$$
+\lvert \mathbf{a} + \mathbf{b} \rvert^2 = (a_x + b_x)^2 + (a_y + b_y)^2 + (a_z + b_z)^2 = \lvert \mathbf{a} \rvert^2 + 2s + \lvert \mathbf{b} \rvert^2,
+$$
+
+con $s = a_x b_x + a_y b_y + a_z b_z$, mientras que $(\lvert \mathbf{a} \rvert + \lvert \mathbf{b} \rvert)^2 = \lvert \mathbf{a} \rvert^2 + 2\,\lvert \mathbf{a} \rvert\,\lvert \mathbf{b} \rvert + \lvert \mathbf{b} \rvert^2$. Falta ver que $s \le \lvert \mathbf{a} \rvert\,\lvert \mathbf{b} \rvert$. Lo da una identidad de Lagrange, que se comprueba desarrollando los dos lados:
+
+$$
+\lvert \mathbf{a} \rvert^2\,\lvert \mathbf{b} \rvert^2 - s^2 = (a_y b_z - a_z b_y)^2 + (a_z b_x - a_x b_z)^2 + (a_x b_y - a_y b_x)^2 \ge 0.
+$$
+
+Entonces $s^2 \le \lvert \mathbf{a} \rvert^2\,\lvert \mathbf{b} \rvert^2$, y $s \le \lvert s \rvert \le \lvert \mathbf{a} \rvert\,\lvert \mathbf{b} \rvert$: por lo tanto $\lvert \mathbf{a} + \mathbf{b} \rvert^2 \le (\lvert \mathbf{a} \rvert + \lvert \mathbf{b} \rvert)^2$, y la desigualdad vale. Con los números del ejemplo: $s = 3 + 0 + 2 = 5$, $\lvert \mathbf{a} \rvert^2\,\lvert \mathbf{b} \rvert^2 = 10 \cdot 5 = 50$, y la identidad dice $50 - 25 = 0^2 + 5^2 + 0^2$.
+
+La igualdad pide $s = \lvert \mathbf{a} \rvert\,\lvert \mathbf{b} \rvert$: los tres cuadrados en cero, y $s \ge 0$. Si $\mathbf{a} = \mathbf{0}$, se cumple, y $\mathbf{a} = 0\,\mathbf{b}$. Si no, alguna componente de $\mathbf{a}$ no es cero; digamos $a_x \ne 0$. Con $c = b_x / a_x$, el tercer paréntesis en cero da $b_y = c\,a_y$, y el segundo, $b_z = c\,a_z$: $\mathbf{b} = c\,\mathbf{a}$. Al revés, si $\mathbf{b} = c\,\mathbf{a}$, los tres se anulan, como $a_y (c\,a_z) - a_z (c\,a_y) = 0$. Y entonces $s = c\,\lvert \mathbf{a} \rvert^2$, que no es negativo justo cuando $c \ge 0$. El número $s$ tiene nombre, **producto escalar** (_dot product_), y una lección propia más adelante, donde dice mucho más.
+
+</details>
+
+<details>
+<summary>Restar puntos sí; sumarlos, no</summary>
+
+El origen es una elección. Si se lo pone en otro lugar, a las coordenadas de **todos** los puntos se les suma un mismo vector $\mathbf{c}$: $P$ pasa a $P + \mathbf{c}$. Una cuenta que dice algo del mundo no puede depender de esa elección.
+
+- $Q - P$ no cambia: $(Q + \mathbf{c}) - (P + \mathbf{c}) = Q - P$. Es un vector del mundo.
+- $P + Q$ sí: pasa a $P + Q + 2\,\mathbf{c}$. Con otro origen, la misma cuenta nombra otro lugar: no es un punto del mundo.
+- $\alpha P + \beta Q$ pasa a $\alpha P + \beta Q + (\alpha + \beta)\,\mathbf{c}$. Cambia como un punto, sumando $\mathbf{c}$, exactamente cuando $\alpha + \beta = 1$; con $\alpha + \beta = 0$ no cambia nada, y es el vector $\alpha\,(P - Q)$.
+
+Lo mismo vale con más puntos: $\alpha_1 P_1 + \dots + \alpha_n P_n$ es un punto si los coeficientes suman 1 (el centro de un triángulo, $\tfrac13 P + \tfrac13 Q + \tfrac13 R$, lo es), y un vector si suman 0. Los motores guardan puntos y vectores con el mismo tipo; la diferencia está en lo que significan, y la cuida quien escribe el código.
+
+</details>
+
+:::caution[Sutilezas]
+
+- **three.js cambia el vector sobre el que se llama.** `a3.add(b3)` no hace un vector nuevo: suma `b3` dentro de `a3` y devuelve `a3`. Si `a3` era la posición de algo, ese algo se movió. Lo mismo pasa con `sub`, `multiplyScalar` y `normalize`. Nuestras funciones devuelven uno nuevo; con three.js, primero `clone()`, o `addVectors(a3, b3)` sobre otro vector.
+- **$\sqrt{k^2}$ es $\lvert k \rvert$, no $k$.** Con $k = -0{,}5$, $k\,\mathbf{a}$ mide $0{,}5\,\lvert \mathbf{a} \rvert$. Olvidar el valor absoluto da un largo negativo, que no existe.
+- **Normalizar el cero.** Dividir por un largo 0 da `NaN`, que contagia todo lo que toca. `normalize` devuelve el cero, pero eso lo decide el código, no la matemática: el cero sigue sin dirección, y quien necesite una tiene que preguntar antes si el vector es cero. Un vector casi cero es peor: tiene dirección, pero la deciden los redondeos.
+- **Un unitario no mide exactamente 1.** El de la primera parada, $\hat{\mathbf{a}} = (0{,}9486832980505138,\ 0,\ -0{,}31622776601683794)$, mide $0{,}9999999999999999$: los números de la computadora redondean. El panel dice `1.000` porque muestra tres decimales; en el código se compara con un margen, nunca con `=== 1`.
+
+:::
+
+## En los motores
+
+- **three.js:** `Vector3`, con `add`, `sub`, `multiplyScalar`, `length` y `normalize`, que cambian el vector y lo devuelven, para encadenar; `clone()` copia, y `distanceTo` es el largo de la diferencia.
+- **Unity:** `Vector3`, con `magnitude` y `normalized`, que devuelve el cero si el vector es demasiado chico. Es un tipo por valor (_struct_): `a + b` hace uno nuevo.
+- **Unreal:** `FVector`, con `Size()` y `GetSafeNormal()`, que devuelve el cero en vez de dividir por casi nada; `GetUnsafeNormal()` divide sin preguntar.
+- **Godot:** `Vector3`, con `length()` y `normalized()`, que deja el cero como cero. También es un tipo por valor.
+- **En los libros:** Eric Lengyel, _Foundations of Game Engine Development_, vol. 1 (_Mathematics_, 2016), cap. 1 "Vectors and Matrices".
+
+**Dónde Manifold eligió otra cosa.** Como el proyecto, y al revés que three.js, sus vectores son datos simples con funciones aparte que devuelven vectores nuevos. A diferencia del proyecto, son ternas `[x, y, z]` y no objetos: la simulación los guarda, los compara y los manda por la red sin convertir nada. Y el largo es siempre `Math.sqrt` de la suma de los cuadrados, nunca `Math.hypot`: la raíz cuadrada redondea igual en todos los navegadores, y una partida tiene que dar los mismos números en todos.
+
+## En Manifold
+
+Los vectores del motor están en [`math.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/common/src/math.ts): el tipo `Vec3` y el objeto `vec3`, con `add`, `sub`, `scale`, `length` y `normalize`, que deja el cero como cero, como los de esta lección (y `dot` y `cross`, que vienen más adelante). Un uso de casi todos juntos es `approach`, en [`character.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/character.ts): lleva la velocidad de un personaje hacia la que se le pide, sin cambiarla más que un máximo por paso. Resta las dos, mide el largo de la diferencia y, si pasa del máximo, avanza solo ese máximo en su dirección.
+
+## Para practicar
+
+**1. Una predicción.** Con $\mathbf{a} = (2, 0, 1)$ y $\mathbf{b} = (-1, 0, 2)$, calculá $\lvert \mathbf{a} + \mathbf{b} \rvert$ y $\lvert \mathbf{a} \rvert + \lvert \mathbf{b} \rvert$. Después arrastrá las puntas hasta ahí y comparalo con el panel. Tiene que dar $\sqrt{10} \approx 3{,}162$ y $2\sqrt{5} \approx 4{,}472$.
+
+<details>
+<summary>Una pista</summary>
+
+La suma es $(1, 0, 3)$. Las dos flechas miden $\sqrt{5}$ y forman un ángulo recto: el paralelogramo es un cuadrado, y Pitágoras da $\lvert \mathbf{a} + \mathbf{b} \rvert^2 = 5 + 5$.
+
+</details>
+
+**2. El punto medio.** Marcá en el dibujo el punto medio entre las puntas de $\mathbf{a}$ y $\mathbf{b}$, calculado como combinación afín, y agregalo al panel. Tiene que caer en el centro de la flecha verde y en el de la dorada, porque las diagonales de un paralelogramo se cortan en su mitad. En la primera parada, $(2, 0, -1{,}5)$.
+
+<details>
+<summary>Una pista</summary>
+
+`between(a, b, 0.5)` es $\tfrac12 P + \tfrac12 Q$. Un anillo para marcarlo se hace una vez, con `figure.ring(0.15, 0.08, 0xffffff)`, y se mueve en cada cuadro con su `set`. El centro de la dorada es $\tfrac12\,(\mathbf{a} + \mathbf{b})$: los mismos números.
+
+</details>
+
+**3. Un largo fijo.** Que la flecha violeta apunte como $\mathbf{a}$ pero mida siempre $\lvert k \rvert$ metros, sea cual sea el largo de $\mathbf{a}$: es lo que hace el proyecto con la velocidad. Tiene que salir que _length |k a|_ dice $\lvert k \rvert$ todo el tiempo, mientras el piloto mueve las puntas, y 0 con la punta de $\mathbf{a}$ en el origen.
+
+<details>
+<summary>Una pista</summary>
+
+La dirección de $\mathbf{a}$ es `normalize(a)`; multiplicala por $k$ con `scale`, en vez de multiplicar `a`.
+
+</details>
+
+## Para saber más
+
+- [Essence of linear algebra](https://www.3blue1brown.com/topics/linear-algebra), de 3Blue1Brown, cap. 1 "Vectors, what even are they?" (en inglés, con subtítulos): los vectores, con dibujos que se mueven.
+- Jacob Ström, Kalle Åström y Tomas Akenine-Möller, [_Immersive Linear Algebra_](https://immersivemath.com/ila/index.html), cap. 2 "Vectors" (en inglés): un libro con figuras que se pueden mover.
+- Eric Lengyel, _Foundations of Game Engine Development_, vol. 1 (2016), cap. 1 "Vectors and Matrices" (en inglés).
+- [`Vector3`, en la documentación de three.js](https://threejs.org/docs/#api/en/math/Vector3) (en inglés): qué método cambia el vector y cuál no.

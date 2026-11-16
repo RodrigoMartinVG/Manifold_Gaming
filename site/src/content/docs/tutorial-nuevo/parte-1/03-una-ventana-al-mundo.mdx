@@ -1,0 +1,114 @@
+---
+title: Una ventana al mundo
+description: 'El proyecto empieza: una ventana que dibuja un piso y una pelota, y la proyección de la lección anterior escrita como código, con la cámara en cualquier lugar. Nuestras cuentas y las de three.js ponen la pelota en el mismo píxel.'
+sidebar:
+  order: 3
+---
+
+import LiveCode from '../../../../components/LiveCode.astro';
+
+## El problema
+
+El proyecto empieza acá. Hace falta una **ventana al mundo**: algo que le hable a la placa de video, una escena con lo que hay, una cámara desde donde se ve, y un bucle que lo dibuje todo de nuevo en cada cuadro (_frame_). Y queremos poner a trabajar la [proyección](../02-la-proyeccion/): calcular nosotros, en cada cuadro, en qué píxel cae la pelota, y comprobar que three.js, con sus propias cuentas, la dibuja ahí.
+
+<LiveCode project="parte-1/01-ventana" autorun />
+
+Un piso con postes cada 5 m y una pelota que va y viene, de 3 a 18 m de la cámara y de un lado al otro. El anillo dorado es el píxel que calculan **nuestras cuentas**; la pelota la dibuja three.js. El panel muestra los dos resultados.
+
+## La matemática
+
+La [lección anterior](../02-la-proyeccion/) proyectó desde el origen. En el proyecto, la cámara está en $E = (e_x, e_y, e_z)$, sin girar, mirando hacia $-z$. Visto desde ella, un punto $P$ está en
+
+$$
+x_c = x - e_x, \qquad y_c = y - e_y, \qquad d = e_z - z,
+$$
+
+y lo demás es lo que ya sabemos: dividir por la profundidad, por medio alto $h = \tan(\varphi/2)$ y medio ancho $a\,h$, y pasar a píxeles. Juntando los pasos en una sola cuenta:
+
+$$
+p_x = \frac{W}{2}\left(1 + \frac{x - e_x}{a\,h\,(e_z - z)}\right), \qquad p_y = \frac{H}{2}\left(1 - \frac{y - e_y}{h\,(e_z - z)}\right).
+$$
+
+Y algo de alto $s$ a la profundidad $d$ mide, en píxeles, $\dfrac{s}{d} \cdot \dfrac{H}{2h}$: lo que ocupa en la pantalla imaginaria, sobre el alto de esa pantalla, por el alto de la ventana.
+
+### Un ejemplo con números
+
+La cámara del proyecto está en $(1{,}5;\ 1{,}6;\ 6)$, con $\varphi = 55^\circ$, en una ventana de $800 \times 450$. La pelota, en $(-1{,}5;\ 0{,}5;\ -3)$:
+
+- vista desde la cámara: $x_c = -3$, $y_c = -1{,}1$, y la profundidad, $d = 6 - (-3) = 9$;
+- con $h \approx 0{,}5206$ y $a\,h \approx 0{,}9255$: $u \approx -0{,}3602$ y $v \approx -0{,}2348$;
+- en píxeles, $p_x \approx 255{,}9$ y $p_y \approx 277{,}8$: a la izquierda y abajo del centro;
+- y su metro de diámetro mide $\frac{1}{9} \cdot \frac{450}{2 \cdot 0{,}5206} \approx 48$ píxeles.
+
+## En el proyecto
+
+El proyecto empieza con tres archivos:
+
+- **`view.ts`, la ventana:** un `WebGLRenderer`, que le habla a la placa de video; una escena (`Scene`); una cámara (`PerspectiveCamera`), con su campo de visión vertical en grados, puesta en `eye`; luz; y `onFrame`, que en cada cuadro llama a quien quiera actualizar el mundo y después dibuja. La ventana mantiene sus proporciones cuando cambia de tamaño.
+- **`screen.ts`, nuestras cuentas:** `toScreen` hace los pasos de arriba, uno por renglón, y devuelve `null` si el punto no está delante de la cámara. `Math.tan` pide radianes: la mitad del campo de visión, en radianes, es `fov * Math.PI / 360`.
+- **`main.ts`, el mundo:** el piso, los postes, la pelota y su camino; el anillo, puesto donde dice `toScreen`; y la misma pregunta a three.js (`position.project(camera)`), para comparar.
+
+## Probalo
+
+1. **Mirá el panel:** _our numbers_ (nuestras cuentas) y _three.js_ dan el mismo píxel, al décimo, y el anillo no se despega de la pelota.
+2. **Subí _field of view_** (el campo de visión) a 90°: entra más mundo en la misma ventana, todo se achica, y el anillo sigue en su lugar.
+3. **Seguí _depth (m)_ y _size on screen (px)_:** al doble de profundidad, la mitad de tamaño.
+4. **Pasá a pantalla completa** (⛶): cambian $W$, $H$ y los píxeles; la pelota sigue en el mismo lugar de la foto.
+
+## Lo importante
+
+- **El proyecto tiene una ventana:** `view.ts` dibuja la escena desde una cámara, en cada cuadro.
+- **Proyectar desde una cámara que no está en el origen es restarla primero;** lo demás es la proyección de siempre.
+- **Nuestras cuentas y las de la placa de video coinciden:** la proyección no es una caja negra.
+
+## Más a fondo
+
+<details>
+<summary>Cómo lo hace la placa de video: una matriz y una división</summary>
+
+three.js arma la cuenta con **matrices** de $4 \times 4$: le agrega a cada punto una cuarta coordenada, $w = 1$, y lo multiplica por la matriz de la vista (nuestra resta) y por la de proyección, que deja en $w$ la profundidad $d$. Después la placa divide todo por $w$: la **división de perspectiva** (_perspective divide_), nuestra división por $d$. Las matrices tienen su lección más adelante.
+
+</details>
+
+:::caution[Sutilezas]
+
+- **Grados y radianes.** Olvidarse de convertir da un número válido y equivocado: $\tan 27{,}5$ con el $27{,}5$ en radianes es $\approx -0{,}98$.
+- **Detrás de la cámara.** Con $d \le 0$, dividir da un punto dado vuelta o infinito: `toScreen` devuelve `null`, y la placa de video recorta todo lo que está más cerca que el plano cercano de la cámara (aquí, 0,1 m).
+
+:::
+
+## En los motores
+
+- **three.js:** `PerspectiveCamera(fov, aspect, near, far)`, y `vector.project(camera)`, que da $u$ y $v$ entre $-1$ y $1$.
+- **Unity:** `Camera.WorldToScreenPoint` da el píxel, contado desde **abajo** a la izquierda.
+- **En los libros:** Tomas Akenine-Möller y otros, _Real-Time Rendering_ (4.ª ed., 2018), cap. 4 "Transforms".
+
+**Dónde Manifold eligió otra cosa.** En la proyección, nada distinto: usa la cámara de three.js. Lo que elige es dónde vive la cámara: en la presentación, nunca en la simulación. El mundo no sabe que alguien lo mira.
+
+## En Manifold
+
+La cámara del motor se arma en [`stage.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/presentation/src/stage.ts) y se mueve en [`camera.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/presentation/src/camera.ts), en la presentación; el núcleo, que simula el mundo, no importa three.js. Se ve en cualquier sala del [Dojo](../../../jugar/dojo/).
+
+## Para practicar
+
+**1. Una cuenta a mano.** Apagá _moving_, leé dónde quedó la pelota (_ball (m)_) y calculá su píxel con la fórmula de arriba. Tiene que dar lo mismo que _our numbers_, al décimo.
+
+<details>
+<summary>Una pista</summary>
+
+La cámara está en $(1{,}5;\ 1{,}6;\ 6)$. El ancho y el alto de la ventana son `innerWidth` e `innerHeight`: escribilos en la consola con `console.log`.
+
+</details>
+
+**2. Detrás de la cámara.** Llevá la pelota más atrás que la cámara ($z > 6$) y hacé que el anillo desaparezca en vez de quedarse en el último lugar.
+
+<details>
+<summary>Una pista</summary>
+
+`toScreen` devuelve `null`. Cuando pasa, `mark.style.display = 'none'`; cuando vuelve, `''`.
+
+</details>
+
+## Para saber más
+
+- [Computing the pixel coordinates of a 3D point](https://www.scratchapixel.com/), en Scratchapixel (en inglés).

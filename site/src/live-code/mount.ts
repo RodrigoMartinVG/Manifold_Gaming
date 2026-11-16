@@ -74,6 +74,9 @@ async function loadLibraries(base: string, wanted: readonly string[]): Promise<R
   // What the libraries need themselves: an addon of Three.js imports Three.js.
   const needed = new Set(wanted.filter((s) => s in files));
   if ([...needed].some((s) => s.startsWith('three/'))) needed.add('three');
+  // The lab kit imports Three.js, its orbit controls and lil-gui: the same modules the lesson gets.
+  if (needed.has('lab'))
+    for (const s of ['three', 'three/addons/controls/OrbitControls.js', 'three/addons/libs/lil-gui.module.min.js']) needed.add(s);
   const texts = await Promise.all(
     [...needed].map(async (specifier) => {
       if (!fetched.has(specifier))

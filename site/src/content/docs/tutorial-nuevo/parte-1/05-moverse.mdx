@@ -1,0 +1,142 @@
+---
+title: Moverse
+description: 'La pelota se mueve con el teclado, a la misma velocidad hacia cualquier lado. Las teclas arman una dirección, que normalizada y por la rapidez es la velocidad; sin normalizar, en diagonal se va un 41% más rápido.'
+sidebar:
+  order: 5
+---
+
+import LiveCode from '../../../../components/LiveCode.astro';
+
+## El problema
+
+La pelota del proyecto se movía sola. Ahora la tiene que mover quien juega: W la aleja, S la acerca, A y D la llevan a los costados. Y tiene que ir **a una rapidez dada, en metros por segundo, hacia donde se le pida**, también en diagonal, con dos teclas a la vez. Con los [vectores](../04-vectores/) de la lección anterior, es una cuenta de tres renglones. Sin ellos, hay una trampa: la diagonal va más rápido.
+
+<LiveCode project="parte-1/02-moverse" autorun />
+
+El piso visto desde arriba, y la pelota. La flecha dorada es su velocidad: hacia dónde va, y tan larga como lo rápido que va. Mientras nadie toca una tecla, un piloto automático las aprieta: un cuadrado, con una tecla por vez, y un rombo, con dos a la vez. El panel mide cuán rápido fue de verdad, de frente y en diagonal.
+
+## La matemática
+
+### De las teclas a una dirección
+
+Cada tecla dice $-1$, $0$ o $1$ a lo largo de un eje, y juntas arman un vector sobre el piso:
+
+$$
+\mathbf{d} = (i_x,\ 0,\ i_z), \qquad i_x, i_z \in \{-1, 0, 1\}.
+$$
+
+De frente, $\lvert \mathbf{d} \rvert = 1$. En diagonal, $\mathbf{d} = (1, 0, -1)$ y $\lvert \mathbf{d} \rvert = \sqrt{2} \approx 1{,}414$.
+
+### La velocidad
+
+La **velocidad** (_velocity_) es un vector: hacia dónde, y cuán rápido. Si fuera $s\,\mathbf{d}$, mediría $s$ de frente y $s\sqrt{2}$ en diagonal: un 41% más. La dirección se normaliza primero:
+
+$$
+\mathbf{v} = s\,\hat{\mathbf{d}}, \qquad \lvert \mathbf{v} \rvert = s\,\lvert \hat{\mathbf{d}} \rvert = s \quad \text{hacia cualquier lado (si } \mathbf{d} \ne \mathbf{0}\text{)}.
+$$
+
+Sin ninguna tecla, $\mathbf{d} = \mathbf{0}$ no tiene dirección, y la velocidad es el vector cero. La rapidez $s$ es un número; la velocidad, un vector: la rapidez dice cuánto, y la dirección, hacia dónde.
+
+### El movimiento
+
+En un tiempo corto $\Delta t$, a velocidad $\mathbf{v}$, la pelota se desplaza $\mathbf{v}\,\Delta t$ (metros por segundo, por segundos: metros). Su lugar nuevo es el de antes más ese desplazamiento, un punto más un vector:
+
+$$
+P \leftarrow P + \mathbf{v}\,\Delta t.
+$$
+
+### Un ejemplo con números
+
+Con $s = 3$ m/s y D y W apretadas, $\mathbf{d} = (1, 0, -1)$:
+
+- normalizada, $\hat{\mathbf{d}} \approx (0{,}7071;\ 0;\ -0{,}7071)$, y la velocidad, $\mathbf{v} \approx (2{,}1213;\ 0;\ -2{,}1213)$ m/s, de largo 3;
+- en un cuadro de $1/60$ s, la pelota avanza $3/60 = 0{,}05$ m;
+- sin normalizar, $\mathbf{v} = (3;\ 0;\ -3)$, de largo $3\sqrt{2} \approx 4{,}243$ m/s.
+
+## En el proyecto
+
+El proyecto suma un archivo y cambia uno:
+
+- **`vec.ts`, nuevo: los vectores** de la lección anterior, como funciones que devuelven un vector nuevo: `add`, `sub`, `scale`, `length` y `normalize`, que deja el cero como cero.
+- **`main.ts`, cambiado: la pelota se mueve.** En cada cuadro lee las teclas (`input`), arma la dirección, la normaliza si _normalize_ está prendido, la multiplica por la rapidez y suma `scale(velocity, dt)` al lugar. Mide además cuántos metros recorrió en cuánto tiempo, de frente y en diagonal.
+- **`view.ts` y `screen.ts` siguen como estaban.** La cámara ahora mira hacia abajo, con `camera.lookAt`; cómo gira una cámara tiene su propia lección.
+
+## Probalo
+
+1. **Mirá el piloto automático:** en el cuadrado, _straight speed_ (la rapidez de frente) dice 3; en el rombo, _diagonal speed_ (en diagonal) también.
+2. **Apagá _normalize_:** la diagonal pasa a 4,24, y el rombo se agranda. Es el $\sqrt{2}$.
+3. **Manejala vos:** hacé clic en el dibujo y apretá WASD o las flechas. Tocar una tecla apaga el piloto automático; la casilla _autopilot_ lo devuelve.
+4. **Cambiá _speed_** (la rapidez) a 5: con _normalize_, de frente y en diagonal siguen iguales.
+
+## Lo importante
+
+- **Las teclas arman una dirección;** en diagonal mide $\sqrt{2}$.
+- **La velocidad es la dirección normalizada por la rapidez:** igual de rápido hacia cualquier lado.
+- **Moverse es sumarle al lugar la velocidad por el tiempo.**
+
+## Más a fondo
+
+<details>
+<summary>Un joystick no es una cruz</summary>
+
+Una palanca analógica da valores en un disco, y normalizarla haría correr a toda velocidad con apenas tocarla. Lo que corresponde es **acotar** (_clamp_):
+
+$$
+\mathbf{d}' = \begin{cases} \mathbf{d} & \text{si } \lvert \mathbf{d} \rvert \le 1, \\ \mathbf{d} / \lvert \mathbf{d} \rvert & \text{si } \lvert \mathbf{d} \rvert > 1. \end{cases}
+$$
+
+Una palanca a medias camina despacio, y la diagonal del teclado queda en 1.
+
+</details>
+
+:::caution[Sutilezas]
+
+- **Normalizar el cero.** Sin teclas, dividir por $\lvert \mathbf{d} \rvert = 0$ da `NaN`, y un `NaN` contagia todo lo que toca, hasta el lugar de la pelota. `normalize` devuelve el cero.
+- **Cada cuadro trae su $\Delta t$:** un cuadro lento, un paso largo. Para una pelota alcanza; para la física, no: es el problema de una lección que viene.
+
+:::
+
+## En los motores
+
+- **Unity:** `Vector3.normalized` (el cero, si es demasiado chico) y `Vector2.ClampMagnitude`, que acota.
+- **Godot:** `Input.get_vector()` arma la dirección con cuatro acciones, ya acotada a largo 1.
+- **En los libros:** Eric Lengyel, _Foundations of Game Engine Development_, vol. 1 (_Mathematics_, 2016), cap. 1 "Vectors and Matrices".
+
+**Dónde Manifold eligió otra cosa.** La dirección de un jugador se acota, no se normaliza, y se redondea a grados enteros: una repetición la guarda en pocos caracteres.
+
+## En Manifold
+
+La dirección de cada jugador se acota a largo 1 en `normalizeInput` ([`input.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/input.ts)), y los vectores del motor están en [`math.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/common/src/math.ts) (`vec3`). Se maneja así en cualquier sala del [Dojo](../../../jugar/dojo/).
+
+## Para practicar
+
+**1. Una predicción.** Con _normalize_ apagado y _speed_ en 2, ¿cuánto va a decir _diagonal speed_? Predecilo y comprobalo: $2\sqrt{2} \approx 2{,}83$.
+
+<details>
+<summary>Una pista</summary>
+
+La dirección diagonal mide $\sqrt{2}$, y se multiplica por la rapidez sin dividir por su largo.
+
+</details>
+
+**2. Acotar en vez de normalizar.** Cambiá `normalize` por `clampLength(v, 1)`, que solo achica los vectores de largo mayor que 1. Con el teclado tiene que dar lo mismo: 3 de frente y en diagonal.
+
+<details>
+<summary>Una pista</summary>
+
+En `vec.ts`: si `length(v) > max`, `scale(v, max / length(v))`; si no, `v`.
+
+</details>
+
+**3. Subir y bajar.** Que Q y E muevan la pelota hacia arriba y hacia abajo. Sin normalizar, con tres teclas a la vez, ¿cuánto más rápido va? Tiene que dar $\sqrt{3} \approx 1{,}73$ veces la rapidez.
+
+<details>
+<summary>Una pista</summary>
+
+La dirección pasa a ser `vec(ix, iy, iz)`, con `iy` de Q y E; sacá el límite del piso para $y$.
+
+</details>
+
+## Para saber más
+
+- [Essence of linear algebra](https://www.3blue1brown.com/topics/linear-algebra), de 3Blue1Brown (en inglés, con subtítulos).

@@ -1,4 +1,5 @@
 import { expect, test, type FrameLocator, type Page } from '@playwright/test';
+import type * as THREE from 'three';
 
 /**
  * THE LESSONS SAY SOMETHING, and these tests check that they show it (stage 1f). Running without
@@ -450,7 +451,7 @@ test('a dungeon from a seed: the same seed gives the same dungeon, all connected
 });
 
 test('the new tutorial, a window into the world: our numbers put the ball at the same pixel as three.js', async ({ page }) => {
-  const f = await open(page, 'tutorial-nuevo/parte-1/01-una-ventana-al-mundo/');
+  const f = await open(page, 'tutorial-nuevo/parte-1/03-una-ventana-al-mundo/');
   const pixel = async (name: string) => (await value(f, name)).split(',').map(Number);
   await expect.poll(() => value(f, 'our numbers')).toMatch(/^\d+\.\d, \d+\.\d$/);
   for (let i = 0; i < 3; i++) {
@@ -464,9 +465,59 @@ test('the new tutorial, a window into the world: our numbers put the ball at the
 test('the new tutorial, moving with vectors: normalized, 3 m/s straight and diagonally; without, the diagonal is √2 faster', async ({
   page,
 }) => {
-  const f = await open(page, 'tutorial-nuevo/parte-1/02-moverse/');
+  const f = await open(page, 'tutorial-nuevo/parte-1/05-moverse/');
   await expect.poll(() => number(f, 'straight speed'), { timeout: 20_000 }).toBeCloseTo(3, 2);
   await expect.poll(() => number(f, 'diagonal speed'), { timeout: 20_000 }).toBeCloseTo(3, 2);
   await toggle(f, 'normalize');
   await expect.poll(() => number(f, 'diagonal speed'), { timeout: 20_000 }).toBeCloseTo(4.24, 2);
+});
+
+test('the lab kit, in the vectors figure: a tip is dragged across the floor to a half meter, and the camera stays', async ({
+  page,
+}) => {
+  const f = await open(page, 'tutorial-nuevo/parte-1/04-vectores/');
+  await expect.poll(() => value(f, 'vector a')).toMatch(/^-?\d/);
+  await toggle(f, 'autopilot');
+  // Where a point of the floor is seen, on the page: the figure's frame projects it with its camera
+  // (the kit leaves the figure in the frame as `lab`), and the frame's place on the page is added.
+  const frame = (await page.locator('.live-code .lc-result iframe').first().elementHandle())!;
+  const inside = (await frame.contentFrame())!;
+  const box = (await frame.boundingBox())!;
+  const seen = async (x: number, z: number) => {
+    const p = await inside.evaluate(
+      ([x, z]) => {
+        const { camera, renderer } = (globalThis as unknown as { lab: { camera: THREE.Camera; renderer: THREE.WebGLRenderer } })
+          .lab;
+        const q = camera.position.clone().set(x!, 0, z!).project(camera);
+        const r = renderer.domElement.getBoundingClientRect();
+        return { x: r.left + ((q.x + 1) / 2) * r.width, y: r.top + ((1 - q.y) / 2) * r.height };
+      },
+      [x, z],
+    );
+    return { x: box.x + p.x, y: box.y + p.y };
+  };
+  const camera = () =>
+    inside.evaluate(() => (globalThis as unknown as { lab: { camera: THREE.Camera } }).lab.camera.position.toArray().join());
+  const [ax, , az] = (await value(f, 'vector a')).split(',').map(Number);
+  const before = await camera();
+  const from = await seen(ax!, az!);
+  const to = await seen(1.1, 1.4); // rounded to half meters: (1, 0, 1.5)
+  await page.mouse.move(from.x, from.y);
+  await page.mouse.down();
+  await page.mouse.move(to.x, to.y, { steps: 10 });
+  await page.mouse.up();
+  await expect.poll(() => value(f, 'vector a')).toBe('1.00, 0.00, 1.50');
+  expect(await value(f, 'unit â')).toBe('0.555, 0.000, 0.832');
+  // Let go, the pointer moves on and the tip stays; the camera never turned.
+  await page.mouse.move(box.x + 20, box.y + 20, { steps: 5 });
+  expect(await value(f, 'vector a')).toBe('1.00, 0.00, 1.50');
+  expect(await camera()).toBe(before);
+  // The panel covers the right: the picture's centre is moved left, and back when the panel closes.
+  const shift = () =>
+    inside.evaluate(() => (globalThis as unknown as { lab: { camera: THREE.PerspectiveCamera } }).lab.camera.view?.offsetX ?? 0);
+  expect(await shift()).toBeGreaterThan(0);
+  await f.locator('.lil-gui .title').first().click();
+  await expect.poll(shift).toBe(0);
+  await f.locator('.lil-gui .title').first().click();
+  await expect.poll(shift).toBeGreaterThan(0);
 });

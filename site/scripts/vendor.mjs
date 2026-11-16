@@ -43,6 +43,14 @@ const LIBRARIES = [
     code: "export * from '@dimforge/rapier3d-deterministic-compat';\nexport { default } from '@dimforge/rapier3d-deterministic-compat';",
     external: [],
   },
+  {
+    // The tutorial's lab kit (decision 0021; src/lab/): what the live figures share. It imports Three.js,
+    // its orbit controls and lil-gui by name, and the iframe gives it the same modules as the lesson.
+    specifier: 'lab',
+    file: 'lab.js',
+    code: "export * from '../src/lab/index.ts';",
+    external: ['three', 'three/addons/controls/OrbitControls.js', 'three/addons/libs/lil-gui.module.min.js'],
+  },
 ];
 
 await rm(target, { recursive: true, force: true });
