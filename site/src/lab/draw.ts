@@ -145,6 +145,63 @@ export function line(lab: Lab, o: { color: number; dashed?: boolean; opacity?: n
   return handle;
 }
 
+/** A PATH through several points, as a line of one pixel: an arc, a trail, a curve sampled. */
+export function path(lab: Lab, o: { color: number; opacity?: number }) {
+  const geometry = new THREE.BufferGeometry();
+  const object = new THREE.Line(
+    geometry,
+    new THREE.LineBasicMaterial({ color: o.color, transparent: (o.opacity ?? 1) < 1, opacity: o.opacity ?? 1 }),
+  );
+  lab.scene.add(object);
+  const handle = {
+    object,
+    set(points: readonly V3[]) {
+      geometry.setFromPoints(points.map(v));
+      return handle;
+    },
+    show(on: boolean) {
+      object.visible = on;
+      return handle;
+    },
+  };
+  return handle;
+}
+
+/** A FAN: the region between a centre and a path around it, filled (an angle swept, a sector, a cone's cut). */
+export function fan(lab: Lab, o: { color: number; opacity?: number }) {
+  const geometry = new THREE.BufferGeometry();
+  const mesh = new THREE.Mesh(
+    geometry,
+    new THREE.MeshBasicMaterial({
+      color: o.color,
+      transparent: true,
+      opacity: o.opacity ?? 0.3,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    }),
+  );
+  lab.scene.add(mesh);
+  const handle = {
+    mesh,
+    set(centre: V3, points: readonly V3[]) {
+      const corners: number[] = [];
+      for (let i = 1; i < points.length; i++) {
+        const a = points[i - 1]!;
+        const b = points[i]!;
+        corners.push(centre.x, centre.y, centre.z, a.x, a.y, a.z, b.x, b.y, b.z);
+      }
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(corners, 3));
+      geometry.computeBoundingSphere();
+      return handle;
+    },
+    show(on: boolean) {
+      mesh.visible = on;
+      return handle;
+    },
+  };
+  return handle;
+}
+
 /** A CIRCLE of a given radius, a thin ring in the plane through `centre` perpendicular to `normal` (the floor, by default). */
 export function circle(lab: Lab, o: { color: number; radius: number; width?: number; opacity?: number }) {
   const width = o.width ?? 0.03;

@@ -521,3 +521,17 @@ test('the lab kit, in the vectors figure: a tip is dragged across the floor to a
   await f.locator('.lil-gui .title').first().click();
   await expect.poll(shift).toBeGreaterThan(0);
 });
+
+test('the notation: a positive turn takes each axis to the next one, and three.js turns the same way', async ({ page }) => {
+  const f = await open(page, 'tutorial-nuevo/notacion/');
+  await set(f, 'angle (deg)', '90');
+  const expected = { X: '0.000, 0.000, 1.000', Y: '1.000, 0.000, 0.000', Z: '0.000, 1.000, 0.000' };
+  for (const [axis, turned] of Object.entries(expected)) {
+    await set(f, 'about', axis);
+    await expect.poll(() => value(f, 'turned (ours)')).toBe(turned);
+    expect(await value(f, 'turned (three.js)')).toBe(turned);
+  }
+  await set(f, 'angle (deg)', '-30');
+  await expect.poll(() => value(f, 'turned (ours)')).toBe('0.866, -0.500, 0.000');
+  expect(await value(f, 'turned (three.js)')).toBe('0.866, -0.500, 0.000');
+});

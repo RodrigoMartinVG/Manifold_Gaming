@@ -35,7 +35,7 @@ export function createLabels(camera: THREE.Camera, canvas: HTMLCanvasElement) {
   function label(text = ''): Label {
     const element = document.createElement('div');
     element.style.cssText =
-      'position:fixed;transform:translate(-50%,-50%);font:600 15px/1.2 Georgia,"Times New Roman",serif;' +
+      'position:fixed;transform:translate(-50%,-50%);font:600 16px/1.2 "Times New Roman",Times,serif;' +
       'color:#e8e2d6;text-align:center;white-space:pre;pointer-events:none;text-shadow:0 0 3px #000,0 0 3px #000';
     element.textContent = text;
     document.body.append(element);
