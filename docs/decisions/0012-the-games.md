@@ -24,6 +24,8 @@ The author's verdict: we were losing the north. The hard problems of an engine (
 | An action adventure (a small RPG) | Phases 3 and 4 | The same character in a world that responds: doors, mechanisms, breakables, light, enemies that use the world, an inventory, dungeons from a seed |
 | A shooter                         | Phases 4 to 6  | The same character in first person: weapons, bots, and at the end, networking                                                                     |
 
+> **Amended (2026-11-16, the author's call, when phase 4 was broken into stages):** a game's own package grows in phase 5, thought through there; the phases before it build its pieces in the Dojo, in rooms, and show them there. So phase 4 builds the shooter's first person, weapons and arena with bots, and the adventure's combat and story, as Dojo rooms; the adventure's start in 3k stays as it was. In the table above, a game's phases are where its pieces are built.
+
 Each one is complete in phase 5. The engine's unusual abilities come in as accents, not as the core: replays and ghosts by link, the console and its recipes, a platformer level on a small planet, a dungeon room with its gravity upside down.
 
 **Second wave: the strange ones (a new phase 7).** Two games from the idea bank (planets and topologies, an arena glued to itself, an orbital puzzle, racing on a Möbius strip), chosen when the base is firm and the Dojo has shown what is fun. "Manifold" means three different things there, each with a different cost:
