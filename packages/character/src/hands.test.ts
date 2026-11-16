@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { beforeAll, describe, expect, test } from 'vitest';
 import type { Vec3 } from '@manifold/common';
-import type { Character } from '@manifold/core';
+import type { Character, Shape } from '@manifold/core';
 import { LET_GO, TAKE, type HoldKind, type Surroundings } from '@manifold/presentation/hands';
 import { endOf, rootOf } from '@manifold/presentation/ik';
 import { animate, modelInstance, type ModelInstance } from '@manifold/presentation/models';
@@ -188,7 +188,7 @@ describe("the mannequin's hands (stage 4a)", () => {
     const box = {
       center: new THREE.Vector3(0, 0.2, -0.95),
       rotation: new THREE.Quaternion(),
-      shape: { kind: 'box', halfExtents: [0.2, 0.2, 0.2] } as const,
+      shape: { kind: 'box', halfExtents: [0.2, 0.2, 0.2] } as Shape,
     };
     const around: Surroundings = { ray: () => null, held: box };
     const character = climber([0, 0, 0], 'walk');
