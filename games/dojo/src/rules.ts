@@ -304,6 +304,8 @@ export function createDojo(levels: Readonly<Record<string, Level>>): Cartridge {
     inputs: [{ name: 'dojo.throw', kind: 'button', description: 'the character throws a ball forward' }],
     // A lab: in a match, everybody may change the world (another game may let only its host).
     mayChange: () => true,
+    // Its zones (stage 3b), for its levels and for what the console adds (stage 3j).
+    zones: DOJO_ZONES,
 
     onDeclare(registry) {
       registry.declareVariable({

@@ -1,7 +1,8 @@
 import { quat, sinCosDegrees, vec3, type Quat, type Vec3 } from '@manifold/common';
 import { MATERIAL_NAME, MATERIALS, materialProblem, type Material } from './materials';
+import { mapParts, type LevelMap } from './map';
 import type { CollisionGroups, Components, SignalOp } from './types';
-import { ENTITY_NAME, type World } from './world';
+import { copyData, ENTITY_NAME, type World } from './world';
 
 /**
  * LEVELS AS DATA (stage 2a; decision 0000, rule 4). A level is text, one thing per line, that can be
@@ -77,7 +78,7 @@ import { ENTITY_NAME, type World } from './world';
  * and cosine (`quat.fromDegrees`): the browser's would give other bits in another browser, and the
  * world must be born the same everywhere.
  */
-export const LEVEL_FORMAT = 6;
+export const LEVEL_FORMAT = 7;
 const HEADER = '# Manifold level';
 
 /** A turn around one of the axes, as it is written. */
@@ -165,6 +166,8 @@ export interface Level {
   /** The level's own materials (format 2), by name, in the order written. */
   materials: Record<string, Material>;
   boxes: LevelBox[];
+  /** Its maps (format 7): parts drawn as text, made into boxes and zones when it is built. */
+  maps: LevelMap[];
   sensors: LevelSensor[];
   /** Its signals (format 3), in the order they are computed. */
   signals: LevelSignal[];
@@ -217,6 +220,7 @@ const SINCE: Record<string, number> = {
   watcher: 4,
   breaks: 5,
   dynamic: 6,
+  map: 7,
 };
 /** How many signals or zones each kind of signal reads (−1: one or more), as the world says. */
 const READS: Record<SignalOp, number> = { input: 0, zone: 1, used: 1, seen: 1, any: -1, all: -1, not: 1, toggle: 1, latch: 2 };
@@ -229,6 +233,7 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
     facing: [0, 0, -1],
     materials: {},
     boxes: [],
+    maps: [],
     sensors: [],
     signals: [],
     ambient: null,
@@ -236,6 +241,8 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
     watchers: [],
   };
   const rows = text.split(/\r?\n/);
+  /** A map being read (format 7): its rows come as they are written, until `end`. */
+  let drawing: { map: LevelMap; line: number } | null = null;
   const fail = (n: number, why: string): never => {
     throw new Error(`level, line ${n + 1}: ${why}`);
   };
@@ -258,6 +265,22 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
   /** The watchers signals read, with their lines (checked at the end: a watcher may come below). */
   const watchersRead: { watcher: string; line: number }[] = [];
   rows.forEach((row, n) => {
+    // Inside a map, every row is a row of it (a `#` is a wall, not a comment), as written: a space at
+    // its start is a pit; one at its end, nothing, the same.
+    if (drawing) {
+      if (row.trim() === 'end') {
+        if (drawing.map.rows.length === 0) fail(n, 'a map with no rows');
+        level.maps.push(drawing.map);
+        drawing = null;
+        return;
+      }
+      const cells = row.replace(/\s+$/, '');
+      const odd = [...cells].find((c) => c !== '#' && c !== '.' && c !== ' ' && !(c in drawing!.map.legend));
+      if (odd !== undefined)
+        fail(n, `"${odd}" is not in the map (# a wall, . floor, a space nothing, or a letter its line gives a zone)`);
+      drawing.map.rows.push(cells);
+      return;
+    }
     // A comment is a whole line that starts with # (a color, like #6f6a62, is not one).
     const line = row.trim();
     if (!line || line.startsWith('#')) return;
@@ -613,11 +636,33 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
         level.sensors.push({ name, kind: what!, center, half, turn, params });
         break;
       }
+      case 'map': {
+        since(kind);
+        const origin = vector();
+        const cell = number();
+        const height = number();
+        if (cell <= 0 || height <= 0) fail(n, "a map's cell and its walls' height are more than 0");
+        // Then each character that stands for a zone, and the zone's kind.
+        const legend: Record<string, string> = {};
+        while (at < words.length) {
+          const char = words[at++]!;
+          const zone = words[at++];
+          if (char.length !== 1 || '#. '.includes(char)) fail(n, `"${char}" cannot stand for a zone: one character, not # or .`);
+          if (!zone || !/^[a-z][a-z0-9.-]*$/.test(zone)) fail(n, `"${char}" needs the kind of zone it stands for`);
+          const takes = o.zones?.[zone!];
+          if (o.zones && !takes) fail(n, `"${zone}" is not a zone of this game (${Object.keys(o.zones).join(', ')})`);
+          if (takes && Object.keys(takes).length) fail(n, `a ${zone} carries numbers: in a map, only zones that carry nothing`);
+          legend[char] = zone!;
+        }
+        drawing = { map: { origin, cell, height, legend, rows: [] }, line: n };
+        break;
+      }
       default:
-        fail(n, `"${kind}" is not understood (title, spawn, facing, ambient, material, box, sensor, lamp, watcher, signal)`);
+        fail(n, `"${kind}" is not understood (title, spawn, facing, ambient, material, box, map, sensor, lamp, watcher, signal)`);
     }
     if (at < words.length) fail(n, `"${words[at]}" is extra`);
   });
+  if (drawing) fail((drawing as { line: number }).line, 'a map that does not end (its last row, then a line with `end`)');
   for (const { material, line } of madeOf)
     if (!MATERIALS[material] && !level.materials[material])
       fail(line, `no material "${material}" (the engine's: ${Object.keys(MATERIALS).join(', ')}; or one the level declares)`);
@@ -673,6 +718,14 @@ export function levelToText(level: Level): string {
         ([name, m]) => `material ${name}  friction ${m.friction}  bounce ${m.bounce}  density ${m.density}  drag ${m.drag}`,
       ),
       ...level.boxes.map(boxText),
+      ...level.maps.flatMap((m) => [
+        `map ${numbersText(m.origin)}  ${m.cell} ${m.height}` +
+          Object.entries(m.legend)
+            .map(([c, z]) => `  ${c} ${z}`)
+            .join(''),
+        ...m.rows,
+        'end',
+      ]),
       ...level.sensors.map(sensorText),
       ...level.lamps.map(
         (l) =>
@@ -693,15 +746,70 @@ export function levelToText(level: Level): string {
 }
 
 /**
+ * What a level's line builds (stage 3j): a box, a zone, a lamp or a watcher. The entity keeps it as
+ * data (`source`), so the world can be written back as a level (`levelOfWorld`), with what the console
+ * added, moved or took away since.
+ */
+export type LevelPiece = { box: LevelBox } | { sensor: LevelSensor } | { lamp: LevelLamp } | { watcher: LevelWatcher };
+
+/** A map's color for its walls and its floor. */
+const MAP_WALL = 0x6f6a62;
+const MAP_FLOOR = 0x57534c;
+
+/** What a map's parts are as a level's lines: its walls and floor, boxes; its zones, zones. */
+export function mapPieces(m: LevelMap): LevelPiece[] {
+  return mapParts(m).map((p): LevelPiece => {
+    if (p.kind === 'zone')
+      return { sensor: { name: null, kind: p.zone!, center: p.center, half: p.half, turn: null, params: {} } };
+    return {
+      box: {
+        name: null,
+        center: p.center,
+        half: p.half,
+        turn: null,
+        color: p.kind === 'wall' ? MAP_WALL : MAP_FLOOR,
+        look: 'solid',
+        model: null,
+        breaks: null,
+        dynamic: false,
+        material: null,
+        groups: null,
+        move: null,
+        spin: null,
+        door: null,
+        lift: null,
+      },
+    };
+  });
+}
+
+/**
  * Puts a level into a world: its materials, its boxes, as bodies (fixed; or, if they move or turn,
  * or are mechanisms, kinematic: the program moves them, and they push what they touch), drawn as
- * their look says, its zones, as sensors that are not (`show.sensors` draws them), and its signals,
- * in their order, once the zones they read are there. Where the players start is the game's to use
- * (`level.spawn`).
+ * their look says, its maps' walls and floors, its zones, as sensors that are not (`show.sensors`
+ * draws them), its lamps and watchers, and its signals, in their order, once the zones they read are
+ * there. Where the players start is the game's to use (`level.spawn`); the world keeps it, with the
+ * level's title and ambient (`origin`), to be written back as a level.
  */
 export function buildLevel(world: World, level: Level) {
   for (const [name, m] of Object.entries(level.materials)) world.addMaterial(name, m);
-  for (const b of level.boxes) {
+  world.origin = { title: level.title, spawn: [...level.spawn], facing: [...level.facing], ambient: level.ambient };
+  const fromMaps = level.maps.flatMap(mapPieces);
+  for (const b of level.boxes) buildPiece(world, { box: b });
+  for (const p of fromMaps) if ('box' in p) buildPiece(world, p);
+  for (const sensor of level.sensors) buildPiece(world, { sensor });
+  for (const p of fromMaps) if ('sensor' in p) buildPiece(world, p);
+  if (level.ambient !== null) world.ambient = level.ambient;
+  for (const lamp of level.lamps) buildPiece(world, { lamp });
+  for (const watcher of level.watchers) buildPiece(world, { watcher });
+  for (const g of level.signals) world.addSignal(g.name, g.op, g.reads);
+}
+
+/** One piece of a level, in a world: the entity it makes, which keeps it (`source`). */
+export function buildPiece(world: World, piece: LevelPiece) {
+  const source = copyPiece(piece);
+  if ('box' in piece) {
+    const b = piece.box;
     const moves = b.move !== null || b.spin !== null || b.door !== null || b.lift !== null;
     // Degrees per second to radians per second: a constant product, the same everywhere.
     const spin = b.spin ? vec3.scale(AXES[b.spin.axis], (b.spin.degrees * Math.PI) / 180) : null;
@@ -712,7 +820,7 @@ export function buildLevel(world: World, level: Level) {
         : b.look === 'grid'
           ? { shape: 'grid', size, color: GRID_COLOR }
           : { shape: 'box', size, color: b.color, ...(b.model ? { model: b.model } : {}) };
-    world.createEntity({
+    return world.createEntity({
       ...(b.name ? { name: b.name } : {}),
       transform: { position: [...b.center], rotation: turnOf(b.turn) },
       body: {
@@ -735,16 +843,18 @@ export function buildLevel(world: World, level: Level) {
         : {}),
       ...(b.lift ? { mechanism: { signal: b.lift.signal, seconds: b.lift.seconds, lift: { by: [...b.lift.by] } } } : {}),
       ...(b.breaks !== null ? { breakable: { threshold: b.breaks } } : {}),
+      source,
     });
   }
-  for (const s of level.sensors) {
+  if ('sensor' in piece) {
+    const s = piece.sensor;
     // A zone that attenuates (stage 3d: an `opacity`) is seen: a translucent box, as much as what gets
     // through its thinnest side lets through.
     const opacity = s.params.opacity?.[0];
-    world.createEntity({
+    return world.createEntity({
       ...(s.name ? { name: s.name } : {}),
       transform: { position: [...s.center], rotation: turnOf(s.turn) },
-      sensor: { kind: s.kind, half: [...s.half], params: s.params },
+      sensor: { kind: s.kind, half: [...s.half], params: copyParams(s.params) },
       ...(opacity
         ? {
             appearance: {
@@ -755,13 +865,14 @@ export function buildLevel(world: World, level: Level) {
             },
           }
         : {}),
+      source,
     });
   }
-  if (level.ambient !== null) world.ambient = level.ambient;
   // A lamp, seen: a small warm ball (the presentation lights with it too); a watcher, a short capsule
   // with a visor that shows where it looks.
-  for (const l of level.lamps)
-    world.createEntity({
+  if ('lamp' in piece) {
+    const l = piece.lamp;
+    return world.createEntity({
       ...(l.name ? { name: l.name } : {}),
       transform: { position: [...l.center], rotation: quat.identity() },
       lamp: { radius: l.radius, intensity: l.intensity, signal: l.signal },
@@ -770,17 +881,25 @@ export function buildLevel(world: World, level: Level) {
       ...(l.breaks !== null
         ? { body: { type: 'fixed' as const, shape: { kind: 'ball' as const, radius: 0.15 } }, breakable: { threshold: l.breaks } }
         : {}),
+      source,
     });
-  for (const w of level.watchers)
-    world.createEntity({
-      ...(w.name ? { name: w.name } : {}),
-      transform: { position: [...w.center], rotation: turnOf(w.turn) },
-      // Half its field of view's cosine, with our own (the same bits everywhere).
-      watcher: { range: w.range, cone: sinCosDegrees(w.degrees / 2)[1], threshold: w.threshold },
-      appearance: { shape: 'capsule', size: [0.5, 0.8, 0.5], color: WATCHER_COLOR },
-    });
-  for (const g of level.signals) world.addSignal(g.name, g.op, g.reads);
+  }
+  const w = piece.watcher;
+  return world.createEntity({
+    ...(w.name ? { name: w.name } : {}),
+    transform: { position: [...w.center], rotation: turnOf(w.turn) },
+    // Half its field of view's cosine, with our own (the same bits everywhere).
+    watcher: { range: w.range, cone: sinCosDegrees(w.degrees / 2)[1], threshold: w.threshold },
+    appearance: { shape: 'capsule', size: [0.5, 0.8, 0.5], color: WATCHER_COLOR },
+    source,
+  });
 }
+
+/** A zone's parameters, copied (each its own list). */
+const copyParams = (params: Record<string, number[]>) => Object.fromEntries(Object.entries(params).map(([k, v]) => [k, [...v]]));
+
+/** A piece, copied all the way down (the entity's own: the level's stays as it was). */
+const copyPiece = (piece: LevelPiece): LevelPiece => copyData(piece);
 
 /** How a lamp and a watcher are drawn. */
 export const LAMP_COLOR = 0xffd27a;

@@ -1,0 +1,25 @@
+# Manifold level 7
+# The maze (stage 3j): a level drawn as text, as the dungeons a seed will make (3k). Each character
+# is a cell of 2 m: # a wall 3 m tall, . floor, a space nothing (a pit, here none), and the letters the
+# map's line gives a zone: C a checkpoint, * a star, G the goal. The engine makes it into as few boxes
+# as rectangles cover it (`level.export` writes them).
+title Maze
+spawn 3 1 9
+facing 0 0 1
+
+map 0 0 0  2 3  C checkpoint  * star  G goal
+###########
+#...#.....#
+#.#.#.###.#
+#.#...#*#.#
+#.#####.#.#
+#...C...#.#
+###.#####.#
+#*..#...#.#
+#.###.#.#.#
+#.....#..G#
+###########
+end
+
+# The void, should anything fall.
+sensor fall  11 -6 11  30 3 30

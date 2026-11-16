@@ -332,3 +332,38 @@ describe('watching the view (stage 3i)', () => {
     expect(told).toHaveLength(2);
   });
 });
+
+describe('recipes that wait (stage 3j)', () => {
+  it('what comes after a wait runs that many steps later, counted from when what was sent before it entered the world', () => {
+    const { r } = build();
+    const sent: string[] = [];
+    r.scheduler = (line) => sent.push(line);
+    const later: string[] = [];
+    r.onLater = (messages) => later.push(...messages.map((m) => m.text));
+    r.run('physics.gravity 0 -1 0; wait 2; show.axes on');
+    expect(sent).toEqual(['physics.gravity 0 -1 0']);
+    expect(r.pending).toBe(true);
+    // Through a server, the change comes back steps later: the wait holds for it.
+    r.stepped();
+    r.stepped();
+    r.stepped();
+    expect(r.value('show.axes')).toBe(false);
+    r.entered('physics.gravity 0 -1 0');
+    r.stepped();
+    expect(r.value('show.axes')).toBe(false);
+    r.stepped();
+    expect(r.value('show.axes')).toBe(true);
+    expect(later).toEqual(['show.axes = on']);
+    expect(r.pending).toBe(false);
+  });
+
+  it('relative values: + adds, * multiplies, one for every number of a vector or one each', () => {
+    const { r } = build();
+    r.run('physics.gravity *0.5');
+    expect(r.value('physics.gravity')).toEqual([0, -4.905, 0]);
+    r.run('physics.gravity +1 +0 +0');
+    expect(r.value('physics.gravity')).toEqual([1, -4.905, 0]);
+    r.run('view.timescale *0.5');
+    expect(r.value('view.timescale')).toBe(0.5);
+  });
+});

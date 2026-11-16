@@ -33,17 +33,20 @@ export function tokenize(line: string): Word[] {
 }
 
 /**
- * Splits a text into command lines: by line break and by `;`, without the comments (`#` to the
- * end of the line). What is inside quotes is not cut.
+ * Splits a text into command lines: by line break and by `;`, without the comments (`#` to the end
+ * of the line, when it starts a line or a space follows it: a color, `#8a6a42`, is not one, stage
+ * 3j). What is inside quotes is not cut.
  */
 export function splitLines(text: string): string[] {
   const lines: string[] = [];
   for (const row of text.split(/\r?\n/)) {
     let current = '';
     let inQuotes = false;
-    for (const c of row) {
+    for (let i = 0; i < row.length; i++) {
+      const c = row[i]!;
       if (c === '"') inQuotes = !inQuotes;
-      if (!inQuotes && c === '#') break;
+      const opens = current.trim() === '' || /\s/.test(row[i + 1] ?? ' ');
+      if (!inQuotes && c === '#' && opens) break;
       if (!inQuotes && c === ';') {
         lines.push(current);
         current = '';

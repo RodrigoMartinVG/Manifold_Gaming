@@ -42,6 +42,16 @@ export const CONSOLE_ES: Readonly<Record<string, string>> = {
     'un jugador entra a la partida. Lo dice el servidor, en un paso: el juego decide qué significa (en el recorrido del Dojo, un personaje para cada uno)',
   'players.leave': 'un jugador deja la partida (en el recorrido del Dojo, su personaje se va)',
   signal: 'pone una señal del nivel que es una entrada, en un paso (las que se calculan dicen de qué)',
+  add: 'agrega lo que dice una línea de un nivel (`add box 0 1 -3  1 1 1  material wood  name caja`): una caja, una zona, una lámpara o un vigía; entra en el paso siguiente',
+  clone: 'una copia de lo que hizo una línea de nivel, corrida `x y z` (`clone caja 1 0 0`); la copia no tiene nombre',
+  delete: 'saca una entidad, por su número o su nombre (`delete caja`); un personaje no: se va con su jugador',
+  set: 'cambia un valor de una entidad: `set caja transform.position 0 2 0`, `set lampara lamp.intensity 2`; también relativo, `+0 +1 +0` o `*2`',
+  'level.export':
+    'el mundo como nivel, en texto: lo que hizo su nivel y lo que se agregó, copió, movió o sacó desde entonces; guardado como archivo `.level`, se carga igual',
+  'level.diff': 'lo que cambió en el mundo desde que nació, como líneas de su nivel: `- ` lo que se fue, `+ ` lo que vino',
+  wait: 'en una receta, lo que sigue corre esa cantidad de pasos después (`wait 60`: un segundo)',
+  assert:
+    'revisa algo: `assert caja.transform.position.y < 1`, `assert signal.open = 1`; dice sí, o no y cuánto es. Con `wait`, una receta es una prueba',
   signals: 'las señales del nivel, en el orden en que se calculan: su valor, de qué están hechas y qué mecanismos las siguen',
   help: 'cómo se usa la consola, o la ayuda de un nombre',
   find: 'busca en los nombres y en las descripciones',

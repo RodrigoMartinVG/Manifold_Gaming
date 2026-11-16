@@ -264,9 +264,11 @@ export function mountConsole(
         out.write(`no room "${name}"${suggestion ? `. Did you mean \`load ${suggestion}\`?` : ''}`, 'error');
         return;
       }
-      // From scratch: the defaults, the startup recipe and the room's. One single restart at the end.
+      // From scratch: the defaults, the startup recipe and the room's. One single restart at the end. (What
+      // the room before was waiting to do is not this one's: stage 3j.)
       const onStartupChange = r.onStartupChange;
       r.onStartupChange = null;
+      r.forgetWaiting();
       r.reset();
       const startup = saved.read<string>('startup');
       const messages = [...(startup ? r.run(startup, 'recipe') : []), ...r.run(room.text, 'recipe')];

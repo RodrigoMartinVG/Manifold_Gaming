@@ -1,0 +1,6 @@
+# Maze: a level drawn as text
+# Since stage 3j a level can be drawn with characters, a cell each: # a wall, . floor, and letters for
+# zones (a checkpoint, two stars, the goal). As the dungeons a seed will make. `level.export` shows the
+# boxes the engine made of it: as few as rectangles cover it.
+seed 11
+dojo.level maze

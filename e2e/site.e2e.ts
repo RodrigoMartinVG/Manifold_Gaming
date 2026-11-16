@@ -2,7 +2,8 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { afterSteps, position, settled } from './helpers';
 import path from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
-import { levelFromText } from '@manifold/core';
+import { initPhysics, levelFromText, levelOfWorld, levelToText, playRecipe } from '@manifold/core';
+import { createDojo } from '@manifold/dojo/rules';
 
 /** Collects the page's errors (exceptions and `console.error`) to demand there are none. */
 function errors(page: Page) {
@@ -690,6 +691,47 @@ test('subtitles for sounds (stage 3i): walking on stone, written with where it c
   // Ahead of the camera, below it: an arrow up.
   await expect(page.locator('.mg-subtitles')).toContainText(/Pasos en piedra ↑/);
   expect(await game.getAttribute('data-subtitle')).toMatch(/^Pasos en /);
+  expect(list).toEqual([]);
+});
+
+// ---------------------------------------------------------------- making levels (stage 3j)
+
+// The workshop builds itself on the yard after its first step (add, clone, set), checks itself
+// (assert), and writes back what it built (level.export): the same text as Node writes, playing the same
+// recipe without a screen, and level.diff says what was added.
+test('the workshop (stage 3j): built from the console, it checks itself, and exports what it built, as Node does', async ({
+  page,
+}) => {
+  const list = errors(page);
+  await page.goto('jugar/dojo/workshop/');
+  await expect.poll(async () => (await position(page, 'player')).length, { timeout: 20_000 }).toBe(3);
+  await expect(consoleLog(page)).toContainText('assert crate.transform.position.y < 2: yes', { timeout: 30_000 });
+  await expect(consoleLog(page)).toContainText('assert lamp.lamp.intensity = 1.5: yes');
+  await page.keyboard.press('Backquote');
+  await typeInConsole(page, 'level.export');
+  await expect(consoleLog(page)).toContainText('name bench');
+  // (The last thing in the console: the level, from its first line.)
+  const log = await consoleLog(page).innerText();
+  const text = log.slice(log.lastIndexOf('# Manifold level')).trim();
+  // Node plays the same recipe and writes the same level.
+  await initPhysics();
+  const dojo = createDojo(
+    Object.fromEntries(
+      readdirSync(path.join(process.cwd(), 'games/dojo/levels'))
+        .filter((f) => f.endsWith('.level'))
+        .map((f) => [
+          f.replace(/\.level$/, ''),
+          levelFromText(readFileSync(path.join(process.cwd(), 'games/dojo/levels', f), 'utf8')),
+        ]),
+    ),
+  );
+  const { session } = playRecipe(dojo, readFileSync(path.join(process.cwd(), 'games/dojo/recipes/workshop.txt'), 'utf8'));
+  expect(text).toBe(levelToText(levelOfWorld(session.world)).trim());
+  session.world.dispose();
+  // What changed since it was born: the four lines it added, and the clone.
+  await typeInConsole(page, 'level.diff');
+  await expect(consoleLog(page)).toContainText('+ box 0 0.75 -6  2 0.75 0.3  material wood  color #8a6a42');
+  await expect(consoleLog(page)).toContainText('+ lamp 3 3 -4.5  8 1.5  name lamp');
   expect(list).toEqual([]);
 });
 

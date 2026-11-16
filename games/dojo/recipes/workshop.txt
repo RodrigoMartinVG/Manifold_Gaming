@@ -1,0 +1,19 @@
+# Workshop: a room built from the console
+# Since stage 3j the console builds: `add` puts a level's line in the world, `clone` copies what a line
+# built, `set` changes a value, `delete` takes it away. `level.export` writes the world as a level, and
+# `level.diff` what changed since it was born. This room is built on the yard after its first step,
+# line by line (what a line adds is there from the next step: `wait 1` before using it), and checks
+# itself with `assert`: a recipe can be a test.
+seed 10
+dojo.level yard
+wait 1
+add box 0 0.75 -3  2 0.75 0.3  material wood  color #8a6a42  name bench
+add box 0 2.5 -3  0.3 0.3 0.3  dynamic  material wood  color #b08850  name crate
+add lamp 3 3 -4.5  8 1  name lamp
+add sensor goal  0 0.8 -8.5  1.5 0.8 1
+wait 1
+clone bench 0 0 -3
+set lamp lamp.intensity 1.5
+wait 90
+assert crate.transform.position.y < 2
+assert lamp.lamp.intensity = 1.5

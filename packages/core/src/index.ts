@@ -1,7 +1,9 @@
 export {
   copyData,
+  DEFAULT_AMBIENT,
   ENTITY_NAME,
   World,
+  type Origin,
   STEP,
   type WorldOptions,
   type WorldSnapshot,
@@ -18,6 +20,7 @@ export { HIT_HEARD, hitRadius, STEP_HEARD, stepRadius, STRIDE } from './sound';
 export {
   Session,
   declareCore,
+  playRecipe,
   registryFor,
   type InputChange,
   type SessionOptions,
@@ -42,6 +45,8 @@ export {
 export { SIMULATION_VERSION } from './version';
 export {
   buildLevel,
+  buildPiece,
+  mapPieces,
   GRID_COLOR,
   LEVEL_FORMAT,
   levelFromText,
@@ -49,6 +54,7 @@ export {
   turnOf,
   type Level,
   type LevelBox,
+  type LevelPiece,
   type LevelOptions,
   type LevelLamp,
   type LevelSensor,
@@ -98,3 +104,6 @@ export type {
 } from './types';
 export { component, COMPONENT_NAME } from './components';
 export { VERIFIED, profileFromText, profileText, type Profile } from './profile';
+export { entityNamed, levelDiff, levelOfWorld, pieceFromLine, setField, declareBuilding } from './building';
+export { assertThat, declareChecks, readValue } from './checks';
+export { mapParts, type LevelMap, type MapPart } from './map';

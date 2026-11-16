@@ -1,5 +1,5 @@
 import { closest } from './closest';
-import type { Argument, Command, Message, Level, Output, Scope, Source, Value, Variable } from './types';
+import type { Argument, Command, Message, Level, Output, Scope, Source, Type, Value, Variable } from './types';
 import { describeType, formatValue, parseValue, sameValue, tokenize, wordsUsed, splitLines, type Word } from './values';
 
 const NAME = /^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)*$/;
@@ -31,6 +31,24 @@ export type Scheduler<W> = (line: string, apply: (world: W) => void) => void;
  *
  * `W` is the type of the world (the core uses `Registry<World>`); this package does not know it.
  */
+/**
+ * Lines that wait for steps (stage 3j): how many are left, the lines, and where they came from; and
+ * the world changes the lines before them sent that have not entered the world yet (`inFlight`): the
+ * steps are counted from when they did, so what comes after a `wait` sees them, also where they go
+ * through a server and come back steps later.
+ */
+export interface Waiting {
+  steps: number;
+  lines: string[];
+  source: Source;
+  inFlight: string[];
+  /** How many steps it has been held for them (after `HELD`, it counts anyway: one may never come). */
+  held: number;
+}
+
+/** The most steps a wait is held for what was sent before it (5 s): a change the server refused never comes. */
+const HELD = 300;
+
 /** Who is told of a view value's change: its name, its new value, and where the change came from. */
 export type Watcher = (name: string, value: Value, source: Source) => void;
 
@@ -47,6 +65,15 @@ export class Registry<W = unknown> {
   private viewLive = false;
   /** Who wants to know when a view value changes, and from where (stage 3i: the player's settings, to save them). */
   private readonly watchers = new Set<Watcher>();
+  /** The lines waiting for steps (stage 3j: what came after a `wait`), each with how many are left. */
+  private readonly waiting: Waiting[] = [];
+  /** The world changes the lines running now scheduled (stage 3j): a `wait` among them waits for them to enter. */
+  private batch: string[] | null = null;
+  /**
+   * Who is told what the lines that waited said when they ran (stage 3j: an `assert`'s result, an
+   * error): the console writes it; a test keeps it.
+   */
+  onLater: ((messages: Message[]) => void) | null = null;
 
   // ---------------------------------------------------------------- declaring
 
@@ -204,12 +231,84 @@ export class Registry<W = unknown> {
   }
 
   run(text: string, source: Source = 'console'): Message[] {
+    return this.runLines(splitLines(text), source);
+  }
+
+  /**
+   * Lines, in order. A `wait n` (stage 3j) leaves the ones after it for n steps later: whoever runs the
+   * world says each step (`stepped`), and then they run, and what they say goes to `onLater`.
+   */
+  private runLines(lines: readonly string[], source: Source): Message[] {
     const messages: Message[] = [];
     const out: Output = { write: (t, level: Level = 'info') => messages.push({ level, text: t }) };
     let restart = false;
-    for (const line of splitLines(text)) if (this.runLine(line, source, out)) restart = true;
+    const outer = this.batch;
+    this.batch = [];
+    for (let i = 0; i < lines.length; i++) {
+      const wait = /^wait(?:\s+(\S+))?\s*$/i.exec(lines[i]!);
+      if (wait) {
+        const steps = Number(wait[1]);
+        if (!Number.isInteger(steps) || steps < 0) {
+          out.write(`wait: how many steps, a whole number 0 or more (\`wait 60\`: a second)`, 'error');
+          continue;
+        }
+        if (steps > 0 && i < lines.length - 1) {
+          this.waiting.push({ steps, lines: lines.slice(i + 1), source, inFlight: this.batch, held: 0 });
+          break;
+        }
+        continue;
+      }
+      if (this.runLine(lines[i]!, source, out)) restart = true;
+    }
+    this.batch = outer;
     if (restart) this.onStartupChange?.();
     return messages;
+  }
+
+  /** A world change entered the world (the session says so, as it applies it): a wait held for it may count now. */
+  entered(line: string) {
+    for (const w of this.waiting) {
+      const i = w.inFlight.indexOf(line);
+      if (i < 0) continue;
+      w.inFlight.splice(i, 1);
+      return;
+    }
+  }
+
+  /** Whether some lines are waiting for steps (stage 3j). */
+  get pending(): boolean {
+    return this.waiting.length > 0;
+  }
+
+  /** A step of the world went by (stage 3j): the lines that waited for it run, in the order they began to wait. */
+  stepped() {
+    const due: { lines: string[]; source: Source }[] = [];
+    for (let i = 0; i < this.waiting.length; i++) {
+      const w = this.waiting[i]!;
+      if (w.inFlight.length && ++w.held < HELD) continue;
+      if (--w.steps > 0) continue;
+      due.push(w);
+      this.waiting.splice(i--, 1);
+    }
+    for (const w of due) {
+      const said = this.runLines(w.lines, w.source);
+      if (said.length) this.onLater?.(said);
+    }
+  }
+
+  /** Nothing waits any more (another room: what waited belonged to the one before). */
+  forgetWaiting() {
+    this.waiting.length = 0;
+  }
+
+  /** What waits now, copied (stage 3j: what a room does after its first step, to do it again when it starts over). */
+  waits(): Waiting[] {
+    return this.waiting.map((w) => ({ ...w, lines: [...w.lines], inFlight: [...w.inFlight] }));
+  }
+
+  /** Lines to wait again, as `waits` gave them. */
+  queue(waits: readonly Waiting[]) {
+    for (const w of waits) this.waiting.push({ ...w, lines: [...w.lines], inFlight: [...w.inFlight], held: 0 });
   }
 
   /** One line. Returns whether a startup value changed. */
@@ -228,7 +327,11 @@ export class Registry<W = unknown> {
       }
       const parsed = parseValue(
         variable.decl.type,
-        rest.map((w) => w.text),
+        relative(
+          variable.decl.type,
+          variable.value,
+          rest.map((w) => w.text),
+        ),
       );
       if (!parsed.ok) {
         out.write(`${name}: ${parsed.error}`, 'error');
@@ -255,9 +358,16 @@ export class Registry<W = unknown> {
         // Whether it can be done in the world as it is (stage 3c: setting a signal that is computed is
         // refused when it is typed, with why, not ignored at the next step).
         if (command.check && this.world && !command.check(this.world(), args, out)) return false;
-        const canonical = [name, ...args.map(formatValue)].join(' ');
-        if (this.scheduler) this.scheduler(canonical, (world) => onWorld(world, args));
-        else out.write(`${name}: there is no world to do it in yet`, 'error');
+        // (The rest of a line goes as it is: it is read back as it is, stage 3j. In quotes, the line
+        // `add box …` came back to whoever plays it as `"box …"`.)
+        const canonical = [
+          name,
+          ...args.map((a, i) => (command.args?.[i]?.type.kind === 'rest' ? String(a) : formatValue(a))),
+        ].join(' ');
+        if (this.scheduler) {
+          this.scheduler(canonical, (world) => onWorld(world, args));
+          this.batch?.push(canonical);
+        } else out.write(`${name}: there is no world to do it in yet`, 'error');
         return false;
       }
       command.run?.(args, out);
@@ -287,7 +397,10 @@ export class Registry<W = unknown> {
         return changed;
       case 'world': {
         const onWorld = s.decl.onWorld;
-        if (this.scheduler && onWorld) this.scheduler(`${name} ${written}`, (world) => onWorld(world, copy(value)));
+        if (this.scheduler && onWorld) {
+          this.scheduler(`${name} ${written}`, (world) => onWorld(world, copy(value)));
+          this.batch?.push(`${name} ${written}`);
+        }
         out.write(`${name} = ${written}${this.scheduler ? ' (from the next step)' : ''}`);
         return false;
       }
@@ -410,4 +523,26 @@ function completeUpTo(partial: string, candidates: string[], before: string): st
 
 function copy(v: Value): Value {
   return Array.isArray(v) ? [v[0], v[1], v[2]] : v;
+}
+
+/**
+ * RELATIVE VALUES (stage 3j): for a number or a vector, `+2` adds to what it is and `*0.5` multiplies
+ * it (`physics.gravity *0.5`: half; `+0 +1 +0`: one more along y). One relative word for a vector does
+ * every number. Words that are not relative come back as they are.
+ */
+export function relative(type: Type, now: Value, words: string[]): string[] {
+  const is = (w: string) => /^[+*][-+]?(\d+\.?\d*|\.\d+)(e[-+]?\d+)?$/i.test(w);
+  if (!words.some(is)) return words;
+  const apply = (w: string, was: number) => {
+    if (!is(w)) return w;
+    const by = Number(w.slice(1));
+    return String(w[0] === '+' ? was + by : was * by);
+  };
+  if ((type.kind === 'number' || type.kind === 'integer') && typeof now === 'number')
+    return [apply(words[0]!, now), ...words.slice(1)];
+  if (type.kind === 'vector' && Array.isArray(now)) {
+    const each = words.length === 1 ? [words[0]!, words[0]!, words[0]!] : words;
+    return each.map((w, i) => (i < 3 ? apply(w, now[i]!) : w));
+  }
+  return words;
 }

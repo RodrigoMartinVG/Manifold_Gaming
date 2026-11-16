@@ -1,0 +1,11 @@
+# Manifold level 6
+# The yard (stage 3j): a floor and nothing else, where to build from the console. The workshop room
+# builds on it line by line, and `level.export` writes back what was built.
+title Yard
+spawn 0 1 6
+facing 0 0 -1
+
+box 0 -0.5 0  10 0.5 10  grid  name floor
+
+# The void under it.
+sensor fall  0 -6 0  30 3 30

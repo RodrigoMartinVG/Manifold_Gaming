@@ -162,7 +162,22 @@ function inspectEntity(world: World, id: number): string {
   const e = world.entities.get(id);
   if (!e) return `no entity ${id} (there are ${world.entities.size}: \`inspect\` counts them)`;
   const lines = [`entity ${id}${e.name ? ` (${e.name})` : ''}, at step ${world.tick}`];
-  for (const [k, v] of Object.entries(e)) if (k !== 'id' && k !== 'name') lines.push(`  ${k.padEnd(11)}${describeValue(v)}`);
+  for (const [k, v] of Object.entries(e))
+    if (k !== 'id' && k !== 'name' && k !== 'source') lines.push(`  ${k.padEnd(11)}${describeValue(v)}`);
+  // What it was built from, in one word, and how to change it (stage 3j): lines that can be clicked into
+  // the console's line, to edit and run.
+  const who = e.name ?? String(id);
+  if (e.source) lines.push(`  ${'source'.padEnd(11)}a level's ${Object.keys(e.source)[0]} line (\`level.export\` writes it)`);
+  const changes: string[] = [];
+  if (e.transform && !e.mover && !e.mechanism && !e.spin && !e.character)
+    changes.push(`set ${who} transform.position ${describeValue(e.transform.position)}`);
+  if (e.appearance && e.appearance.shape !== 'grid')
+    changes.push(`set ${who} appearance.color ${describeValue(e.appearance.color, 'color')}`);
+  if (e.lamp) changes.push(`set ${who} lamp.intensity ${describeValue(e.lamp.intensity)}`);
+  for (const [k, v] of Object.entries(e.sensor?.params ?? {})) changes.push(`set ${who} sensor.params.${k} ${describeValue(v)}`);
+  if (e.source) changes.push(`clone ${who} 1 0 0`);
+  if (!e.character) changes.push(`delete ${who}`);
+  if (changes.length) lines.push(`  change it: ${changes.map((c) => `\`${c}\``).join('  ')}`);
   return lines.join('\n');
 }
 

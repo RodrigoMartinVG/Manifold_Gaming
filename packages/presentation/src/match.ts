@@ -108,6 +108,8 @@ export function createMatch(o: {
   /** What to do around each step this page's copy takes. */
   hooks: StepHooks;
   say(text: string, level?: 'info' | 'warn' | 'error'): void;
+  /** Just before the world starts over (stage 3j: what the room does after its first step, queued again). */
+  beforeRestart?(): void;
 }): PageMatch {
   const { cartridge, registry, container } = o;
   let session!: Session;
@@ -175,7 +177,10 @@ export function createMatch(o: {
   /** This page's copy takes the steps that came from the server, one by one. */
   const drain = () => link!.drain(o.hooks);
 
-  const restart = () => link!.request({ type: 'restart', birth: birthOf() });
+  const restart = () => {
+    o.beforeRestart?.();
+    link!.request({ type: 'restart', birth: birthOf() });
+  };
 
   registry.declareVariable({
     ...MATCH_VARIABLES.timescale,

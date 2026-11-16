@@ -1,4 +1,4 @@
-import { declareHelp, type Message, type Registry } from '@manifold/commands';
+import { declareHelp, type Message, type Registry, type Waiting } from '@manifold/commands';
 import { registryFor, type Cartridge, type Session, type World } from '@manifold/core';
 import { mountBodies } from './bodies';
 import { mountCamera } from './camera';
@@ -124,7 +124,13 @@ export function mount(cartridge: Cartridge, container: HTMLElement, o: MountOpti
   /** How many panels hold the keys now (a menu, a dialogue box). */
   let holding = 0;
 
-  // Around each step this page's copy takes: the pieces before, in order; after, in the opposite order.
+  /**
+   * What the room does after its first step (stage 3j: the lines after a recipe's `wait`): done again
+   * when the world starts over (the menu, `restart`), not when a startup value changes (another room).
+   */
+  let roomWaits: Waiting[] = [];
+  // Around each step this page's copy takes: the pieces before, in order; after, in the opposite order;
+  // then the recipe lines that waited for it (stage 3j).
   const match = createMatch({
     cartridge,
     registry,
@@ -132,7 +138,14 @@ export function mount(cartridge: Cartridge, container: HTMLElement, o: MountOpti
     say,
     hooks: {
       before: () => pieces.forEach((p) => p.beforeStep?.()),
-      after: () => [...pieces].reverse().forEach((p) => p.afterStep?.()),
+      after: () => {
+        [...pieces].reverse().forEach((p) => p.afterStep?.());
+        registry.stepped();
+      },
+    },
+    beforeRestart: () => {
+      registry.forgetWaiting();
+      registry.queue(roomWaits);
     },
     welcome(session, m) {
       session.world.takeEvents(); // the world is already there: what it emitted until now is not news
@@ -173,7 +186,15 @@ export function mount(cartridge: Cartridge, container: HTMLElement, o: MountOpti
   };
 
   // The console, if the game mounts it.
-  gameConsole = o.console ? mountConsole(container, registry, o.console, { restart: () => match.restart() }) : null;
+  // (A room the console loads: what it does after its first step is the room's now.)
+  gameConsole = o.console
+    ? mountConsole(container, registry, o.console, {
+        restart: () => {
+          roomWaits = registry.waits();
+          match.restart();
+        },
+      })
+    : null;
   if (gameConsole) declareHelp(registry, { examples: o.console ? o.console.examples : undefined });
 
   // The pieces, in the order they draw (the bodies first, what is drawn on them after, the camera last).
@@ -212,6 +233,12 @@ export function mount(cartridge: Cartridge, container: HTMLElement, o: MountOpti
   const startup = gameConsole?.startupRecipe();
   const recipes = [...(startup ? [{ from: 'your startup recipe', text: startup }] : []), ...(o.recipes ?? [])];
   for (const recipe of recipes) warn(recipe.from, registry.run(recipe.text, 'recipe'));
+  roomWaits = registry.waits();
+  // What the lines that waited say when they run (stage 3j: a check, an error): in the console.
+  registry.onLater = (messages) => {
+    if (gameConsole) for (const m of messages) gameConsole.write(m.text, m.level);
+    else for (const m of messages.filter((x) => x.level === 'error')) console.warn(m.text);
+  };
 
   function warn(from: string, messages: Message[]) {
     const errors = messages.filter((m) => m.level === 'error');
@@ -225,8 +252,12 @@ export function mount(cartridge: Cartridge, container: HTMLElement, o: MountOpti
 
   // The match is born with the recipes' values, and its first session comes to every piece.
   match.start();
-  // From now on, changing a startup value (from the console) makes the world start over.
-  registry.onStartupChange = () => match.restart();
+  // From now on, changing a startup value (from the console) makes the world start over: another
+  // room, which does not do what the one before did after its first step.
+  registry.onStartupChange = () => {
+    roomWaits = [];
+    match.restart();
+  };
   // A replay or a ghost that came with the page (the game gathered them, from its link).
   replays.fromPage({ replay: o.replay, ghost: o.ghost });
   // Every piece of the view exists: the view values the recipes brought are applied now (until here

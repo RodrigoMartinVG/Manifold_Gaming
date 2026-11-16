@@ -1,4 +1,5 @@
 import type { Quat, Vec3 } from '@manifold/common';
+import type { LevelPiece } from './level';
 
 /** The number that names an entity. Unique within ITS world (not in the whole program). */
 export type EntityId = number;
@@ -30,6 +31,12 @@ export interface Entity {
   lamp?: Lamp;
   watcher?: Watcher;
   breakable?: Breakable;
+  /**
+   * The level's line that built it (stage 3j), as data: what `level.export` writes back. Set when a
+   * level builds it, or the console adds it; kept up to date by `set`. Characters, balls, fragments,
+   * what a game makes on its own, have none: they are not the level's.
+   */
+  source?: LevelPiece;
 }
 
 /**

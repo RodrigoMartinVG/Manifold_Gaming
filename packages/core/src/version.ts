@@ -38,5 +38,8 @@
  *  21  stage 3g: a body's density from its material; a character pushes what it walks into with a
  *      force its friction must beat (not Rapier's impulses); a game pushes what the physics moves
  *      (World.push); grabbing and holding (`holding`, in the hash)
+ *  22  stage 3j: what a level built keeps its line (`source`) and the world the level's title, start
+ *      and ambient (`origin`), both in the hash and snapshots; the console builds (`add`, `clone`,
+ *      `delete`, `set`), world changes like any other
  */
-export const SIMULATION_VERSION = 21;
+export const SIMULATION_VERSION = 22;

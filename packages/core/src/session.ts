@@ -1,4 +1,6 @@
-import { formatValue, Registry, type Value } from '@manifold/commands';
+import { formatValue, Registry, type Message, type Value } from '@manifold/commands';
+import { declareBuilding } from './building';
+import { declareChecks } from './checks';
 import { VERIFIED } from './profile';
 import type { Vec3 } from '@manifold/common';
 import type { Cartridge } from './cartridge';
@@ -63,13 +65,18 @@ export interface SessionState {
 /** A registry with what the engine and the cartridge declare (without the presentation or the console). */
 export function registryFor(cartridge: Cartridge): Registry<World> {
   const registry = new Registry<World>();
-  declareCore(registry);
+  declareCore(registry, cartridge);
   cartridge.onDeclare?.(registry);
   return registry;
 }
 
-/** What the core declares, for every game (each game decides whether to let people touch it). */
-export function declareCore(registry: Registry<World>) {
+/**
+ * What the core declares, for every game (each game decides whether to let people touch it): with the
+ * cartridge, the building commands know its zones and how its worlds are born (stage 3j).
+ */
+export function declareCore(registry: Registry<World>, cartridge?: Cartridge) {
+  declareBuilding(registry, cartridge);
+  declareChecks(registry);
   registry.declareVariable({
     name: 'seed',
     description: "The seed of the world's randomness: the same seed, the same world.",
@@ -230,6 +237,8 @@ export class Session {
     for (const s of scheduled) {
       s.apply(this.world);
       this.history.push({ step, line: s.line });
+      // (A recipe's `wait` may be holding for it: stage 3j.)
+      this.registry.entered(s.line);
     }
     // One waiting input per player enters at each step.
     const entering = new Map<number, PlayerInput>();
@@ -301,4 +310,23 @@ export class Session {
     this.scheduled = [...save.scheduled];
     this.pendingInputs = new Map([...save.pendingInputs].map(([p, q]) => [p, [...q]]));
   }
+}
+
+/**
+ * A RECIPE PLAYED WITHOUT A SCREEN (stage 3j): its lines before the first `wait` make how the world is
+ * born, the rest run as the steps go by, until nothing waits (or `most` steps). What it said comes
+ * back, and the checks that did not hold (`assert`): a recipe with them is a test.
+ */
+export function playRecipe(cartridge: Cartridge, text: string, o: { most?: number } = {}) {
+  const registry = registryFor(cartridge);
+  const said: Message[] = [];
+  registry.onLater = (messages) => said.push(...messages);
+  said.push(...registry.run(text, 'recipe'));
+  const session = new Session(cartridge, { registry });
+  const most = o.most ?? 60 * 600;
+  for (let steps = 0; registry.pending && steps < most; steps++) {
+    session.step();
+    registry.stepped();
+  }
+  return { session, said, failed: said.filter((m) => m.level === 'error').map((m) => m.text) };
 }

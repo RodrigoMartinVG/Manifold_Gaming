@@ -1,6 +1,7 @@
 import type { Registry } from '@manifold/commands';
 import type { InputAction } from './input';
 import type { Profile } from './profile';
+import type { ZoneKinds } from './level';
 import type { Event } from './types';
 import type { World } from './world';
 
@@ -42,6 +43,11 @@ export interface Cartridge {
    * them. Without it, `VERIFIED`: Rapier's deterministic build, and a server that checks every copy.
    */
   readonly profile?: Profile;
+  /**
+   * The zones it understands, and what each one carries (stage 3b): its levels are read with them, and
+   * so is a line the console adds (`add sensor …`, stage 3j).
+   */
+  readonly zones?: ZoneKinds;
   /**
    * Once, with the freshly created world: put whatever there is at the start. STARTUP values (how
    * many cubes, which room) are read from the registry, which already has the recipes applied.

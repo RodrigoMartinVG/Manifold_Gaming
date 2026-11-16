@@ -158,6 +158,8 @@ export interface WorldSnapshot {
   readonly random: readonly [number, number, number, number];
   readonly gravity: GravityField;
   readonly ambient: number;
+  /** The level it was built from (stage 3j). */
+  readonly origin: Origin | null;
   readonly materials: Readonly<Record<string, Material>>;
   readonly signals: readonly Signal[];
   readonly inputs: readonly [number, PlayerInput][];
@@ -166,6 +168,17 @@ export interface WorldSnapshot {
   readonly entities: readonly Entity[];
   /** Rapier's snapshot: its bodies, colliders, contacts and solver, as bytes. */
   readonly physics: Uint8Array;
+}
+
+/** A world's ambient light when nothing says otherwise: the light every room had before stage 3d. */
+export const DEFAULT_AMBIENT = 1;
+
+/** The level a world was built from (stage 3j): its title, where its players start, and the ambient it said. */
+export interface Origin {
+  title: string;
+  spawn: Vec3;
+  facing: Vec3;
+  ambient: number | null;
 }
 
 /**
@@ -254,7 +267,12 @@ export class World {
    * ITS AMBIENT LIGHT (stage 3d): how lit everything is with no lamp, from 0 (dark) to 1 (the light
    * every room had before: a room says less). Data, like the rest: hashed, and in snapshots.
    */
-  ambient = 1;
+  ambient = DEFAULT_AMBIENT;
+  /**
+   * THE LEVEL IT WAS BUILT FROM (stage 3j): its title, where its players start, and the ambient it
+   * said (null: none), to write the world back as a level (`levelOfWorld`). Null if no level built it.
+   */
+  origin: Origin | null = null;
   /**
    * WHAT ITS THINGS CAN BE MADE OF (stage 3b), by name: the engine's (`MATERIALS`) and those a level
    * declares (`addMaterial`). Data, like the rest: hashed, and in snapshots. A body names one
@@ -308,6 +326,7 @@ export class World {
       random: [...this.random.state],
       gravity: copyData(this.field),
       ambient: this.ambient,
+      origin: copyData(this.origin),
       materials: copyData(this.table),
       signals: copyData(this.wires),
       inputs: copyData([...this.inputs]),
@@ -335,6 +354,7 @@ export class World {
     world.tick = s.tick;
     world.lastId = s.lastId;
     world.ambient = s.ambient;
+    world.origin = copyData(s.origin);
     for (const signal of copyData(s.signals)) world.wires.push(signal);
     world.random.restore(s.random);
     for (const [player, input] of copyData(s.inputs)) world.inputs.set(player, input);

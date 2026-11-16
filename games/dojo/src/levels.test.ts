@@ -1,5 +1,14 @@
-import { describe, expect, test } from 'vitest';
-import { levelFromText, levelToText, type LevelBox } from '@manifold/core';
+import { beforeAll, describe, expect, test } from 'vitest';
+import {
+  buildLevel,
+  initPhysics,
+  levelFromText,
+  levelOfWorld,
+  levelToText,
+  mapPieces,
+  World,
+  type LevelBox,
+} from '@manifold/core';
 import { LEVELS } from './levels';
 import { DOJO_ZONES } from './rules';
 
@@ -55,10 +64,27 @@ function flickering(boxes: LevelBox[]): string[] {
   return found;
 }
 
+beforeAll(initPhysics);
+
 describe("the Dojo's levels (stage 3a)", () => {
   for (const [name, level] of Object.entries(LEVELS)) {
     test(`${name}: no two faces in the same plane overlap (they would flicker)`, () => {
-      expect(flickering(level.boxes)).toEqual([]);
+      // (A map's walls and floor too, as the boxes they are made into: stage 3j.)
+      const fromMaps = level.maps.flatMap(mapPieces).flatMap((p) => ('box' in p ? [p.box] : []));
+      expect(flickering([...level.boxes, ...fromMaps])).toEqual([]);
+    });
+    // Stage 3j: built, and written back from the world, the same level; with maps, their boxes, which
+    // build the same world again.
+    test(`${name}: built and written back from its world, the same`, () => {
+      const world = new World({ seed: 1 });
+      buildLevel(world, level);
+      const once = levelOfWorld(world);
+      world.dispose();
+      if (level.maps.length === 0) return void expect(once).toEqual(level);
+      const again = new World({ seed: 1 });
+      buildLevel(again, once);
+      expect(levelOfWorld(again)).toEqual(once);
+      again.dispose();
     });
     // Stage 3b: written in the format's latest version and read again, it is the same level.
     test(`${name}: written as text and read again, the same`, () => {
