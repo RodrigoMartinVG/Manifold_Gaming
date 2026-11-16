@@ -7,22 +7,23 @@ Un **patrón de diseño** (_design pattern_) es una manera conocida de resolver 
 
 Las lecciones los marcan con un recuadro **Patrón** cuando su código usa uno. Esta página los junta, como el [glosario](../glosario/) junta las palabras, en el orden en que aparecen.
 
-| Patrón                       | En inglés                | Dónde aparece                                                                                                                            |
-| ---------------------------- | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| bucle de juego               | _game loop_              | [Tu primer cubo](../etapa-0/01-primer-cubo/), [El paso fijo](../etapa-0/03-paso-fijo/)                                                   |
-| estrategia                   | _strategy_               | [Azar con semilla](../etapa-0/04-azar-con-semilla/)                                                                                      |
-| presentación separada        | _separated presentation_ | [Simulación y dibujo](../etapa-0/05-simulacion-y-dibujo/)                                                                                |
-| compuesto (grafo de escena)  | _composite_              | [Matrices y espacios](../etapa-0/07-matrices-y-espacios/)                                                                                |
-| bandera de sucio             | _dirty flag_             | [Matrices y espacios](../etapa-0/07-matrices-y-espacios/)                                                                                |
-| componente                   | _component_              | [Un motor de física](../etapa-1/00-motor-de-fisica/), [Capacidades como datos](../etapa-2/03-capacidades-como-datos/)                    |
-| partición espacial           | _spatial partition_      | [Cómo se encuentra un choque](../etapa-1/01-como-se-encuentra-un-choque/)                                                                |
-| estado                       | _state_                  | [Un personaje](../etapa-1/02-un-personaje/), [Un modo por paso](../etapa-2/02-un-modo-por-paso/)                                         |
-| método de actualización      | _update method_          | [La cámara que sigue](../etapa-1/03-la-camara-que-sigue/)                                                                                |
-| comando                      | _command_                | [Entradas como acciones](../etapa-1/04-entradas-como-acciones/)                                                                          |
-| registro de eventos          | _event sourcing_         | [Repeticiones y fantasmas](../etapa-1/05-repeticiones/)                                                                                  |
-| memento                      | _memento_                | [Instantáneas](../etapa-1/06-instantaneas/)                                                                                              |
-| cola de eventos              | _event queue_            | [Un servidor y un cliente](../etapa-1/07-servidor-y-cliente/), [Zonas que notan quién entra](../etapa-2/01-zonas-que-notan-quien-entra/) |
-| objeto único (un antipatrón) | _singleton_              | [Azar con semilla](../etapa-0/04-azar-con-semilla/), y lo que el motor evita                                                             |
+| Patrón                       | En inglés                | Dónde aparece                                                                                                                                                                                                           |
+| ---------------------------- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| bucle de juego               | _game loop_              | [Tu primer cubo](../etapa-0/01-primer-cubo/), [El paso fijo](../etapa-0/03-paso-fijo/)                                                                                                                                  |
+| estrategia                   | _strategy_               | [Azar con semilla](../etapa-0/04-azar-con-semilla/)                                                                                                                                                                     |
+| presentación separada        | _separated presentation_ | [Simulación y dibujo](../etapa-0/05-simulacion-y-dibujo/), [Lo que se rompe, en capas](../etapa-3/02-lo-que-se-rompe/)                                                                                                  |
+| compuesto (grafo de escena)  | _composite_              | [Matrices y espacios](../etapa-0/07-matrices-y-espacios/)                                                                                                                                                               |
+| bandera de sucio             | _dirty flag_             | [Matrices y espacios](../etapa-0/07-matrices-y-espacios/)                                                                                                                                                               |
+| componente                   | _component_              | [Un motor de física](../etapa-1/00-motor-de-fisica/), [Capacidades como datos](../etapa-2/03-capacidades-como-datos/)                                                                                                   |
+| partición espacial           | _spatial partition_      | [Cómo se encuentra un choque](../etapa-1/01-como-se-encuentra-un-choque/)                                                                                                                                               |
+| estado                       | _state_                  | [Un personaje](../etapa-1/02-un-personaje/), [Un modo por paso](../etapa-2/02-un-modo-por-paso/)                                                                                                                        |
+| método de actualización      | _update method_          | [La cámara que sigue](../etapa-1/03-la-camara-que-sigue/)                                                                                                                                                               |
+| comando                      | _command_                | [Entradas como acciones](../etapa-1/04-entradas-como-acciones/)                                                                                                                                                         |
+| registro de eventos          | _event sourcing_         | [Repeticiones y fantasmas](../etapa-1/05-repeticiones/)                                                                                                                                                                 |
+| memento                      | _memento_                | [Instantáneas](../etapa-1/06-instantaneas/), [Guardar como datos](../etapa-3/04-guardar-como-datos/)                                                                                                                    |
+| cola de eventos              | _event queue_            | [Un servidor y un cliente](../etapa-1/07-servidor-y-cliente/), [Zonas que notan quién entra](../etapa-2/01-zonas-que-notan-quien-entra/), [El sonido sale de los eventos](../etapa-3/03-el-sonido-sale-de-los-eventos/) |
+| doble búfer                  | _double buffer_          | [Entidades con nombre y señales](../etapa-3/00-entidades-y-senales/)                                                                                                                                                    |
+| objeto único (un antipatrón) | _singleton_              | [Azar con semilla](../etapa-0/04-azar-con-semilla/), y lo que el motor evita                                                                                                                                            |
 
 ## Bucle de juego
 
@@ -41,6 +42,8 @@ En [Azar con semilla](../etapa-0/04-azar-con-semilla/), `main.ts` recibe una fun
 **El problema:** si las cuentas y el dibujo están mezclados, no se puede probar sin pantalla, ni correr en un servidor, ni tener dos vistas. **La forma:** el **modelo** (los datos y sus reglas) no sabe que existe una vista; la **vista** lee el modelo y nunca lo cambia. Es la idea de fondo del clásico modelo-vista-controlador.
 
 En [Simulación y dibujo](../etapa-0/05-simulacion-y-dibujo/), `simulation.ts` no importa nada y `view.ts` solo lee. En el motor es una regla que verifican el compilador y el revisor de código: `packages/core` no puede importar el dibujo ([decisión 0003](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/docs/decisions/0003-boundaries.md)).
+
+En [Lo que se rompe, en capas](../etapa-3/02-lo-que-se-rompe/), la simulación rompe el jarrón y deja tres pedazos grandes y un evento con una semilla; los fragmentos los hace el dibujo con esa semilla, en una física propia. En el motor, `breakApart` en la simulación y `debris.ts` en la presentación.
 
 ## Compuesto: el grafo de escena
 
@@ -100,6 +103,8 @@ En [Repeticiones y fantasmas](../etapa-1/05-repeticiones/), una repetición es e
 
 En [Instantáneas](../etapa-1/06-instantaneas/), los bytes de `takeSnapshot()`. En el motor, la instantánea de un mundo, con la de Rapier adentro ([`world.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/world.ts)). Es de _Design Patterns_ (1994).
 
+En [Guardar como datos](../etapa-3/04-guardar-como-datos/), el límite del patrón: una foto que solo el objeto sabe leer es de su versión, y la próxima no la entiende. Para volver atrás en una sesión, un memento; para una partida guardada, el progreso como datos que el juego define, con su versión ([decisión 0020](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/docs/decisions/0020-saved-games.md)).
+
 ## Cola de eventos
 
 **El problema:** el que avisa algo no debería tener que esperar al que lo atiende, ni saber quién es. **La forma:** los avisos se guardan en una fila y se atienden después, en orden.
@@ -107,6 +112,14 @@ En [Instantáneas](../etapa-1/06-instantaneas/), los bytes de `takeSnapshot()`. 
 En [Un servidor y un cliente](../etapa-1/07-servidor-y-cliente/), el cable entrega cada mensaje más tarde, en orden. En el motor, la red (`packages/net`) y también los eventos del mundo, que se guardan para dos lectores a dos ritmos: el juego, en cada paso, y la presentación, en cada cuadro ([`world.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/world.ts)). Nystrom, cap. ["Event Queue"](https://gameprogrammingpatterns.com/event-queue.html).
 
 En [Zonas que notan quién entra](../etapa-2/01-zonas-que-notan-quien-entra/), una zona no llama a nadie cuando una pelota entra: `sense` deja los eventos del paso en una lista, en un orden fijo, y las reglas los leen apenas termina el paso. En el motor son `sensorEntered` y `sensorLeft`, que van a `stepEvents` para las reglas del juego (`onStep`) y a la cola que la presentación vacía en cada cuadro con `takeEvents`.
+
+En [El sonido sale de los eventos](../etapa-3/03-el-sonido-sale-de-los-eventos/), cada paso y cada golpe deja un evento con su radio, y el dibujo los lee en cada cuadro: un anillo, un sonido, y si el guardia lo oyó. En el motor, el evento `sound`, que lee el audio (`audio.ts`), los subtítulos y, en la fase 4, el oído de los bots.
+
+## Doble búfer
+
+**El problema:** algo se calcula de a poco, y quien lo lee a la mitad ve un estado a medio hacer. **La forma:** dos copias: una que se lee, terminada, y otra que se escribe; al terminar, cambian de lugar. La placa de video lo hace con los cuadros: muestra uno mientras dibuja el siguiente.
+
+En [Entidades con nombre y señales](../etapa-3/00-entidades-y-senales/), la puerta lee la señal `open` del paso anterior mientras el paso calcula la nueva: lo que sigue a una señal nunca ve un valor a medio calcular, y de la causa al efecto hay siempre un paso. En el motor, los mecanismos y las lámparas leen el valor de sus señales al empezar el paso, y las señales se calculan al final ([`world.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/world.ts)). Nystrom, cap. ["Double Buffer"](https://gameprogrammingpatterns.com/double-buffer.html).
 
 ## Un antipatrón: el objeto único
 

@@ -210,3 +210,98 @@ test('capabilities as data: the demo takes the three stars; without climbing, th
   expect(Number(await value(f, 'stars'))).toBeLessThan(3);
   expect(await value(f, 'taken')).not.toContain('wall');
 });
+
+// ---------------------------------------------------------------- the lessons of stage 3 (closing phase 3)
+
+/** A checkbox of the example's panel, by the name of its row. */
+const box = (f: FrameLocator, name: string) =>
+  f
+    .locator('.lil-gui .controller', { has: f.locator('.name', { hasText: name }) })
+    .first()
+    .locator('input[type="checkbox"]');
+test('signals: from a cause to the door, one step; computed backwards, three', async ({ page }) => {
+  const f = await open(page, 'tutorial/etapa-3/00-entidades-y-senales/');
+  await box(f, 'crate a on its plate').check();
+  await box(f, 'crate b on its plate').check();
+  await expect.poll(() => value(f, 'cause to door (steps)'), { timeout: 15_000 }).toBe('1');
+  expect(await value(f, 'both')).toBe('1');
+  await box(f, 'computed backwards').check();
+  await box(f, 'crate b on its plate').uncheck();
+  await expect.poll(() => value(f, 'open'), { timeout: 15_000 }).toBe('0');
+  await box(f, 'crate b on its plate').check();
+  await expect.poll(() => value(f, 'cause to door (steps)'), { timeout: 15_000 }).toBe('3');
+});
+
+test('logical light: walking its loop, the character is seen in the light and not behind the pillar or in the dark', async ({
+  page,
+}) => {
+  const f = await open(page, 'tutorial/etapa-3/01-la-luz-como-logica/');
+  const seen = () => box(f, 'seen').isChecked();
+  await expect.poll(seen, { timeout: 30_000 }).toBe(true);
+  await expect.poll(seen, { timeout: 30_000 }).toBe(false);
+  // Still, the light is the ambient plus each lamp's part (the rows by their whole name: "lamp 2" is
+  // also in "lamp 2 on").
+  await box(f, 'walking').uncheck();
+  const exact = (name: string) =>
+    f
+      .locator('.lil-gui .controller', { has: f.locator('.name', { hasText: new RegExp(`^${name}$`) }) })
+      .first()
+      .locator('input')
+      .first()
+      .inputValue()
+      .then(Number);
+  await page.waitForTimeout(300);
+  const parts = await Promise.all(['lamp 1', 'lamp 2', 'lamp 3'].map(exact));
+  expect(await exact('light')).toBeCloseTo(0.08 + parts.reduce((a, b) => a + b, 0), 2);
+});
+
+test('breakables: a slow ball does not break the vase; a faster one does, with three pieces and fragments apart', async ({
+  page,
+}) => {
+  const f = await open(page, 'tutorial/etapa-3/02-lo-que-se-rompe/');
+  // At 4 m/s, about 38 J: less than its 60.
+  await click(f, 'throw');
+  await expect.poll(async () => Number(await value(f, 'last hit (J)')), { timeout: 15_000 }).toBeGreaterThan(30);
+  expect(Number(await value(f, 'last hit (J)'))).toBeLessThan(60);
+  expect(await box(f, 'broken').isChecked()).toBe(false);
+  await set(f, 'speed (m/s)', '7');
+  await click(f, 'throw');
+  await expect.poll(() => box(f, 'broken').isChecked(), { timeout: 15_000 }).toBe(true);
+  expect(await value(f, 'pieces (simulation)')).toBe('3');
+  expect(Number(await value(f, 'fragments (drawing)'))).toBeGreaterThan(0);
+});
+
+test('sound from events: steps on each floor, heard as far as it says; a dropped ball hits the metal', async ({ page }) => {
+  const f = await open(page, 'tutorial/etapa-3/03-el-sonido-sale-de-los-eventos/');
+  await expect.poll(() => value(f, 'last sound'), { timeout: 15_000 }).toMatch(/^step on (wood|stone|metal)$/);
+  const heard = { wood: '7', stone: '6', metal: '10' } as Record<string, string>;
+  await expect
+    .poll(
+      async () => {
+        const [, surface] = /^step on (\w+)$/.exec(await value(f, 'last sound')) ?? [];
+        return surface ? heard[surface] === (await value(f, 'heard (m)')) : false;
+      },
+      { timeout: 15_000 },
+    )
+    .toBe(true);
+  await click(f, 'drop a ball');
+  // (The steps write over the last sound right away: the hits are counted apart.)
+  await expect.poll(async () => Number(await value(f, 'hits')), { timeout: 15_000 }).toBeGreaterThan(0);
+  await expect.poll(async () => Number(await value(f, 'the guard heard')), { timeout: 30_000 }).toBeGreaterThan(0);
+});
+
+test('saving as data: the progress loads after the engine changes, the photo does not; an old save is brought forward', async ({
+  page,
+}) => {
+  const f = await open(page, 'tutorial/etapa-3/04-guardar-como-datos/');
+  await expect.poll(async () => Number(await value(f, 'gems')), { timeout: 30_000 }).toBeGreaterThan(0);
+  await click(f, 'save the progress');
+  await expect.poll(() => value(f, 'message')).toMatch(/^saved/);
+  await set(f, 'engine version', '23');
+  await click(f, 'load the photo');
+  await expect.poll(() => value(f, 'message')).toMatch(/cannot be read/);
+  await click(f, 'load the progress');
+  await expect.poll(() => value(f, 'message')).toMatch(/^loaded the progress/);
+  await click(f, 'load an old save (v1)');
+  await expect.poll(() => value(f, 'message')).toMatch(/version 1 save, brought forward/);
+});

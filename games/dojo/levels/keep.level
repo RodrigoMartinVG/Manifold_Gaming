@@ -1,0 +1,64 @@
+# Manifold level 7
+# The keep (closing phase 3): the phase's demonstration, from start to end. A button opens a door (3c);
+# past it, a lift goes up to a dark hall (3c, 3d); there, a lamp on a post lights a plate before the last
+# door, and an eye at its end sees whoever stands in that light (3d). The door opens only for someone on
+# the plate whom the eye does not see: a ball thrown at the lamp breaks it (3e), its light goes out, the
+# eye loses you, and the door opens for good. Past it, the goal.
+title The keep
+spawn 0 1 6
+facing 0 0 -1
+ambient 0.08
+
+# The start, to the foot of the ledge (z = −5), and two lamps that never go out, by the door and the lift.
+box 0 -0.5 1.5    5 0.5 6.5   color #6f6a62  name start
+lamp 0 3 4        8 1         name lamp_start
+lamp -2.5 3 -3    6 1         name lamp_lift
+
+# A wall across the start, with its door (hinged at its left edge, it turns away from the start while
+# `gate` is on) and a button by it: each press of `use` (E) in front of it flips the door.
+box -2.8 1.1 0    2.2 1.1 0.1   color #5a544c
+box 2.8 1.1 0     2.2 1.1 0.1   color #5a544c
+box 0 1.1 0       0.6 1.1 0.06  door -0.6 0 0 y 90 1 gate  color #8a6a42  model dojo.door  name door
+box 1.6 1.2 0.13  0.12 0.12 0.03  color #c04040
+sensor button     1.6 0.9 0.7   0.5 0.9 0.5  name button
+signal pressed  used button
+signal gate     toggle pressed
+
+# The lift, by the ledge (4.3 m high): standing on it sends it up, and it stays up until a plate by its
+# foot calls it down.
+box 0 0.15 -4     1 0.15 1      lift 0 4 0 3 lift_up  color #7a5a3a  name lift
+box -2.6 0.025 -3.4  0.6 0.025 0.6  color #a04040
+sensor plate  0 0.8 -4       0.9 0.5 0.9  name on_lift
+sensor plate  -2.6 0.7 -3.4  0.6 0.7 0.6  name call_down
+signal riding   zone on_lift
+signal sent     zone call_down
+signal lift_up  latch riding sent
+
+# The ledge: the dark hall, to the last wall (z = −19) and past it, the goal's end.
+box 0 2.15 -14.5  4 2.15 9.5    color #6f6a62  name ledge
+sensor checkpoint  0 5.1 -7     2 0.8 1
+
+# The lamp on its post, at chest height, lighting the plate before the last door: it breaks (a ball).
+box 2 4.96 -15    0.06 0.66 0.06  color #4a4440
+lamp 2 5.8 -15    5 1           breaks 0.3  model dojo.lamp  name lamp
+
+# The eye, by the last wall, looking down the hall (+Z): 14 m, 70° across, what looks lit 0.35 or more.
+watcher 0 6 -18.4  14 70 0.35  rotate y 180  name eye
+
+# The last wall and its door, and the plate before it: the door opens (and stays open) when someone is
+# on the plate and the eye does not see anyone.
+box -2.3 5.4 -19  1.7 1.1 0.1   color #5a544c
+box 2.3 5.4 -19   1.7 1.1 0.1   color #5a544c
+box 0 5.4 -19     0.6 1.1 0.06  door -0.6 0 0 y 90 1 opened  color #8a6a42  model dojo.door  name last_door
+box 0 4.325 -16.5  0.6 0.025 0.6  color #a04040
+sensor plate  0 5 -16.5      0.6 0.7 0.6  name last_plate
+signal seen_me   seen eye
+signal unseen    not seen_me
+signal on_plate  zone last_plate
+signal ready     all on_plate unseen
+signal never
+signal opened    latch ready never
+
+# Past it, the goal; and the void under it all.
+sensor goal  0 5.1 -22     1.5 0.8 1.5
+sensor fall  0 -6 -8       30 3 30

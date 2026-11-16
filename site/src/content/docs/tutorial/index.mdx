@@ -39,7 +39,7 @@ Saltearse los recuadros no te deja afuera de nada de lo que sigue. Cuando una le
 
 ## Qué vas a aprender
 
-El tutorial sigue las etapas del motor ([el plan completo](../proyecto/)). Cada etapa trae sus lecciones cuando el motor llega a ella. Hoy están las etapas 0, 1 y 2.
+El tutorial sigue las etapas del motor ([el plan completo](../proyecto/)). Cada etapa trae sus lecciones cuando el motor llega a ella. Hoy están las etapas 0, 1, 2 y 3.
 
 El orden va de abajo hacia arriba: primero los cimientos (dibujar, el tiempo, el azar), después la física, y encima lo que se juega. Un personaje que se maneja aparece en la etapa 1, y los bots, en la 4. Los ejemplos son interactivos desde la primera lección; a partir de la etapa 1, además, se juegan.
 
@@ -48,8 +48,8 @@ El orden va de abajo hacia arriba: primero los cimientos (dibujar, el tiempo, el
 | **0. Cimientos**                           | Cómo se dibuja en 3D. La escena, la cámara y el bucle. Orientar las cosas sin que se traben. Por qué la física avanza de a pasos fijos. Un azar que se puede repetir. Separar la simulación del dibujo. Números que no son exactos. Matrices y los espacios de un punto. | **Disponible** |
 | **1. Física y un personaje**               | Cuerpos que chocan, con un motor de física, y cómo se encuentra un choque. **Un personaje que se maneja** con el teclado, el mouse o un joystick, y una cámara que lo sigue. De la tecla a la acción. Repetir una partida y comprobar que dio igual.                     | **Disponible** |
 | **2. Capacidades**                         | Un nivel escrito como texto. Zonas que notan quién entra. Un modo de moverse por paso, y lo que se suma. Trepar, planear, un segundo salto: lo que un personaje sabe hacer, como datos. Plataformas que llevan.                                                          | **Disponible** |
-| **3. Un mundo que responde**               | Mecanismos (puertas, ascensores, botones), cosas que se rompen, luces que se apagan.                                                                                                                                                                                     | La próxima     |
-| **4. Combate y bots**                      | Armas, y **bots**: personajes que maneja la computadora. Patrullan, ven y oyen, persiguen, y usan el mundo; por ejemplo, un guardia que llama al ascensor.                                                                                                               | Más adelante   |
+| **3. Un mundo que responde**               | Entidades con nombre y señales que llevan una causa a su efecto (puertas, ascensores, botones). La luz como lógica, y un vigía que ve por ella. Lo que se rompe, en capas. El sonido que sale de los eventos. Guardar la partida como datos.                             | **Disponible** |
+| **4. Combate y bots**                      | Armas, y **bots**: personajes que maneja la computadora. Patrullan, ven y oyen, persiguen, y usan el mundo; por ejemplo, un guardia que llama al ascensor.                                                                                                               | La próxima     |
 | **5. Juegos**                              | Tres juegos completos sobre el motor, con historia, niveles, gráficos y sonido: uno de plataformas, una aventura de acción y un shooter. Se juegan en este sitio.                                                                                                        | Más adelante   |
 | **6. Red y niveles**                       | Jugar con otros por la red, y un editor para armar niveles.                                                                                                                                                                                                              | Más adelante   |
 | **7. Mundos extraños**                     | Gravedades que cambian de lugar en lugar, como la de un planeta. Caminar por paredes y techos. Espacios que se pegan consigo mismos. Los juegos de la segunda tanda.                                                                                                     | Más adelante   |
@@ -142,3 +142,11 @@ Este es el programa más chico posible: escribe en la consola con `console.log`,
 2. [Un modo por paso, y lo que se suma](etapa-2/02-un-modo-por-paso/): caminar, en el aire, planear o trepar, uno solo por paso y elegido en un solo lugar; y lo que vale en todos (la gravedad, el viento), sumado después.
 3. [Capacidades como datos](etapa-2/03-capacidades-como-datos/): trepar, planear y un segundo salto, que se prenden y se apagan en vivo; lo que un personaje sabe hacer, como datos y no como clases.
 4. [Plataformas que llevan](etapa-2/04-plataformas-que-llevan/): un transbordador y un carrusel con el personaje encima; el lugar como función del paso, y por qué el controlador tiene que ver la plataforma quieta.
+
+## Etapa 3: un mundo que responde
+
+0. [Entidades con nombre y señales](etapa-3/00-entidades-y-senales/): un botón abre una puerta; una señal es un número con nombre, calculado una vez por paso en el orden escrito, y de la causa al efecto hay siempre un paso.
+1. [La luz como lógica](etapa-3/01-la-luz-como-logica/): lámparas, rayos que una columna corta, niebla que deja pasar una parte, y un vigía que ve lo que está bastante iluminado; la luz que decide, de la simulación.
+2. [Lo que se rompe, en capas](etapa-3/02-lo-que-se-rompe/): un golpe por su energía, unos pocos pedazos en la simulación, y las astillas en el dibujo, hechas de una semilla.
+3. [El sonido sale de los eventos](etapa-3/03-el-sonido-sale-de-los-eventos/): cada sonido, un evento con el radio en el que se oye, para los guardias; y en el navegador, sintetizado sin archivos.
+4. [Guardar como datos](etapa-3/04-guardar-como-datos/): una partida guardada es el progreso con su versión, no una foto del mundo; cargar es construir de nuevo, y lo viejo se trae hacia adelante.

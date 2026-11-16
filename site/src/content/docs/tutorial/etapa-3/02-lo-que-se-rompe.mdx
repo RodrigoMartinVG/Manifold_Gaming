@@ -1,0 +1,121 @@
+---
+title: Lo que se rompe, en capas
+description: 'Una lámpara rota cambia lo que ve un guardia, así que romperse es de la simulación. Pero las astillas que vuelan no: son del dibujo. Un golpe por su energía, unos pocos pedazos en la simulación, y muchos fragmentos en una física aparte, hechos de una semilla.'
+sidebar:
+  order: 2
+---
+
+import LiveCode from '../../../../components/LiveCode.astro';
+
+Cuando algo se rompe en un juego pasan dos cosas distintas. Una **cambia la partida**: la lámpara rota ya no ilumina, el guardia te pierde, la puerta de vidrio deja pasar. La otra **solo se ve**: las astillas que vuelan, rebotan y desaparecen. Si las dos fueran de la simulación, cada copia de la partida tendría que mover cien astillas igual, bit por bit, y guardarlas en cada instantánea, para nada: ninguna regla las lee.
+
+Por eso se rompe **en capas** (_layers_). En la simulación: si está roto, el golpe que lo rompió, y unos pocos pedazos grandes, los que pueden importar. En el dibujo: los fragmentos, en una física aparte que nadie compara, hechos de una **semilla** que la simulación da con el evento. Todos ven lo mismo, y la simulación ni se entera.
+
+<LiveCode lesson="stage-3/02-breakables" autorun />
+
+Un jarrón azul sobre un poste. _throw_ (tirar) le arroja una pelota de 4,2 kg desde 2 m, apuntada, a la velocidad de _speed_. El panel dice la energía del último golpe, si se rompió, cuántos pedazos tiene la simulación y cuántos fragmentos el dibujo, y la huella de la simulación.
+
+**Qué probar:**
+
+1. **A 4 m/s** (como viene), tirale: el golpe trae unos 38 J, menos que el umbral (_threshold_, 60 J), y el jarrón aguanta.
+2. **A 6 m/s**, otra vez: unos 78 J, y se rompe. Tres pedazos grandes en la simulación, veinticuatro fragmentos en el dibujo, que duran 2,5 s.
+3. **Apagá los fragmentos** (_draw fragments_), traé otro jarrón (_a new vase_) y rompelo igual: la huella de la simulación sigue el mismo camino que con fragmentos. No están en ella.
+4. **Bajá el umbral** a 10 J: ahora lo rompe cualquier tiro.
+
+## El código, paso a paso
+
+- **Dos físicas** (`sim` y `look`): la de la simulación, con el piso, el poste, el jarrón, las pelotas y los pedazos grandes; la del dibujo, solo con el piso y los fragmentos.
+- **La energía de un golpe es la de lo que llegó** (`step`): la velocidad de la pelota **antes** del paso en que empieza a tocar (`before`), porque el choque ya la frenó después. `½ m v²`.
+- **Romperse es un cambio de la simulación** (`breakVase`): el jarrón entero desaparece y aparecen tres pedazos grandes, que la física mueve. Y una semilla, del azar de la simulación.
+- **Los fragmentos salen de esa semilla** (`fragmentsFrom`): su lugar, su tamaño y su velocidad, en la física del dibujo. La misma semilla, los mismos fragmentos, en cualquier pantalla.
+- **La huella suma lo que la simulación mueve** (`hash`): el jarrón, las pelotas y los pedazos. Los fragmentos no están.
+
+## Lo importante
+
+- **Romperse cambia la partida: es de la simulación.** Si está roto, y unos pocos pedazos grandes.
+- **Las astillas solo se ven: son del dibujo**, en una física aparte, que nadie compara ni guarda.
+- **Un golpe rompe por su energía**, la de lo que llegó: `½ m v²` con la velocidad de antes del choque.
+- **Una semilla une las capas**: la simulación la da con el evento, y el dibujo hace con ella los mismos fragmentos para todos.
+
+## Más a fondo
+
+<details>
+<summary>Por qué la velocidad de antes del paso</summary>
+
+El paso de la física resuelve el choque: cuando termina, la pelota ya rebotó, o se frenó contra el jarrón. Si la energía se midiera con la velocidad de después, un golpe fortísimo podría medir casi nada, porque la pelota quedó quieta.
+
+Lo que el jarrón recibe es lo que la pelota traía: su velocidad al empezar el paso en que se tocaron. Por eso `step` la anota antes de `sim.step()`, y después pregunta quién toca a quién (`contactPair`). En el motor, la fase de lo que se rompe va justo después de la de la física, y antes de leer las velocidades que dejó el choque ([etapa 3e](../../../bitacora/etapa-3e/)).
+
+Una medida más fina usaría la energía que **pierde** el choque, o el impulso que la física aplicó (que Rapier puede dar en sus eventos de contacto). La de llegada es simple, la misma en todas las copias, y alcanza para que una pelota lenta no rompa y una rápida sí.
+
+</details>
+
+<details>
+<summary>Una semilla en el evento</summary>
+
+Los fragmentos tienen que ser los mismos para todos los que miran: si en tu pantalla vuelan hacia la izquierda y en la de otro hacia la derecha, no pasa nada grave, pero una repetición vista dos veces se vería distinta. La solución es que el evento de la rotura traiga una **semilla**, tomada del azar de la simulación (que es el mismo en todas las copias), y que el dibujo arme sus fragmentos con un generador nacido de ella.
+
+Así el dibujo es **una función del evento**: el mismo evento, los mismos fragmentos, en cualquier pantalla y en cualquier momento. Y la simulación solo pagó un número.
+
+</details>
+
+<details>
+<summary>Cuántos pedazos, y por qué pocos</summary>
+
+Cada cuerpo que la física de la simulación mueve cuesta en cada paso, en cada copia, y en cada instantánea. Tres pedazos que se pueden empujar, que tapan una vista o que traban una puerta valen la pena; cien astillas, no. En el motor son uno cada 20 cm del lado más largo de lo que se rompe, entre 2 y 6. Si un día los escombros tienen que frenar balas o pasos (fase 4), la idea es la misma: **una** forma simple para la pila entera, la misma para todos, y el detalle, en el dibujo.
+
+</details>
+
+:::tip[Patrón: presentación separada]
+La simulación no sabe que hay fragmentos: deja un evento con una semilla, y el dibujo hace con él lo que quiere, en su propia física. Es el patrón **presentación separada** (_separated presentation_): lo que pasa, por un lado, y cómo se ve, por otro. [Todos los patrones del tutorial](../../patrones/#presentación-separada).
+:::
+
+## En los motores
+
+- **Unreal:** _Chaos Destruction_ fractura una malla de antemano en una "colección geométrica" (_Geometry Collection_), y la rompe por niveles: primero en pedazos grandes, después en chicos, según el daño.
+- **Unity:** sin un sistema propio; lo común es cambiar el objeto entero por uno ya partido, con sus pedazos como cuerpos.
+- **Red Faction: Guerrilla y Battlefield:** destrucción que cambia el mapa; en una partida en red, lo que importa para jugar va por la red, y el polvo y las astillas no.
+- **En los libros:** Ian Millington, _Game Physics Engine Development_, cap. sobre los cuerpos que se rompen. Jason Gregory, _Game Engine Architecture_, sobre la física de los efectos (_cosmetic physics_) separada de la de la jugabilidad.
+
+**Dónde Manifold eligió otra cosa.** **Por la energía del golpe, sin eventos de contacto de la física:** la energía sale de las velocidades de antes y de después, que están en el mundo, así una instantánea y una copia restaurada rompen igual. **Los pedazos grandes, en el hash; los fragmentos, en una física de la presentación:** con las cajas fijas del nivel para rebotar, que ningún rayo de la jugabilidad ve. **Una lámpara rota queda, apagada:** lo que se rompe y lo que deja son datos del componente `breakable` ([etapa 3e](../../../bitacora/etapa-3e/)).
+
+## En Manifold
+
+- [`packages/core/src/world.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/world.ts): la fase `breaks` (la energía con las velocidades de antes), `shatter` y `breakApart` (los pedazos grandes, y el evento `broke` con su semilla).
+- [`packages/presentation/src/debris.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/presentation/src/debris.ts): los fragmentos, en una física propia, hechos de la semilla.
+- La [sala de la vigilancia](../../../jugar/dojo/watch/): una pelota (F) rompe la lámpara del poste, y el ojo te pierde. Y [la demostración de la fase](../../../jugar/dojo/keep/), donde romperla abre la última puerta.
+
+## Para practicar
+
+**1. Un vidrio frágil.** Que el jarrón se rompa con la mitad de la energía si lo golpean de costado.
+
+<details>
+<summary>Una pista</summary>
+
+La dirección de la pelota antes del paso está en `before`. Compará cuánto va de costado (`v.x`) contra cuánto va de frente (`v.z`), y bajá el umbral cuando gane el costado.
+
+</details>
+
+**2. Fragmentos según el golpe.** Que un golpe más fuerte haga más fragmentos, y más rápidos.
+
+<details>
+<summary>Una pista</summary>
+
+Pasale a `fragmentsFrom` la energía junto con la semilla: la cantidad y la velocidad pueden crecer con ella. Siguen siendo una función del evento: la energía también viene en él.
+
+</details>
+
+**3. Los pedazos también se rompen.** Que un pedazo grande golpeado con mucha energía se parta en dos.
+
+<details>
+<summary>Una pista</summary>
+
+Es lo mismo que el jarrón, un nivel más abajo: cada pedazo con su umbral, y en `step`, sus golpes. Cuidado con cuántos cuerpos sumás a la simulación: ¿cuántos niveles valen la pena?
+
+</details>
+
+## Para saber más
+
+- [La destrucción de Unreal (Chaos Destruction)](https://dev.epicgames.com/documentation/en-us/unreal-engine/chaos-destruction-in-unreal-engine) (en inglés).
+- [Game Programming Patterns](https://gameprogrammingpatterns.com/), de Robert Nystrom (en inglés): la separación entre lo que pasa y cómo se muestra recorre todo el libro.
+- La Bitácora de la [etapa 3e](../../../bitacora/etapa-3e/): cómo se hizo en el motor, y la demostración de la fase.

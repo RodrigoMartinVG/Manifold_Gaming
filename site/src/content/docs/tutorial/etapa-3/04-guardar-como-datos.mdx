@@ -1,0 +1,118 @@
+---
+title: Guardar como datos
+description: 'Una partida guardada no es una foto del mundo, que la próxima versión del motor no sabría leer, sino el progreso del jugador como datos con su versión. Cargar es construir el mundo de nuevo y ponerle el progreso; una partida vieja se trae hacia adelante, versión por versión.'
+sidebar:
+  order: 4
+---
+
+import LiveCode from '../../../../components/LiveCode.astro';
+
+La manera más directa de guardar una partida es sacarle una **foto** al mundo: todo, tal cual está, cada objeto con cada número. El motor ya sabe hacerlo: es una [instantánea](../../etapa-1/06-instantaneas/). Y para volver a un momento de la misma sesión, es perfecta. Para guardar una partida, no: la foto está escrita en el idioma de la versión del motor que la sacó. La próxima actualización cambia un componente, y todas las partidas guardadas quedan ilegibles.
+
+Lo que el jugador hizo es mucho menos que el mundo: dónde está, qué lleva, qué ya tomó. El resto (dónde están las paredes, dónde empezaban las gemas) sale de lo mismo que lo construyó la primera vez: el nivel, o una **semilla**. Por eso una partida se guarda como **el progreso**, datos que el juego define, con **su propia versión**. Cargar es construir el mundo de nuevo y ponerle el progreso.
+
+<LiveCode lesson="stage-3/04-saving" autorun />
+
+Un tablero con seis gemas, puestas por una semilla, y un personaje que lo recorre fila por fila tomando las que pisa. Los botones guardan la partida, la cargan, y prueban dos cosas más: cargar la foto del mundo con otra versión del motor, y cargar una partida de la versión 1. Abajo, lo que se guardó o se cargó, en JSON.
+
+**Qué probar:**
+
+1. **Guardá** (_save the progress_) después de que tome dos o tres gemas. Mirá lo que se guardó: la semilla, dónde está (`at`) y las celdas de donde tomó algo (`taken`). Nada más.
+2. **Dejalo caminar y cargá** (_load the progress_): el tablero se construye de nuevo con la semilla, y las gemas que había tomado no están.
+3. **Cambiá la versión del motor** (_engine version_) y probá las dos cargas: la foto (_load the photo_) ya no se puede leer; el progreso, sí.
+4. **Cargá una partida vieja** (_load an old save (v1)_): la versión 1 no guardaba qué gemas había tomado, solo cuántas. Se trae a la versión 2, y las gemas vuelven todas: lo que la versión vieja no sabía decir, se pierde.
+
+## El código, paso a paso
+
+- **El mundo sale de una semilla** (`build`): dónde están las gemas. Lo mismo, cada vez.
+- **El progreso es lo que el jugador cambió** (`Progress`, en `saving.ts`): la semilla, dónde está y qué tomó. Versión 2.
+- **Guardar es escribir el progreso, con su versión** (`save the progress`): `{ version: 2, progress: {…} }`. La foto, al lado, guarda todo y la versión del motor.
+- **Cargar es construir y aplicar** (`load the progress`): el tablero desde la semilla, el personaje donde estaba, y las gemas tomadas, afuera.
+- **Una partida vieja se trae de a una versión** (`load`): para cada versión que hubo, una función (`MIGRATIONS[1]`) la lleva a la siguiente, hasta la de ahora. Una más nueva que el juego, se rechaza.
+
+## Lo importante
+
+- **Una foto del mundo es de la versión del motor que la sacó.** Sirve para volver atrás en una sesión, no para guardar una partida.
+- **Una partida guardada es el progreso**: lo que el jugador cambió, como datos que el juego define, con su versión.
+- **Cargar es construir de nuevo**: desde el nivel o la semilla, y ponerle el progreso.
+- **Lo viejo se trae hacia adelante, de a una versión**, con una función pura por cada una, probada con una partida vieja guardada.
+
+## Más a fondo
+
+<details>
+<summary>Migrar en cadena, y por qué de a una</summary>
+
+Con tres versiones, una partida de la versión 1 se podría llevar directo a la 3 con una función especial. Con diez versiones harían falta funciones para cada par: 45. **En cadena** alcanza con una por versión: la 1 a la 2, la 2 a la 3… y una partida de la versión 1 pasa por todas. Cada función se escribe una vez, cuando cambia lo que se guarda, y nunca más se toca: la de la 1 a la 2 sigue siendo cierta aunque llegue la 7.
+
+Es lo que hacen las bases de datos con sus migraciones (cada una con su número, aplicadas en orden), y lo que el motor hace con las partidas ([decisión 0020](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/docs/decisions/0020-saved-games.md)). Cada migración se prueba con un archivo de esa versión vieja guardado en el repositorio.
+
+</details>
+
+<details>
+<summary>Una partida guardada es una receta</summary>
+
+Cargar el progreso tiene dos partes: los valores con los que nace el mundo (la semilla, la profundidad), y lo que el jugador hizo, puesto en él. En el motor, eso es literalmente una [receta](../../etapa-2/00-un-nivel-como-texto/) de la consola: los valores de arranque, `wait 1` (un paso, para que el mundo exista), y `progress 1 {…}`, un cambio del mundo como cualquier otro. Como entra por el mismo camino que todo cambio, queda en la historia de la sesión, una repetición lo reproduce, y en una partida en red le llega a todos.
+
+</details>
+
+<details>
+<summary>Lo que no se guarda vuelve como estaba</summary>
+
+Si empujaste una caja a otro lado y guardaste, al cargar la caja está donde empezó: el progreso no dice nada de ella. Es una decisión del juego, no un descuido: guardar menos hace las partidas chicas, legibles y migrables, y casi nadie se acuerda de dónde dejó una caja. Si importara (un puzzle a medio resolver), el juego la agrega a su progreso, sube la versión y escribe la migración: "en las partidas viejas, la caja está donde empieza".
+
+</details>
+
+:::tip[Patrón: memento]
+La foto del mundo es un **memento** (_memento_): el objeto entrega algo que solo él sabe leer, y sabe volver a ello. Sirve, dentro de una versión. El progreso es lo contrario: datos que cualquiera puede leer, porque el juego los definió para durar. [Todos los patrones del tutorial](../../patrones/#memento).
+:::
+
+## En los motores
+
+- **Unity:** sin un sistema de partidas; lo común es serializar a JSON una clase propia con lo que se quiere guardar, con un número de versión.
+- **Unreal:** `USaveGame`, un objeto con los campos que el juego elige, que el motor serializa; las versiones las maneja el juego (con `FCustomVersion`, por ejemplo).
+- **Godot:** `ResourceSaver` y JSON; la documentación recomienda guardar diccionarios con lo necesario, no la escena entera.
+- **Los emuladores:** sus _savestates_ son fotos de la máquina entera, y muchas veces no sirven entre versiones del emulador. Las partidas del juego original (la batería del cartucho) son el progreso, y duran décadas.
+- **En los libros:** Robert Nystrom, _Game Programming Patterns_, el patrón "Memento" (en el de _Design Patterns_, 1994). Martin Kleppmann, _Designing Data-Intensive Applications_, cap. 4 ("Encoding and Evolution"): datos que tienen que leerse con versiones nuevas y viejas.
+
+**Dónde Manifold eligió otra cosa.** **Nunca una instantánea:** la decisión [0012](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/docs/decisions/0012-the-games.md) decía que las partidas irían "sobre las instantáneas del mundo"; la [0020](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/docs/decisions/0020-saved-games.md) lo corrigió al construirlo. **Un sobre igual para todos los juegos**, con la versión del motor solo dicha. **Cargar es una receta**, que entra como un cambio del mundo: en la historia, en las repeticiones, en la red.
+
+## En Manifold
+
+- [`packages/core/src/saved.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/saved.ts): el sobre (`saveGame`), leer y migrar (`readSave`), la partida como receta (`saveRecipe`), y el cambio del mundo `progress`.
+- [`games/adventure/src/rules.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/games/adventure/src/rules.ts): el progreso de la aventura, versión 2, y su migración desde la 1. La partida de la versión 1, guardada como archivo: [`games/adventure/saves/version-1.json`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/games/adventure/saves/version-1.json).
+- [La aventura](../../../jugar/aventura/): en el menú de pausa (<kbd>Esc</kbd>), guardar y cargar la partida. La Bitácora de la [etapa 3k](../../../bitacora/etapa-3k/) cuenta cómo se hizo.
+
+## Para practicar
+
+**1. Una versión 3.** Que el progreso guarde también hacia dónde mira el personaje. Subí la versión y escribí la migración.
+
+<details>
+<summary>Una pista</summary>
+
+En `saving.ts`: agregá el campo a `Progress`, cambiá `VERSION` a 3, y agregá `MIGRATIONS[2]`, que a una partida de la versión 2 le ponga una dirección por defecto. La de la 1 a la 2 no se toca: una partida de la versión 1 pasa por las dos.
+
+</details>
+
+**2. Una partida del futuro.** Probá cargar `{ version: 9, progress: {} }`. ¿Qué dice? ¿Por qué no conviene intentar leerla igual?
+
+<details>
+<summary>Una pista</summary>
+
+`load` la rechaza: el juego no sabe qué significa la versión 9. Leerla igual podría poner al personaje en cualquier lado o perder lo que el jugador hizo; mejor decirlo, y que una versión más nueva del juego la cargue.
+
+</details>
+
+**3. Guardar en el navegador.** Que la partida quede guardada aunque cierres la página.
+
+<details>
+<summary>Una pista</summary>
+
+`localStorage.setItem('partida', JSON.stringify(saved))` al guardar, y `JSON.parse(localStorage.getItem('partida'))` al cargar. Envolvé los dos en un `try`: en una ventana privada puede no haber dónde guardar.
+
+</details>
+
+## Para saber más
+
+- Martin Kleppmann, _Designing Data-Intensive Applications_ (2017), cap. 4: codificar datos para que versiones nuevas y viejas se entiendan (en inglés).
+- [Game Programming Patterns](https://gameprogrammingpatterns.com/), de Robert Nystrom: los patrones del libro, con el memento entre los de _Design Patterns_ (en inglés).
+- La [decisión 0020](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/docs/decisions/0020-saved-games.md) de Manifold: el formato de las partidas guardadas y cómo se trae una vieja.
