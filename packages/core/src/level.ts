@@ -1,6 +1,6 @@
 import { quat, sinCosDegrees, vec3, type Quat, type Vec3 } from '@manifold/common';
 import { MATERIAL_NAME, MATERIALS, materialProblem, type Material } from './materials';
-import { mapParts, type LevelMap } from './map';
+import { FLOOR_THICKNESS, mapParts, type LevelMap } from './map';
 import type { CollisionGroups, Components, SignalOp } from './types';
 import { copyData, ENTITY_NAME, type World } from './world';
 
@@ -750,11 +750,27 @@ export function levelToText(level: Level): string {
  * data (`source`), so the world can be written back as a level (`levelOfWorld`), with what the console
  * added, moved or took away since.
  */
-export type LevelPiece = { box: LevelBox } | { sensor: LevelSensor } | { lamp: LevelLamp } | { watcher: LevelWatcher };
+export type LevelPiece =
+  | { box: LevelBox }
+  | { sensor: LevelSensor }
+  | { lamp: LevelLamp }
+  | { watcher: LevelWatcher }
+  /** A map's floor (stage 4a), one body: written back as a map of floor alone (its walls and zones are their own lines). */
+  | { map: LevelMap };
 
 /** A map's color for its walls and its floor. */
 const MAP_WALL = 0x6f6a62;
 const MAP_FLOOR = 0x57534c;
+
+/**
+ * A MAP'S FLOOR, AS ONE BODY (stage 4a): the map with every cell that is not a pit made floor, and no zones.
+ * Built, it is one entity whose body is a compound of the floor's slabs, so what rolls across where two
+ * slabs meet does not hop (measured after the tutorial: a ball at 6 m/s, 29 cm over slabs of 1 m; Rapier
+ * mends seams within one collider). Written back, it is this map, which builds the same floor again.
+ */
+export function floorOnly(m: LevelMap): LevelMap {
+  return { origin: [...m.origin], cell: m.cell, height: m.height, legend: {}, rows: m.rows.map((r) => r.replace(/[^ ]/g, '.')) };
+}
 
 /** What a map's parts are as a level's lines: its walls and floor, boxes; its zones, zones. */
 export function mapPieces(m: LevelMap): LevelPiece[] {
@@ -794,9 +810,14 @@ export function mapPieces(m: LevelMap): LevelPiece[] {
 export function buildLevel(world: World, level: Level) {
   for (const [name, m] of Object.entries(level.materials)) world.addMaterial(name, m);
   world.origin = { title: level.title, spawn: [...level.spawn], facing: [...level.facing], ambient: level.ambient };
-  const fromMaps = level.maps.flatMap(mapPieces);
+  // A map's walls and zones are pieces, each its own line; its floor, one body (stage 4a).
+  const fromMaps = level.maps.flatMap((m) => {
+    const parts = mapParts(m);
+    return mapPieces(m).filter((_, i) => parts[i]!.kind !== 'floor');
+  });
   for (const b of level.boxes) buildPiece(world, { box: b });
   for (const p of fromMaps) if ('box' in p) buildPiece(world, p);
+  for (const m of level.maps) if (m.rows.some((r) => r.trim() !== '')) buildPiece(world, { map: floorOnly(m) });
   for (const sensor of level.sensors) buildPiece(world, { sensor });
   for (const p of fromMaps) if ('sensor' in p) buildPiece(world, p);
   if (level.ambient !== null) world.ambient = level.ambient;
@@ -865,6 +886,26 @@ export function buildPiece(world: World, piece: LevelPiece) {
             },
           }
         : {}),
+      source,
+    });
+  }
+  // A map's floor (stage 4a): one fixed body, a compound of its slabs, around the middle of what they cover.
+  if ('map' in piece) {
+    const slabs = mapParts(piece.map).filter((p) => p.kind === 'floor');
+    const lo = [0, 1, 2].map((k) => Math.min(...slabs.map((p) => p.center[k]! - p.half[k]!)));
+    const hi = [0, 1, 2].map((k) => Math.max(...slabs.map((p) => p.center[k]! + p.half[k]!)));
+    const center: Vec3 = [(lo[0]! + hi[0]!) / 2, (lo[1]! + hi[1]!) / 2, (lo[2]! + hi[2]!) / 2];
+    const parts = slabs.map((p) => ({ offset: vec3.sub(p.center, center), halfExtents: [...p.half] as Vec3 }));
+    return world.createEntity({
+      transform: { position: center, rotation: quat.identity() },
+      // (Its slabs cover whole cells of the map: the physics makes them a grid, with no seams.)
+      body: { type: 'fixed', shape: { kind: 'compound', parts, cell: [piece.map.cell, FLOOR_THICKNESS, piece.map.cell] } },
+      appearance: {
+        shape: 'boxes',
+        size: [hi[0]! - lo[0]!, hi[1]! - lo[1]!, hi[2]! - lo[2]!],
+        color: MAP_FLOOR,
+        parts: parts.map((p) => ({ offset: [...p.offset], size: vec3.scale(p.halfExtents, 2) })),
+      },
       source,
     });
   }

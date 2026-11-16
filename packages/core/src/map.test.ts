@@ -1,5 +1,6 @@
 import { beforeAll, describe, expect, test } from 'vitest';
 import { quat } from '@manifold/common';
+import { buildLevel, floorOnly, levelFromText } from './level';
 import { mapParts, type LevelMap } from './map';
 import { initPhysics } from './physics';
 import { World } from './world';
@@ -69,5 +70,75 @@ describe('a level drawn as text (stage 3j)', () => {
     }
     expect(top).toBeLessThan(0.002);
     world.dispose();
+  });
+
+  test('an irregular floor (stage 4a): its slabs are one body, and what rolls or slides across their seams does not hop or trip', () => {
+    // A hall with two pits: its floor is three slabs (pits break the rectangles), and the ball's way
+    // along the middle row crosses two seams, at x = 4 and x = 14.
+    const rows = ['  #####  ', '###...###', '#.......#', '###...###', '  #####  '];
+    expect(mapParts(map(rows)).filter((p) => p.kind === 'floor')).toHaveLength(3);
+    // A ball rolling at 6 m/s, or a box sliding at 11 m/s, along the middle row: how high it went, and
+    // whether it got across (a box that trips tumbles and stops short).
+    const across = (world: World, what: 'ball' | 'box') => {
+      const thing = world.createEntity({
+        transform: { position: [3, 0.25, 5], rotation: quat.identity() },
+        body:
+          what === 'ball'
+            ? { type: 'dynamic', shape: { kind: 'ball', radius: 0.25 }, linearVelocity: [6, 0, 0], angularVelocity: [0, 0, -24] }
+            : {
+                type: 'dynamic',
+                shape: { kind: 'box', halfExtents: [0.25, 0.25, 0.25] },
+                linearVelocity: [11, 0, 0],
+                friction: 0.05,
+              },
+      });
+      // (Across: past the second seam, at x = 14, with all of it.)
+      let top = 0;
+      for (let i = 0; i < 600 && thing.transform!.position[0] < 14.5; i++) {
+        world.step();
+        top = Math.max(top, thing.transform!.position[1] - 0.25);
+      }
+      return { top, across: thing.transform!.position[0] >= 14.5 };
+    };
+    const roll = (world: World) => {
+      const r = across(world, 'ball');
+      world.dispose();
+      return r.top;
+    };
+    // The slabs as bodies of their own, as before: the ball hops at the seams.
+    const apart = new World({ seed: 1 });
+    for (const p of mapParts(map(rows)))
+      if (p.kind !== 'zone')
+        apart.createEntity({
+          transform: { position: p.center, rotation: quat.identity() },
+          body: { type: 'fixed', shape: { kind: 'box', halfExtents: p.half } },
+        });
+    expect(roll(apart)).toBeGreaterThan(0.01);
+    // Built from the level: the floor is one entity, a compound of the three slabs, and the ball rolls flat.
+    const text = `# Manifold level 7\nmap 0 0 0  2 3\n${rows.join('\n')}\nend\n`;
+    const level = levelFromText(text);
+    const world = new World({ seed: 1 });
+    buildLevel(world, level);
+    const floors = [...world.entities.values()].filter((e) => e.body?.shape.kind === 'compound');
+    expect(floors).toHaveLength(1);
+    // It keeps the map of floor alone, which builds the same floor again when the world is written back.
+    expect(floors[0]!.source).toEqual({ map: floorOnly(level.maps[0]!) });
+    expect(roll(world)).toBeLessThan(0.002);
+    // And a box sliding across: on the same slabs apart it trips; on the floor as one body, it slides on.
+    const apartAgain = new World({ seed: 1 });
+    for (const p of mapParts(map(rows)))
+      if (p.kind !== 'zone')
+        apartAgain.createEntity({
+          transform: { position: p.center, rotation: quat.identity() },
+          body: { type: 'fixed', shape: { kind: 'box', halfExtents: p.half } },
+        });
+    expect(across(apartAgain, 'box').top).toBeGreaterThan(0.05); // it trips, and tumbles
+    apartAgain.dispose();
+    const built = new World({ seed: 1 });
+    buildLevel(built, level);
+    const slid = across(built, 'box');
+    expect(slid.top).toBeLessThan(0.002);
+    expect(slid.across).toBe(true);
+    built.dispose();
   });
 });

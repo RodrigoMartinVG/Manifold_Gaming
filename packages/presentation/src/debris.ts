@@ -37,7 +37,7 @@ export function mountDebris(page: GamePage, o: { timeScale(): number }): Piece {
     if (physics) return physics;
     physics = new RapierPhysics(gravityAt(world.gravity, [0, 0, 0]), STEP);
     for (const e of world.entities.values())
-      if (e.body?.type === 'fixed' && e.body.shape.kind === 'box' && e.transform)
+      if (e.body?.type === 'fixed' && (e.body.shape.kind === 'box' || e.body.shape.kind === 'compound') && e.transform)
         physics.addBody(
           { type: 'fixed', shape: e.body.shape },
           { position: [...e.transform.position], rotation: [...e.transform.rotation] },

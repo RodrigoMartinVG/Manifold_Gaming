@@ -36,7 +36,8 @@ export interface MapPart {
 }
 
 /** How thick a floor is, and how tall a zone on it. */
-const FLOOR = 0.5;
+export const FLOOR_THICKNESS = 0.5;
+const FLOOR = FLOOR_THICKNESS;
 const ZONE = 1.6;
 
 /**

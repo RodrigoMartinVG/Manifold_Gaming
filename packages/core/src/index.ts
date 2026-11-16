@@ -77,6 +77,7 @@ export type {
   Character,
   CharacterSpec,
   CollisionPose,
+  CompoundPart,
   Components,
   Entity,
   Event,

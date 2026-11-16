@@ -1,7 +1,7 @@
 import RAPIER from '@dimforge/rapier3d-deterministic-compat';
 import { quat, type Quat, type Vec3 } from '@manifold/common';
 import type { Profile } from './profile';
-import type { Body, BodySpec, CollisionGroups, Shape, Transform } from './types';
+import type { Body, BodySpec, CollisionGroups, CompoundPart, Shape, Transform } from './types';
 
 /**
  * THE BOUNDARY WITH THE PHYSICS ENGINE (decision 0000: "Rapier behind a small boundary"). This is
@@ -31,13 +31,78 @@ const toQuat = (r: { x: number; y: number; z: number; w: number }): Quat => [r.x
 const groupsOf = (g: CollisionGroups) => ((g.member & 0xffff) << 16) | (g.filter & 0xffff);
 /** Whether two groups (as Rapier's numbers) meet: each is a member of one the other meets (Rapier's own test). */
 const meets = (a: number, b: number) => ((a >>> 16) & b & 0xffff) !== 0 && ((b >>> 16) & a & 0xffff) !== 0;
+/**
+ * A compound's boxes cut so that wherever two meet, they meet face to whole face (stage 4a). Rapier
+ * mends a compound's seams (`FIX_INTERNAL_EDGES`) only there: measured, a ball at 6 m/s over three
+ * slabs of the same width rolls flat, but where a narrow slab meets the side of a wide one, as a
+ * dungeon's floor is full of, it still hopped (35 cm). So each box is cut along every edge of the others
+ * that falls inside it, across the ground (x and z): the cuts of all of them make a grid, and two
+ * neighbours share whole faces. Only Rapier sees the cut: the world keeps the few boxes it was given.
+ */
+function conforming(parts: readonly CompoundPart[]): CompoundPart[] {
+  // Where boxes begin and end along an axis, each edge once (two within a micrometre are one: they
+  // come from sums that may round apart).
+  const edges = (k: 0 | 2) => {
+    const all = parts.flatMap((p) => [p.offset[k] - p.halfExtents[k], p.offset[k] + p.halfExtents[k]]).sort((a, b) => a - b);
+    return all.filter((x, i) => i === 0 || x - all[i - 1]! > 1e-6);
+  };
+  const xs = edges(0);
+  const zs = edges(2);
+  const cuts = (lo: number, hi: number, at: number[]) => [lo, ...at.filter((x) => x > lo + 1e-6 && x < hi - 1e-6), hi];
+  const out: CompoundPart[] = [];
+  for (const p of parts) {
+    const cx = cuts(p.offset[0] - p.halfExtents[0], p.offset[0] + p.halfExtents[0], xs);
+    const cz = cuts(p.offset[2] - p.halfExtents[2], p.offset[2] + p.halfExtents[2], zs);
+    for (let i = 1; i < cx.length; i++)
+      for (let j = 1; j < cz.length; j++)
+        out.push({
+          offset: [(cx[i - 1]! + cx[i]!) / 2, p.offset[1], (cz[j - 1]! + cz[j]!) / 2],
+          halfExtents: [(cx[i]! - cx[i - 1]!) / 2, p.halfExtents[1], (cz[j]! - cz[j - 1]!) / 2],
+        });
+  }
+  return out;
+}
+
+/**
+ * A compound on a grid (stage 4a: a map's floor) as Rapier's voxels: every cell its boxes cover, counted
+ * from their lowest corner, which is where the collider goes. Probed: over an irregular floor's seams, a
+ * ball rolls flat on a compound with its seams mended, but a box sliding at 8 m/s still trips there (50
+ * cm up, tumbling); on voxels, both roll and slide flat, as on one slab.
+ */
+function voxelsOf(shape: Extract<Shape, { kind: 'compound' }>, cell: Vec3) {
+  const low = [0, 1, 2].map((k) => Math.min(...shape.parts.map((p) => p.offset[k]! - p.halfExtents[k]!))) as Vec3;
+  const cells: number[] = [];
+  for (const p of shape.parts) {
+    // Its first cell and how many, along each axis (rounded: the sums may be a hair off a whole cell).
+    const from = [0, 1, 2].map((k) => Math.round((p.offset[k]! - p.halfExtents[k]! - low[k]!) / cell[k]!));
+    const count = [0, 1, 2].map((k) => Math.round((2 * p.halfExtents[k]!) / cell[k]!));
+    for (let i = 0; i < count[0]!; i++)
+      for (let j = 0; j < count[1]!; j++)
+        for (let k = 0; k < count[2]!; k++) cells.push(from[0]! + i, from[1]! + j, from[2]! + k);
+  }
+  return RAPIER.ColliderDesc.voxels(new Int32Array(cells), { x: cell[0], y: cell[1], z: cell[2] }).setTranslation(...low);
+}
+
+/** A compound's parts as Rapier wants them: boxes cut to meet whole faces, where they are, unturned, with their seams mended. */
+const compoundOf = (shape: Extract<Shape, { kind: 'compound' }>) => {
+  const parts = conforming(shape.parts);
+  return [
+    parts.map((p) => new RAPIER.Cuboid(...p.halfExtents)),
+    parts.map((p) => ({ x: p.offset[0], y: p.offset[1], z: p.offset[2] })),
+    parts.map(() => ({ x: 0, y: 0, z: 0, w: 1 })),
+    RAPIER.CompoundFlags.FIX_INTERNAL_EDGES,
+  ] as const;
+};
+
 /** A shape of ours, as Rapier's. */
 const shapeOf = (shape: Shape) =>
   shape.kind === 'ball'
     ? new RAPIER.Ball(shape.radius)
     : shape.kind === 'capsule'
       ? new RAPIER.Capsule(shape.halfHeight, shape.radius)
-      : new RAPIER.Cuboid(...shape.halfExtents);
+      : shape.kind === 'compound'
+        ? new RAPIER.Compound(...compoundOf(shape))
+        : new RAPIER.Cuboid(...shape.halfExtents);
 
 const ZERO = { x: 0, y: 0, z: 0 };
 
@@ -234,7 +299,11 @@ export class RapierPhysics implements PhysicsBackend {
         ? RAPIER.ColliderDesc.ball(shape.radius)
         : shape.kind === 'capsule'
           ? RAPIER.ColliderDesc.capsule(shape.halfHeight, shape.radius)
-          : RAPIER.ColliderDesc.cuboid(...shape.halfExtents);
+          : shape.kind === 'compound'
+            ? shape.cell
+              ? voxelsOf(shape, shape.cell)
+              : RAPIER.ColliderDesc.compound(...compoundOf(shape))
+            : RAPIER.ColliderDesc.cuboid(...shape.halfExtents);
     collider.setRestitution(body.restitution).setFriction(body.friction);
     if (body.density !== undefined) collider.setDensity(body.density);
     if (body.groups) collider.setCollisionGroups(groupsOf(body.groups)).setSolverGroups(groupsOf(body.groups));

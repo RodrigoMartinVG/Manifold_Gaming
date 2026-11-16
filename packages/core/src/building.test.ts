@@ -54,7 +54,7 @@ describe('a world as a level (stage 3j)', () => {
     world.dispose();
   });
 
-  test('a map is built as its boxes and zones; written back, those boxes, which build the same world again', () => {
+  test('a map is built as its walls, its zones and its floor as one body; written back, they build the same world again', () => {
     const text = '# Manifold level 7\ntitle Maze\nmap 0 0 0  2 3  G goal\n#####\n#..G#\n#####\nend\n';
     const level = levelFromText(text, { zones: { goal: {} } });
     expect(level.maps[0]!.rows).toEqual(['#####', '#..G#', '#####']);
@@ -62,10 +62,12 @@ describe('a world as a level (stage 3j)', () => {
     const world = new World({ seed: 1 });
     buildLevel(world, level);
     const once = levelOfWorld(world);
-    expect(once.maps).toEqual([]);
-    // Its walls (the top row; each side, two rows; what is left of the bottom one) and its floor.
-    expect(once.boxes.length).toBe(5);
+    // Its walls as boxes (the top row; each side, two rows; what is left of the bottom one), its zone,
+    // and its floor (stage 4a: one body) as a map of floor alone.
+    expect(once.boxes.length).toBe(4);
     expect(once.sensors.map((s) => s.kind)).toEqual(['goal']);
+    expect(once.maps.map((m) => m.rows)).toEqual([['.....', '.....', '.....']]);
+    expect(once.maps[0]!.legend).toEqual({});
     const again = new World({ seed: 1 });
     buildLevel(again, once);
     expect(levelOfWorld(again)).toEqual(once);

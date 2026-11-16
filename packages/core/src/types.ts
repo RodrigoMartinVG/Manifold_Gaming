@@ -190,7 +190,22 @@ export interface Spin {
  * cylinder and its radius.
  */
 export type Shape =
-  { kind: 'ball'; radius: number } | { kind: 'box'; halfExtents: Vec3 } | { kind: 'capsule'; halfHeight: number; radius: number };
+  | { kind: 'ball'; radius: number }
+  | { kind: 'box'; halfExtents: Vec3 }
+  | { kind: 'capsule'; halfHeight: number; radius: number }
+  /**
+   * Several boxes as one body (stage 4a): a map's floor, so what rolls or slides across where two of its
+   * slabs meet does not hop or trip. For fixed bodies. With `cell`, the boxes cover whole cells of that
+   * size, counted from the lowest corner of all of them, and the physics makes them Rapier's voxels, made
+   * for grids: no seam between two cells at all.
+   */
+  | { kind: 'compound'; parts: CompoundPart[]; cell?: Vec3 };
+
+/** One part of a compound shape: a box, centered `offset` from the body's center. */
+export interface CompoundPart {
+  offset: Vec3;
+  halfExtents: Vec3;
+}
 
 /**
  * A BODY: the physics moves it (`dynamic`), the game moves it and it pushes (`kinematic`), it never
@@ -431,8 +446,10 @@ export interface Appearance {
    * tall and `size[0]` wide, or (stage 3b) a grid: lines a meter apart over the top of a box of
    * `size`, as the Dojo's floor is drawn (its color, the lines').
    */
-  shape: 'box' | 'sphere' | 'capsule' | 'grid';
+  shape: 'box' | 'sphere' | 'capsule' | 'grid' | 'boxes';
   size: Vec3;
+  /** For `boxes` (stage 4a: a compound body, as a map's floor): each box's center, from the entity's, and its size. */
+  parts?: { offset: Vec3; size: Vec3 }[];
   /** 0xRRGGBB */
   color: number;
   /**

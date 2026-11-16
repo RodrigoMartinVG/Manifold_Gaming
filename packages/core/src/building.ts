@@ -37,6 +37,7 @@ export function levelOfWorld(world: World): Level {
     const s = e.source;
     if (!s) continue;
     if ('box' in s) level.boxes.push(copyData(s.box));
+    else if ('map' in s) level.maps.push(copyData(s.map));
     else if ('sensor' in s) level.sensors.push(copyData(s.sensor));
     else if ('lamp' in s) level.lamps.push(copyData(s.lamp));
     else level.watchers.push(copyData(s.watcher));
@@ -99,6 +100,11 @@ export function entityNamed(world: World, which: string): Entity | undefined {
 /** A piece moved by `by`, without its name (names are one entity's). */
 function moved(piece: LevelPiece, by: Vec3): LevelPiece {
   const p = copyData(piece);
+  // (A map's floor, stage 4a: its map moves, and it has no name.)
+  if ('map' in p) {
+    p.map.origin = [p.map.origin[0] + by[0], p.map.origin[1] + by[1], p.map.origin[2] + by[2]];
+    return p;
+  }
   const item = 'box' in p ? p.box : 'sensor' in p ? p.sensor : 'lamp' in p ? p.lamp : p.watcher;
   item.center = [item.center[0] + by[0], item.center[1] + by[1], item.center[2] + by[2]];
   item.name = null;
@@ -287,7 +293,8 @@ export function setField(world: World, which: string, field: string, words: stri
 /** The level item an entity was built from, if any. */
 function itemOf(e: Entity) {
   const s = e.source;
-  if (!s) return null;
+  // (A map's floor, stage 4a, has no item of its own to change: it is written back as its map.)
+  if (!s || 'map' in s) return null;
   return 'box' in s ? s.box : 'sensor' in s ? s.sensor : 'lamp' in s ? s.lamp : s.watcher;
 }
 

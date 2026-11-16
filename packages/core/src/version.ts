@@ -48,5 +48,7 @@
  *      slope; a map's floor goes under its walls too (fewer seams)
  *  24  stage 4a: the games' character, shared (@manifold/character): its model is named
  *      `character.mannequin`, and the adventure's explorer is the mannequin, with its poses
+ *  25  stage 4a: a map's floor is one body, a compound of its slabs (`kind: 'compound'`) on the map's
+ *      grid, which the physics makes Rapier's voxels: what rolls or slides across it does not hop or trip
  */
-export const SIMULATION_VERSION = 24;
+export const SIMULATION_VERSION = 25;

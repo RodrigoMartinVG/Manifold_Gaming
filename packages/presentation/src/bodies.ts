@@ -26,7 +26,14 @@ export interface Bodies extends Piece {
 const ZONE_COLORS: Record<string, number> = { checkpoint: 0x5ad87a, goal: 0xe0c05a, fall: 0xd85a5a };
 
 /** How far a shape reaches below its center: a standing character's feet. */
-const below = (s: Shape) => (s.kind === 'capsule' ? s.halfHeight + s.radius : s.kind === 'ball' ? s.radius : s.halfExtents[1]);
+const below = (s: Shape): number =>
+  s.kind === 'capsule'
+    ? s.halfHeight + s.radius
+    : s.kind === 'ball'
+      ? s.radius
+      : s.kind === 'compound'
+        ? Math.max(...s.parts.map((p) => p.halfExtents[1] - p.offset[1]))
+        : s.halfExtents[1];
 /** A shadow's disc lies on +Y; it is turned to the surface it falls on. */
 const FLAT = new THREE.Vector3(0, 1, 0);
 const normal = new THREE.Vector3();
@@ -129,6 +136,18 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
     const material = new THREE.MeshLambertMaterial({ color: a.color, wireframe });
     // Translucent (stage 3d: a fog bank): what is behind shows through, and it does not hide what is in it.
     if (a.opacity !== undefined) Object.assign(material, { transparent: true, opacity: a.opacity, depthWrite: false });
+    // Several boxes (stage 4a: a compound body, as a map's floor), each the shared box, scaled and placed.
+    if (a.shape === 'boxes') {
+      const group = new THREE.Group();
+      // (Their one material is theirs, freed once: `release` frees each thing once.)
+      for (const p of a.parts ?? []) {
+        const mesh = own(new THREE.Mesh(geometries.box, material), { material: true });
+        mesh.scale.set(...p.size);
+        mesh.position.set(...p.offset);
+        group.add(mesh);
+      }
+      return group;
+    }
     if (a.shape !== 'capsule') {
       const mesh = own(new THREE.Mesh(geometries[a.shape], material), { material: true });
       mesh.scale.set(...a.size);

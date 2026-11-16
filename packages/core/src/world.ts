@@ -50,13 +50,15 @@ export interface Query {
 export function massOf(body: Pick<Body, 'shape' | 'density'>): number {
   const s = body.shape;
   // (Products, not `**`: Math.pow may give other bits in another browser.)
-  const r = s.kind === 'box' ? 0 : s.radius;
+  const box = (h: Vec3) => 8 * h[0] * h[1] * h[2];
   const volume =
     s.kind === 'box'
-      ? 8 * s.halfExtents[0] * s.halfExtents[1] * s.halfExtents[2]
-      : s.kind === 'ball'
-        ? (4 / 3) * Math.PI * r * r * r
-        : Math.PI * r * r * (2 * s.halfHeight) + (4 / 3) * Math.PI * r * r * r;
+      ? box(s.halfExtents)
+      : s.kind === 'compound'
+        ? s.parts.reduce((sum, p) => sum + box(p.halfExtents), 0)
+        : s.kind === 'ball'
+          ? (4 / 3) * Math.PI * s.radius * s.radius * s.radius
+          : Math.PI * s.radius * s.radius * (2 * s.halfHeight) + (4 / 3) * Math.PI * s.radius * s.radius * s.radius;
   return (body.density ?? 1) * volume;
 }
 
