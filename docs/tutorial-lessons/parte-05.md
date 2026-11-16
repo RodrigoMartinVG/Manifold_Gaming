@@ -500,7 +500,15 @@ two parameters; the perturbations "15 fps", "frame spike of 250 ms" and "_h_ = 1
   position, not the foot's orientation; it runs after the blend, before the palette.
 - **Exercises:** (1) Playback rate for a 1,2 m/s walk played at 0,9 m/s (0,75). (2) A target out of reach: the
   solver's answer. (3) Prove FABRIK keeps lengths.
-- **Our angle:** IK is view, so `acos` is allowed and the hash is untouched. Manifold todavía no lo tiene.
+- **Our angle:** IK is view, so `acos` is allowed and the hash is untouched. Manifold has it since the tutorial's
+  engine fixes: `feet.ts` places each foot where the mixed cycles put it, turning the leg by two-bone IK, only in the
+  view; phase 4 generalizes it (the roadmap's "Its procedural layers").
+- **Más a fondo, from the author's procedural animation drafts (2026-11-16, in the idea bank):** (1) why the knee
+  snaps at full reach: from cos κ = (_L_₁² + _L_₂² − _d_²)/(2_L_₁_L_₂), dκ/d*d* = _d_/(_L_₁_L_₂ sin κ), which grows
+  without bound as the leg straightens (κ → 180°); a **soft stretch** eases _d_ towards _L_₁ + _L_₂ beyond a fraction of
+  it, so the angle stops at full reach with a finite speed. (2) **Joint limits by swing-twist:** a joint's quaternion
+  split into a turn about the bone (twist, clamped to an interval) and one across it (swing, kept inside a cone),
+  1.15's algebra at work, with no Euler angles and no lock.
 - **From the archive (2-06):** kept: the law-of-cosines leg and its numbers. New: everything else. ML 1.8 (outside
   the repository) is the other source.
 - **Sources:** L1 §1.5, Ex. 2.14; G2 §13.7.2, §13.11.3–4. [Holden](https://theorangeduck.com/page/simple-two-joint);
