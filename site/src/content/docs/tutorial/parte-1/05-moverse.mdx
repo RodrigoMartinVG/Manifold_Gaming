@@ -59,7 +59,7 @@ El proyecto suma un archivo y cambia uno:
 
 - **`vec.ts`, nuevo: los vectores** de la lección anterior, como funciones que devuelven un vector nuevo: `add`, `sub`, `scale`, `length` y `normalize`, que deja el cero como cero.
 - **`main.ts`, cambiado: la pelota se mueve.** En cada cuadro lee las teclas (`input`), arma la dirección, la normaliza si _normalize_ está prendido, la multiplica por la rapidez y suma `scale(velocity, dt)` al lugar. Mide además cuántos metros recorrió en cuánto tiempo, de frente y en diagonal.
-- **`view.ts` y `screen.ts` siguen como estaban.** La cámara ahora mira hacia abajo, con `camera.lookAt`; cómo gira una cámara tiene su propia lección.
+- **`view/view.ts`, `view/screen.ts`, `world.ts` y `layouts.ts` siguen como estaban.** Esta lección todavía no usa los blancos: su pelota vive en `main.ts`. La cámara ahora mira hacia abajo, con `camera.lookAt`; cómo gira una cámara tiene su propia lección.
 
 ## Probalo
 

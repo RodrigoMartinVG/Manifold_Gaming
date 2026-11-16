@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { dirname, join, posix, relative } from 'node:path';
 import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 import { projectAt, stepsOf } from './course';
@@ -57,7 +57,9 @@ describe('the tutorial’s project, at every step', () => {
       host.fileExists = (f) => virtual.has(f) || fileExists(f);
       // (Module resolution asks whether the folder exists before it looks for `./view.ts` in it.)
       const { directoryExists } = host;
-      host.directoryExists = (d) => d === root || (directoryExists ? directoryExists(d) : ts.sys.directoryExists(d));
+      const folders = new Set([...virtual.keys()].map((f) => dirname(f)));
+      host.directoryExists = (d) =>
+        folders.has(d) || d === root || (directoryExists ? directoryExists(d) : ts.sys.directoryExists(d));
       host.readFile = (f) => virtual.get(f) ?? readFile(f);
       host.getSourceFile = (f, lang, ...rest) => {
         const code = virtual.get(f);
@@ -72,9 +74,9 @@ describe('the tutorial’s project, at every step', () => {
       // Only its own files and the examples' libraries (a step cannot reach into the engine).
       for (const f of files)
         for (const [, spec] of f.code.matchAll(/^\s*import[^'"]*['"]([^'"]+)['"]/gm)) {
-          if (spec!.startsWith('./'))
+          if (spec!.startsWith('./') || spec!.startsWith('../'))
             expect(
-              files.some((g) => `./${g.name}` === `${spec}.ts`),
+              files.some((g) => g.name === `${posix.join(posix.dirname(f.name), spec!)}.ts`),
               `${f.name} imports ${spec}`,
             ).toBe(true);
           else expect(spec, `${f.name} imports ${spec}`).toMatch(LIBRARIES);

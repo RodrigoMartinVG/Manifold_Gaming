@@ -28,6 +28,12 @@ describe('transpile', () => {
     expect(rewriteImports("import { a } from './view';")).toBe("import { a } from 'lesson/view';");
     expect(rewriteImports('import { a } from "./view.ts";')).toBe('import { a } from "lesson/view";');
     expect(rewriteImports("export * from './util/random';")).toBe("export * from 'lesson/util/random';");
+    // From a file in a folder, relative to that folder: `../` goes up to the lesson's root.
+    expect(rewriteImports("import { World } from '../world';", 'view/view.ts')).toBe("import { World } from 'lesson/world';");
+    expect(rewriteImports("import { toScreen } from './screen';", 'view/view.ts')).toBe(
+      "import { toScreen } from 'lesson/view/screen';",
+    );
+    expect(transpile("import { createView } from './view/view';\ncreateView();", 'main.ts')).toContain("'lesson/view/view'");
     expect(rewriteImports("import './effects';")).toBe("import 'lesson/effects';");
     expect(rewriteImports("const m = await import('./view');")).toBe("const m = await import('lesson/view');");
     expect(rewriteImports("import * as THREE from 'three';")).toBe("import * as THREE from 'three';");

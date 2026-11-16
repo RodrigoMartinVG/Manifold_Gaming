@@ -22,6 +22,8 @@ const lab = createLab({
   target: [-0.1, 0.7, 0.4],
 });
 const label = (text: string) => lab.label(text).lift(14);
+/** A label that describes, in plain type. */
+const note = (text: string) => lab.label(text).lift(12).plain();
 
 // THE EYE, at E, not turned: it looks along −Z. Its image plane is 1 m in front of it.
 const EYE: Point = { x: 0, y: 1, z: 2 };
@@ -88,7 +90,7 @@ function ball(radius: number, color: number) {
 // view lets in, as wide as the picture's proportions say.
 const BLUE = 0x9fc2e8;
 ball(0.06, 0xf2ece0).set(eyeAt);
-label('eye').at(eyeAt);
+note('eye').at(eyeAt);
 const plane = new THREE.Mesh(
   new THREE.PlaneGeometry(1, 1),
   new THREE.MeshBasicMaterial({
@@ -104,7 +106,7 @@ lab.world.add(plane);
 figureOnly(plane);
 const outline = lines(BLUE);
 const pyramid = lines(BLUE, { opacity: 0.35, pairs: true }); // from the eye to the corners
-const planeLabel = label('image plane, 1 m');
+const planeLabel = note('image plane, 1 m');
 
 // TWO POSTS, 1 m tall, at 2.5 m and 5 m in front of the eye: the far one, twice as far. Their
 // lines to the eye, top and bottom, and their pictures on the plane: the far one, half as tall.
@@ -144,7 +146,7 @@ const railRays = lines(VIOLET, { opacity: 0.35, pairs: true }); // from the eye 
 const parallel = lines(VIOLET, { dashed: true, opacity: 0.6 }); // from the eye, along the rails
 const vanishing = circle(lab, { color: 0xf0d0ff, radius: 0.035, width: 0.02 });
 figureOnly(vanishing);
-const vanishingLabel = label('vanishing point');
+const vanishingLabel = note('vanishing point');
 
 // THE POINT P, which the autopilot moves (drag it, or use the sliders); its line to the eye; and
 // P′, where that line crosses the image plane.

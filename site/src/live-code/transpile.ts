@@ -16,15 +16,35 @@ export function moduleName(file: string): string {
 }
 
 /**
- * Imports between a lesson's files (`./view`, `./view.ts`) are renamed `lesson/view`: in the
- * iframe every file is a loose module (a `blob:`), and a `blob:` has no folder to resolve `./`
- * against. With a fixed name, the import map finds it.
+ * Imports between a lesson's files (`./view`, `./view/screen.ts`, `../world` from inside `view/`) are
+ * renamed by where the file they name is, from the lesson's root: `lesson/view`, `lesson/view/screen`,
+ * `lesson/world`. In the iframe every file is a loose module (a `blob:`), and a `blob:` has no folder to
+ * resolve `./` against. With a fixed name, the import map finds it. `from` is the importing file's name.
  */
-export function rewriteImports(js: string): string {
+export function rewriteImports(js: string, from = 'main.ts'): string {
   return js.replace(
-    /(\bfrom\s*|\bimport\s*\(?\s*)(['"])\.\/([\w\-/]+?)(?:\.ts|\.js)?\2/g,
-    (_, before: string, quote: string, name: string) => `${before}${quote}${LESSON_PREFIX}${name}${quote}`,
+    /(\bfrom\s*|\bimport\s*\(?\s*)(['"])(\.\.?\/[\w\-/.]+?)(?:\.ts|\.js)?\2/g,
+    (whole: string, before: string, quote: string, spec: string) => {
+      const name = resolve(from, spec);
+      // (Out of the lesson's root, it is left as written: it names nothing the lesson has.)
+      return name === null ? whole : `${before}${quote}${LESSON_PREFIX}${name}${quote}`;
+    },
   );
+}
+
+/**
+ * `resolve('view/view.ts', '../world')` → `world`: a relative path, from the importing file's folder; null if
+ * it climbs out of the lesson's root.
+ */
+function resolve(from: string, spec: string): string | null {
+  const parts = from.split('/').slice(0, -1);
+  for (const segment of spec.split('/')) {
+    if (segment === '..') {
+      if (parts.length === 0) return null;
+      parts.pop();
+    } else if (segment !== '.' && segment !== '') parts.push(segment);
+  }
+  return parts.join('/');
 }
 
 /**
@@ -41,7 +61,8 @@ export function importedLibraries(js: string): string[] {
   return [...found].sort();
 }
 
-export function transpile(code: string): string {
+/** A lesson's file, from TypeScript to JavaScript; `file` is its name (`view/view.ts`), for its imports. */
+export function transpile(code: string, file = 'main.ts'): string {
   const { code: js } = transform(code, { transforms: ['typescript'], disableESTransforms: true });
-  return rewriteImports(js);
+  return rewriteImports(js, file);
 }

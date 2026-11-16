@@ -16,6 +16,8 @@ export interface Label {
   along(direction: V3, ahead: number, side?: number): Label;
   /** Pushed `px` pixels up on the screen: over a point, not on it. */
   lift(px: number): Label;
+  /** In plain small type: for words that describe ("image plane"), not for mathematical names (P, a + b). */
+  plain(): Label;
   show(visible: boolean): Label;
 }
 
@@ -70,6 +72,10 @@ export function createLabels(camera: THREE.Camera, canvas: HTMLCanvasElement, wo
       },
       lift(px) {
         one.lift = px;
+        return handle;
+      },
+      plain() {
+        element.style.font = '12px/1.2 system-ui, sans-serif';
         return handle;
       },
       show(visible) {

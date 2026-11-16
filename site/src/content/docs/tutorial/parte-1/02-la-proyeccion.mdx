@@ -141,6 +141,8 @@ $$
 \tan\frac{\varphi}{2} = \frac{h}{1}, \qquad h = \tan\frac{\varphi}{2}.
 $$
 
+Algunos libros usan el número inverso, $g = 1/h = 1/\tan(\varphi/2)$, y lo llaman la **distancia focal** (_focal length_) de la proyección: es a qué distancia hay que poner el plano para que su medio alto visible mida 1, porque $g \tan(\varphi/2) = 1$. Dice lo mismo que $\varphi$, de otra manera, y vuelve en la matriz de proyección y en la parte del dibujo. Con $\varphi = 55^\circ$, $g \approx 1{,}921$.
+
 La foto tiene $W \times H$ píxeles, y su **proporción** (_aspect ratio_) es $a = W/H$. El rectángulo visible del plano tiene las mismas proporciones: su medio ancho es $a\,h$.
 
 Dividiendo por esas mitades, los bordes de la foto quedan en $-1$ y $1$. Son las **coordenadas normalizadas** (_normalized coordinates_):
@@ -221,7 +223,7 @@ Lo que la proyección no conserva son las proporciones. Un segmento justo delant
 
 Si el plano de imagen está a una distancia $f$ en vez de 1, los mismos triángulos dan $x' = f\,x_c/d$ e $y' = f\,y_c/d$: todo se agranda $f$ veces. Pero el medio alto visible también, a $f\tan(\varphi/2)$, y al normalizar $f$ se cancela: $u$ y $v$ no cambian. Lo que decide la foto es el ángulo, no a qué distancia se pone el plano; por eso alcanza con ponerlo a 1.
 
-En una cámara de verdad, $f$ es la **distancia focal** (_focal length_), y la pared del fondo es el sensor. Uno de 24 mm de alto, con $f = 50$ mm, ve $\varphi = 2\arctan(12/50) \approx 27{,}0^\circ$ de arriba abajo; con $f = 24$ mm, $\approx 53{,}1^\circ$. Hacer zoom es cambiar $f$, o sea, cambiar el campo de visión.
+En una cámara de verdad, $f$ es la **distancia focal**, y la pared del fondo es el sensor. Uno de 24 mm de alto, con $f = 50$ mm, ve $\varphi = 2\arctan(12/50) \approx 27{,}0^\circ$ de arriba abajo; con $f = 24$ mm, $\approx 53{,}1^\circ$. Hacer zoom es cambiar $f$, o sea, cambiar el campo de visión. La $g$ de la proyección es esa $f$ medida en medios altos del sensor: $50/12 \approx 4{,}17$, y en efecto $1/\tan 13{,}5^\circ \approx 4{,}17$.
 
 </details>
 
@@ -231,6 +233,10 @@ En una cámara de verdad, $f$ es la **distancia focal** (_focal length_), y la p
 - **El campo de visión horizontal no es $a\,\varphi$.** Pasar el número de un motor a otro con una regla de tres da otra foto: 55° verticales en 16:9 son 85,6° horizontales, no 97,8°.
 - **Las verticales no se juntan, mientras la cámara no se incline.** Una recta vertical tiene $\mathbf{w} = (0, 1, 0)$, con $w_z = 0$: no se aleja, y no tiene punto de fuga. Por eso los postes salen derechos. Con la cámara mirando hacia arriba, las verticales sí se alejan, y se juntan: son los edificios que "se caen" en las fotos tomadas desde abajo.
 
+:::
+
+:::tip[Para quien ya sabe: ¿y la matriz de proyección?]
+Si ya programaste gráficos, esperarías la matriz de proyección de $4 \times 4$, y acá no aparece, a propósito. La idea entera es **dividir por la profundidad**, y se ve mejor con dos triángulos semejantes que dentro de una matriz. La matriz es la misma cuenta con una maquinaria que todavía no tenemos: coordenadas homogéneas, donde la profundidad se copia en una cuarta coordenada, $w$, y la placa de video divide por ella. Llega en la lección 1.10, con esta misma figura: su eje de profundidad pasa a llamarse $w$, y $g$ aparece en la matriz.
 :::
 
 ## En los motores

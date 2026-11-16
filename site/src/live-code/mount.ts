@@ -174,7 +174,7 @@ export function mountLiveCode(root: HTMLElement) {
     root.dataset.errors = '0';
     root.dataset.frames = '0';
     try {
-      const own = Object.fromEntries(files.map((f, i) => [moduleName(f.name), transpile(states[i]!.doc.toString())]));
+      const own = Object.fromEntries(files.map((f, i) => [moduleName(f.name), transpile(states[i]!.doc.toString(), f.name)]));
       const wanted = Object.values(own).flatMap(importedLibraries);
       modules = { ...(await loadLibraries(base, wanted)), ...own };
     } catch (e) {

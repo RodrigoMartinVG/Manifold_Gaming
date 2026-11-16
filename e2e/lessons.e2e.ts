@@ -450,12 +450,9 @@ test('a dungeon from a seed: the same seed gives the same dungeon, all connected
   await expect.poll(() => value(f, 'hash (map)')).toBe('2c2d14c7');
 });
 
-test('the new tutorial, a window into the world: our numbers put the ball at the same pixel as three.js', async ({ page }) => {
+test('a window into the world: each target at three.js’s pixel, and the drawing rebuilt frees what it made', async ({ page }) => {
   const f = await open(page, 'tutorial/parte-1/03-una-ventana-al-mundo/');
-  await expect.poll(() => value(f, 'our numbers')).toMatch(/^\d+\.\d, \d+\.\d$/);
-  // The ball moves, and two rows read one after the other can come from different frames (on a slow
-  // machine they did, 14 px apart). Both are read at once, in one task of the figure's frame, where no
-  // frame can come in between; three times, a moment apart.
+  // Both rows at once, in one task of the figure's frame (no frame can come in between).
   const frame = (await (await page.locator('.live-code .lc-result iframe').first().elementHandle())!.contentFrame())!;
   const both = () =>
     frame.evaluate(() => {
@@ -465,14 +462,26 @@ test('the new tutorial, a window into the world: our numbers put the ball at the
           .querySelector('input')!
           .value.split(',')
           .map(Number);
-      return [row('our numbers'), row('three.js')] as const;
+      const [[ox, oy], [tx, ty]] = [row('our pixel'), row('three.js pixel')];
+      return Math.max(Math.abs(ox! - tx!), Math.abs(oy! - ty!));
     });
-  for (let i = 0; i < 3; i++) {
-    const [[ox, oy], [tx, ty]] = await both();
-    expect(Math.abs(ox! - tx!)).toBeLessThan(1);
-    expect(Math.abs(oy! - ty!)).toBeLessThan(1);
-    await page.waitForTimeout(400);
+  for (const [target, depth] of [
+    ['target 1', '9'],
+    ['target 2', '4'],
+    ['target 3', '10'],
+  ] as const) {
+    await set(f, 'target', target);
+    await expect.poll(() => value(f, 'depth (m)')).toBe(depth);
+    expect(await both()).toBeLessThan(1);
   }
+  // Rebuilt twenty times and freed, the graphics card keeps as many geometries; not freed, 20 × 10 more.
+  await expect.poll(() => number(f, 'renderer.info geometries')).toBeGreaterThan(0);
+  const before = await number(f, 'renderer.info geometries');
+  await click(f, 'rebuild ×20');
+  await expect.poll(() => number(f, 'renderer.info geometries')).toBe(before);
+  await toggle(f, 'skip dispose');
+  await click(f, 'rebuild ×20');
+  await expect.poll(() => number(f, 'renderer.info geometries')).toBe(before + 200);
 });
 
 test('the new tutorial, moving with vectors: normalized, 3 m/s straight and diagonally; without, the diagonal is √2 faster', async ({
@@ -521,10 +530,28 @@ test('the lab kit, in the vectors figure: a tip is dragged across the floor to a
   await page.mouse.up();
   await expect.poll(() => value(f, 'vector a')).toBe('1.00, 0.00, 1.50');
   expect(await value(f, 'unit â')).toBe('0.555, 0.000, 0.832');
+  // b dropped on a's tip: their difference is the zero vector.
+  const [bx, , bz] = (await value(f, 'vector b')).split(',').map(Number);
+  const fromB = await seen(bx!, bz!);
+  const onA = await seen(1, 1.5);
+  await page.mouse.move(fromB.x, fromB.y);
+  await page.mouse.down();
+  await page.mouse.move(onA.x, onA.y, { steps: 10 });
+  await page.mouse.up();
+  await expect.poll(() => value(f, 'difference a − b')).toBe('0.00, 0.00, 0.00');
+  await page.mouse.move(onA.x, onA.y);
   // Let go, the pointer moves on and the tip stays; the camera never turned.
   await page.mouse.move(box.x + 20, box.y + 20, { steps: 5 });
   expect(await value(f, 'vector a')).toBe('1.00, 0.00, 1.50');
   expect(await camera()).toBe(before);
+  // a's tip on the origin: the zero vector has no direction, and its "unit" vector is zero.
+  const origin = await seen(0, 0);
+  await page.mouse.move(onA.x, onA.y);
+  await page.mouse.down();
+  await page.mouse.move(origin.x, origin.y, { steps: 10 });
+  await page.mouse.up();
+  await expect.poll(() => value(f, 'vector a')).toBe('0.00, 0.00, 0.00');
+  expect(await value(f, 'length |â|')).toBe('0.000');
   // The panel covers the right: the picture's centre is moved left, and back when the panel closes.
   const shift = () =>
     inside.evaluate(() => (globalThis as unknown as { lab: { camera: THREE.PerspectiveCamera } }).lab.camera.view?.offsetX ?? 0);
@@ -582,4 +609,42 @@ test('coordinates: our distance is three.js’s, the worked example gives 5 and 
   await set(f, 'height of P (m)', '0.5');
   await expect.poll(() => value(f, 'our distance (m)')).toBe('5');
   expect(await value(f, 'three.js distanceTo (m)')).toBe('5');
+});
+
+test('the projection: at the worked example our pixel is three.js’s, and twice as deep is half as far from the centre', async ({
+  page,
+}) => {
+  const f = await open(page, 'tutorial/parte-1/02-la-proyeccion/');
+  // P where the page's example puts it (moving a slider stops the autopilot).
+  await set(f, 'point x (m)', '1');
+  await set(f, 'point y (m)', '1.5');
+  await set(f, 'point z (m)', '-3');
+  await expect.poll(() => value(f, 'depth d (m)')).toBe('5');
+  expect(await value(f, 'on the plane')).toBe('0.2000, 0.1000');
+  expect(await value(f, 'normalized u, v')).toBe('0.2161, 0.1921');
+  expect(await value(f, 'our pixel')).toBe('486.4, 181.8');
+  expect(await value(f, 'three.js pixel')).toBe('486.4, 181.8');
+  expect(await value(f, 'vanishing point')).toBe('0.3640, 0.0000');
+  expect(await value(f, 'horizontal fov (°)')).toBe('85.6');
+  // Five meters farther: the depth doubles, and its place on the plane halves.
+  await set(f, 'point z (m)', '-8');
+  await expect.poll(() => value(f, 'depth d (m)')).toBe('10');
+  expect(await value(f, 'on the plane')).toBe('0.1000, 0.0500');
+});
+
+test('vectors: the worked example’s numbers, ours and three.js’s', async ({ page }) => {
+  const f = await open(page, 'tutorial/parte-1/04-vectores/');
+  await click(f, 'worked example');
+  await expect.poll(() => value(f, 'vector a')).toBe('3.00, 0.00, -1.00');
+  expect(await value(f, 'vector b')).toBe('1.00, 0.00, -2.00');
+  expect(await value(f, 'sum a + b')).toBe('4.00, 0.00, -3.00');
+  expect(await value(f, 'difference a − b')).toBe('2.00, 0.00, 1.00');
+  expect(await value(f, 'length |a|')).toBe('3.162');
+  expect(await value(f, 'length |b|')).toBe('2.236');
+  expect(await value(f, 'length |a + b|')).toBe('5.000');
+  expect(await value(f, '|a| + |b|')).toBe('5.398');
+  expect(await value(f, 'length |k a|')).toBe('1.581');
+  expect(await value(f, 'unit â')).toBe('0.949, 0.000, -0.316');
+  expect(await value(f, 'three.js a + b')).toBe('4.00, 0.00, -3.00');
+  expect(await value(f, 'three.js â')).toBe('0.949, 0.000, -0.316');
 });

@@ -1,9 +1,4 @@
-/** A point of the world, in meters: x to the right, y up, z towards whoever looks at the screen. */
-export interface Point {
-  x: number;
-  y: number;
-  z: number;
-}
+import type { Point } from '../world';
 
 /**
  * FROM A POINT TO THE SCREEN, with our own numbers: what the graphics card does for every vertex.

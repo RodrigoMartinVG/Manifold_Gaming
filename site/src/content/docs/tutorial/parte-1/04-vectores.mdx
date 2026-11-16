@@ -158,7 +158,7 @@ $$
 \lvert \mathbf{a} + \mathbf{b} \rvert \le \lvert \mathbf{a} \rvert + \lvert \mathbf{b} \rvert.
 $$
 
-Es la **desigualdad triangular** (_triangle inequality_). Vale la igualdad exactamente cuando uno de los dos es el otro multiplicado por un escalar $c \ge 0$: cuando apuntan hacia el mismo lado, o alguno es cero, y el triángulo se aplasta en un segmento. El panel la muestra en cada cuadro: _length |a + b|_ nunca pasa a _|a| + |b|_, y en la tercera parada del piloto, donde $\mathbf{b} = \tfrac12\,\mathbf{a}$, son iguales. Se demuestra con lo que ya está en esta lección; la demostración está en "Más a fondo".
+Es la **desigualdad triangular** (_triangle inequality_). Vale la igualdad exactamente cuando uno de los dos es el otro multiplicado por un escalar $c \ge 0$: cuando apuntan hacia el mismo lado, o alguno es cero, y el triángulo se aplasta en un segmento. El panel la muestra en cada cuadro: _length |a + b|_ nunca pasa a _|a| + |b|_, y en la tercera parada del piloto, donde $\mathbf{b} = \tfrac12\,\mathbf{a}$, son iguales. Se demuestra en la lección del producto escalar, que da justo la herramienta que hace falta.
 
 ### Puntos y vectores no son lo mismo
 
@@ -202,7 +202,7 @@ Los de la primera parada del piloto automático: $\mathbf{a} = (3, 0, -1)$, $\ma
 
 ## Probalo
 
-1. **Mirá la primera parada:** _vector a_ (el vector $\mathbf{a}$) dice $(3, 0, -1)$; _sum a + b_ (la suma), $(4, 0, -3)$; _length |a + b|_ (el largo de la suma), 5, y _|a| + |b|_ (la suma de los largos), 5,398. Seguí al piloto: el largo de la suma nunca pasa a la suma de los largos, y en la tercera parada son iguales.
+1. **Tocá _worked example_** (el ejemplo resuelto), o mirá la primera parada del piloto: _vector a_ (el vector $\mathbf{a}$) dice $(3, 0, -1)$; _sum a + b_ (la suma), $(4, 0, -3)$; _length |a + b|_ (el largo de la suma), 5, y _|a| + |b|_ (la suma de los largos), 5,398. Seguí al piloto: el largo de la suma nunca pasa a la suma de los largos, y en la tercera parada son iguales.
 2. **Arrastrá la punta de $\mathbf{b}$** (su bolita azul): el piloto se apaga, la dorada y el paralelogramo la siguen, y la verde va siempre de la punta de $\mathbf{b}$ a la de $\mathbf{a}$. Soltá las dos puntas en el mismo lugar (se acomodan de a medio metro): _difference a − b_ (la resta) da $(0, 0, 0)$, la verde desaparece, y la dorada es $\mathbf{a} + \mathbf{a} = 2\,\mathbf{a}$.
 3. **Mové _scalar k_** (el escalar $k$) a 2, y después a −1: la flecha violeta se estira sobre la recta de $\mathbf{a}$, y después se da vuelta. _length |k a|_ (el largo de $k\,\mathbf{a}$) es siempre $\lvert k \rvert$ por _length |a|_ (el largo de $\mathbf{a}$): con $k = -1$, el mismo.
 4. **Llevá la punta de $\mathbf{a}$ al origen:** _unit â_ ($\mathbf{a}$ normalizado) da $(0, 0, 0)$, _length |â|_ (su largo) 0, y la flecha blanca desaparece: el cero no tiene dirección. Soltala en cualquier otro lugar: _length |â|_ vuelve a 1, y _three.js â_ (lo mismo, calculado por three.js) coincide con _unit â_. Tildá _autopilot_ (el piloto automático) y sigue desde ahí.
@@ -217,23 +217,13 @@ Los de la primera parada del piloto automático: $\mathbf{a} = (3, 0, -1)$, $\ma
 ## Más a fondo
 
 <details>
-<summary>Por qué vale la desigualdad triangular</summary>
+<summary>Los colores también son vectores</summary>
 
-Los dos miembros de la desigualdad son largos, que no son negativos: alcanza con comparar sus cuadrados. Componente a componente,
+Un color, en la computadora, son tres números $(r, g, b)$: cuánta luz roja, verde y azul. ¿Por qué tres? El ojo tiene tres clases de conos, y cualquier luz, sea cual sea su espectro, los excita en tres cantidades: con tres números alcanza para decir lo que vemos. (Dos luces de espectros distintos que excitan igual a los tres conos se ven idénticas.)
 
-$$
-\lvert \mathbf{a} + \mathbf{b} \rvert^2 = (a_x + b_x)^2 + (a_y + b_y)^2 + (a_z + b_z)^2 = \lvert \mathbf{a} \rvert^2 + 2s + \lvert \mathbf{b} \rvert^2,
-$$
+Y las luces se suman como vectores. Prender dos luces juntas suma sus colores componente a componente, y bajar una luz a la mitad multiplica sus tres componentes por $ frac12$: es la **ley de Grassmann**. Una luz roja $(1, 0, 0)$ más una verde $(0, 1, 0)$ da $(1, 1, 0)$, amarilla. Los colores que una pantalla puede mostrar llenan un cubo, de $(0, 0, 0)$, negro, a $(1, 1, 1)$, blanco, con los grises sobre la diagonal.
 
-con $s = a_x b_x + a_y b_y + a_z b_z$, mientras que $(\lvert \mathbf{a} \rvert + \lvert \mathbf{b} \rvert)^2 = \lvert \mathbf{a} \rvert^2 + 2\,\lvert \mathbf{a} \rvert\,\lvert \mathbf{b} \rvert + \lvert \mathbf{b} \rvert^2$. Falta ver que $s \le \lvert \mathbf{a} \rvert\,\lvert \mathbf{b} \rvert$. Lo da una identidad de Lagrange, que se comprueba desarrollando los dos lados:
-
-$$
-\lvert \mathbf{a} \rvert^2\,\lvert \mathbf{b} \rvert^2 - s^2 = (a_y b_z - a_z b_y)^2 + (a_z b_x - a_x b_z)^2 + (a_x b_y - a_y b_x)^2 \ge 0.
-$$
-
-Entonces $s^2 \le \lvert \mathbf{a} \rvert^2\,\lvert \mathbf{b} \rvert^2$, y $s \le \lvert s \rvert \le \lvert \mathbf{a} \rvert\,\lvert \mathbf{b} \rvert$: por lo tanto $\lvert \mathbf{a} + \mathbf{b} \rvert^2 \le (\lvert \mathbf{a} \rvert + \lvert \mathbf{b} \rvert)^2$, y la desigualdad vale. Con los números del ejemplo: $s = 3 + 0 + 2 = 5$, $\lvert \mathbf{a} \rvert^2\,\lvert \mathbf{b} \rvert^2 = 10 \cdot 5 = 50$, y la identidad dice $50 - 25 = 0^2 + 5^2 + 0^2$.
-
-La igualdad pide $s = \lvert \mathbf{a} \rvert\,\lvert \mathbf{b} \rvert$: los tres cuadrados en cero, y $s \ge 0$. Si $\mathbf{a} = \mathbf{0}$, se cumple, y $\mathbf{a} = 0\,\mathbf{b}$. Si no, alguna componente de $\mathbf{a}$ no es cero; digamos $a_x \ne 0$. Con $c = b_x / a_x$, el tercer paréntesis en cero da $b_y = c\,a_y$, y el segundo, $b_z = c\,a_z$: $\mathbf{b} = c\,\mathbf{a}$. Al revés, si $\mathbf{b} = c\,\mathbf{a}$, los tres se anulan, como $a_y (c\,a_z) - a_z (c\,a_y) = 0$. Y entonces $s = c\,\lvert \mathbf{a} \rvert^2$, que no es negativo justo cuando $c \ge 0$. El número $s$ tiene nombre, **producto escalar** (_dot product_), y una lección propia más adelante, donde dice mucho más.
+Lo que **no** es una operación de vectores es multiplicar dos colores componente a componente, $(r_1 r_2,\ g_1 g_2,\ b_1 b_2)$, que es lo que hace una superficie con la luz que recibe: cada canal por separado. Esa cuenta depende de qué tres colores se eligieron como base, y la suma y el producto por un número no. Y todo esto vale para la luz medida en forma lineal, no para los números de un color en hexadecimal, que están en sRGB: la parte del dibujo lo explica.
 
 </details>
 
@@ -257,6 +247,10 @@ Lo mismo vale con más puntos: $\alpha_1 P_1 + \dots + \alpha_n P_n$ es un punto
 - **Normalizar el cero.** Dividir por un largo 0 da `NaN`, que contagia todo lo que toca. `normalize` devuelve el cero, pero eso lo decide el código, no la matemática: el cero sigue sin dirección, y quien necesite una tiene que preguntar antes si el vector es cero. Un vector casi cero es peor: tiene dirección, pero la deciden los redondeos.
 - **Un unitario no mide exactamente 1.** El de la primera parada, $\hat{\mathbf{a}} = (0{,}9486832980505138,\ 0,\ -0{,}31622776601683794)$, mide $0{,}9999999999999999$: los números de la computadora redondean. El panel dice `1.000` porque muestra tres decimales; en el código se compara con un margen, nunca con `=== 1`.
 
+:::
+
+:::tip[Para quien ya sabe: ¿un objeto nuevo en cada cuenta?]
+Si venís de three.js, esperarías reusar los vectores: cada `add` que devuelve un objeto nuevo le deja trabajo al recolector de basura, y por eso three.js cambia el vector sobre el que se llama. Acá va primero el código claro, que no cambia lo que recibe ni esconde errores (la primera Sutileza), y se reutiliza solo donde una medición lo pide: la lección 3.13 mide cuánto cuesta. Y si sabés que `Math.hypot` evita desbordes con números enormes, es cierto; pero el estándar no le exige el mismo resultado en todos los navegadores, y a `Math.sqrt` sí. Con distancias de juego, no hay desborde posible.
 :::
 
 ## En los motores

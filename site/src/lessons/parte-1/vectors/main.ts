@@ -51,8 +51,18 @@ const tipA = point(lab, { color: 0xe06c75, radius: 0.12 });
 const tipB = point(lab, { color: 0x61afef, radius: 0.12 });
 
 const settings = { 'scalar k': -0.5, autopilot: true };
-lab.gui.add(settings, 'scalar k', -2, 2, 0.1);
+lab.gui.add(settings, 'scalar k', -2, 2, 0.1).listen();
 const pilot = lab.gui.add(settings, 'autopilot').listen();
+// The page's worked example, exactly: a, b and k, with the autopilot stopped.
+const example = {
+  'worked example': () => {
+    settings.autopilot = false;
+    a = vec(3, 0, -1);
+    b = vec(1, 0, -2);
+    settings['scalar k'] = -0.5;
+  },
+};
+lab.gui.add(example, 'worked example');
 
 // DRAGGING A TIP across the floor, the plane y = 0 (normal (0, 1, 0), d = 0), rounded to half meters
 // so a tip can land on exact numbers, and on the origin.

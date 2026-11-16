@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import GUI from 'three/addons/libs/lil-gui.module.min.js';
 import { add, length, normalize, scale, vec, type Vec } from './vec';
-import { createView } from './view';
+import { createView } from './view/view';
 
 // THE WORLD of the previous lesson, seen from higher up: a floor, and a ball that now moves. The
 // camera looks down at it (`lookAt`: how a camera turns is a lesson of its own, later).

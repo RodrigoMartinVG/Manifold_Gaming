@@ -14,9 +14,12 @@ export interface ProjectFile {
   changed: boolean;
 }
 
-/** `../course/parte-1/02-moverse/vec.ts` → `{ step: 'parte-1/02-moverse', name: 'vec.ts' }` (null outside a step). */
+/**
+ * `../course/parte-1/02-moverse/vec.ts` → `{ step: 'parte-1/02-moverse', name: 'vec.ts' }`, and a file in a
+ * folder of the project keeps its folder: `…/01-ventana/view/view.ts` → `view/view.ts` (null outside a step).
+ */
 function parse(path: string): { step: string; name: string } | null {
-  const m = /course\/([^/]+\/[^/]+)\/([^/]+\.ts)$/.exec(path);
+  const m = /course\/([^/]+\/[^/]+)\/(.+\.ts)$/.exec(path);
   if (!m || m[2]!.endsWith('.test.ts')) return null; // (a step's unit tests are not the reader's code)
   return { step: m[1]!, name: m[2]! };
 }
