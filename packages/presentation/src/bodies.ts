@@ -1,9 +1,22 @@
 import * as THREE from 'three';
 import type { Quat, Vec3 } from '@manifold/common';
-import { upAt, type Appearance, type Entity, type EntityId, type Shape, type World } from '@manifold/core';
+import {
+  gravityAt,
+  RapierPhysics,
+  STEP,
+  upAt,
+  type Appearance,
+  type Entity,
+  type EntityId,
+  type PhysicsBackend,
+  type Shape,
+  type World,
+} from '@manifold/core';
 import type { VariableInfo } from '@manifold/commands';
 import { surroundingsOf } from './hands';
+import { inertialize } from './inertia';
 import { animate, flinch, motion, turnBody, type ModelInstance, type Models } from './models';
+import { poseRagdoll, startRagdoll, stopRagdoll } from './ragdoll';
 import { own, ownMaterial, release } from './owned';
 import type { GamePage, Piece } from './page';
 
@@ -77,6 +90,28 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
   const meshes = new Map<EntityId, THREE.Object3D>();
   /** The model copies, by entity (their animations move on every frame). */
   const instances = new Map<EntityId, ModelInstance>();
+  // The falls (stage 4c: ragdoll.ts), in a physics of their own with the level's fixed boxes, made when
+  // the first one falls; and the way each character's last hit went (the push of its fall).
+  let falls: PhysicsBackend | null = null;
+  let fallTime = 0;
+  const lastHit = new Map<EntityId, THREE.Vector3>();
+  const fallsOf = (world: World) => {
+    if (falls) return falls;
+    falls = new RapierPhysics(gravityAt(world.gravity, [0, 0, 0]), STEP);
+    for (const e of world.entities.values())
+      if (e.body?.type === 'fixed' && (e.body.shape.kind === 'box' || e.body.shape.kind === 'compound') && e.transform)
+        falls.addBody(
+          { type: 'fixed', shape: e.body.shape },
+          { position: [...e.transform.position], rotation: [...e.transform.rotation] },
+        );
+    return falls;
+  };
+  const getUp = (model: ModelInstance) => {
+    if (!model.ragdoll || !falls) return;
+    stopRagdoll(falls, model.ragdoll);
+    model.ragdoll = null;
+    model.getUp = true;
+  };
   /** The shadows under the characters, by entity. */
   const shadows = new Map<EntityId, THREE.Mesh>();
   const shadowShape = new THREE.CircleGeometry(0.38, 24).rotateX(-Math.PI / 2);
@@ -262,8 +297,11 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
       // Only what is its own (owned.ts): not the shared box or sphere, not its model's geometry or materials.
       release(mesh);
     }
-    instances.get(id)?.mixer.stopAllAction();
+    const model = instances.get(id);
+    if (model) getUp(model);
+    model?.mixer.stopAllAction();
     instances.delete(id);
+    lastHit.delete(id);
     meshes.delete(id);
     if (!all) return;
     const shadow = shadows.get(id);
@@ -306,6 +344,9 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
     },
     welcome(session) {
       for (const id of new Set([...meshes.keys(), ...zones.keys()])) remove(id);
+      // (Another world: its own fixed boxes for the falls.)
+      falls?.dispose();
+      falls = null;
       for (const e of session.world.entities.values()) create(e);
       savePrevious(session.world);
     },
@@ -331,6 +372,24 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
         travel.addScaledVector(up, -travel.dot(up));
         if (travel.lengthSq() < 1e-9) travel.set(...target.character.facing).negate();
         flinch(model, travel.normalize(), up, ev.amount);
+        lastHit.set(ev.target, travel.clone());
+      }
+      // Down (stage 4c): it falls, moving as it moved, pushed the way its last hit went.
+      if (ev.type === 'down') {
+        const model = instances.get(ev.target);
+        const target = world.entities.get(ev.target);
+        if (!model || model.ragdoll || !target?.character) return;
+        const push = lastHit.get(ev.target) ?? new THREE.Vector3();
+        const v = target.character.velocity;
+        model.ragdoll = startRagdoll(fallsOf(world), model.object, [
+          v[0] + 2.5 * push.x,
+          v[1] + 2.5 * push.y,
+          v[2] + 2.5 * push.z,
+        ]);
+      }
+      if (ev.type === 'revived') {
+        const model = instances.get(ev.target);
+        if (model) getUp(model);
       }
     },
     frame({ world, alpha, dt, hero }) {
@@ -364,15 +423,32 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
       }
       // A character's animations, from its state and how it really moved in its last step (the view
       // reads the world, never writes it).
+      // The falls, on by the world's time (at most five steps a frame), and their bodies into their bones.
+      if (falls && [...instances.values()].some((m) => m.ragdoll)) {
+        fallTime = Math.min(fallTime + time, 5 * STEP);
+        while (fallTime >= STEP) {
+          falls.step();
+          fallTime -= STEP;
+        }
+      }
       for (const [id, model] of instances) {
         const e = world.entities.get(id);
         const t = e?.transform;
         if (!e?.character || !t) continue;
+        if (model.ragdoll && falls) {
+          poseRagdoll(falls, model.ragdoll);
+          // (What it drew, remembered: getting up starts from where it lies.)
+          inertialize(model.bones, model.inertia, false, time);
+          continue;
+        }
         const before = previous.get(id);
         const moved = before ? motion(before.position, t.position, e.character) : ([0, 0, 0] as const);
         const around = surroundingsOf(world, e, (other) => meshes.get(other));
         animate(model, e.character, upAt(world, t.position), [...moved], turning.get(id) ?? 0, time, around);
       }
+      // For the browser tests: how many fall now (stage 4c), written when it changes.
+      const falling = String([...instances.values()].filter((m) => m.ragdoll).length);
+      if (page.container.dataset.falls !== falling) page.container.dataset.falls = falling;
       // For the browser tests (probe.ts): the animation that weighs most in the player's model ('' while
       // it is drawn with its shape), written when it changes.
       const clip = (hero && instances.get(hero.id)?.playing) || '';

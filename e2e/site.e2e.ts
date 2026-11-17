@@ -1179,6 +1179,33 @@ test('the charge (stage 4b): F held, the HUD shows the throw filling up; let go,
   expect(list).toEqual([]);
 });
 
+test('the training dummy (stage 4c): hit by balls it falls, a ragdoll, and three seconds later it is back on its feet', async ({
+  page,
+}) => {
+  test.setTimeout(150_000);
+  const list = errors(page);
+  await page.goto('jugar/dojo/moves/#recipe=view.camera+free');
+  await expect.poll(async () => (await position(page, 'player')).length, { timeout: 15_000 }).toBe(3);
+  await afterSteps(page, 60);
+  // Three meters from the dummy (at x = −8), turned to it (A walks to −X with the still camera, and the
+  // character looks where it walks), then a tap of F every so often.
+  await page.keyboard.press('Backquote');
+  await typeInConsole(page, 'dojo.goto -4.6 1 2');
+  await page.keyboard.press('Escape');
+  await afterSteps(page, 30);
+  await page.keyboard.down('KeyA');
+  await afterSteps(page, 4);
+  await page.keyboard.up('KeyA');
+  const falls = () => page.locator('#game').getAttribute('data-falls');
+  for (let i = 0; i < 40 && (await falls()) !== '1'; i++) {
+    await page.keyboard.press('KeyF');
+    await afterSteps(page, 25);
+  }
+  expect(await falls()).toBe('1');
+  await expect.poll(falls, { timeout: 30_000 }).toBe('0');
+  expect(list).toEqual([]);
+});
+
 test('its hands on the tower (stage 4a): on its wall while it climbs, on its top before it gets over; show.ik draws them', async ({
   page,
 }) => {

@@ -18,6 +18,7 @@ import { footPaths, LEGS, newFeet, plant, type Feet, type FootPaths } from './fe
 import { ARMS, grip, newHands, type Hands, type Surroundings } from './hands';
 import { limbOf, rotateInWorld, type Limb } from './ik';
 import { inertialize, newInertia, type Inertia } from './inertia';
+import type { Ragdoll } from './ragdoll';
 
 /** A copy of a model, ready to draw, and the animations it plays. */
 export interface ModelInstance {
@@ -37,9 +38,22 @@ export interface ModelInstance {
   readonly hands: Hands;
   /** Its bones, and what dies out of the pose it showed when a gesture starts (stage 4b: inertia.ts). */
   readonly bones: readonly THREE.Object3D[];
+  /**
+   * The pose the mixer last wrote into its bones (their turns and places, in the bones' order). Put back
+   * before each update: the mixer writes a bone only when its animation's value changes, and what the
+   * layers after it did to a bone that holds still (the IK, the aim, a fall) would otherwise stay, and
+   * add up (stage 4c found it: a ragdoll's hips stayed lying; the aim's head, running, turned on).
+   */
+  readonly animated: { turns: THREE.Quaternion[]; places: THREE.Vector3[] };
   readonly inertia: Inertia;
   /** How many gestures it has seen start (the gait's count): one more, and the pose changes by inertia. */
   gestures: number;
+  /**
+   * Its fall (stage 4c: ragdoll.ts), while it is down: its bones are the ragdoll's, and its animations
+   * wait. `getUp`: it came back, and the pose its fall left dies out by inertia at its next frame.
+   */
+  ragdoll: Ragdoll | null;
+  getUp: boolean;
   /** A hit, drawn (stage 4c): the spine's spring, its axis in the body's frame, its angle and its speed. */
   readonly flinch: { axis: THREE.Vector3; angle: number; speed: number };
   /** Its aim as drawn (stage 4b): the pitch it shows (degrees), and the bones it is spread over. */
@@ -136,9 +150,12 @@ export function modelInstance(model: { scene: THREE.Object3D; clips: readonly TH
     arms,
     hands: newHands(),
     bones: bonesOf(object),
+    animated: { turns: bonesOf(object).map((b) => b.quaternion.clone()), places: bonesOf(object).map((b) => b.position.clone()) },
     inertia: newInertia(),
     gestures: 0,
     flinch: { axis: new THREE.Vector3(1, 0, 0), angle: 0, speed: 0 },
+    ragdoll: null,
+    getUp: false,
     aim: { pitch: 0, spine: object.getObjectByName('spine') ?? null, head: object.getObjectByName('head') ?? null },
     playing: null,
   };
@@ -305,11 +322,21 @@ export function animate(
     action.time =
       'phase' in at ? at.phase * length : clip === 'flip' || clip === 'land' ? Math.min(at.seconds, length) : at.seconds % length;
   }
+  // The mixer's last pose back in the bones, then its update; what it wrote, remembered.
+  model.bones.forEach((b, i) => {
+    b.quaternion.copy(model.animated.turns[i]!);
+    b.position.copy(model.animated.places[i]!);
+  });
   model.mixer.update(0);
+  model.bones.forEach((b, i) => {
+    model.animated.turns[i]!.copy(b.quaternion);
+    model.animated.places[i]!.copy(b.position);
+  });
   // A gesture started (a somersault, a landing): its pose at once, and the one drawn until now dying out
   // (inertia.ts: a cross-fade of 0.05 s from the fall's arms-up pose snapped the landing).
-  const started = model.gait.started.count !== model.gestures;
+  const started = model.gait.started.count !== model.gestures || model.getUp;
   model.gestures = model.gait.started.count;
+  model.getUp = false;
   inertialize(model.bones, model.inertia, started, dt);
   // And the feet where the cycles' feet are, mixed; on the ground, they stay there (feet.ts).
   const where = { L: footing(model.gait, 'L', c.grounded), R: footing(model.gait, 'R', c.grounded) };

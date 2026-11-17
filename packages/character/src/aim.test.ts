@@ -65,6 +65,25 @@ describe('the aim, shown (stage 4b)', () => {
     }
   });
 
+  test('running, where the head holds still in the animation, the aim does not add up frame after frame (stage 4c found it)', () => {
+    // The run's head is a constant lean: the mixer, which writes a bone only when its value changes,
+    // left the aim's tilt of the last frame in it, and the next one added to it.
+    const running = (pitch: number) => ({ ...standing(pitch), velocity: [0, 0, -7.5] }) as unknown as Character;
+    const at = (pitch: number) => {
+      const copy = modelInstance(model);
+      // (Seven seconds: the animations' weights settle to their last bit in about four, and only then
+      // does the head's value stop changing at all.)
+      for (let i = 0; i < 420; i++) {
+        copy.object.position.z -= 7.5 / 60;
+        animate(copy, running(pitch), [0, 1, 0], [0, 0, -7.5], 0, DT);
+      }
+      return turnOf(copy, 'head_socket');
+    };
+    const level = at(0);
+    const aimed = at(30);
+    expect(THREE.MathUtils.radToDeg(aimed.angleTo(level))).toBeCloseTo(30, 0);
+  });
+
   test('the drawn aim follows the world’s at 720°/s: a flick is quick, not a jump; paused, it stays', () => {
     const copy = modelInstance(model);
     animate(copy, standing(30), [0, 1, 0], [0, 0, 0], 0, DT);

@@ -10,7 +10,8 @@
     "./hands": "./src/hands.ts",
     "./ik": "./src/ik.ts",
     "./locomotion": "./src/locomotion.ts",
-    "./models": "./src/models.ts"
+    "./models": "./src/models.ts",
+    "./ragdoll": "./src/ragdoll.ts"
   },
   "dependencies": {
     "@manifold/commands": "0.0.0",

@@ -40,10 +40,24 @@ export interface Inertia {
   /** The time between the last two poses (s). */
   step: number;
   offsets: Map<string, Offset>;
+  /**
+   * And the bones' places (stage 4c: the hips, back from where a fall left them): the last drawn, and
+   * each one's offset dying out the same way, along its direction (its angle is its length).
+   */
+  lastPlaces: Map<string, THREE.Vector3>;
+  placeOffsets: Map<string, Offset>;
   time: number;
 }
 
-export const newInertia = (): Inertia => ({ last: new Map(), before: new Map(), step: 0, offsets: new Map(), time: 0 });
+export const newInertia = (): Inertia => ({
+  last: new Map(),
+  before: new Map(),
+  step: 0,
+  offsets: new Map(),
+  lastPlaces: new Map(),
+  placeOffsets: new Map(),
+  time: 0,
+});
 
 /** The polynomial for an offset of angle `x0` changing at `v0` (rad/s), to die out within `most` seconds. */
 export function decay(x0: number, v0: number, most = INERTIA_TIME): Omit<Offset, 'axis'> {
@@ -97,21 +111,38 @@ export function inertialize(bones: readonly THREE.Object3D[], inertia: Inertia, 
       }
       inertia.offsets.set(bone.name, { axis, ...decay(x0, v0) });
     }
+    // The places that moved (the hips: up from the floor, back under the body): from where they were drawn.
+    inertia.placeOffsets.clear();
+    for (const bone of bones) {
+      const last = inertia.lastPlaces.get(bone.name);
+      if (!last) continue;
+      const away = last.clone().sub(bone.position);
+      const length = away.length();
+      if (length < 1e-4) continue;
+      inertia.placeOffsets.set(bone.name, { axis: away.divideScalar(length), ...decay(length, 0) });
+    }
   }
-  if (dt > 0 && inertia.offsets.size > 0) inertia.time += dt;
+  if (dt > 0 && (inertia.offsets.size > 0 || inertia.placeOffsets.size > 0)) inertia.time += dt;
   for (const bone of bones) {
     const o = inertia.offsets.get(bone.name);
-    if (!o) continue;
-    const x = angleAt(o, inertia.time);
-    if (x !== 0) bone.quaternion.premultiply(turn.setFromAxisAngle(o.axis, x));
+    const x = o ? angleAt(o, inertia.time) : 0;
+    if (o && x !== 0) bone.quaternion.premultiply(turn.setFromAxisAngle(o.axis, x));
+    const p = inertia.placeOffsets.get(bone.name);
+    const d = p ? angleAt(p, inertia.time) : 0;
+    if (p && d !== 0) bone.position.addScaledVector(p.axis, d);
   }
-  if (inertia.offsets.size > 0 && [...inertia.offsets.values()].every((o) => inertia.time >= o.t1)) inertia.offsets.clear();
+  const done = (m: Map<string, Offset>) => [...m.values()].every((o) => inertia.time >= o.t1);
+  if ((inertia.offsets.size > 0 || inertia.placeOffsets.size > 0) && done(inertia.offsets) && done(inertia.placeOffsets)) {
+    inertia.offsets.clear();
+    inertia.placeOffsets.clear();
+  }
   // What was drawn, remembered (paused, the same frame again: not twice).
   if (dt > 0) {
     for (const bone of bones) {
       const last = inertia.last.get(bone.name);
       if (last) inertia.before.set(bone.name, last);
       inertia.last.set(bone.name, bone.quaternion.clone());
+      inertia.lastPlaces.set(bone.name, bone.position.clone());
     }
     inertia.step = dt;
   }

@@ -184,6 +184,11 @@ export interface PhysicsBackend {
   ): { movement: Vec3; grounded: boolean; ceiling: boolean; touched: number[] };
   /** Changes the shape a character's controller moves (stage 4b: crouching), and where it is from the body's center (in its frame). */
   setCharacterPose(handle: number, shape: Shape, offset: Vec3): void;
+  /**
+   * Joins two bodies at a point (stage 4c: a ragdoll's, in the presentation's physics): a ball joint,
+   * each anchor in its body's own frame; the two no longer collide with each other.
+   */
+  join(a: number, b: number, anchorA: Vec3, anchorB: Vec3): void;
   castRay(from: Vec3, direction: Vec3, reach: number, o?: QueryOptions): PhysicsHit | null;
   castShape(shape: Shape, position: Vec3, rotation: Quat, direction: Vec3, reach: number, o?: QueryOptions): PhysicsHit | null;
   motionOf(handle: number): { kinematic: boolean; linear: Vec3; angular: Vec3; center: Vec3 } | null;
@@ -388,6 +393,14 @@ export class RapierPhysics implements PhysicsBackend {
     }
     const movement = this.stopAtUnseen(collider, handle, toVec(c.computedMovement()));
     return { movement, grounded: c.computedGrounded(), ceiling, touched };
+  }
+
+  join(a: number, b: number, anchorA: Vec3, anchorB: Vec3) {
+    const first = this.world.getRigidBody(a);
+    const second = this.world.getRigidBody(b);
+    if (!first || !second) return;
+    const joint = this.world.createImpulseJoint(RAPIER.JointData.spherical(v(anchorA), v(anchorB)), first, second, true);
+    joint.setContactsEnabled(false);
   }
 
   setCharacterPose(handle: number, shape: Shape, offset: Vec3) {
