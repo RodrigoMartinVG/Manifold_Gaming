@@ -3,9 +3,10 @@ import { defineConfig, devices } from '@playwright/test';
 const BASE = 'http://localhost:4321/Manifold_Gaming/';
 
 /**
- * What Firefox and WebKit run: the determinism check always; the physics tests, which draw, locally, and
- * in continuous integration only in the step that checks their WebGL on Linux (`DRAWING: 1`, stage
- * 4.5's close: not blocking until it has passed there).
+ * What Firefox and WebKit run: the determinism check, and the physics tests, which draw. WebKit's drawing
+ * passed on Linux in continuous integration (2026-11-17, 9 of 9), so it runs them everywhere. Firefox's
+ * did not (its pages never stepped, 9 of 9: its WebGL on a machine without a GPU); in continuous
+ * integration it runs them only in the step that checks it (`DRAWING: 1`, not blocking), locally always.
  */
 /** Chromium, as every test but Firefox's and WebKit's runs in. */
 const CHROMIUM = {
@@ -14,7 +15,8 @@ const CHROMIUM = {
   launchOptions: { args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] },
 };
 
-const alsoDrawing = process.env.CI && !process.env.DRAWING ? ['determinism.e2e.ts'] : ['determinism.e2e.ts', 'physics.e2e.ts'];
+const drawing = ['determinism.e2e.ts', 'physics.e2e.ts'];
+const firefoxDrawing = process.env.CI && !process.env.DRAWING ? ['determinism.e2e.ts'] : drawing;
 
 /**
  * The tests IN A REAL BROWSER (decision 0001): the site built as it is published, every page opens
@@ -62,10 +64,14 @@ export default defineConfig({
     { name: 'chromium-quiet', grep: /@quiet/, dependencies: ['chromium'], use: CHROMIUM },
     // Determinism across JavaScript engines (decision 0012): Firefox (SpiderMonkey) and WebKit
     // (JavaScriptCore, Safari's) run the determinism check, which needs no WebGL (the reference
-    // replays played without drawing), also in continuous integration; and the physics tests, which
-    // draw, only locally, before pushing, until these browsers' WebGL is checked on Linux.
-    { name: 'firefox', testMatch: alsoDrawing, use: { ...devices['Desktop Firefox'] } },
-    { name: 'webkit', testMatch: alsoDrawing, use: { ...devices['Desktop Safari'] } },
+    // replays played without drawing), and the physics tests, which draw (Firefox's, see above).
+    // Firefox turns WebGL off on a renderer in software unless told: told (its pref), to try it on Linux.
+    {
+      name: 'firefox',
+      testMatch: firefoxDrawing,
+      use: { ...devices['Desktop Firefox'], launchOptions: { firefoxUserPrefs: { 'webgl.force-enabled': true } } },
+    },
+    { name: 'webkit', testMatch: drawing, use: { ...devices['Desktop Safari'] } },
   ],
   webServer: {
     // (Vite's server and not `astro preview`: outside a terminal, Astro 7 goes to the background

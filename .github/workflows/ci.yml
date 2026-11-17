@@ -44,19 +44,18 @@ jobs:
         run: npm run perf
       - name: Browsers for the tests
         run: npx playwright install --with-deps chromium firefox webkit
-      # Every test in Chromium; in Firefox and WebKit, the determinism check (the reference replays
-      # played without drawing: it needs no WebGL). Their physics tests, which draw, run locally
-      # before pushing (playwright.config.ts), and in the next step.
+      # Every test in Chromium; in WebKit, the determinism check and the physics tests, which draw (its
+      # WebGL passed on Linux); in Firefox, the determinism check (its drawing, in the next step).
       - name: Browser tests (builds the site)
         run: npm run e2e
-      # Firefox's and WebKit's physics tests, which draw (stage 4.5's close): their WebGL on Linux,
-      # checked here before it is required. Not blocking yet: once it has passed here, this step loses
-      # `continue-on-error` and the two browsers run them with the rest.
-      - name: Firefox and WebKit drawing (checking their WebGL on Linux)
+      # Firefox's physics tests, which draw (stage 4.5's close): its WebGL on Linux, checked here before
+      # it is required (its pages never stepped on 2026-11-17; now with WebGL forced, its pref). Not
+      # blocking yet: once it has passed here, this step goes and Firefox runs them with the rest.
+      - name: Firefox drawing (checking its WebGL on Linux)
         continue-on-error: true
         env:
           DRAWING: '1'
-        run: npx playwright test e2e/physics.e2e.ts --project=firefox --project=webkit
+        run: npx playwright test e2e/physics.e2e.ts --project=firefox
       - name: Keep the built site
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@v5
