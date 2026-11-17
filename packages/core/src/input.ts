@@ -19,6 +19,12 @@ export interface InputAction {
   description: string;
   /** A count's most (its least is 0). */
   max?: number;
+  /**
+   * How fine it travels (stage 4.5a): a direction's grid in degrees (1 if not said: where to go), an
+   * axis's grid (0.01). Where to look and to aim go finer: in whole degrees, a first person's aim
+   * moved in jumps of a degree (35 cm at 20 m), and only once the camera had turned a degree.
+   */
+  resolution?: number;
 }
 
 /** What the character system reads (stages 1b and 1c2): every game has them. */
@@ -30,12 +36,16 @@ export const CHARACTER_ACTIONS: readonly InputAction[] = [
   {
     name: 'face',
     kind: 'direction',
-    description: 'where to look, if it is given (inside the turn the platforms gave the character: faceFor)',
+    description:
+      'where to look, if it is given (inside the turn the platforms gave the character: faceFor), to a tenth of a degree',
+    resolution: 0.1,
   },
   {
     name: 'pitch',
     kind: 'axis',
-    description: 'where to aim, above (+) or below (−) where it looks, as a fraction of a quarter turn (stage 4b)',
+    description:
+      'where to aim, above (+) or below (−) where it looks, as a fraction of a quarter turn (stage 4b), to a thousandth (0.09°)',
+    resolution: 0.001,
   },
   { name: 'jump', kind: 'button', description: 'jumping' },
   { name: 'run', kind: 'button', description: 'running' },
@@ -114,30 +124,37 @@ export function direction(degrees: number, amount = 1): Vec3 {
 }
 
 /**
- * The whole degrees of a direction on the ground (its x and z), from forward (−Z) towards the right
- * (+X), from 0 to 359: the closest of the 360 directions. Without the browser's `atan2` (it may give
- * other bits in another browser): from the four quarters, it goes towards the one it looks most like,
- * halving the step, comparing with our own sine and cosine.
+ * The degrees of a direction on the ground (its x and z), from forward (−Z) towards the right (+X),
+ * from 0 to under 360, on a grid of `resolution` degrees (whole ones if not said: the closest of the
+ * 360 directions; a tenth, of 3,600). Without the browser's `atan2` (it may give other bits in another
+ * browser): from the four quarters, it goes towards the one it looks most like, halving the step,
+ * comparing with our own sine and cosine. It counts in steps of the grid, whole numbers, and divides
+ * once at the end: a tenth's 12.3 is 123 / 10, the same number its text "12.3" is read as.
  */
-export function degreesOf(x: number, z: number): number {
-  const along = (d: number) => {
-    const [s, c] = sinCosDegrees(d);
+export function degreesOf(x: number, z: number, resolution = 1): number {
+  const per = Math.round(1 / resolution);
+  const along = (u: number) => {
+    const [s, c] = sinCosDegrees(u / per);
     return x * s - z * c;
   };
+  const quarter = 90 * per;
   let best = 0;
-  for (const d of [90, 180, 270]) if (along(d) > along(best)) best = d;
-  for (const step of [45, 23, 12, 6, 3, 2, 1]) for (const d of [best - step, best + step]) if (along(d) > along(best)) best = d;
-  return ((best % 360) + 360) % 360;
+  for (const u of [quarter, 2 * quarter, 3 * quarter]) if (along(u) > along(best)) best = u;
+  for (let step = Math.ceil(quarter / 2); ; step = Math.ceil(step / 2)) {
+    for (const u of [best - step, best + step]) if (along(u) > along(best)) best = u;
+    if (step === 1) break;
+  }
+  return (((best % (4 * quarter)) + 4 * quarter) % (4 * quarter)) / per;
 }
 
-/** How close two directions on the ground must be to count as the same one asked again: within 1°. */
-const SAME_DIRECTION = sinCosDegrees(1)[1];
-
-const hundredth = (x: number) =>
+const onGrid = (x: number, resolution: number) => {
+  const per = Math.round(1 / resolution);
   // `|| 0`: a little negative number rounds to −0, which is written "0" and read back as +0; the two
   // have different bits, so a replay of it gave another hash (stage 1c2). Here it is +0 from the start.
   // Something that is not a number (NaN, infinity) is zero: it cannot enter the world.
-  Number.isFinite(x) ? Math.round(x * 100) / 100 || 0 : 0;
+  return Number.isFinite(x) ? Math.round(x * per) / per || 0 : 0;
+};
+const hundredth = (x: number) => onGrid(x, 0.01);
 
 /**
  * An input as it enters the world and travels (in a replay, in a link, over the network): only the
@@ -145,10 +162,11 @@ const hundredth = (x: number) =>
  * degrees, and only what is not zero or not held. Small, comparable, and without the noise of a
  * camera that turns a little every frame. In the declared order: so it is written the same way.
  *
- * A direction changes only when it moves 1° or more from the one `before` (stage 2.5c): a camera
- * that turns slowly, or a hand on the mouse that trembles around the edge between two degrees, does
- * not ask for a new direction on every step. (Measured on the course, 30 s walking with the camera
- * turning: a replay link of 5,800 characters became half.)
+ * A direction changes only when it moves a step of its grid or more from the one `before` (stage
+ * 2.5c): a camera that turns slowly, or a hand on the mouse that trembles around the edge between two
+ * of them, does not ask for a new direction on every step. (Measured on the course, 30 s walking with
+ * the camera turning: a replay link of 5,800 characters became half.) Where to go keeps whole degrees;
+ * where to look and to aim go finer (stage 4.5a: `resolution`).
  */
 export function normalizeInput(input: PlayerInput, actions: readonly InputAction[], before: PlayerInput = {}): PlayerInput {
   const out: Record<string, InputValue> = {};
@@ -157,7 +175,7 @@ export function normalizeInput(input: PlayerInput, actions: readonly InputAction
     if (a.kind === 'button') {
       if (v === true) out[a.name] = true;
     } else if (a.kind === 'axis') {
-      const x = typeof v === 'number' ? hundredth(Math.max(-1, Math.min(1, v))) : 0;
+      const x = typeof v === 'number' ? onGrid(Math.max(-1, Math.min(1, v)), a.resolution ?? 0.01) : 0;
       if (x !== 0) out[a.name] = x;
     } else if (a.kind === 'count') {
       const n = countOf(input, a.name, a.max ?? 0);
@@ -167,16 +185,17 @@ export function normalizeInput(input: PlayerInput, actions: readonly InputAction
       const length = Math.sqrt(v[0] * v[0] + v[2] * v[2]);
       const amount = Number.isFinite(length) ? hundredth(Math.min(1, length)) : 0;
       if (amount === 0) continue;
-      let degrees = degreesOf(v[0], v[2]);
+      const resolution = a.resolution ?? 1;
+      let degrees = degreesOf(v[0], v[2], resolution);
       const exact = direction(degrees, amount);
-      // Already one of the 360 (it came normalized: from a client, from a replay): as it is. If not,
-      // within 1° of the one asked for before, the same one.
-      const onGrid = exact[0] === v[0] && exact[1] === v[1] && exact[2] === v[2];
+      // Already one of the grid's (it came normalized: from a client, from a replay): as it is. If not,
+      // within a step of the grid of the one asked for before, the same one.
+      const normalized = exact[0] === v[0] && exact[1] === v[1] && exact[2] === v[2];
       const was = before[a.name];
-      if (!onGrid && Array.isArray(was)) {
+      if (!normalized && Array.isArray(was)) {
         const wasLength = Math.sqrt(was[0] * was[0] + was[2] * was[2]);
-        if (wasLength > 0 && (v[0] * was[0] + v[2] * was[2]) / (length * wasLength) > SAME_DIRECTION)
-          degrees = degreesOf(was[0], was[2]);
+        if (wasLength > 0 && (v[0] * was[0] + v[2] * was[2]) / (length * wasLength) > sinCosDegrees(resolution)[1])
+          degrees = degreesOf(was[0], was[2], resolution);
       }
       out[a.name] = direction(degrees, amount);
     } else if (Array.isArray(v) && v.length === 3) {

@@ -1,15 +1,20 @@
 import * as THREE from 'three';
 import type { CommandInfo, VariableInfo } from '@manifold/commands';
 import type { Quat, Vec3 } from '@manifold/common';
-import { upAt, type World } from '@manifold/core';
+import { eyeHeightOf, upAt, type World } from '@manifold/core';
 import type { Bodies } from './bodies';
 import type { PageMatch } from './match';
 import type { GamePage, Piece } from './page';
 
 export type CameraMode = 'follow' | 'chase' | 'aim' | 'first' | 'free';
 
-/** Where a character's eyes are above its center (stage 4g: its head's hit part, where a game's shots may leave). */
+/**
+ * Where a character's eyes are above its center, standing (stage 4g: its head's hit part, where a game's
+ * shots may leave). In each way of moving, `eyeHeightOf` (stage 4.5a: crouched, lower).
+ */
 export const EYES = 0.62;
+/** How quickly a first-person camera follows the eyes going up or down (crouching, standing up): a time constant (s). */
+const EYES_FOLLOW = 0.08;
 /** The field of view what it holds is drawn with, in first person (degrees), and where its right hand is, in the view (m). */
 const VIEW_FOV = 50;
 const VIEW_HOLD = new THREE.Vector3(0.17, -0.15, -0.42);
@@ -59,6 +64,22 @@ export const CAMERA_VARIABLES = {
     scope: 'view',
     type: { kind: 'boolean' },
     default: false,
+  },
+  fov: {
+    name: 'view.fov',
+    description:
+      "How much the camera takes in, top to bottom, in degrees (stage 4.5a): 60 as it comes, about 92° across a 16:9 screen, a first person's usual; more takes in more at the edges, and a wide one stretches them.",
+    scope: 'view',
+    type: { kind: 'number', min: 40, max: 90 },
+    default: 60,
+  },
+  crosshair: {
+    name: 'view.crosshair',
+    description:
+      "A small mark at the screen's middle while aiming (`view.camera aim` or `first`, stage 4.5a): where a shot from the eyes goes.",
+    scope: 'view',
+    type: { kind: 'boolean' },
+    default: true,
   },
   calm: {
     name: 'view.calm',
@@ -158,7 +179,7 @@ export function mountCamera(
   /** The pointers on the screen (a finger, the mouse), where they were at the last move, and their buttons. */
   const pointers = new Map<number, { x: number; y: number; buttons: number; at: number }>();
   /** The player's settings (stage 3i): how fast the mouse and the stick turn it, whether up is down, and less motion. */
-  const settings = { mouse: 1, stick: 1, invert: false, calm: false };
+  const settings = { mouse: 1, stick: 1, invert: false, calm: false, crosshair: true };
   /**
    * AGAINST WALLS (stage 3h): how far the camera was brought in front of a wall at the last frame (taken
    * back at the start of the next, so the leash keeps its own distance: it never learns the wall's), and
@@ -179,6 +200,14 @@ export function mountCamera(
    * the character takes nothing, read as the controls locking up).
    */
   let atEyes = false;
+  /** How high its eyes are drawn above its center (eased towards its pose's: stage 4.5a), or null: none yet. */
+  let eyeHeight: number | null = null;
+  // THE CROSSHAIR (stage 4.5a, the author asked for one to aim by): a dot and four short ticks at the
+  // screen's middle, while aiming and standing.
+  const crosshair = document.createElement('div');
+  crosshair.className = 'mg-crosshair';
+  crosshair.hidden = true;
+  if (orbiting) page.container.append(crosshair);
   /** Whether the mouse turns it, taken with a click: aiming, from behind or from the eyes. */
   const aiming = () => mode === 'aim' || mode === 'first';
   // WHAT IT HOLDS, IN FIRST PERSON (stage 4g): a scene and a camera of its own, drawn over the world
@@ -366,6 +395,14 @@ export function mountCamera(
     page.registry.declareVariable({ ...CAMERA_VARIABLES.stick, onChange: (v) => (settings.stick = Number(v)) });
     page.registry.declareVariable({ ...CAMERA_VARIABLES.invert, onChange: (v) => (settings.invert = v === true) });
     page.registry.declareVariable({ ...CAMERA_VARIABLES.calm, onChange: (v) => (settings.calm = v === true) });
+    page.registry.declareVariable({
+      ...CAMERA_VARIABLES.fov,
+      onChange: (v) => {
+        camera.fov = Number(v);
+        camera.updateProjectionMatrix();
+      },
+    });
+    page.registry.declareVariable({ ...CAMERA_VARIABLES.crosshair, onChange: (v) => (settings.crosshair = v === true) });
     page.registry.declareCommand({
       ...CAMERA_COMMANDS.reset,
       run: (_, out) => {
@@ -574,18 +611,26 @@ export function mountCamera(
       const heroDrawn = hero ? bodies.meshes.get(hero.id) : undefined;
       if (shown && shown !== heroDrawn) shown.visible = true;
       shown = heroDrawn;
-      atEyes = mode === 'first' && (hero?.health?.down ?? -1) < 0;
+      const standing = (hero?.health?.down ?? -1) < 0;
+      atEyes = mode === 'first' && standing;
       if (heroDrawn) heroDrawn.visible = !atEyes;
       const heroModel = hero ? bodies.models.get(hero.id) : undefined;
       if (heroModel) heroModel.holding.inView = atEyes;
-      if (atEyes && heroDrawn && hero?.transform) {
+      crosshair.hidden = !(settings.crosshair && standing && hero?.character && (mode === 'aim' || mode === 'first'));
+      if (atEyes && heroDrawn && hero?.transform && hero.character && hero.body) {
         const up = new THREE.Vector3(...upAt(world, hero.transform.position));
-        const eyes = heroDrawn.position.clone().addScaledVector(up, EYES);
+        // The eyes where its head is in the way it moves now (crouched, lower), eased there.
+        const wants = eyeHeightOf(hero.character, hero.body);
+        eyeHeight = eyeHeight === null ? wants : eyeHeight + (wants - eyeHeight) * (1 - Math.exp(-dt / EYES_FOLLOW));
+        const eyes = heroDrawn.position.clone().addScaledVector(up, eyeHeight);
         const way = target.clone().sub(camera.position).normalize();
         firstAway.copy(eyes).sub(camera.position);
         camera.position.copy(eyes);
         camera.lookAt(eyes.clone().add(way));
-      } else firstAway.set(0, 0, 0);
+      } else {
+        firstAway.set(0, 0, 0);
+        eyeHeight = null;
+      }
     },
     stop() {
       canvas.removeEventListener('pointerdown', onDown);
@@ -597,6 +642,7 @@ export function mountCamera(
       canvas.removeEventListener('wheel', onWheel);
       canvas.removeEventListener('contextmenu', noMenu);
       document.removeEventListener('mousemove', onAimMove);
+      crosshair.remove();
       if (document.pointerLockElement === canvas) document.exitPointerLock();
     },
   };

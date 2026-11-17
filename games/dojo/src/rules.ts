@@ -133,8 +133,32 @@ export const GUARD = Object.freeze({
 /** Where a character's eyes are (stage 4g), above its center (m): its head's (the games' character's hit parts). */
 export const EYE = 0.62;
 
+/**
+ * HOW A GUARD WITH A DART OR A BOLT FIGHTS (stage 4g; stage 4.5a made it each room's data): how long it
+ * takes to see you before its first shot (steps; at once if you just hit it), how often it shoots
+ * (steps), how much of the way to you its aim goes each step (1: dead on), and how far it shoots (m).
+ * A room changes them from its recipe, with `dojo.guards.see` and the rest: world values, which enter
+ * at a step, so replays have them. A guard that was never told fights as `GUNNER` says, and a new one
+ * fights as the guards already there.
+ *
+ * Why these: the first numbers, half a second to see and one shot a second dead on, brought a player
+ * down in the arena's open in a second and a half, over and over (the author found no time to play).
+ * An aim that goes 15% of the way each step catches one who stands still; one who keeps moving it
+ * trails, at a walk by v·Δt·(1 − k)/k ≈ 0.42 m (about the body's width), and misses more often than
+ * not. Measured in the arena's open over 30 s, before and after: standing still, down 6 times (half
+ * the time down) and then once, at 4.8 s; going side to side, 17 darts of 18 struck and then 4 of 19.
+ */
+export type Gunner = { see: number; every: number; aim: number; range: number };
+export const GUNNER: Readonly<Gunner> = Object.freeze({ see: 60, every: 90, aim: 0.15, range: 18 });
+const GUNNER_KEY = 'dojo.gunner';
+export const gunnerOf = (e: Entity): Readonly<Gunner> => component<Gunner>(e, GUNNER_KEY) ?? GUNNER;
+const guardsOf = (world: World) => [...world.entities.values()].filter((e) => e.brain?.name === 'dojo.guard');
+
 export function guard(world: World, at: Vec3, facing: Vec3, route: string | null = null, kind: WeaponKind = 'stick'): Entity {
-  const guards = [...world.entities.values()].filter((e) => e.brain?.name === 'dojo.guard');
+  const guards = guardsOf(world);
+  // (A new guard fights as those already there, if a room told them how: stage 4.5a.)
+  const like = guards[0];
+  const told = like && component<Gunner>(like, GUNNER_KEY);
   const player = GUARD.firstPlayer + Math.max(-1, ...guards.map((e) => e.character!.player - GUARD.firstPlayer)) + 1;
   const parts = characterParts({ player, facing, color: GUARD.color });
   const nearest = (): string | null => {
@@ -158,10 +182,13 @@ export function guard(world: World, at: Vec3, facing: Vec3, route: string | null
     body: parts.body,
     character: parts.character,
     appearance: parts.appearance,
-    health: { most: GUARD.health },
+    health: { most: like?.health?.most ?? GUARD.health },
     watcher: { range: GUARD.range, cone: sinCosDegrees(GUARD.degrees / 2)[1], threshold: GUARD.threshold },
     brain: { name: 'dojo.guard', route: route ?? nearest() },
-    game: { [WEAPON]: { kind, ready: 0, strike: 0, struck: [] } satisfies Weapon },
+    game: {
+      [WEAPON]: { kind, ready: 0, strike: 0, struck: [] } satisfies Weapon,
+      ...(told ? { [GUNNER_KEY]: { ...told } satisfies Gunner } : {}),
+    },
   });
 }
 
@@ -698,6 +725,65 @@ export function createDojo(levels: Readonly<Record<string, Level>>, brains: Read
         default: DEFAULT_MOVEMENT.air.control,
         onWorld(world, value) {
           for (const e of world.entities.values()) if (e.character) e.character.movement.air.control = Number(value);
+        },
+      });
+      // How the guards with a dart or a bolt fight (stage 4.5a): each room's, from its recipe.
+      const gunners = (name: keyof Gunner, description: string, scale: number, min: number, max: number) => {
+        // (Seconds become whole steps; the aim, a share, keeps three decimals.)
+        const told = (v: number) => (scale === 1 ? Math.round(v * 1000) / 1000 : Math.round(v * scale));
+        registry.declareVariable({
+          name: `dojo.guards.${name}`,
+          description,
+          scope: 'world',
+          type: { kind: 'number', min, max },
+          default: GUNNER[name] / scale,
+          onWorld(world, value) {
+            for (const e of guardsOf(world))
+              e.game = { ...e.game, [GUNNER_KEY]: { ...gunnerOf(e), [name]: told(Number(value)) } };
+          },
+        });
+      };
+      gunners(
+        'see',
+        'How long a guard with a dart or a bolt takes to see you before its first shot, in seconds (at once if you just hit it). Every guard, at a step (stage 4.5a).',
+        1 / STEP,
+        0,
+        10,
+      );
+      gunners(
+        'every',
+        'How often a guard with a dart or a bolt shoots, in seconds between shots. Every guard, at a step (stage 4.5a).',
+        1 / STEP,
+        0.2,
+        10,
+      );
+      gunners(
+        'aim',
+        "How much of the way to you a guard's aim goes each step: 1 is dead on; 0.15 trails one who walks by about 42 cm, and misses more often than not. Every guard, at a step (stage 4.5a).",
+        1,
+        0.01,
+        1,
+      );
+      gunners(
+        'range',
+        'How far a guard with a dart or a bolt shoots, in meters (it sees as far as its eyes and the light let it). Every guard, at a step (stage 4.5a).',
+        1,
+        1,
+        60,
+      );
+      registry.declareVariable({
+        name: 'dojo.guards.health',
+        description:
+          "The guards' health: how much it takes to bring one down (a dart takes 25; the head, double). Every guard, whole again, at a step (stage 4.5a).",
+        scope: 'world',
+        type: { kind: 'number', min: 1, max: 1000 },
+        default: GUARD.health,
+        onWorld(world, value) {
+          for (const e of guardsOf(world))
+            if (e.health) {
+              e.health.most = Number(value);
+              if (e.health.down < 0) e.health.points = e.health.most;
+            }
         },
       });
       registry.declareVariable({

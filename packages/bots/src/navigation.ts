@@ -220,6 +220,21 @@ function crosses(a: Vec3, b: Vec3, center: Vec3, rotation: Quat, half: Vec3): bo
  * none is said). With gravity along −Y: in a world whose "down" is another, none (its `reason` says why).
  */
 export function buildNav(world: World, body: NavBody = NAV_BODY): Nav {
+  const building = navBuilding(world, body);
+  for (;;) {
+    const at = building.next();
+    if (at.done) return at.value;
+  }
+}
+
+/**
+ * THE SAME, A QUERY AT A TIME (stage 4.5a): it stops after each of its queries to the physics (they are
+ * three quarters of its time), so whoever builds it can spread it over steps (`navOf`). Built in one go,
+ * a room with guards stopped for 0.1 to 1.2 s as it started (the first time, the code not yet compiled).
+ * A way between two cells is asked about once: from one to the other or back, the body sweeps the same
+ * space (half the queries).
+ */
+export function* navBuilding(world: World, body: NavBody = NAV_BODY): Generator<void, Nav, void> {
   const nav: Nav = { body, cells: [], out: [], columns: new Map(), reason: null };
   const g = world.gravity.vector;
   if (Math.abs(g[0]) > 1e-9 || Math.abs(g[2]) > 1e-9 || !(g[1] < 0)) {
@@ -329,7 +344,9 @@ export function buildNav(world: World, body: NavBody = NAV_BODY): Nav {
         )
           continue;
         // (A surface under another's thickness is not a floor: what the body would stand in is in the way.)
-        if (!fits(world, body, at)) continue;
+        const room = fits(world, body, at);
+        yield;
+        if (!room) continue;
         // Where a door's leaf is when closed, the body is there only while it is open; where it is when
         // open, only while it is closed.
         const feet: Vec3 = [x, y + body.stepUp, z];
@@ -361,6 +378,10 @@ export function buildNav(world: World, body: NavBody = NAV_BODY): Nav {
     nav.out[from.id]!.push({ from: from.id, to: to.id, kind, cost, needs, when, byStanding: false, door: door?.name ?? null });
   };
   const fallTime = (h: number) => Math.sqrt((2 * Math.max(0, h)) / body.gravity);
+  // What was asked of a way between two cells, either way round (by the pair, the lower number first).
+  const asked = new Map<number, boolean>();
+  const n = nav.cells.length;
+  const pair = (a: Cell, b: Cell) => (a.id < b.id ? a.id * n + b.id : b.id * n + a.id);
   const around = [
     [1, 0],
     [-1, 0],
@@ -380,7 +401,12 @@ export function buildNav(world: World, body: NavBody = NAV_BODY): Nav {
         // A lift's cells, at its foot and at its top, are not walked between (that is the ride).
         if (a.when && b.when && a.on === b.on && a.when.value !== b.when.value) continue;
         const rise = b.at[1] - a.at[1];
-        if (!clear(world, body, a.at, b.at)) continue;
+        let open = asked.get(pair(a, b));
+        if (open === undefined) {
+          asked.set(pair(a, b), (open = clear(world, body, a.at, b.at)));
+          yield;
+        }
+        if (!open) continue;
         if (Math.abs(rise) <= body.stepUp) link(a, b, 'walk', flat / body.speed, null);
         else if (rise < 0) link(a, b, 'drop', flat / body.speed + fallTime(-rise), null);
         else if (rise <= body.jumpUp) link(a, b, 'jump', flat / body.speed + 2 * fallTime(rise), null);
@@ -393,7 +419,12 @@ export function buildNav(world: World, body: NavBody = NAV_BODY): Nav {
         const far = (nav.columns.get(key(a.i + k * di, a.j + k * dj)) ?? []).map((id) => nav.cells[id]!);
         const b = far.find((c) => c.at[1] - a.at[1] <= body.stepUp && c.at[1] - a.at[1] >= -body.jumpUp && !c.when);
         if (b) {
-          if (clear(world, body, a.at, b.at)) link(a, b, 'across', (k * flat) / body.speed + 0.4, null);
+          let open = asked.get(pair(a, b));
+          if (open === undefined) {
+            asked.set(pair(a, b), (open = clear(world, body, a.at, b.at)));
+            yield;
+          }
+          if (open) link(a, b, 'across', (k * flat) / body.speed + 0.4, null);
           break;
         }
         if (far.some((c) => c.at[1] > a.at[1] - body.jumpUp)) break;
@@ -463,8 +494,33 @@ export function cellAt(nav: Nav, p: Vec3): Cell | null {
   return best;
 }
 
-/** Each world's navigation, and what it was sampled from (its bodies that never move, by number), looked at again every half second. */
-const navs = new WeakMap<World, { nav: Nav; signature: string; checked: number }>();
+/**
+ * How many queries to the physics a world's navigation takes each step while it is built (stage 4.5a):
+ * about a millisecond here once the code is warm. Counted in queries, not in milliseconds, so that it
+ * takes the same steps on every machine: a bot does the same on each, and the tests with it too. The
+ * arena's (10,900 queries) takes about 55 steps, under a second. Measured at the arena's start, cold,
+ * the slowest step thinking: 874 ms built in one go; 132 ms at 400 a step; 32 ms at 200 (its first
+ * step, the code compiling); 26 ms at 100, for twice the wait.
+ */
+export const NAV_BUDGET = 200;
+
+/** A world's navigation while it is first built: none yet (a brain acts without it: straight at where it goes). */
+const NOT_YET = (body: NavBody): Nav => ({ body, cells: [], out: [], columns: new Map(), reason: 'being built' });
+
+/**
+ * Each world's navigation: the last one built, what it was sampled from (its bodies that never move,
+ * by number), when that was looked at again (every half second), and one being built, if any, with
+ * the step it last went on at.
+ */
+const navs = new WeakMap<
+  World,
+  {
+    nav: Nav | null;
+    signature: string;
+    checked: number;
+    building: { steps: Generator<void, Nav, void>; signature: string; at: number } | null;
+  }
+>();
 const signatureOf = (world: World) =>
   [...world.entities.values()]
     .filter((e) => e.body && !e.character && e.body.type !== 'dynamic')
@@ -474,17 +530,29 @@ const signatureOf = (world: World) =>
 /**
  * A world's navigation for the games' character, built the first time a brain asks, and again when
  * what it is sampled from changed (a new level, the console's `add`, `delete`): every brain of a
- * world shares one.
+ * world shares one. Built a little each step (`NAV_BUDGET` queries, however many brains ask): until
+ * it is, the one it had (or none yet, its `reason` says so).
  */
 export function navOf(world: World): Nav {
-  const known = navs.get(world);
-  if (known && world.tick - known.checked < 30 && world.tick >= known.checked) return known.nav;
-  const signature = signatureOf(world);
-  if (known && known.signature === signature) {
+  let known = navs.get(world);
+  if (!known) navs.set(world, (known = { nav: null, signature: '', checked: -Infinity, building: null }));
+  if (!known.building && (world.tick - known.checked >= 30 || world.tick < known.checked)) {
     known.checked = world.tick;
-    return known.nav;
+    const signature = signatureOf(world);
+    if (!known.nav || signature !== known.signature) known.building = { steps: navBuilding(world), signature, at: -1 };
   }
-  const nav = buildNav(world);
-  navs.set(world, { nav, signature, checked: world.tick });
-  return nav;
+  const building = known.building;
+  if (building && building.at !== world.tick) {
+    building.at = world.tick;
+    for (let k = 0; k < NAV_BUDGET; k++) {
+      const at = building.steps.next();
+      if (at.done) {
+        known.nav = at.value;
+        known.signature = building.signature;
+        known.building = null;
+        break;
+      }
+    }
+  }
+  return known.nav ?? NOT_YET(NAV_BODY);
 }

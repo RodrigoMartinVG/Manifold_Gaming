@@ -11,7 +11,8 @@ export interface Setting {
 
 /**
  * THE PLAYER'S SETTINGS (stage 3i): how loud, how fast the mouse and the stick turn the camera,
- * whether up is down, subtitles for what is heard, and less camera motion for whoever gets dizzy.
+ * whether up is down, subtitles for what is heard, and less camera motion for whoever gets dizzy; how
+ * much the camera takes in, and a crosshair to aim by (stage 4.5a).
  * Each one is a view variable a piece of the presentation declares (the console changes them too:
  * `view.volume 0.3`); the menu shows them in this order.
  */
@@ -22,6 +23,9 @@ export const SETTINGS: readonly Setting[] = [
   { name: 'view.invert', say: 'settings.invert', control: { kind: 'toggle' } },
   { name: 'view.subtitles', say: 'settings.subtitles', control: { kind: 'toggle' } },
   { name: 'view.calm', say: 'settings.calm', control: { kind: 'toggle' } },
+  // (Stage 4.5a.)
+  { name: 'view.fov', say: 'settings.fov', control: { kind: 'range', min: 40, max: 90, step: 1 } },
+  { name: 'view.crosshair', say: 'settings.crosshair', control: { kind: 'toggle' } },
 ];
 
 /**

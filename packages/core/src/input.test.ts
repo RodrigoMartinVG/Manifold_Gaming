@@ -50,3 +50,84 @@ describe('directions on the ground, in whole degrees (stage 2.5c)', () => {
 });
 
 const xz = (v: readonly number[]): [number, number] => [v[0]!, v[2]!];
+
+describe('where to look and to aim, finer (stage 4.5a)', () => {
+  // The search as it was (stage 2.5c), to hold the whole degrees to it.
+  const wholeDegrees = (x: number, z: number) => {
+    const along = (d: number) => {
+      const [s, c] = [Math.sin((d * Math.PI) / 180), Math.cos((d * Math.PI) / 180)];
+      return x * s - z * c;
+    };
+    let best = 0;
+    for (const d of [90, 180, 270]) if (along(d) > along(best)) best = d;
+    for (const step of [45, 23, 12, 6, 3, 2, 1]) for (const d of [best - step, best + step]) if (along(d) > along(best)) best = d;
+    return ((best % 360) + 360) % 360;
+  };
+
+  test('in whole degrees, the search finds what it found before (every replay reads the same)', () => {
+    for (let k = 0; k < 2000; k++) {
+      const a = (k * 0.1803) % 360;
+      const x = Math.sin((a * Math.PI) / 180);
+      const z = -Math.cos((a * Math.PI) / 180);
+      expect(degreesOf(x, z)).toBe(wholeDegrees(x, z));
+    }
+    for (let d = 0; d < 360; d++) expect(degreesOf(...([direction(d)[0], direction(d)[2]] as const))).toBe(d);
+  });
+
+  test('on a grid of tenths, each of the 3,600 directions comes back as itself, with the same bits', () => {
+    for (let u = 0; u < 3600; u++) {
+      const d = u / 10;
+      const v = direction(d);
+      expect(degreesOf(v[0], v[2], 0.1)).toBe(d);
+    }
+  });
+
+  test('`face` travels to a tenth of a degree, `pitch` to a thousandth of a quarter turn; `move` keeps whole degrees', () => {
+    const asked = (d: number) => direction(d);
+    const out = normalizeInput({ face: asked(12.34), move: asked(12.34), pitch: 0.12345 }, CHARACTER_ACTIONS);
+    expect(out.face).toEqual(direction(12.3));
+    expect(out.move).toEqual(direction(12));
+    expect(out.pitch).toBe(0.123);
+    // A turn under a tenth from the one asked before asks for the same; past it, a new one.
+    const before = { face: direction(12.3) };
+    expect(normalizeInput({ face: asked(12.36) }, CHARACTER_ACTIONS, before).face).toEqual(direction(12.3));
+    expect(normalizeInput({ face: asked(12.48) }, CHARACTER_ACTIONS, before).face).toEqual(direction(12.5));
+  });
+});
+
+describe('a character looks where it is asked, to a tenth of a degree (stage 4.5a)', () => {
+  test('asked a tenth more each step, it turns a tenth each step: no jumps of a degree', async () => {
+    const { quat } = await import('@manifold/common');
+    const { initPhysics } = await import('./physics');
+    const { World } = await import('./world');
+    await initPhysics();
+    const world = new World({ seed: 1 });
+    world.createEntity({
+      transform: { position: [0, -0.5, 0], rotation: quat.identity() },
+      body: { type: 'fixed', shape: { kind: 'box', halfExtents: [10, 0.5, 10] } },
+    });
+    const hero = world.createEntity({
+      transform: { position: [0, 0.82, 0], rotation: quat.identity() },
+      body: { type: 'character', shape: { kind: 'capsule', halfHeight: 0.5, radius: 0.3 } },
+      character: { player: 1, can: {} },
+    });
+    let before = {};
+    const angles: number[] = [];
+    for (let k = 0; k <= 20; k++) {
+      // The camera turning 0.07° a frame (half a pixel of the mouse): asked as it is, normalized as a session does.
+      const input = normalizeInput({ face: direction(10 + k * 0.07) }, CHARACTER_ACTIONS, before);
+      before = input;
+      world.applyInputs(new Map([[1, input]]));
+      world.step();
+      const f = hero.character!.facing;
+      angles.push(Math.round(((Math.atan2(f[0], -f[2]) * 180) / Math.PI) * 100) / 100);
+    }
+    // From 10° to 11.4°, in tenths (each step the tenth nearest, held within a tenth of the last).
+    expect(angles[0]).toBe(10);
+    expect(angles.at(-1)).toBeCloseTo(11.4, 1);
+    const steps = angles.slice(1).map((a, i) => Math.round((a - angles[i]!) * 100) / 100);
+    expect(Math.max(...steps)).toBeLessThanOrEqual(0.2);
+    expect(new Set(angles).size).toBeGreaterThan(10);
+    world.dispose();
+  });
+});

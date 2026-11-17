@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, test } from 'vitest';
 import { vec3, type Vec3 } from '@manifold/common';
 import { BotHost, initPhysics, registryFor, Session, type Entity, type Event, type PlayerInput } from '@manifold/core';
 import { DojoCartridge } from './cartridge';
-import { EYE, weapon } from './rules';
+import { EYE, GUNNER, gunnerOf, weapon } from './rules';
 import { ROOMS } from './rooms';
 
 beforeAll(initPhysics);
@@ -11,9 +11,10 @@ beforeAll(initPhysics);
  * THE ARENA (stage 4g): the demonstration's second half, played as a match is hosted (a host thinking
  * for the bots), and you driven as a player would, aiming from your eyes where a first-person camera is.
  */
-function arena() {
+function arena(more = '') {
   const registry = registryFor(DojoCartridge);
-  expect(registry.run(ROOMS.arena!.text.replace(/^view\..*$/m, ''), 'recipe').filter((m) => m.level === 'error')).toEqual([]);
+  const recipe = ROOMS.arena!.text.replace(/^view\..*$/m, '') + more;
+  expect(registry.run(recipe, 'recipe').filter((m) => m.level === 'error')).toEqual([]);
   const session = new Session(DojoCartridge, { registry });
   const bots = new BotHost();
   const events: Event[] = [];
@@ -117,6 +118,54 @@ describe('the arena (stage 4g)', () => {
     console.log(
       `arena: cleared at ${(i / 60).toFixed(1)} s; ${byHero.length} darts struck, the guards shot ${fromGuards} and ${byGuards.length} struck you, ${events.filter((e) => e.type === 'down' && e.target === hero().id).length} times down`,
     );
+    session.world.dispose();
+  });
+
+  test("its guards are the room's to tune (stage 4.5a): from its recipe, harder; untold, as they were; a new one, as the others", () => {
+    // Standing still in the open for 30 s, as the author did: how often down, and when first.
+    const still = (more: string) => {
+      const { session, step, hero, guards } = arena(more);
+      step();
+      session.world.place(hero(), [0, 1, 3]);
+      let downs = 0;
+      let first = -1;
+      for (let i = 0; i < 60 * 30; i++) {
+        step();
+        if (session.world.stepEvents.some((e) => e.type === 'down' && e.target === hero().id)) {
+          downs++;
+          if (first < 0) first = i / 60;
+        }
+      }
+      const told = guards().map((g) => gunnerOf(g));
+      session.world.dispose();
+      return { downs, first, told };
+    };
+    const as = still('');
+    // Untold, a guard carries nothing of it: it fights as GUNNER says (every world's hash as it was).
+    expect(as.told.every((t) => t === GUNNER)).toBe(true);
+    // The first numbers, half a second to see, a shot a second dead on, from the recipe.
+    const hard = still('\ndojo.guards.see 0.5\ndojo.guards.every 1\ndojo.guards.aim 1');
+    expect(hard.told.every((t) => t.see === 30 && t.every === 60 && t.aim === 1 && t.range === GUNNER.range)).toBe(true);
+    // (Down, they let you go, and you are back where they do not see you: so once each, but sooner.)
+    expect(hard.first).toBeGreaterThan(0);
+    expect(hard.first).toBeLessThan(as.first);
+    console.log(
+      `standing still 30 s: as it is, down ${as.downs} (first at ${as.first.toFixed(1)} s); harder, ${hard.downs} (first at ${hard.first.toFixed(1)} s)`,
+    );
+
+    // A guard put in later fights as those already there; their health, from the recipe too.
+    const { session, step } = arena('\ndojo.guards.see 0.25\ndojo.guards.health 50');
+    step();
+    session.world.place(
+      [...session.world.entities.values()].find((e) => e.character?.player === 1)!,
+      [0, 1, 6],
+    );
+    session.registry.run('dojo.guard 0 1 0', 'console');
+    step();
+    step();
+    const all = [...session.world.entities.values()].filter((e) => e.brain);
+    expect(all).toHaveLength(4);
+    expect(all.every((g) => gunnerOf(g).see === 15 && g.health!.most === 50)).toBe(true);
     session.world.dispose();
   });
 });

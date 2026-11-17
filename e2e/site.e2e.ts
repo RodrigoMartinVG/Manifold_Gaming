@@ -438,6 +438,8 @@ const VIEW_VALUES: Record<string, string> = {
   'view.stick': '0.5',
   'view.invert': 'on',
   'view.calm': 'on',
+  'view.fov': '75',
+  'view.crosshair': 'off',
   'view.subtitles': 'on',
   'view.hud': 'off',
   'view.paused': 'on',
@@ -1378,6 +1380,32 @@ test('first person: the mouse, once taken, turns it wherever the character stand
   // In first person, in the open (nothing behind to bring the camera in), as much as aiming from behind.
   expect(await turned('first')).toBeCloseTo(1, 1);
   expect(await turned('aim')).toBeCloseTo(1, 1);
+  expect(list).toEqual([]);
+});
+
+test('first person (the author playing): crouched, the eyes come down to the head; a crosshair while aiming, none otherwise', async ({
+  page,
+}) => {
+  const list = errors(page);
+  await page.goto('jugar/dojo/moves/');
+  await expect.poll(async () => (await position(page, 'player')).length, { timeout: 15_000 }).toBe(3);
+  await expect(page.locator('.mg-crosshair')).toBeHidden();
+  await page.keyboard.press('Backquote');
+  await typeInConsole(page, 'view.camera first');
+  await page.keyboard.press('Escape');
+  const eyes = async () => (await position(page, 'camera'))[1]! - (await position(page, 'player'))[1]!;
+  // Standing, the head's height (0.62 m over the center); crouched, the crouch's head (0.12 m); and back.
+  await expect.poll(eyes).toBeCloseTo(0.62, 2);
+  await expect(page.locator('.mg-crosshair')).toBeVisible();
+  await page.keyboard.down('KeyC');
+  await expect.poll(eyes).toBeCloseTo(0.12, 2);
+  await page.keyboard.up('KeyC');
+  await expect.poll(eyes).toBeCloseTo(0.62, 2);
+  // Turned off, it is not drawn.
+  await page.keyboard.press('Backquote');
+  await typeInConsole(page, 'view.crosshair off');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.mg-crosshair')).toBeHidden();
   expect(list).toEqual([]);
 });
 

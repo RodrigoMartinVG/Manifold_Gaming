@@ -32,6 +32,10 @@ export const CONSOLE_ES: Readonly<Record<string, string>> = {
   'view.mouse': 'qué tan rápido gira la cámara el mouse, arrastrando o apuntando (1, como viene; 2, el doble)',
   'view.stick': 'qué tan rápido gira la cámara el stick derecho de un mando (1, como viene)',
   'view.invert': 'invertir el eje vertical: el mouse apuntando, o el stick, hacia arriba mira hacia abajo',
+  'view.fov':
+    'cuánto abarca la cámara, de arriba abajo, en grados (etapa 4.5a): 60 de entrada, unos 92° de lado a lado en una pantalla 16:9, lo usual en primera persona; más abarca más en los bordes, y uno muy abierto los estira',
+  'view.crosshair':
+    'una marca chica en el medio de la pantalla al apuntar (`view.camera aim` o `first`, etapa 4.5a): adonde va un disparo desde los ojos',
   'view.calm':
     'menos movimiento de la cámara, para quien se marea: no sigue girando después de un arrastre, y vuelve atrás del personaje más despacio',
   'view.subtitles': 'subtítulos de los sonidos: cada sonido cerca de la cámara, escrito abajo, con una flecha hacia donde vino',
@@ -101,6 +105,15 @@ export const CONSOLE_ES: Readonly<Record<string, string>> = {
   'dojo.crouch':
     'agacharse: con la C apretada, en el piso, el personaje va más lento, pasa por donde parado no cabe, y se lo ve y se lo oye menos (prendido de entrada)',
   'dojo.air': 'cuánto se puede corregir un salto en el aire, en m/s²',
+  'dojo.guards.see':
+    'cuánto tarda un guardia con dardo o saeta en verte antes de su primer disparo, en segundos (enseguida si le acabás de pegar)',
+  'dojo.guards.every': 'cada cuánto dispara un guardia con dardo o saeta, en segundos entre disparos',
+  'dojo.guards.aim':
+    'cuánto del camino hacia vos recorre la puntería de un guardia en cada paso: 1 es certera; 0,15 queda unos 42 cm detrás de quien camina, y falla más de lo que acierta',
+  'dojo.guards.range':
+    'desde qué distancia dispara un guardia con dardo o saeta, en metros (ve tan lejos como le dejan sus ojos y la luz)',
+  'dojo.guards.health':
+    'la vida de los guardias: cuánto hace falta para derribar a uno (un dardo saca 25; en la cabeza, el doble)',
   'dojo.spin': 'cómo gira el cubo grande (en el Dojo sin nivel): radianes por segundo alrededor de cada eje (x y z)',
   'dojo.goto': 'pone quieto en ese punto al personaje del jugador 1: para explorar un nivel',
   'dojo.guard':

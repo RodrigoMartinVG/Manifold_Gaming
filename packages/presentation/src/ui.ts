@@ -70,6 +70,18 @@ export function addInterfaceStyles() {
       max-width: min(36rem, calc(100% - 2rem)); padding: 0.6rem 0.9rem; border-radius: 0.4rem;
       background: rgb(18 16 13 / 0.85); border: 1px solid #c4a06a; color: #f3e9d8; font: 15px/1.45 system-ui, sans-serif;
     }
+    .mg-crosshair {
+      position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px;
+      z-index: 6; pointer-events: none; opacity: 0.8;
+      background:
+        radial-gradient(circle, #fff 0 1.5px, rgb(0 0 0 / 0.55) 1.5px 2.5px, transparent 2.5px),
+        linear-gradient(#fff, #fff) center 0 / 2px 6px no-repeat,
+        linear-gradient(#fff, #fff) center 100% / 2px 6px no-repeat,
+        linear-gradient(#fff, #fff) 0 center / 6px 2px no-repeat,
+        linear-gradient(#fff, #fff) 100% center / 6px 2px no-repeat;
+      filter: drop-shadow(0 0 1px rgb(0 0 0 / 0.8));
+    }
+    .mg-crosshair[hidden] { display: none; }
     .mg-hurt {
       position: absolute; inset: 0; z-index: 5; pointer-events: none; opacity: 0;
       box-shadow: inset 0 0 90px 24px rgb(190 24 24 / 0.8);

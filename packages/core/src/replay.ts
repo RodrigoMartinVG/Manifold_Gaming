@@ -48,16 +48,19 @@ const hex = (n: number) => n.toString(16).padStart(8, '0');
 
 /**
  * A direction on the ground as words (stage 2.5c), if the vector is one: `@37` (37° from forward
- * towards the right, all of it) or `@37:0.5` (half of it). Only if it is exactly one of the 360 (so it
- * comes back with the same bits); if not, null.
+ * towards the right, all of it) or `@37:0.5` (half of it); finer ones with their decimals, `@37.4`
+ * (stage 4.5a: where to look goes to a tenth). Only if it is exactly one of a grid's (so it comes
+ * back with the same bits): whole degrees, tenths or hundredths; if not, null.
  */
 function directionText(v: readonly number[]): string | null {
   const amount = Math.round(Math.sqrt(v[0]! * v[0]! + v[2]! * v[2]!) * 100) / 100;
   if (v[1] !== 0 || amount === 0) return null;
-  const degrees = degreesOf(v[0]!, v[2]!);
-  const back = direction(degrees, amount);
-  if (back[0] !== v[0] || back[2] !== v[2]) return null;
-  return amount === 1 ? `@${degrees}` : `@${degrees}:${amount}`;
+  for (const resolution of [1, 0.1, 0.01]) {
+    const degrees = degreesOf(v[0]!, v[2]!, resolution);
+    const back = direction(degrees, amount);
+    if (back[0] === v[0] && back[2] === v[2]) return amount === 1 ? `@${degrees}` : `@${degrees}:${amount}`;
+  }
+  return null;
 }
 
 /**
@@ -155,10 +158,10 @@ export function replayFromText(text: string): Replay {
         while (at < rest.length) {
           const name = rest[at++]!;
           if (!/^[a-z][a-z0-9.]*$/.test(name)) fail(n, `"${name}" is not the name of an action`);
-          const towards = /^@(\d{1,3})(?::(0?\.\d{1,2}|1))?$/.exec(rest[at] ?? '');
+          const towards = /^@(\d{1,3}(?:\.\d{1,2})?)(?::(0?\.\d{1,2}|1))?$/.exec(rest[at] ?? '');
           if (towards) {
             const degrees = Number(towards[1]);
-            if (degrees >= 360) fail(n, `"${rest[at]}": the degrees go from 0 to 359`);
+            if (degrees >= 360) fail(n, `"${rest[at]}": the degrees go from 0 to under 360`);
             input[name] = direction(degrees, towards[2] ? Number(towards[2]) : 1);
             at++;
             continue;

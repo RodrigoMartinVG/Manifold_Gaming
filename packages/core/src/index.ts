@@ -35,6 +35,7 @@ export {
   DEFAULT_MOVEMENT,
   faceFor,
   HISTORY,
+  eyeHeightOf,
   hitPartsOf,
   HOLD,
   PUSH,

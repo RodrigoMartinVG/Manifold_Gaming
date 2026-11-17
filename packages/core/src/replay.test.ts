@@ -212,3 +212,27 @@ describe('the execution profile (stage 2.5b, decision 0014)', () => {
     session.world.dispose();
   });
 });
+
+describe('finer directions in a replay (stage 4.5a)', () => {
+  test('a direction to a tenth is written with its decimal and read back with the same bits; whole ones as before', async () => {
+    const { replayFromText, replayToText } = await import('./replay');
+    const { direction } = await import('./input');
+    const r: import('./replay').Replay = {
+      game: 'dojo',
+      profile: (await import('./profile')).VERIFIED,
+      birth: 'seed 1',
+      inputs: [
+        { step: 1, player: 1, input: { face: direction(12.3), move: direction(37) } },
+        { step: 2, player: 1, input: { face: direction(359.9, 0.5), pitch: 0.123 } },
+      ],
+      changes: [],
+      end: { step: 3, hash: 1 },
+    };
+    const text = replayToText(r);
+    expect(text).toContain('face @12.3 ');
+    expect(text).toContain('move @37');
+    expect(text).toContain('face @359.9:0.5');
+    const back = replayFromText(text);
+    expect(back.inputs).toEqual(r.inputs);
+  });
+});

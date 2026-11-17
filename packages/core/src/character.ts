@@ -126,6 +126,24 @@ export function hitPartsOf(c: Character, body: Pick<Body, 'shape'>, mode: ModeNa
   return [{ name: 'body', shape, offset: pose.offset, rotation: pose.rotation }];
 }
 
+/**
+ * WHERE A CHARACTER'S EYES ARE, above its center (stage 4.5a): its head's height in the way it moves
+ * now (its hit part named `head`: 0.62 m standing, 0.12 m crouched for the games' character); with no
+ * head, the top of what a hit finds less 18 cm (the standing head's place below its top: rolling, a
+ * ball). Only the height: the eyes stay over the center (a crouch's head leans 40 cm ahead, and a
+ * first-person camera there would go into the wall a crouching body touches). What a first-person
+ * camera is drawn from; the author found it did not come down crouching.
+ */
+export function eyeHeightOf(c: Character, body: Pick<Body, 'shape'>, mode: ModeName = c.mode): number {
+  const parts = hitPartsOf(c, body, mode);
+  const head = parts.find((p) => p.name === 'head');
+  if (head) return head.offset[1];
+  const top = (p: HitPart) =>
+    p.offset[1] +
+    (p.shape.kind === 'ball' ? p.shape.radius : p.shape.kind === 'capsule' ? p.shape.halfHeight + p.shape.radius : 0);
+  return Math.max(...parts.map(top)) - 0.18;
+}
+
 /** Whether a mode moves the low body (stage 4b): crouching, and rolling. */
 const low = (mode: ModeName) => mode === 'crouch' || mode === 'roll';
 
