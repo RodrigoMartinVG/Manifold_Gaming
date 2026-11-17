@@ -78,6 +78,9 @@ export interface Models {
  * copy (one model on the GPU, however many characters); each copy has its own bones and its own
  * animations.
  */
+/** How sharp a model's textures stay seen edge on (stage 4.5f): eight samples along the slant. */
+const ANISOTROPY = 8;
+
 export function loadModels(urls: Readonly<Record<string, string>> = {}): Models {
   const loaded = new Map<string, { scene: THREE.Object3D; clips: THREE.AnimationClip[] }>();
   const listeners: ((name: string) => void)[] = [];
@@ -94,6 +97,12 @@ export function loadModels(urls: Readonly<Record<string, string>> = {}): Models 
     loader.load(
       file,
       (gltf) => {
+        // Its textures (stage 4.5f: the kit's) sharp along a floor seen nearly edge on, as far as the
+        // GPU can (three.js takes the lesser of this and what it allows).
+        gltf.scene.traverse((o) => {
+          const material = (o as THREE.Mesh).material as THREE.MeshStandardMaterial | undefined;
+          if (material?.map) material.map.anisotropy = ANISOTROPY;
+        });
         // Its geometry and materials are shared by every copy: a copy owns none of them, so removing
         // it does not free them (owned.ts).
         for (const { name, node } of wanted) {

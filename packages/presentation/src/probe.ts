@@ -39,6 +39,8 @@ export function mountProbe(page: GamePage, match: PageMatch): Piece {
       const drawn = page.stage.renderer.info.render;
       data.draws = String(drawn.calls);
       data.triangles = String(drawn.triangles);
+      // And what handing them to the GPU costs the page (stage 4.5f), in milliseconds.
+      data.render = page.stage.renderMs.toFixed(2);
       data.others = [...world.entities.values()]
         .filter((e) => e.character && e.character.player !== match.me && e.transform)
         .map((e) => `${e.character!.player}:${fixed(e.transform!.position)}`)

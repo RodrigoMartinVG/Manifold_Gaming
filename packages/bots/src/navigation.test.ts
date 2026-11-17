@@ -59,6 +59,26 @@ describe('the navigation of a level (stage 4d, decision 0024)', () => {
     world.dispose();
   });
 
+  test('a floor over another (stage 4.5f): dropped off its edge, never through it; nor climbed up through it from under', () => {
+    // A floor 3 m up over half the room (z 0.2 to 6), room under it for a body.
+    const world = room(`${FLOOR}\nbox 0 3 3.1  6 0.1 2.9`);
+    const nav = buildNav(world);
+    const up = (id: number) => nav.cells[id]!.at[1] > 3;
+    const under = (id: number) => nav.cells[id]!.at[1] < 1 && nav.cells[id]!.at[2] > 0.2;
+    expect(nav.cells.some((c) => under(c.id))).toBe(true);
+    const across = nav.out.flat().filter((e) => (up(e.from) && under(e.to)) || (under(e.from) && up(e.to)));
+    // (Before 4.5f, every cell on its edge dropped to the cells under it in the next column, through it.)
+    expect(across).toEqual([]);
+    // Off its edge, to the floor beside it: dropped.
+    expect(nav.out.flat().some((e) => e.kind === 'drop' && up(e.from) && nav.cells[e.to]!.at[2] < 0)).toBe(true);
+    expect(kinds(nav, [0, 4, 3], [0, 1, -4], world)).toContain('drop');
+    // From under it, up onto it: with climbing, only from beside its edge.
+    const path = findPath(world, nav, [0, 1, 3], [0, 4, 3], { can: { climb: true } })!;
+    const climb = path.steps.findIndex((s) => s.kind === 'climb');
+    expect(path.steps[climb - 1]!.at[2]).toBeLessThan(0.2);
+    world.dispose();
+  });
+
   test('a gap of 2 m between two floors: jumped across; of 4 m: nowhere', () => {
     const world = room('box -3 -0.5 0  2 0.5 2\nbox 3 -0.5 0  2 0.5 2\nbox 11 -0.5 0  2 0.5 2');
     const nav = buildNav(world);

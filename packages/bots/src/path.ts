@@ -151,9 +151,44 @@ export function findPath(world: World, nav: Nav, from: Vec3, to: Vec3, o: PlanOp
   const start = cellAt(nav, from);
   const goal = cellAt(nav, to);
   if (!start || !goal) return null;
+  // In another part, no edge it may take joins them: no way, whatever is open, and no need to search.
+  const parts = partsOf(nav, o.can ?? {});
+  if (parts[start.id] !== parts[goal.id]) return null;
   const values = new Map(world.signals.map((s) => [s.name, s.value]));
   const found = plan(world, nav, start, new Set([goal.id]), goal.at, o.can ?? {}, values, o.depth ?? 1);
   return found && { ...found, steps: pull(nav, found.steps) };
+}
+
+/**
+ * EACH CELL'S PART, for a body that can what it can (stage 4.5f): cells joined by any edge it may take,
+ * whichever way and whatever it needs opened, are in the same one. Two cells in different parts have no
+ * way between them, open or shut: a planner knows it at once, where a search would go through every
+ * cell it reaches first (the citadel's roof guard did, 50 to 75 ms a step, for a sound in the courtyard
+ * below it: the edge between them is a jump it cannot make). Worked out once a navigation, for each set
+ * of capabilities that changes which edges count.
+ */
+const partsByNav = new WeakMap<Nav, Map<string, number[]>>();
+function partsOf(nav: Nav, can: Partial<Capabilities>): number[] {
+  const needed = [...new Set(nav.out.flatMap((edges) => edges.flatMap((e) => (e.needs && can[e.needs] ? [e.needs] : []))))];
+  const key = needed.sort().join(' ');
+  let known = partsByNav.get(nav);
+  if (!known) partsByNav.set(nav, (known = new Map()));
+  const cached = known.get(key);
+  if (cached) return cached;
+  const root = nav.cells.map((_, id) => id);
+  const find = (id: number): number => {
+    while (root[id] !== id) id = root[id] = root[root[id]!]!;
+    return id;
+  };
+  for (const edges of nav.out)
+    for (const e of edges) {
+      if (e.needs && !can[e.needs]) continue;
+      const [a, b] = [find(e.from), find(e.to)];
+      if (a !== b) root[Math.max(a, b)] = Math.min(a, b);
+    }
+  const parts = nav.cells.map((_, id) => find(id));
+  known.set(key, parts);
+  return parts;
 }
 
 function plan(

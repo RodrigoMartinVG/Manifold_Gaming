@@ -15,6 +15,7 @@ export function createStage(container: HTMLElement): Stage {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x14161c);
   let day = 1;
+  let renderMs = 0;
   const camera = new THREE.PerspectiveCamera(60, 1, 0.05, 200);
   const sky = new THREE.HemisphereLight(0xc8d4ff, 0x3a3028, 1.4);
   scene.add(sky);
@@ -48,7 +49,15 @@ export function createStage(container: HTMLElement): Stage {
       sun.intensity = 1.8 * a;
       (scene.background as THREE.Color).copy(night).lerp(background, a);
     },
-    render: () => renderer.render(scene, camera),
+    render() {
+      const start = performance.now();
+      renderer.render(scene, camera);
+      // A moving average over about 30 frames: one frame's time jitters too much to read.
+      renderMs += (performance.now() - start - renderMs) / 30;
+    },
+    get renderMs() {
+      return renderMs;
+    },
     stop() {
       observer.disconnect();
       renderer.dispose();

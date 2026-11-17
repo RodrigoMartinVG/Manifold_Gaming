@@ -51,6 +51,11 @@ export interface GuardMemory extends Memory {
   aim?: Vec3 | null;
   /** When a player last hit it (it is on its guard: it shoots whoever it sees at once). */
   alert?: number;
+  /**
+   * (Stage 4.5f) Where it last found no way to, and when: not asked again until it goes somewhere
+   * else or a while has passed (in the citadel a guard asked every step, for a sound behind a shut gate).
+   */
+  nowhere?: { to: Vec3; tick: number } | null;
 }
 
 /** How near a point it must be to have reached it (m, along the ground); within its stick's reach (m, to the other's center). */
@@ -253,12 +258,15 @@ export const guardBrain: Brain = (world, self, memory) => {
   // button or on the lift).
   const waiting = m.plan && ['use', 'stand', 'ride'].includes(m.plan.steps[m.plan.next]?.kind ?? '');
   if (!waiting && (!m.plan || flat(m.plan.to, m.goal) > 1.5 || world.tick - m.plan.made > REPLAN)) {
-    const path = nav.reason ? null : findPath(world, nav, center, m.goal, { can: c.can, depth: 2 });
+    const lost = !!m.nowhere && flat(m.nowhere.to, m.goal) <= 1.5 && world.tick - m.nowhere.tick < REPLAN;
+    const path = nav.reason || lost ? null : findPath(world, nav, center, m.goal, { can: c.can, depth: 2 });
     if (!path) {
       m.plan = null;
+      if (!nav.reason && !lost) m.nowhere = { to: [...m.goal], tick: world.tick };
       // Nowhere to go from here (off the navigation, or no way): straight at it.
       return { move: toward(feet, m.goal), run: m.mode === 'chase' };
     }
+    m.nowhere = null;
     m.plan = {
       steps: path.steps,
       next: 1,

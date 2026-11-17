@@ -56,6 +56,11 @@ export interface Stage {
   /** How much of the day's light there is (stage 3d): the world's ambient light, from 0 to 1. */
   daylight(amount: number): void;
   render(): void;
+  /**
+   * What drawing costs the page itself (stage 4.5f): the milliseconds `render` took, averaged over the
+   * last frames (the draw calls handed to the GPU, not the GPU's own time, which the page cannot see).
+   */
+  readonly renderMs: number;
   stop(): void;
 }
 

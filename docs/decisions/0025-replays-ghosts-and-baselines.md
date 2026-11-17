@@ -40,8 +40,11 @@ Measured on 2026-11-17, in Node on the author's laptop, the code warm, 30 second
 | The course, aiming in first person | 20, 0        | 0.20, 0.59, 1.4 ms      | 0.5 ms | 44 KB, 0.2 ms  | 17.9 KB           | 0.7 KB           |
 | The arena, aiming, three guards    | 14, 3        | 0.32, 0.89, 1.2 ms      | 0.8 ms | 47 KB, 0.3 ms  | 23.4 KB           | 0.7 KB           |
 | The stress room, 200 cubes         | 207, 0       | 0.35, 0.96, 1.6 ms      | 2.4 ms | 547 KB, 0.9 ms | 6.0 KB            | 1.5 KB           |
+| The citadel, played (4.5f)         | 325, 2       | 1.2, 4.7, 23 ms         | 5.7 ms | 734 KB, 1.9 ms | 4.6 KB (61 s)     | —                |
 
 And from stage 4.5a, a room's start: the navigation built a little each step, its slowest step 32 ms at the arena's start (874 ms built in one go).
+
+Added in stage 4.5f, the heaviest: the citadel (a level of the kit's 293 pieces on three floors, two guards), its reference replay played from start to goal with the guards thinking (3,632 steps; three runs). The snapshot: 475 KB of physics, 259 KB of entities as text (22 KB deflated). Its navigation: 4,370 cells and 32,428 edges, 0.57 s built in one go, built a little each step in 277 steps with none over 20 ms. Its first step, once: 0.14 to 0.3 s (before the physics' first step none of its bodies is in Rapier's queries yet, and each query asks every one on its own). In the browser, on the author's Iris Plus at 1280 × 720, unthrottled: 4.2 to 7.2 ms a frame (the course, 2.9), 97 to 277 draw calls. The same hash in Chromium, Firefox and WebKit (its replay is a reference). Before 4.5f mended what it found, its step was 3.6 ms on average, 75 at the 99th and 200 at most.
 
 These are milliseconds on one machine; the budgets that guard them in continuous integration stay measured against Rapier's own step (`perf/`, 2.5a), which does not depend on the machine. The table is where phase 5 starts.
 

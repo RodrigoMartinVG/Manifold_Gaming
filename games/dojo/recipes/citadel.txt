@@ -1,0 +1,10 @@
+# The citadel: a level that pushes the engine
+# group: demos
+# Stage 4.5f, the review's demonstration: a level on three floors, every wall, floor, stair, ramp and
+# bridge a piece of the kit. Open the gatehouse (E at its button), take the stick and carry the crate
+# (G) onto the plate that holds the gate open; past the hall's guard, up to the gallery and through
+# its double door; across the well on the ferry; in the library, break the lamp (F) so the eye does
+# not see you on the plate; up the lift to the roofs, past the guard there, up the ramp and across
+# the bridge to the tower's top.
+seed 45
+dojo.level citadel

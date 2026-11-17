@@ -30,10 +30,11 @@
   const status = box.querySelector<HTMLElement>('.same-hash-status')!;
   const body = box.querySelector('tbody')!;
   const hex = (n: number) => n.toString(16).padStart(8, '0');
-  // `phase-3` is "Fase 3"; a phase with more than one, its part too (`phase-3-light`: "Fase 3, la luz").
-  const PARTS: Record<string, string> = { light: 'la luz' };
+  // `phase-3` is "Fase 3"; a phase with more than one, its part too (`phase-3-light`: "Fase 3, la luz";
+  // `phase-4.5-citadel`: "Fase 4.5, la ciudadela").
+  const PARTS: Record<string, string> = { light: 'la luz', citadel: 'la ciudadela' };
   const label = (name: string) => {
-    const [, phase, part] = /^phase-(\d+)(?:-(\w+))?$/.exec(name) ?? [];
+    const [, phase, part] = /^phase-(\d+(?:\.\d+)?)(?:-(\w+))?$/.exec(name) ?? [];
     return phase === undefined ? name : part ? `Fase ${phase}, ${PARTS[part] ?? part}` : `Fase ${phase}`;
   };
   const rows = new Map<string, HTMLTableCellElement[]>();

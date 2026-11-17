@@ -39,13 +39,13 @@ kit pillar   4.25 0 4.75
 kit pillar   7.75 0 4.75
 kit roof_4   6 3 3
 
-# Up and across: the stairs of a meter, the stairs of a floor to a platform 3 m up, the ramp to one a
-# meter up, and a bridge between two platforms a meter up.
+# Up and across: the stairs of a meter, the stairs of a floor to a landing 3 m up, the ramp to a
+# platform a meter up, and a bridge between two of them (stage 4.5f: the platform, the kit's own).
 kit stairs_1  -14 0 12
 kit stairs_3  -6 0 12
 box -6 1.5 8      1 1.5 1     color #6f6a62  name landing
 kit ramp_1    3 0 12
-box 3 0.5 9       1 0.5 1     color #6f6a62  name ramp_top
-box 12 0.5 9      1 0.5 1     color #6f6a62  name bridge_north
-box 12 0.5 15     1 0.5 1     color #6f6a62  name bridge_south
+kit platform_2  3 0 9         name ramp_top
+kit platform_2  12 0 9        name bridge_north
+kit platform_2  12 0 15       name bridge_south
 kit bridge_4  12 1 12

@@ -400,8 +400,16 @@ describe('the reference replays of phase 4, growing with it', () => {
 });
 
 describe('the reference replays, as they are in their files', () => {
-  test('there is one per phase (two for phase 3: its machines and its light), of this simulation version', () => {
-    expect(Object.keys(REFERENCE_REPLAYS)).toEqual(['phase-0', 'phase-1', 'phase-2', 'phase-3', 'phase-3-light', 'phase-4']);
+  test('there is one per phase (two for phase 3: its machines and its light; and 4.5, the citadel), of this simulation version', () => {
+    expect(Object.keys(REFERENCE_REPLAYS)).toEqual([
+      'phase-0',
+      'phase-1',
+      'phase-2',
+      'phase-3',
+      'phase-3-light',
+      'phase-4',
+      'phase-4.5-citadel',
+    ]);
     for (const text of Object.values(REFERENCE_REPLAYS))
       expect(text.split('\n')[0]).toBe(`# Manifold replay ${SIMULATION_VERSION}`);
   });

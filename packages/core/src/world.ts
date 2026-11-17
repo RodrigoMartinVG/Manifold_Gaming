@@ -263,6 +263,31 @@ export class World {
   tick = 0;
   readonly random: Random;
   readonly entities = new Map<EntityId, Entity>();
+  /**
+   * EACH BODY'S ENTITY, by the physics' handle, and the characters' bodies (stage 4.5f): what a query
+   * hit, and which bodies one that leaves characters out leaves, found at once. Both went through every
+   * entity, every query: in the citadel, 357 entities and 200 queries a step of the navigation's build.
+   * Kept where bodies come and go (an entity made, removed, broken; a world restored); never in a
+   * snapshot (they follow from the entities).
+   */
+  private readonly byHandle = new Map<number, EntityId>();
+  private readonly characterBodies = new Set<number>();
+  private characterList: number[] | null = null;
+
+  private indexBody(e: Entity) {
+    if (!e.body) return;
+    this.byHandle.set(e.body.handle, e.id);
+    if (e.character) {
+      this.characterBodies.add(e.body.handle);
+      this.characterList = null;
+    }
+  }
+
+  private forgetBody(e: Entity) {
+    if (!e.body) return;
+    this.byHandle.delete(e.body.handle);
+    if (this.characterBodies.delete(e.body.handle)) this.characterList = null;
+  }
   /** Its game's kit of level pieces (stage 4.5e, decision 0026), by name: a level's `kit` lines build with it. */
   kit: KitPieces = {};
   private lastId = 0;
@@ -394,7 +419,10 @@ export class World {
     for (const [player, input] of copyData(s.inputs)) world.inputs.set(player, input);
     for (const [player, input] of copyData(s.lastInputs)) world.lastInputs.set(player, input);
     for (const player of s.players) world.players.add(player);
-    for (const e of copyData(s.entities)) world.entities.set(e.id, e);
+    for (const e of copyData(s.entities)) {
+      world.entities.set(e.id, e);
+      world.indexBody(e);
+    }
     return world;
   }
 
@@ -647,6 +675,7 @@ export class World {
       entity.character = newCharacter(character);
     }
     this.entities.set(entity.id, entity);
+    this.indexBody(entity);
     this.emit({ type: 'entityCreated', id: entity.id });
     return entity;
   }
@@ -654,6 +683,7 @@ export class World {
   removeEntity(id: EntityId) {
     const entity = this.entities.get(id);
     if (!entity) return;
+    this.forgetBody(entity);
     if (entity.body) this.physics.removeBody(entity.body.handle);
     this.entities.delete(id);
     this.emit({ type: 'entityRemoved', id });
@@ -696,18 +726,15 @@ export class World {
       ...(o.dynamic === undefined ? {} : { dynamic: o.dynamic }),
       ...(o.moving === undefined ? {} : { kinematic: o.moving }),
       ...(o.groups ? { groups: o.groups } : {}),
-      ...(o.characters === false
-        ? { leave: [...this.entities.values()].flatMap((e) => (e.character && e.body ? [e.body.handle] : [])) }
-        : {}),
+      ...(o.characters === false ? { leave: (this.characterList ??= [...this.characterBodies]) } : {}),
     };
   }
 
   /** A physics hit as an entity's (the entity whose body it is). */
   private hitOf(hit: PhysicsHit | null): Hit | null {
     if (!hit) return null;
-    for (const e of this.entities.values())
-      if (e.body?.handle === hit.handle) return { entity: e.id, distance: hit.distance, point: hit.point, normal: hit.normal };
-    return null;
+    const entity = this.byHandle.get(hit.handle);
+    return entity === undefined ? null : { entity, distance: hit.distance, point: hit.point, normal: hit.normal };
   }
 
   /**
@@ -972,6 +999,7 @@ export class World {
           : [0.1, 0.1, 0.1];
     const material = e.body?.material ?? null;
     if (e.body) {
+      this.forgetBody(e);
       this.physics.removeBody(e.body.handle);
       delete e.body;
     }

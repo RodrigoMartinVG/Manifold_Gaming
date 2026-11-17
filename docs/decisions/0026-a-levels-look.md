@@ -23,6 +23,16 @@ Stage 4.5 builds the modular kit of level pieces the three games share (4.5e), a
 - Each kit piece: under 600 triangles and the kit's few materials (one palette); the whole kit, under 10,000 triangles. Measured by a test on the model file, as the mannequin's (2e).
 - Each level, measured where it is drawn (the page counts the draw calls and triangles of every frame, 3d): the budget is set in 4.5f, where the first level built with the kit and its look is measured on the author's machine; this decision says only that it will be there, in numbers, and checked.
 
+### Set in 4.5f, by the citadel
+
+Added on 2026-11-17, when stage 4.5f built the first level with the kit (the citadel: 293 kit pieces, fourteen lamps, two guards, three floors) and measured it on the author's laptop (an Intel Iris Plus, the page at 1280 × 720, unthrottled frames: what a frame costs, not 60 a second):
+
+- **A level's budget, wherever one stands in it:** at most **300 draw calls** and **50,000 triangles** a frame, and the drawing lights with at most **six** lamps at once. The citadel draws 97 to 277 calls and 7,800 to 19,600 triangles; a browser test reads both in five places of it (`data-draws`, `data-triangles`) and the lights it draws with (`data-lights`).
+- **The lights are what costs, not the draw calls:** every point light three.js has is worked out for every pixel of every lit material, wherever the lamp is, and each one more recompiles them all. The citadel's fourteen cost a frame 9 to 10.5 ms; with four lamps, 5.5; the hall's 250 draw calls cost the same as the library's 101. So the page keeps as many lights as the world has lamps, six at most, and gives them each frame to the lamps whose reach the camera sees, the nearest first (`lampsToLight`); every lamp still glows, and the simulation's light (what a watcher sees by) is all of them, as always. The citadel's frames went to 4.2 to 7.2 ms (textures included: they cost nothing measurable).
+- **Repeated pieces are not drawn as instances, yet:** measured, the draw calls are not where the time goes; instancing waits for a level whose draw calls do (around a thousand), and costs what it would cost then (the pieces' own entities in the inspector and the views).
+- **Light is not baked:** in this engine the light is the simulation's (3d), and lamps break and switch (3e); light baked into a texture would stay when its lamp went out, and every repeated piece would need its own. What a texture keeps is only a stone's darker joints.
+- **The kit's look is a picture of a meter for each material,** made by `art/kit.py` with the pieces (stone in courses, paving, a darker stone, wood, metal), periodic so that it repeats without a seam, and every face mapped a meter to it, so that the stones run on from one piece to the next: pieces stand on a meter's grid. Made in the script with numpy, not baked from Blender's shader nodes: those are not periodic over a tile (a brick's tint goes by its index), and Cycles adds noise; these give the same bytes on every run. JPEG, under 64 KB each; the kit's file under 500 KB (it is 368 KB). Seen nearly edge on, sharp (anisotropy 8).
+
 ## Consequences
 
 - A level's text stays readable and its own: `kit stairs_3 0 0 4` says what is there; the console builds with it and writes it back.

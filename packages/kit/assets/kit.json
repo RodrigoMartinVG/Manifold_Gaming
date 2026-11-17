@@ -1,4 +1,22 @@
 {
+  "leaves": {
+    "door_1": {
+      "size": [
+        1.0,
+        2.2,
+        0.06
+      ],
+      "triangles": 248
+    },
+    "gate_leaf": {
+      "size": [
+        1.2,
+        2.6,
+        0.1
+      ],
+      "triangles": 272
+    }
+  },
   "pieces": {
     "beam_4": {
       "boxes": [
@@ -255,6 +273,28 @@
         0.5
       ],
       "triangles": 44
+    },
+    "platform_2": {
+      "boxes": [
+        {
+          "center": [
+            0,
+            0.5,
+            0
+          ],
+          "half": [
+            1,
+            0.5,
+            1
+          ]
+        }
+      ],
+      "size": [
+        2,
+        1.0,
+        2.0
+      ],
+      "triangles": 132
     },
     "railing_2": {
       "boxes": [

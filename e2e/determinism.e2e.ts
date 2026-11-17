@@ -31,7 +31,12 @@ test('this browser plays every reference replay to the hash Node recorded, witho
   const rows = check.locator('tbody tr');
   await expect(rows).toHaveCount(references.length);
   for (const [i, r] of references.entries()) {
-    await expect(rows.nth(i).locator('td').first()).toHaveText(r.name.replace(/^phase-/, 'Fase ').replace(/-light$/, ', la luz'));
+    await expect(rows.nth(i).locator('td').first()).toHaveText(
+      r.name
+        .replace(/^phase-/, 'Fase ')
+        .replace(/-light$/, ', la luz')
+        .replace(/-citadel$/, ', la ciudadela'),
+    );
     await expect(rows.nth(i).locator('td').nth(3)).toHaveText(r.hash);
   }
   await expect(check).toHaveAttribute('data-same', String(references.length));

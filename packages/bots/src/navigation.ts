@@ -191,6 +191,22 @@ function clear(world: World, body: NavBody, a: Vec3, b: Vec3): boolean {
   return world.castShape(capsule, from, quat.identity(), vec3.scale(way, 1 / length), length, QUERY) === null;
 }
 
+/**
+ * WHETHER A BODY RISES STRAIGHT UP a column, from standing at `low` to standing as high as `high` (and so
+ * whether it falls down it from there): nothing in between (stage 4.5f). A drop, a jump or a climb is
+ * across to the next column and up or down the lower one's: `clear` asks the first, this the second. The
+ * citadel found it missing: from its hall's roof, a drop to the hall's floor right under it, through the
+ * roof. (A little thinner than the body: a cell beside a wall fits it, and rising past that wall's face
+ * is not touching it.)
+ */
+function rises(world: World, body: NavBody, low: Vec3, high: number): boolean {
+  const length = high - low[1];
+  if (length <= 0) return true;
+  const capsule: Shape = { kind: 'capsule', halfHeight: body.halfHeight, radius: body.radius - 0.05 };
+  const from: Vec3 = [low[0], low[1] + CHARACTER_GAP + body.radius + body.halfHeight, low[2]];
+  return world.castShape(capsule, from, quat.identity(), [0, 1, 0], length, QUERY) === null;
+}
+
 /** What never moves: no characters, nothing the physics or a program moves. */
 const QUERY = { characters: false, dynamic: false, moving: false } as const;
 
@@ -384,6 +400,8 @@ export function* navBuilding(world: World, body: NavBody = NAV_BODY): Generator<
   const asked = new Map<number, boolean>();
   // And whether the ground halfway between two cells makes them a stair (by the pair, too).
   const halfway = new Map<number, boolean>();
+  // And whether the lower one's column is free up to the higher one's height (by the pair, too).
+  const upright = new Map<number, boolean>();
   const n = nav.cells.length;
   const pair = (a: Cell, b: Cell) => (a.id < b.id ? a.id * n + b.id : b.id * n + a.id);
   const around = [
@@ -426,8 +444,19 @@ export function* navBuilding(world: World, body: NavBody = NAV_BODY): Generator<
             yield;
           } else stepped = known;
         }
-        if (Math.abs(rise) <= body.stepUp || stepped) link(a, b, 'walk', flat / body.speed, null);
-        else if (rise < 0) link(a, b, 'drop', flat / body.speed + fallTime(-rise), null);
+        if (Math.abs(rise) <= body.stepUp || stepped) {
+          link(a, b, 'walk', flat / body.speed, null);
+          continue;
+        }
+        // Down to it, or up to it: the lower one's column free between the two heights.
+        let free = upright.get(pair(a, b));
+        if (free === undefined) {
+          const [low, high] = rise < 0 ? [b, a] : [a, b];
+          upright.set(pair(a, b), (free = rises(world, body, low.at, high.at[1])));
+          yield;
+        }
+        if (!free) continue;
+        if (rise < 0) link(a, b, 'drop', flat / body.speed + fallTime(-rise), null);
         else if (rise <= body.jumpUp) link(a, b, 'jump', flat / body.speed + 2 * fallTime(rise), null);
         else link(a, b, 'climb', rise / body.climbSpeed + 0.3, 'climb');
       }

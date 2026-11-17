@@ -1,0 +1,424 @@
+# Manifold level 9
+# The citadel (stage 4.5f): the level that pushes the engine before the games, built with the kit
+# (decision 0026) on three floors. A courtyard; a gatehouse whose door a button opens, with a stick and
+# a crate; a gate of two leaves the crate holds open from a plate; a great hall two floors high with a
+# guard, stairs up to a gallery, and a double door a button opens; a ferry across a well a floor up; a
+# library where a lamp lights a plate an eye watches (break the lamp, and the door opens); a lift to the
+# roofs; across the well by its bridges, a guard on the hall's roof, a ramp up to a deck, and a bridge
+# to the tower's top: the goal. Every wall, floor, stair, ramp, bridge and railing is a piece of the kit;
+# what moves (the doors, the gate, the ferry, the lift) is a box the simulation moves, drawn with the
+# kit's leaves where it is a door.
+title The citadel
+spawn -2 1 9
+facing 0 0 -1
+ambient 0.3
+
+# THE COURTYARD (x −8 to 8, z 0 to 12), under the sky, walled 6 m high (two rows of walls); the gatehouse
+# in its corner, the hall's gate at its north side, and the plate that holds the gate open.
+kit floor_4  -6 0 2
+kit floor_4  -2 0 2
+kit floor_4  2 0 2
+kit floor_4  6 0 2
+kit floor_4  -6 0 6
+kit floor_4  -2 0 6
+kit floor_4  2 0 6
+kit floor_4  6 0 6
+kit floor_4  -6 0 10
+kit floor_4  -2 0 10
+kit floor_4  2 0 10
+kit floor_4  6 0 10
+kit wall_4  -6 0 12
+kit wall_4  -2 0 12
+kit wall_4  2 0 12
+kit wall_4  6 0 12
+kit wall_4  -6 3 12
+kit wall_4  -2 3 12
+kit wall_4  2 3 12
+kit wall_4  6 3 12
+kit wall_4  -8 0 2  rotate y 90
+kit wall_4  -8 0 6  rotate y 90
+kit wall_4  -8 0 10  rotate y 90
+kit wall_4  -8 3 2  rotate y 90
+kit wall_4  -8 3 6  rotate y 90
+kit wall_4  -8 3 10  rotate y 90
+kit pillar  -8 0 12
+kit pillar  -8 3 12
+box -4 1.41 8  0.06 1.41 0.06  color #4a4440
+lamp -4 3 8  7 1  model dojo.lamp
+box 4 1.41 8  0.06 1.41 0.06  color #4a4440
+lamp 4 3 8  7 1  model dojo.lamp
+
+# THE GATEHOUSE (x −8 to −4, z 0 to 4), a floor high and roofed: its door, of a meter, hinged at its
+# north edge, turns into it while `small_door` is on; the button on its wall flips it. Inside, two racks
+# (walk into one to take what is on it): a dart, which a guard cannot block, and a stick, which it can;
+# and a crate of wood (G grabs it, and lets it go).
+kit wall_2  -4 0 1  rotate y 90
+kit wall_door  -4 0 3  rotate y 90
+kit wall_4  -6 0 4
+kit pillar  -4 0 4
+kit roof_4  -6 3 2
+box -4 1.1 3     0.5 1.1 0.03  rotate y 90  door 0 0 0.5 y 90 1 small_door  color #8a6a42  model kit.door_1  name small_door
+box -3.82 1.2 1.4  0.03 0.12 0.12  color #c04040
+sensor button    -3.3 0.9 1.4  0.5 0.9 0.5  name small_button
+signal small_pressed  used small_button
+signal small_door     toggle small_pressed
+sensor weapon    -7 0.5 1     0.4 0.5 0.4  kind 1  name dart_rack
+sensor weapon    -5.4 0.5 1   0.4 0.5 0.4  kind 3  name stick_rack
+box -6 0.2 3     0.2 0.2 0.2   dynamic  material wood  color #9a7a4a  name crate
+
+box -6 2.8 2  0.015 0.2 0.015  color #3a3632
+lamp -6 2.4 2  4 0.8  model dojo.lamp
+
+# THE GATE, in the hall's south wall (z = 0): two leaves of 1.2 m by 2.6, hinged at the gate's sides,
+# turning into the hall while something is on the plate, 10 m away in the courtyard: running from the
+# plate, the gate is shut before you are there; the crate left on it holds it open.
+kit wall_4  -6 0 0
+kit wall_4  -2 0 0
+kit wall_gate  2 0 0
+kit wall_4  6 0 0
+kit wall_4  -6 3 0
+kit wall_4  -2 3 0
+kit wall_4  2 3 0
+kit wall_4  6 3 0
+box 1.4 1.3 0    0.6 1.3 0.05  door -0.6 0 0 y 90 1 gate_open  color #8a6a42  model kit.gate_leaf  name gate_west
+box 2.6 1.3 0    0.6 1.3 0.05  rotate y 180  door 0.6 0 0 y -90 1 gate_open  color #8a6a42  model kit.gate_leaf  name gate_east
+box 6 0.025 9    0.6 0.025 0.6  color #a04040
+sensor plate     6 0.7 9      0.6 0.7 0.6  name gate_plate
+signal gate_open  zone gate_plate
+
+# THE GREAT HALL (x −8 to 8, z −16 to 0), two floors high, windows high on its west wall; two columns of
+# two drums each; a gallery a floor up along its north side, on columns, reached by the stairs of a floor
+# by the west wall. A guard walks round between the columns.
+kit floor_4  -6 0 -2
+kit floor_4  -2 0 -2
+kit floor_4  2 0 -2
+kit floor_4  6 0 -2
+kit floor_4  -6 0 -6
+kit floor_4  -2 0 -6
+kit floor_4  2 0 -6
+kit floor_4  6 0 -6
+kit floor_4  -6 0 -10
+kit floor_4  -2 0 -10
+kit floor_4  2 0 -10
+kit floor_4  6 0 -10
+kit floor_4  -6 0 -14
+kit floor_4  -2 0 -14
+kit floor_4  2 0 -14
+kit floor_4  6 0 -14
+kit wall_4  -8 0 -2  rotate y 90
+kit wall_4  -8 0 -6  rotate y 90
+kit wall_4  -8 0 -10  rotate y 90
+kit wall_4  -8 0 -14  rotate y 90
+kit wall_window  -8 3 -1  rotate y 90
+kit wall_window  -8 3 -3  rotate y 90
+kit wall_window  -8 3 -5  rotate y 90
+kit wall_window  -8 3 -7  rotate y 90
+kit wall_window  -8 3 -9  rotate y 90
+kit wall_window  -8 3 -11  rotate y 90
+kit wall_window  -8 3 -13  rotate y 90
+kit wall_window  -8 3 -15  rotate y 90
+kit wall_4  -6 0 -16
+kit wall_4  -2 0 -16
+kit wall_4  2 0 -16
+kit wall_4  6 0 -16
+kit wall_4  -6 3 -16
+kit wall_4  -2 3 -16
+kit wall_4  2 3 -16
+kit wall_4  6 3 -16
+kit wall_4  8 0 -2  rotate y 90
+kit wall_4  8 0 -6  rotate y 90
+kit wall_4  8 0 -10  rotate y 90
+kit wall_4  8 0 -14  rotate y 90
+kit wall_4  8 3 -2  rotate y 90
+kit wall_4  8 3 -6  rotate y 90
+kit wall_4  8 3 -10  rotate y 90
+kit wall_door_wide  8 3 -14  rotate y 90
+kit pillar  -8 0 -16
+kit pillar  -8 0 0
+kit pillar  -8 3 -16
+kit pillar  -8 3 0
+kit column  -3 -0.15 -5
+kit column  -3 2.85 -5
+kit column  3 -0.15 -5
+kit column  3 2.85 -5
+kit column  -2 -0.15 -12.4
+kit column  2 -0.15 -12.4
+kit column  6 -0.15 -12.4
+kit floor_4  -6 3 -14
+kit floor_4  -2 3 -14
+kit floor_4  2 3 -14
+kit floor_4  6 3 -14
+kit railing_2  -3 3 -12.1
+kit railing_2  -1 3 -12.1
+kit railing_2  1 3 -12.1
+kit railing_2  3 3 -12.1
+kit railing_2  5 3 -12.1
+kit railing_2  7 3 -12.1
+kit stairs_3  -6 0 -9
+box -4 5.25 -3  0.015 0.55 0.015  color #3a3632
+lamp -4 4.5 -3  8 1  model dojo.lamp
+box 4 5.25 -3  0.015 0.55 0.015  color #3a3632
+lamp 4 4.5 -3  8 1  model dojo.lamp
+box 0 5.25 -9  0.015 0.55 0.015  color #3a3632
+lamp 0 4.5 -9  8 1  model dojo.lamp
+box 0 5.6 -14.5  0.015 0.2 0.015  color #3a3632
+lamp 0 5.2 -14.5  5 0.8  model dojo.lamp
+# A lamp on a post that breaks, and two crates that do.
+box 5 0.66 -8    0.06 0.66 0.06  color #4a4440
+lamp 5 1.5 -8    4 0.8  breaks 0.3  model dojo.lamp  name hall_lamp
+box -6 0.3 -2    0.3 0.3 0.3   breaks 3  color #8a6a42
+box -6.7 0.3 -2.3  0.3 0.3 0.3   breaks 3  color #8a6a42
+route hall loop  -4 0 -3  4 0 -3  4 0 -9  -4 0 -9
+sensor guard     0 1 -3   0.3 0.8 0.3  name hall_guard
+sensor checkpoint  2 0.8 -2   1.5 0.8 1
+
+# The double door, at the gallery's east end: two leaves of a meter, hinged at the doorway's sides,
+# turning out of the hall while `wide_open` is on; the button by it flips it.
+box 8 4.1 -14.5  0.5 1.1 0.03  rotate y -90  door 0 0 -0.5 y 90 1 wide_open  color #8a6a42  model kit.door_1  name wide_south
+box 8 4.1 -13.5  0.5 1.1 0.03  rotate y 90   door 0 0 0.5 y -90 1 wide_open  color #8a6a42  model kit.door_1  name wide_north
+box 7.82 4.2 -12.5  0.03 0.12 0.12  color #c04040
+sensor button    7.3 3.9 -12.5  0.45 0.9 0.45  name wide_button
+signal wide_pressed  used wide_button
+signal wide_open     toggle wide_pressed
+
+# THE EAST WING (x 8 to 16, z −16 to 12), two floors and a roof. A floor up: a landing past the double
+# door, the well (z −12 to −4, open from the roof down into the void), a landing past it, the library,
+# and the lift's room. On the ground, under the library, the stores, closed but for their windows on the
+# courtyard.
+kit wall_4  16 0 -14  rotate y 90
+kit wall_4  16 0 -10  rotate y 90
+kit wall_4  16 0 -6  rotate y 90
+kit wall_4  16 0 -2  rotate y 90
+kit wall_4  16 0 2  rotate y 90
+kit wall_4  16 0 6  rotate y 90
+kit wall_4  16 0 10  rotate y 90
+kit wall_4  16 3 -14  rotate y 90
+kit wall_4  16 3 -10  rotate y 90
+kit wall_4  16 3 -6  rotate y 90
+kit wall_4  16 3 -2  rotate y 90
+kit wall_4  16 3 2  rotate y 90
+kit wall_4  16 3 6  rotate y 90
+kit wall_4  16 3 10  rotate y 90
+kit wall_4  16 -3 -10  rotate y 90
+kit wall_4  16 -3 -6  rotate y 90
+kit wall_4  8 -3 -10  rotate y 90
+kit wall_4  8 -3 -6  rotate y 90
+kit wall_4  10 0 -16
+kit wall_4  14 0 -16
+kit wall_4  10 3 -16
+kit wall_4  14 3 -16
+kit wall_4  10 0 12
+kit wall_4  14 0 12
+kit wall_4  10 3 12
+kit wall_4  14 3 12
+kit wall_4  10 -3 -12
+kit wall_4  14 -3 -12
+kit wall_4  10 -3 -4
+kit wall_4  14 -3 -4
+kit wall_4  10 0 -12
+kit wall_4  14 0 -12
+kit wall_4  10 0 -4
+kit wall_4  14 0 -4
+kit wall_window  8 0 1  rotate y 90
+kit wall_window  8 0 3  rotate y 90
+kit wall_window  8 0 5  rotate y 90
+kit wall_window  8 0 7  rotate y 90
+kit wall_window  8 0 9  rotate y 90
+kit wall_window  8 0 11  rotate y 90
+kit wall_window  8 3 1  rotate y 90
+kit wall_window  8 3 3  rotate y 90
+kit wall_window  8 3 5  rotate y 90
+kit wall_window  8 3 7  rotate y 90
+kit wall_4  8 3 10  rotate y 90
+kit wall_4  10 0 0
+kit wall_4  14 0 0
+kit wall_2  9 3 0
+kit wall_door  11 3 0
+kit wall_4  14 3 0
+kit wall_4  10 3 8
+kit wall_door  13 3 8
+kit wall_2  15 3 8
+kit pillar  16 0 -16
+kit pillar  16 0 12
+kit pillar  16 3 -16
+kit pillar  16 3 12
+kit floor_4  10 0 2
+kit floor_4  14 0 2
+kit floor_4  10 3 2
+kit floor_4  14 3 2
+kit floor_4  10 0 6
+kit floor_4  14 0 6
+kit floor_4  10 3 6
+kit floor_4  14 3 6
+kit floor_4  10 0 10
+kit floor_4  14 0 10
+kit floor_4  10 3 10
+kit floor_4  14 3 10
+kit floor_4  10 3 -2
+kit floor_4  14 3 -2
+kit floor_4  10 3 -14
+kit floor_4  14 3 -14
+# The well's ferry, a floor up, level with both landings: across in 2.5 s, and back.
+box 12 2.85 -10.5  1.5 0.15 1.5  move 0 0 5 2.5  color #7a5a3a  name ferry
+sensor checkpoint  12 3.8 -2   3.5 0.8 1.5
+box 12 5.6 -14  0.015 0.2 0.015  color #3a3632
+lamp 12 5.2 -14  5 0.8  model dojo.lamp
+box 12 5.6 -2  0.015 0.2 0.015  color #3a3632
+lamp 12 5.2 -2  5 0.8  model dojo.lamp
+
+# The library (z 0 to 8): a lamp on a post lights the plate before its door, and an eye by the door
+# looks down the room (−Z): the door opens, and stays open, for someone on the plate the eye does not
+# see. Shelves along its east wall.
+box 11.6 3.66 5.4  0.06 0.66 0.06  color #4a4440
+lamp 11.6 4.5 5.4  5 1  breaks 0.3  model dojo.lamp  name lamp
+watcher 13 4.7 7.75  9 70 0.35  name eye
+box 13 3.025 5.6  0.6 0.025 0.6  color #a04040
+sensor plate     13 3.7 5.6   0.6 0.7 0.6  name last_plate
+box 13 4.1 8     0.5 1.1 0.03  door -0.5 0 0 y -90 1 opened  color #8a6a42  model kit.door_1  name library_door
+signal seen_me   seen eye
+signal unseen    not seen_me
+signal on_plate  zone last_plate
+signal ready     all on_plate unseen
+signal never
+signal opened    latch ready never
+kit block_1  15.3 3 1.5
+kit block_1  15.3 4 1.5
+kit block_1  15.3 3 2.5
+kit block_1  15.3 4 2.5
+kit block_1  15.3 3 3.5
+kit block_1  15.3 4 3.5
+kit block_1  15.3 3 4.5
+kit block_1  15.3 4 4.5
+
+# The lift's room (z 8 to 12): the lift, a floor up to the roof through the hole it fills there. Standing
+# on it sends it up; the plate by it on the roof calls it up; the plate beside it here calls it down.
+box 10.075 3.15 10  1.925 0.15 1.85  lift 0 2.7 0 3 lift_up  color #7a5a3a  name lift
+box 14 3.025 10.5  0.6 0.025 0.6  color #a04040
+box 14 6.025 10    0.6 0.025 0.6  color #a04040
+sensor plate  10.075 3.8 10   1.8 0.5 1.75  name on_lift
+sensor plate  14 3.7 10.5     0.6 0.7 0.6   name call_down
+sensor plate  14 6.7 10       0.6 0.7 0.6   name call_up
+signal riding   zone on_lift
+signal called   zone call_up
+signal sent     zone call_down
+signal up       any riding called
+signal lift_up  latch up sent
+box 14 5.6 10  0.015 0.2 0.015  color #3a3632
+lamp 14 5.2 10  4 0.8  model dojo.lamp
+
+# THE ROOFS (y = 6): the east wing's, with the hole the lift fills and a railing on the courtyard's
+# side; two bridges over the well; the hall's, a railing on the courtyard's side, a guard, and a ramp
+# up to a deck a meter up at its north edge.
+kit floor_4  10 6 2
+kit floor_4  14 6 2
+kit floor_4  10 6 6
+kit floor_4  14 6 6
+kit floor_4  14 6 10
+kit floor_4  10 6 -2
+kit floor_4  14 6 -2
+kit floor_4  10 6 -14
+kit floor_4  14 6 -14
+kit bridge_4  12 6 -6
+kit bridge_4  12 6 -10
+kit railing_2  8.1 6 1  rotate y 90
+kit railing_2  8.1 6 3  rotate y 90
+kit railing_2  8.1 6 5  rotate y 90
+kit railing_2  8.1 6 7  rotate y 90
+kit floor_4  -6 6 -2
+kit floor_4  -2 6 -2
+kit floor_4  2 6 -2
+kit floor_4  6 6 -2
+kit floor_4  -6 6 -6
+kit floor_4  -2 6 -6
+kit floor_4  2 6 -6
+kit floor_4  6 6 -6
+kit floor_4  -6 6 -10
+kit floor_4  -2 6 -10
+kit floor_4  2 6 -10
+kit floor_4  6 6 -10
+kit floor_4  -6 6 -14
+kit floor_4  -2 6 -14
+kit floor_4  2 6 -14
+kit floor_4  6 6 -14
+kit railing_2  -7 6 -0.1
+kit railing_2  -5 6 -0.1
+kit railing_2  -3 6 -0.1
+kit railing_2  -1 6 -0.1
+kit railing_2  1 6 -0.1
+kit railing_2  3 6 -0.1
+kit railing_2  5 6 -0.1
+kit railing_2  7 6 -0.1
+kit ramp_1  0 6 -10
+kit platform_2  -1 6 -13
+kit platform_2  -1 6 -15
+kit platform_2  1 6 -13
+kit platform_2  1 6 -15
+sensor checkpoint  14 6.8 5   1.5 0.8 1.5
+route roof  -5 6 -4  5 6 -4
+sensor guard     0 7 -4   0.3 0.8 0.3  name roof_guard
+box 0 6.91 -5  0.06 0.91 0.06  color #4a4440
+lamp 0 8 -5  8 1  model dojo.lamp
+
+# THE TOWER (x −4 to 4, z −28 to −20), across a gap 4 m wide from the hall: a bridge from the deck to
+# its top, a deck a meter over its walls, railed, and the goal on it.
+kit bridge_4  0 7 -18
+kit wall_4  -2 0 -20
+kit wall_4  2 0 -20
+kit wall_4  -2 3 -20
+kit wall_4  2 3 -20
+kit wall_4  -2 0 -28
+kit wall_4  2 0 -28
+kit wall_4  -2 3 -28
+kit wall_4  2 3 -28
+kit wall_4  -4 0 -22  rotate y 90
+kit wall_4  -4 0 -26  rotate y 90
+kit wall_4  -4 3 -22  rotate y 90
+kit wall_4  -4 3 -26  rotate y 90
+kit wall_4  4 0 -22  rotate y 90
+kit wall_4  4 0 -26  rotate y 90
+kit wall_4  4 3 -22  rotate y 90
+kit wall_4  4 3 -26  rotate y 90
+kit pillar  -4 0 -20
+kit pillar  -4 0 -28
+kit pillar  4 0 -20
+kit pillar  4 0 -28
+kit pillar  -4 3 -20
+kit pillar  -4 3 -28
+kit pillar  4 3 -20
+kit pillar  4 3 -28
+kit platform_2  -3 6 -21
+kit platform_2  -3 6 -23
+kit platform_2  -3 6 -25
+kit platform_2  -3 6 -27
+kit platform_2  -1 6 -21
+kit platform_2  -1 6 -23
+kit platform_2  -1 6 -25
+kit platform_2  -1 6 -27
+kit platform_2  1 6 -21
+kit platform_2  1 6 -23
+kit platform_2  1 6 -25
+kit platform_2  1 6 -27
+kit platform_2  3 6 -21
+kit platform_2  3 6 -23
+kit platform_2  3 6 -25
+kit platform_2  3 6 -27
+kit railing_2  -3 7 -20.1
+kit railing_2  3 7 -20.1
+kit railing_2  -3 7 -27.9
+kit railing_2  -1 7 -27.9
+kit railing_2  1 7 -27.9
+kit railing_2  3 7 -27.9
+kit railing_2  -3.9 7 -21  rotate y 90
+kit railing_2  -3.9 7 -23  rotate y 90
+kit railing_2  -3.9 7 -25  rotate y 90
+kit railing_2  -3.9 7 -27  rotate y 90
+kit railing_2  3.9 7 -21  rotate y 90
+kit railing_2  3.9 7 -23  rotate y 90
+kit railing_2  3.9 7 -25  rotate y 90
+kit railing_2  3.9 7 -27  rotate y 90
+box -2.6 7.91 -26.6  0.06 0.91 0.06  color #4a4440
+lamp -2.6 9 -26.6  7 1  model dojo.lamp
+sensor goal      0 7.8 -25   1.5 0.8 1.5
+
+# The void under it all: falling, back to the last checkpoint.
+sensor fall      4 -9 -8     40 3 40

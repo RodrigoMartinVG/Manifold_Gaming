@@ -13,6 +13,7 @@ interface Made {
     string,
     { boxes: { center: number[]; half: number[]; turn?: { axis: string; degrees: number } }[]; size: number[]; triangles: number }
   >;
+  leaves: Record<string, { size: number[]; triangles: number }>;
 }
 
 /** A piece's model's name, as the presentation knows it (`kit.wall_2`). */
@@ -35,7 +36,17 @@ export const KIT: KitPieces = Object.fromEntries(
   ]),
 );
 
-/** Each piece's triangles, as the script counted them (the kit's budget: decision 0026). */
+/**
+ * THE LEAVES the kit draws over a level's doors (stage 4.5f): models with no boxes of their own, since a
+ * door is a box the simulation turns (decision 0026). Each its size, the box a level gives the door it
+ * draws (`box … 0.5 1.1 0.03 door … model kit.door_1`): `door_1` fills `wall_door` (two fill
+ * `wall_door_wide`), `gate_leaf` half of `wall_gate`. Hinged on its left edge (−x).
+ */
+export const KIT_LEAVES: Readonly<Record<string, { size: Vec3; model: string }>> = Object.fromEntries(
+  Object.entries((made as Made).leaves).map(([name, l]) => [name, { size: vec(l.size), model: kitModel(name) }]),
+);
+
+/** Each piece's and leaf's triangles, as the script counted them (the kit's budget: decision 0026). */
 export const KIT_TRIANGLES: Readonly<Record<string, number>> = Object.fromEntries(
-  Object.entries((made as Made).pieces).map(([name, p]) => [name, p.triangles]),
+  [...Object.entries((made as Made).pieces), ...Object.entries((made as Made).leaves)].map(([name, p]) => [name, p.triangles]),
 );

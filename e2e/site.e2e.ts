@@ -1020,12 +1020,46 @@ test('the kit room: every piece of the games’ kit drawn with its model, each a
   });
   await page.goto('jugar/dojo/kit/');
   await expect.poll(async () => (await position(page, 'player')).length, { timeout: 15_000 }).toBe(3);
-  // Its 29 pieces (the 23 kinds, some twice), the floor, the four boxes that hold platforms up, the player.
+  // Its 32 pieces (the 24 kinds, some twice), the floor, the box that holds the stairs' landing up, the player.
   await expect.poll(async () => Number(await page.locator('#game').getAttribute('data-meshes')), { timeout: 20_000 }).toBe(35);
   // Drawn with their models (they loaded: no piece fell back to its box), and few triangles for so much.
   await afterSteps(page, 30);
   const triangles = Number(await page.locator('#game').getAttribute('data-triangles'));
   expect(triangles).toBeGreaterThan(3000);
+  expect(warnings).toEqual([]);
+  expect(list).toEqual([]);
+});
+
+// ---------------------------------------------------------------- the citadel (stage 4.5f)
+
+test('the citadel: built with the kit, drawn within its budget everywhere in it, with six lights for its fourteen lamps', async ({
+  page,
+}) => {
+  const list = errors(page);
+  const warnings: string[] = [];
+  page.on('console', (m) => {
+    if (m.type() === 'warning' && /model/.test(m.text())) warnings.push(m.text());
+  });
+  await page.goto('jugar/dojo/citadel/');
+  await expect.poll(async () => (await position(page, 'player')).length, { timeout: 15_000 }).toBe(3);
+  await expect
+    .poll(async () => Number(await page.locator('#game').getAttribute('data-meshes')), { timeout: 20_000 })
+    .toBeGreaterThan(300);
+  await expect(page.locator('#game')).toHaveAttribute('data-lights', '6');
+  // The budget (decision 0026, set in stage 4.5f from what it measured): at most 300 draw calls and
+  // 50,000 triangles a frame, wherever you stand. Measured where it draws the most: the courtyard, the
+  // hall from its gate, the library, the roofs, the tower's top.
+  await page.keyboard.press('Backquote');
+  for (const at of ['-2 1 9', '2 1 -2', '11 4 1.5', '13 7 4', '0 8 -24']) {
+    await typeInConsole(page, `dojo.goto ${at}`);
+    await afterSteps(page, 30);
+    const [draws, triangles] = await Promise.all(
+      ['data-draws', 'data-triangles'].map(async (a) => Number(await page.locator('#game').getAttribute(a))),
+    );
+    expect(draws, `draws at ${at}`).toBeLessThanOrEqual(300);
+    expect(triangles, `triangles at ${at}`).toBeLessThanOrEqual(50_000);
+    expect(triangles, `drawn at ${at}`).toBeGreaterThan(2000);
+  }
   expect(warnings).toEqual([]);
   expect(list).toEqual([]);
 });
