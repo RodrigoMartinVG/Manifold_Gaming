@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { Vec3 } from '@manifold/common';
 import type { Character, Entity, EntityId, Shape, World } from '@manifold/core';
 import { endOf, reach, rootOf, type Limb, type LimbSpec } from './ik';
+import type { Tool, ToolPose } from './tools';
 
 /**
  * HANDS THAT HOLD ON (stage 4a): the climbing animations move the arms as if a wall were 16 cm in front of
@@ -50,8 +51,8 @@ const STILL = 0.1;
 /** How long a hand takes to go from one hold to the next while the solver weighs it (s). */
 const SHIFT = 0.15;
 
-/** What a hand holds, if anything. */
-export type HoldKind = 'wall' | 'ledge' | 'held';
+/** What a hand holds, if anything: a wall, its edge, something carried (a crate), a tool (stage 4c: tools.ts). */
+export type HoldKind = 'wall' | 'ledge' | 'held' | 'tool';
 
 /** What the view remembers of a hand from one frame to the next. */
 export interface Hand {
@@ -90,13 +91,20 @@ export interface Surroundings {
   ray(from: THREE.Vector3, direction: THREE.Vector3, reach: number): { point: THREE.Vector3; normal: THREE.Vector3 } | null;
   /** What it holds, as drawn: where it is, how it is turned, its shape. */
   held: { center: THREE.Vector3; rotation: THREE.Quaternion; shape: Shape } | null;
+  /** What it carries in its hands, as its game says (stage 4c: tools.ts), if anything. */
+  tool?: Tool | null;
 }
 
 /**
  * A character's surroundings in a world: rays against what the physics does not move, and what it holds,
  * where it is drawn (`drawn`, if it is) or where the world has it.
  */
-export function surroundingsOf(world: World, e: Entity, drawn?: (id: EntityId) => THREE.Object3D | undefined): Surroundings {
+export function surroundingsOf(
+  world: World,
+  e: Entity,
+  drawn?: (id: EntityId) => THREE.Object3D | undefined,
+  tool: Tool | null = null,
+): Surroundings {
   const holding = e.character?.holding ? world.entities.get(e.character.holding) : undefined;
   const mesh = holding && drawn?.(holding.id);
   const t = holding?.transform;
@@ -113,6 +121,7 @@ export function surroundingsOf(world: World, e: Entity, drawn?: (id: EntityId) =
             shape: holding.body.shape,
           }
         : null,
+    tool,
   };
 }
 
@@ -200,7 +209,9 @@ const eased = (w: number) => w * w * (3 - 2 * w);
 /**
  * After the animations and the feet (models.ts: `animate`): each hand takes, keeps or lets go of its hold,
  * and the arms reach for it. `climbPhase`, where the climbing cycle is; `moved`, how fast the body really
- * moved (m/s); `dt`, the world's time (paused, nothing changes).
+ * moved (m/s); `dt`, the world's time (paused, nothing changes); `tool`, where a tool it carries is
+ * drawn (stage 4c: its grips, the right hand's and the left one's), if it carries one and something
+ * carried (a crate) does not take its hands.
  */
 export function grip(
   object: THREE.Object3D,
@@ -212,6 +223,7 @@ export function grip(
   moved: Vec3,
   up: Vec3,
   dt: number,
+  tool: ToolPose | null = null,
 ) {
   if (!arms) return;
   object.updateMatrixWorld(true);
@@ -228,22 +240,29 @@ export function grip(
     const window = holdsNow(side, climbPhase);
     if (!window) h.took = false;
     // What is held: the arms reach for its sides, wherever it is (not a hold: it is not within reach).
+    // Or, if nothing is, a tool's grips.
     const held = around?.held;
     let reachFor: THREE.Vector3 | null = null;
+    let carried: 'held' | 'tool' | null = null;
     if (held) {
       const sign = side === 'L' ? -1 : 1;
       reachFor = held.center.clone().addScaledVector(right, sign * (halfAcross(held.shape, held.rotation, right) + PALM));
+      carried = 'held';
+    } else if (tool?.grips[side]) {
+      reachFor = tool.grips[side]!.clone();
+      carried = 'tool';
     }
     // Keep or let go.
     if (h.contact) {
       const far = shoulder.distanceTo(h.contact) > LET_GO * full;
-      const over = h.kind === 'held' ? !reachFor : !climbing || far || (h.kind === 'wall' && !window && !still);
+      const holdsCarried = h.kind === 'held' || h.kind === 'tool';
+      const over = holdsCarried ? h.kind !== carried : !climbing || far || (h.kind === 'wall' && !window && !still);
       if (over) {
         h.leaving = aimOfHand(h, new THREE.Vector3());
         h.contact = null;
         h.kind = null;
         h.shift = null;
-      } else if (h.kind === 'held') h.contact = reachFor;
+      } else if (holdsCarried) h.contact = reachFor;
       else if (h.kind === 'wall' && dt > 0) {
         // Holding the wall when its edge comes within reach: to the edge (both hands end there).
         const top = wallHold(limb, around!, c.wall);
@@ -251,7 +270,7 @@ export function grip(
       }
     }
     // Take.
-    if (!h.contact && reachFor) take(h, reachFor, 'held');
+    if (!h.contact && reachFor && carried) take(h, reachFor, carried);
     else if (!h.contact && climbing && dt > 0) {
       const hold = wallHold(limb, around, c.wall);
       const may = hold && (hold.kind === 'ledge' || ((window || still) && !h.took));

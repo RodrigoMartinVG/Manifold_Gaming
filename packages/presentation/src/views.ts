@@ -27,7 +27,7 @@ export const VIEWS_VARIABLES = {
   ),
   ik: view(
     'show.ik',
-    "Where each character's limbs reach (stage 4a): a line from each hip and shoulder to its target, as bright as the solver weighs; and the contacts that persist, as dots: a foot down (green), a hand on a wall (orange), on a ledge (yellow), reaching for what it holds (cyan).",
+    "Where each character's limbs reach (stage 4a): a line from each hip and shoulder to its target, as bright as the solver weighs; and the contacts that persist, as dots: a foot down (green), a hand on a wall (orange), on a ledge (yellow), reaching for what it holds (cyan), on what it carries in its hands (violet).",
   ),
 };
 
@@ -37,6 +37,7 @@ const IK_COLORS: Record<'foot' | HoldKind | 'free', THREE.Color> = {
   wall: new THREE.Color(0xe0a05a),
   ledge: new THREE.Color(0xe0d85a),
   held: new THREE.Color(0x5ad0e0),
+  tool: new THREE.Color(0xd07ae0),
   free: new THREE.Color(0x8a8a9a),
 };
 

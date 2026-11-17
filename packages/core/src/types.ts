@@ -32,6 +32,7 @@ export interface Entity {
   watcher?: Watcher;
   breakable?: Breakable;
   health?: Health;
+  projectile?: Projectile;
   /**
    * The level's line that built it (stage 3j), as data: what `level.export` writes back. Set when a
    * level builds it, or the console adds it; kept up to date by `set`. Characters, balls, fragments,
@@ -83,6 +84,23 @@ export interface Health {
   points: number;
   most: number;
   down: number;
+}
+
+/**
+ * A PROJECTILE (stage 4c): something thrown or shot that the physics does not move; the simulation
+ * moves it, a segment of ray each step (so it crosses nothing between two steps), swept with its
+ * radius, and it hurts what it strikes (a part of a character as it is now, or whatever has health)
+ * and is gone. Who shot it, how fast it goes, how thick it is, what it takes, of what kind, whether
+ * gravity bends it, and how many steps it has left.
+ */
+export interface Projectile {
+  from: EntityId | null;
+  velocity: Vec3;
+  radius: number;
+  damage: number;
+  kind: string;
+  gravity: boolean;
+  life: number;
 }
 
 /** A hit to be taken (stage 4c), as the game's filter sees it: on whom, by whom, where, of what kind, how much. */
@@ -617,4 +635,8 @@ export type Event =
   /** It went down (stage 4c): its points ran out. */
   | { type: 'down'; target: EntityId; from: EntityId | null }
   /** It came back (stage 4c), with all its points. */
-  | { type: 'revived'; target: EntityId };
+  | { type: 'revived'; target: EntityId }
+  /** A shot went (stage 4c: hitscan, for its tracer): from whom, from where to where it stopped, what it hit. */
+  | { type: 'shot'; from: EntityId; start: Vec3; end: Vec3; hit: EntityId | null; kind: string }
+  /** A projectile struck something (stage 4c) and is gone: where, what. */
+  | { type: 'impact'; projectile: EntityId; at: Vec3; hit: EntityId | null; kind: string };

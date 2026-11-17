@@ -23,6 +23,7 @@ import { mountHud, type Hud } from './hud';
 import { mountMenu } from './menu';
 import { mountSettings } from './settings';
 import { mountSubtitles } from './subtitles';
+import type { Tools } from './tools';
 import { ENGINE_WORDS, languageOf, sayer, type Words } from './words';
 
 /** A recipe to start with, and where it comes from (for the warnings: "the link's recipe…"). */
@@ -69,6 +70,11 @@ export interface MountOptions {
   words?: Words;
   /** What the game's HUD shows (stage 3i), read from the world on every frame. */
   hud?: Hud;
+  /**
+   * What each character carries in its hands, as the game says (stage 4c: tools.ts): drawn along its
+   * aim, its arms brought to it. The world keeps it in the game's own component; the view asks here.
+   */
+  tools?: Tools;
 }
 
 export interface Mount {
@@ -208,7 +214,10 @@ export function mount(cartridge: Cartridge, container: HTMLElement, o: MountOpti
 
   // The pieces, in the order they draw (the bodies first, what is drawn on them after, the camera last).
   const playerControls = mountPlayerControls({ blocked: () => (gameConsole?.isOpen ?? false) || page.held, buttons: o.buttons });
-  const bodies = mountBodies(page, loadModels(o.models), { timeScale: () => (match.paused ? 0 : match.timescale) });
+  const bodies = mountBodies(page, loadModels(o.models), {
+    timeScale: () => (match.paused ? 0 : match.timescale),
+    ...(o.tools ? { tools: o.tools } : {}),
+  });
   const replays = mountReplays(page, match, bodies);
   const rig = mountCamera(page, bodies, match, {
     kind: o.camera ?? 'fixed',

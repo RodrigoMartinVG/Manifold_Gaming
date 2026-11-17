@@ -41,6 +41,12 @@ export const CHARACTER_ACTIONS: readonly InputAction[] = [
   { name: 'run', kind: 'button', description: 'running' },
   { name: 'crouch', kind: 'button', description: 'crouching, while it is held, on the ground (stage 4b)' },
   { name: 'roll', kind: 'button', description: 'rolling, a dodge, the way it is asked to go (stage 4b)' },
+  {
+    name: 'back',
+    kind: 'count',
+    max: 15,
+    description: 'how many steps behind the present its player saw the others, for its shots (stage 4c, decision 0022)',
+  },
   { name: 'use', kind: 'button', description: 'using what it stands in: a button (stage 3c)' },
   { name: 'grab', kind: 'button', description: 'grabbing what is in front of it, and letting it go (stage 3g)' },
 ];

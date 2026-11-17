@@ -63,5 +63,8 @@
  *      parts by mode (`history`, `hits`)
  *  32  stage 4c: health (`health`), what hits take through each game's filter, down and back; a hit
  *      sound says what it struck; the Dojo's training dummies, hurt by its balls
+ *  33  stage 4c: weapons: the world's seed is part of its state, for each shot's own dice; shots look
+ *      back (`back`); projectiles fly in their own phase and strike what they meet (`projectile`,
+ *      `shot`, `impact`); the Dojo's dart, bolt and stick, taken from their racks
  */
-export const SIMULATION_VERSION = 32;
+export const SIMULATION_VERSION = 33;

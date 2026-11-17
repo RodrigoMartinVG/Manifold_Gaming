@@ -17,6 +17,7 @@ import { surroundingsOf } from './hands';
 import { inertialize } from './inertia';
 import { animate, flinch, motion, turnBody, type ModelInstance, type Models } from './models';
 import { poseRagdoll, startRagdoll, stopRagdoll } from './ragdoll';
+import type { Tools } from './tools';
 import { own, ownMaterial, release } from './owned';
 import type { GamePage, Piece } from './page';
 
@@ -85,7 +86,7 @@ export const BODIES_VARIABLES = {
  * `turnBody`): the simulation turns it at once. Every character has a soft shadow straight under it,
  * on whatever is there: to read where it will land.
  */
-export function mountBodies(page: GamePage, models: Models, o: { timeScale(): number }): Bodies {
+export function mountBodies(page: GamePage, models: Models, o: { timeScale(): number; tools?: Tools }): Bodies {
   const { scene, camera } = page.stage;
   const meshes = new Map<EntityId, THREE.Object3D>();
   /** The model copies, by entity (their animations move on every frame). */
@@ -106,6 +107,45 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
         );
     return falls;
   };
+  // What each character carries (stage 4c: tools.ts), a box drawn where its model holds it, by entity
+  // (with its size and color, to make it again if they change); and each shot's tracer as it fades.
+  const tools = new Map<EntityId, { mesh: THREE.Mesh; look: string }>();
+  const tracers: { line: THREE.Mesh; left: number }[] = [];
+  const dropTool = (id: EntityId) => {
+    const tool = tools.get(id);
+    if (!tool) return;
+    scene.remove(tool.mesh);
+    release(tool.mesh);
+    tools.delete(id);
+  };
+  const drawTool = (id: EntityId, model: ModelInstance) => {
+    const pose = model.holding.pose;
+    if (!pose) return dropTool(id);
+    const look = `${pose.size.join(' ')} ${pose.color}`;
+    let tool = tools.get(id);
+    if (tool?.look !== look) {
+      dropTool(id);
+      const mesh = own(
+        new THREE.Mesh(new THREE.BoxGeometry(...pose.size), new THREE.MeshLambertMaterial({ color: pose.color })),
+        {
+          geometry: true,
+          material: true,
+        },
+      );
+      mesh.castShadow = true;
+      scene.add(mesh);
+      tools.set(id, (tool = { mesh, look }));
+    }
+    tool.mesh.position.copy(pose.center);
+    tool.mesh.quaternion.copy(pose.rotation);
+  };
+  /**
+   * How long a tracer is seen (s), fading, and how thick it is (m): a thin box, glowing (a line is a
+   * pixel wide, whatever width it asks for: WebGL draws no other).
+   */
+  const TRACER = 0.15;
+  const TRACER_WIDTH = 0.02;
+  const tracerShape = new THREE.BoxGeometry(1, 1, 1).translate(0, 0, 0.5);
   const getUp = (model: ModelInstance) => {
     if (!model.ragdoll || !falls) return;
     stopRagdoll(falls, model.ragdoll);
@@ -300,6 +340,7 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
     const model = instances.get(id);
     if (model) getUp(model);
     model?.mixer.stopAllAction();
+    dropTool(id);
     instances.delete(id);
     lastHit.delete(id);
     meshes.delete(id);
@@ -344,6 +385,10 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
     },
     welcome(session) {
       for (const id of new Set([...meshes.keys(), ...zones.keys()])) remove(id);
+      for (const t of tracers.splice(0)) {
+        scene.remove(t.line);
+        release(t.line);
+      }
       // (Another world: its own fixed boxes for the falls.)
       falls?.dispose();
       falls = null;
@@ -391,6 +436,26 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
         const model = instances.get(ev.target);
         if (model) getUp(model);
       }
+      // A shot (stage 4c): its tracer, from the end of what fired it as drawn (or where the world fired
+      // it from) to where it struck or ended, fading.
+      if (ev.type === 'shot') {
+        const from = instances.get(ev.from)?.holding.pose?.muzzle.clone() ?? new THREE.Vector3(...ev.start);
+        const to = new THREE.Vector3(...ev.end);
+        const material = new THREE.MeshBasicMaterial({
+          color: 0xfff0b0,
+          transparent: true,
+          opacity: 1,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending,
+        });
+        // (The shared box, from its back face along +Z: put at the start, looking at the end, as long as the way.)
+        const line = own(new THREE.Mesh(tracerShape, material), { material: true });
+        line.position.copy(from);
+        line.lookAt(to);
+        line.scale.set(TRACER_WIDTH, TRACER_WIDTH, Math.max(1e-3, from.distanceTo(to)));
+        scene.add(line);
+        tracers.push({ line, left: TRACER });
+      }
     },
     frame({ world, alpha, dt, hero }) {
       // (How much time passed for the world: paused, none; at half speed, half.)
@@ -436,6 +501,9 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
         const t = e?.transform;
         if (!e?.character || !t) continue;
         if (model.ragdoll && falls) {
+          // (Down, what it carried is not drawn.)
+          model.holding.pose = null;
+          dropTool(id);
           poseRagdoll(falls, model.ragdoll);
           // (What it drew, remembered: getting up starts from where it lies.)
           inertialize(model.bones, model.inertia, false, time);
@@ -443,8 +511,20 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
         }
         const before = previous.get(id);
         const moved = before ? motion(before.position, t.position, e.character) : ([0, 0, 0] as const);
-        const around = surroundingsOf(world, e, (other) => meshes.get(other));
+        const around = surroundingsOf(world, e, (other) => meshes.get(other), o.tools?.(world, e) ?? null);
         animate(model, e.character, upAt(world, t.position), [...moved], turning.get(id) ?? 0, time, around);
+        drawTool(id, model);
+      }
+      // The tracers fade by the world's time (paused, they stay).
+      for (let i = tracers.length - 1; i >= 0; i--) {
+        const t = tracers[i]!;
+        t.left -= time;
+        (t.line.material as THREE.MeshBasicMaterial).opacity = Math.max(0, t.left / TRACER);
+        if (t.left <= 0) {
+          scene.remove(t.line);
+          release(t.line);
+          tracers.splice(i, 1);
+        }
       }
       // For the browser tests: how many fall now (stage 4c), written when it changes.
       const falling = String([...instances.values()].filter((m) => m.ragdoll).length);

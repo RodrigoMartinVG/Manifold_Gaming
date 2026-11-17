@@ -3,7 +3,7 @@ import { initPhysics } from '@manifold/core';
 import { GHOST_PREFIX, mount, REPLAY_PREFIX, replayFromFragment, type InitialRecipe, type Mount } from '@manifold/presentation';
 import { DojoCartridge } from './cartridge';
 import { ROOMS } from './rooms';
-import { DOJO_WORDS, dojoGoal, dojoHud } from './interface';
+import { DOJO_WORDS, dojoGoal, dojoHud, dojoTool } from './interface';
 // The characters' models (stage 4a: the mannequin, shared with the other games).
 import { CHARACTER_MODELS } from '@manifold/character/models';
 // The door (stage 3c), made by art/door.py: what the machines room's door is drawn with.
@@ -49,13 +49,19 @@ export async function startDojo(container: HTMLElement, o: DojoOptions = {}): Pr
     // A lab: a free camera, and a click on an object inspects it.
     camera: 'orbit',
     // Its own button (the cartridge declares it): F, or X on a gamepad.
-    buttons: [{ action: 'dojo.throw', keys: ['KeyF'], pad: 2 }],
+    buttons: [
+      { action: 'dojo.throw', keys: ['KeyF'], pad: 2 },
+      // (A click, while `view.camera aim` holds the mouse: `Mouse0`.)
+      { action: 'dojo.attack', keys: ['KeyX', 'Mouse0'], pad: 5 },
+    ],
     // Its models, by the name its appearances give (stage 2e).
     models: { ...CHARACTER_MODELS, 'dojo.door': door, 'dojo.lamp': lamp },
     // Its words, its HUD and the box at the goal (stage 3i).
     words: DOJO_WORDS,
     hud: dojoHud,
     pieces: [dojoGoal],
+    // What each character carries, drawn in its hands (stage 4c).
+    tools: dojoTool,
     console: {
       game: 'dojo',
       rooms: ROOMS,

@@ -1,4 +1,4 @@
-import { quat, vec3, type Vec3 } from '@manifold/common';
+import { quat, Random, sinCosDegrees, vec3, type Vec3 } from '@manifold/common';
 import { HISTORY, hitPartsOf } from './character';
 import type { Entity, EntityId, Pose } from './types';
 import type { World } from './world';
@@ -10,6 +10,32 @@ import type { World } from './world';
  * back, never the world. The first thing it meets is what it hits. With additions, multiplications, a
  * division and a square root: the same bits in every browser.
  */
+
+/**
+ * A SHOT'S OWN DICE (decision 0022): a generator seeded by the world's seed, the step, the player and
+ * the shot's number in that step, not drawn from the world's randomness: another shot in the same step,
+ * or something new that draws numbers, does not change it. The same on every copy.
+ */
+export function shotDice(world: World, player: number, shot = 0): Random {
+  let h = Math.imul(world.seed ^ 0x9e3779b9, 0x85ebca6b) >>> 0;
+  for (const n of [world.tick, player, shot]) h = Math.imul((h ^ (n >>> 0)) >>> 0, 0x01000193) >>> 0;
+  return new Random(h);
+}
+
+/**
+ * A direction within `degrees` of `direction` (unit), as a shot's spread: uniform over the disk of
+ * angles, from `dice`. With our own sine and cosine.
+ */
+export function spread(direction: Vec3, up: Vec3, degrees: number, dice: Random): Vec3 {
+  if (!(degrees > 0)) return direction;
+  let across = vec3.cross(direction, up);
+  if (vec3.length(across) < 1e-6) across = vec3.cross(direction, [1, 0, 0]);
+  const u = vec3.normalize(across);
+  const v = vec3.cross(u, direction);
+  const [sr, cr] = sinCosDegrees(degrees * Math.sqrt(dice.next()));
+  const [sp, cp] = sinCosDegrees(360 * dice.next());
+  return vec3.normalize(vec3.add(vec3.scale(direction, cr), vec3.scale(vec3.add(vec3.scale(u, cp), vec3.scale(v, sp)), sr)));
+}
 
 /** How many steps back a shot may look at most (decision 0022): 15, a quarter of a second. */
 export const MOST_BACK = HISTORY - 1;

@@ -1,7 +1,13 @@
-import { quat, vec3, type Vec3 } from '@manifold/common';
+import { quat, sinCosDegrees, vec3, type Vec3 } from '@manifold/common';
 import { characterParts } from '@manifold/character';
 import {
   aimOf,
+  castHit,
+  countOf,
+  MOST_BACK,
+  pressed,
+  shotDice,
+  spread,
   buildLevel,
   component,
   DEFAULT_MOVEMENT,
@@ -95,6 +101,7 @@ function character(world: World, player: number, at: Vec3, facing: Vec3, color: 
     game: {
       [RUNNER]: { spawn: [...at], checkpoint: [...at], start: world.tick, finish: -1, falls: 0, stars: 0 } satisfies Runner,
       [CHARGE_COMPONENT]: { steps: 0 } satisfies Charge,
+      [WEAPON]: { kind: 'none', ready: 0, strike: 0, struck: [] } satisfies Weapon,
     },
   });
 }
@@ -116,6 +123,31 @@ function dummy(world: World, zone: Entity) {
   });
 }
 
+/**
+ * THE DOJO'S WEAPONS (stage 4c), its policy: a dart (hitscan: a ray, at once, with a little spread
+ * from the shot's own dice, looking back as far as its shooter saw), a bolt (a projectile, fast enough
+ * that only stepping it by segments of ray keeps it from crossing a thin wall) and a stick (a strike:
+ * its tip sweeps an arc in front over its steps, a ball swept along each step's segment, each target
+ * hit once a strike). How much each takes, how often, how far.
+ */
+export const WEAPONS = Object.freeze({
+  dart: { damage: 25, reach: 60, spread: 1, every: 12 },
+  bolt: { damage: 35, speed: 80, radius: 0.04, life: 90, every: 20 },
+  stick: { damage: 30, reach: 1.2, radius: 0.15, steps: 12, arc: 120, every: 24 },
+});
+export type WeaponKind = keyof typeof WEAPONS;
+/** A `weapon` zone's `kind`: 1, 2, 3. */
+const WEAPON_KINDS: readonly WeaponKind[] = ['dart', 'bolt', 'stick'];
+
+/**
+ * WHAT A CHARACTER CARRIES (stage 4c): its weapon ('none' until it picks one up, walking into a
+ * `weapon` zone), the step from which it can attack again, and its strike under way (steps left, and
+ * whom it already hit).
+ */
+export type Weapon = { kind: WeaponKind | 'none'; ready: number; strike: number; struck: number[] };
+const WEAPON = 'dojo.weapon';
+export const weapon = (e: Entity) => component<Weapon>(e, WEAPON);
+
 /** Who threw a ball (stage 4c). */
 type Thrown = { by: number };
 const THROWN = 'dojo.thrown';
@@ -126,6 +158,95 @@ const THROWN = 'dojo.thrown';
  * most 50, from whoever threw it.
  */
 export const impactDamage = (energy: number) => Math.min(50, Math.round(4 * energy));
+
+/**
+ * THE WEAPONS AT A STEP (stage 4c): what is picked up; each `dojo.attack` pressed, when its weapon is
+ * ready, attacks (a dart's ray, a bolt, a strike begun); and each strike under way sweeps its tip one
+ * step further. Not while down.
+ */
+function arms(world: World, events: readonly Event[]) {
+  for (const ev of events) {
+    if (ev.type !== 'sensorEntered') continue;
+    const zone = world.entities.get(ev.sensor);
+    const carried = world.entities.get(ev.entity);
+    const w = carried && weapon(carried);
+    if (zone?.sensor?.kind === 'weapon' && w) w.kind = WEAPON_KINDS[(zone.sensor.params.kind?.[0] ?? 1) - 1] ?? 'dart';
+  }
+  for (const e of world.entities.values()) {
+    const w = weapon(e);
+    const c = e.character;
+    if (!w || !c || !e.transform || w.kind === 'none' || (e.health?.down ?? -1) >= 0) continue;
+    const up = upAt(world, e.transform.position);
+    const { ahead } = aimOf(c, up);
+    const back = countOf(world.inputs.get(c.player) ?? NO_INPUT, 'back', MOST_BACK);
+    const chest = vec3.add(e.transform.position, vec3.scale(up, 0.4));
+    if (w.strike > 0) strike(world, e, w, chest, up, back);
+    if (!pressed(world, c.player, 'dojo.attack') || world.tick < w.ready) continue;
+    if (w.kind === 'dart') {
+      const dart = WEAPONS.dart;
+      const direction = spread(ahead, up, dart.spread, shotDice(world, c.player));
+      const hit = castHit(world, chest, direction, dart.reach, { back, skip: e.id });
+      if (hit && world.entities.get(hit.entity)?.health)
+        world.hurt(hit.entity, dart.damage, { from: e.id, part: hit.kind === 'character' ? hit.part : null, kind: 'dart' });
+      world.emit({
+        type: 'shot',
+        from: e.id,
+        start: chest,
+        end: hit ? hit.point : vec3.add(chest, vec3.scale(direction, dart.reach)),
+        hit: hit?.entity ?? null,
+        kind: 'dart',
+      });
+      w.ready = world.tick + dart.every;
+    } else if (w.kind === 'bolt') {
+      const bolt = WEAPONS.bolt;
+      world.createEntity({
+        transform: { position: vec3.add(chest, vec3.scale(ahead, 0.4)), rotation: quat.identity() },
+        projectile: {
+          from: e.id,
+          velocity: vec3.scale(ahead, bolt.speed),
+          radius: bolt.radius,
+          damage: bolt.damage,
+          kind: 'bolt',
+          gravity: false,
+          life: bolt.life,
+        },
+        appearance: { shape: 'sphere', size: [0.12, 0.12, 0.12], color: 0xff7050 },
+      });
+      w.ready = world.tick + bolt.every;
+    } else {
+      w.strike = WEAPONS.stick.steps;
+      w.struck = [];
+      w.ready = world.tick + WEAPONS.stick.every;
+      strike(world, e, w, chest, up, back);
+    }
+  }
+}
+
+/**
+ * ONE STEP OF A STRIKE (stage 4c): the stick's tip goes from where it was to the next point of its
+ * arc (from its right to its left, at the chest, `reach` from it), and a ball swept along that segment
+ * hurts the first one it finds that it has not hit yet in this strike.
+ */
+function strike(world: World, e: Entity, w: Weapon, chest: Vec3, up: Vec3, back: number) {
+  const stick = WEAPONS.stick;
+  const c = e.character!;
+  const right = vec3.cross(c.facing, up);
+  const tip = (k: number) => {
+    const [s, co] = sinCosDegrees(stick.arc / 2 - (stick.arc * k) / stick.steps);
+    return vec3.add(chest, vec3.scale(vec3.add(vec3.scale(c.facing, co), vec3.scale(right, s)), stick.reach));
+  };
+  const k = stick.steps - w.strike;
+  const from = k === 0 ? chest : tip(k - 1);
+  const to = tip(k);
+  const along = vec3.sub(to, from);
+  const length = vec3.length(along);
+  w.strike--;
+  if (length < 1e-9) return;
+  const hit = castHit(world, from, vec3.scale(along, 1 / length), length, { back, skip: e.id, radius: stick.radius });
+  if (!hit || w.struck.includes(hit.entity) || !world.entities.get(hit.entity)?.health) return;
+  w.struck.push(hit.entity);
+  world.hurt(hit.entity, stick.damage, { from: e.id, part: hit.kind === 'character' ? hit.part : null, kind: 'stick' });
+}
 
 /**
  * THE DOJO'S DAMAGE FILTER (stage 4c, its policy): a hit on the head takes double; one's own ball
@@ -151,8 +272,14 @@ function buildDojoLevel(world: World, level: Level) {
     star.appearance = { shape: 'box', size: [0.4, 0.4, 0.4], color: 0xf0c040 };
     star.spin = { angularVelocity: [0.4, 2, 0.3] };
   }
-  // Its training dummies (stage 4c), where its `dummy` zones are.
+  // Its training dummies (stage 4c), where its `dummy` zones are; its weapons to pick up, a small bar
+  // that turns, in its `weapon` zones (a dart blue, a bolt red, a stick brown).
   for (const zone of [...world.entities.values()].filter((e) => e.sensor?.kind === 'dummy')) dummy(world, zone);
+  for (const zone of [...world.entities.values()].filter((e) => e.sensor?.kind === 'weapon')) {
+    const kind = WEAPON_KINDS[(zone.sensor!.params.kind?.[0] ?? 1) - 1] ?? 'dart';
+    zone.appearance = { shape: 'box', size: [0.12, 0.12, 0.7], color: { dart: 0x5a8ae0, bolt: 0xd85a5a, stick: 0x8a6a42 }[kind] };
+    zone.spin = { angularVelocity: [0, 1.5, 0] };
+  }
   character(world, 1, level.spawn, level.facing, 0x93d9c9);
 }
 
@@ -178,6 +305,8 @@ export const DOJO_ZONES: ZoneKinds = {
   camera: { view: 3 },
   /** Where a training dummy stands (stage 4c), looking where the zone looks. */
   dummy: {},
+  /** A weapon to pick up (stage 4c), walking into it: its `kind`, 1 a dart, 2 a bolt, 3 a stick. */
+  weapon: { kind: 1 },
 };
 
 /**
@@ -356,6 +485,11 @@ export function createDojo(levels: Readonly<Record<string, Level>>): Cartridge {
         description:
           'held, the character charges a throw; let go, it throws a ball where it aims, farther the longer it was held',
       },
+      {
+        name: 'dojo.attack',
+        kind: 'button',
+        description: 'the character uses the weapon it carries: a dart, a bolt, a stick (stage 4c)',
+      },
     ],
     // A lab: in a match, everybody may change the world (another game may let only its host).
     mayChange: () => true,
@@ -478,6 +612,7 @@ export function createDojo(levels: Readonly<Record<string, Level>>): Cartridge {
         }
       for (const e of world.entities.values())
         if (e.health && e.health.down >= 0 && world.tick - e.health.down >= DUMMY.back) world.revive(e.id);
+      arms(world, events);
       // Held, the throw charges; let go, one ball leaves: from the chest, where it aims (stage 4b: with
       // its pitch), up a little from there, as fast as it was charged.
       for (const e of world.entities.values()) {

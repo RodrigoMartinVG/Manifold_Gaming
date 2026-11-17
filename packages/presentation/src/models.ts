@@ -16,6 +16,7 @@ import {
 } from './locomotion';
 import { footPaths, LEGS, newFeet, plant, type Feet, type FootPaths } from './feet';
 import { ARMS, grip, newHands, type Hands, type Surroundings } from './hands';
+import { holdTool, newHolding, type Holding } from './tools';
 import { limbOf, rotateInWorld, type Limb } from './ik';
 import { inertialize, newInertia, type Inertia } from './inertia';
 import type { Ragdoll } from './ragdoll';
@@ -36,6 +37,8 @@ export interface ModelInstance {
   readonly arms: Readonly<Record<'L' | 'R', Limb>> | null;
   /** What its hands hold (hands.ts), from one frame to the next. */
   readonly hands: Hands;
+  /** What it carries (stage 4c: tools.ts), where it was drawn. */
+  readonly holding: Holding;
   /** Its bones, and what dies out of the pose it showed when a gesture starts (stage 4b: inertia.ts). */
   readonly bones: readonly THREE.Object3D[];
   /**
@@ -149,6 +152,7 @@ export function modelInstance(model: { scene: THREE.Object3D; clips: readonly TH
     legs,
     arms,
     hands: newHands(),
+    holding: newHolding(),
     bones: bonesOf(object),
     animated: { turns: bonesOf(object).map((b) => b.quaternion.clone()), places: bonesOf(object).map((b) => b.position.clone()) },
     inertia: newInertia(),
@@ -345,7 +349,10 @@ export function animate(
   aimBody(model, c.mode === 'roll' ? 0 : c.pitch, dt);
   // A hit's spring in the spine (stage 4c).
   springSpine(model, dt);
-  // And the hands on what they hold: a wall, a ledge, what is carried (hands.ts).
-  grip(model.object, model.arms, model.hands, c, around, model.gait.climbPhase, moved, up, dt);
+  // What it carries in its hands, along its aim (stage 4c: tools.ts); not while climbing or rolling.
+  const carries = c.mode === 'climb' || c.mode === 'roll' ? null : (around?.tool ?? null);
+  const tool = holdTool(model.object, model.arms, model.holding, carries, model.aim.pitch, up, dt);
+  // And the hands on what they hold: a wall, a ledge, what is carried, a tool (hands.ts).
+  grip(model.object, model.arms, model.hands, c, around, model.gait.climbPhase, moved, up, dt, tool);
   model.playing = dominant(weights);
 }

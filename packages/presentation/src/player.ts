@@ -109,6 +109,14 @@ export function mountPlayerControls(o: { blocked(): boolean; buttons?: readonly 
     e.preventDefault();
   };
   const up = (e: KeyboardEvent) => held.delete(e.code);
+  // The mouse's buttons (stage 4c), while the page holds the mouse (`view.camera aim`): `Mouse0`, the
+  // left one. (Not holding it, a click is the camera's.)
+  const mouseDown = (e: MouseEvent) => {
+    if (o.blocked() || !document.pointerLockElement) return;
+    held.add(`Mouse${e.button}`);
+    pressed.add(`Mouse${e.button}`);
+  };
+  const mouseUp = (e: MouseEvent) => held.delete(`Mouse${e.button}`);
   // If the window loses the focus with a key held, its key-up never comes: everything is released.
   const release = () => {
     held.clear();
@@ -116,6 +124,8 @@ export function mountPlayerControls(o: { blocked(): boolean; buttons?: readonly 
   };
   document.addEventListener('keydown', down);
   document.addEventListener('keyup', up);
+  document.addEventListener('mousedown', mouseDown);
+  document.addEventListener('mouseup', mouseUp);
   window.addEventListener('blur', release);
 
   return {
@@ -194,6 +204,8 @@ export function mountPlayerControls(o: { blocked(): boolean; buttons?: readonly 
     stop() {
       document.removeEventListener('keydown', down);
       document.removeEventListener('keyup', up);
+      document.removeEventListener('mousedown', mouseDown);
+      document.removeEventListener('mouseup', mouseUp);
       window.removeEventListener('blur', release);
     },
   };

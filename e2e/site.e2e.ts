@@ -1206,6 +1206,40 @@ test('the training dummy (stage 4c): hit by balls it falls, a ragdoll, and three
   expect(list).toEqual([]);
 });
 
+test('the weapons (stage 4c): a dart taken from its rack, held in both hands; four of them, X, and the dummy falls; its HUD says so', async ({
+  page,
+}) => {
+  test.setTimeout(150_000);
+  const list = errors(page);
+  await page.goto('jugar/dojo/moves/#recipe=view.camera+free');
+  await expect.poll(async () => (await position(page, 'player')).length, { timeout: 15_000 }).toBe(3);
+  await afterSteps(page, 60);
+  // Onto the dart's rack, and from there five meters from the dummy, turned to it (as above).
+  await page.keyboard.press('Backquote');
+  await typeInConsole(page, 'dojo.goto -6.5 1 8.2');
+  await page.keyboard.press('Escape');
+  await afterSteps(page, 20);
+  const hud = page.locator('.mg-hud');
+  await expect(hud).toContainText('dardo');
+  await page.keyboard.press('Backquote');
+  await typeInConsole(page, 'dojo.goto -3 1 2');
+  await page.keyboard.press('Escape');
+  await afterSteps(page, 30);
+  await page.keyboard.down('KeyA');
+  await afterSteps(page, 4);
+  await page.keyboard.up('KeyA');
+  await afterSteps(page, 20);
+  // Both hands on it.
+  await expect.poll(() => page.locator('#game').getAttribute('data-holds')).toBe('tool tool');
+  const falls = () => page.locator('#game').getAttribute('data-falls');
+  for (let i = 0; i < 8 && (await falls()) !== '1'; i++) {
+    await page.keyboard.press('KeyX');
+    await afterSteps(page, 15);
+  }
+  expect(await falls()).toBe('1');
+  expect(list).toEqual([]);
+});
+
 test('its hands on the tower (stage 4a): on its wall while it climbs, on its top before it gets over; show.ik draws them', async ({
   page,
 }) => {

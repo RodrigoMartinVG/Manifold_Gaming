@@ -42,7 +42,7 @@ export {
   upAt,
   poseOf,
 } from './character';
-export { castHit, MOST_BACK, poseBack, rayBall, rayCapsule, type ShotHit } from './hits';
+export { castHit, MOST_BACK, poseBack, rayBall, rayCapsule, shotDice, spread, type ShotHit } from './hits';
 export {
   actionsFor,
   axisOf,
@@ -95,6 +95,7 @@ export type {
   CollisionPose,
   Damage,
   Health,
+  Projectile,
   HitPart,
   Pose,
   CompoundPart,

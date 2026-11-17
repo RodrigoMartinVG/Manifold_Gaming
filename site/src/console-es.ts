@@ -19,7 +19,7 @@ export const CONSOLE_ES: Readonly<Record<string, string>> = {
   'show.contacts': 'los puntos de contacto, con su normal',
   'show.gravity': 'el campo de gravedad, como flechas',
   'show.ik':
-    'hasta dónde llega cada miembro de cada personaje: una línea desde cada cadera y cada hombro hasta su objetivo, más brillante cuanto más pesa la cinemática inversa; y los contactos que persisten, como puntos (un pie apoyado en verde, una mano en una pared en naranja, en un borde en amarillo, buscando lo que sostiene en celeste)',
+    'hasta dónde llega cada miembro de cada personaje: una línea desde cada cadera y cada hombro hasta su objetivo, más brillante cuanto más pesa la cinemática inversa; y los contactos que persisten, como puntos (un pie apoyado en verde, una mano en una pared en naranja, en un borde en amarillo, buscando lo que sostiene en celeste, en lo que lleva en las manos en violeta)',
   'show.light': 'el alcance de las lámparas: amarillo mientras están prendidas, gris mientras están apagadas',
   'show.vision':
     'lo que mira cada observador: el borde de su campo de visión, y una línea a cada personaje en él, verde si lo ve',
@@ -88,8 +88,7 @@ export const CONSOLE_ES: Readonly<Record<string, string>> = {
   'dojo.climb': 'trepar: empujando contra una pared, el personaje la sube',
   'dojo.glide': 'planear: manteniendo el salto mientras cae, cae despacio y se dirige mejor',
   'dojo.doublejump': 'un salto más en el aire',
-  'dojo.roll':
-    'rodar: con la V, en el piso, el personaje rueda hacia donde se le pide ir, bajo, unos 3 m (prendido de entrada)',
+  'dojo.roll': 'rodar: con la V, en el piso, el personaje rueda hacia donde se le pide ir, bajo, unos 3 m (prendido de entrada)',
   'dojo.crouch':
     'agacharse: con la C apretada, en el piso, el personaje va más lento, pasa por donde parado no cabe, y se lo ve y se lo oye menos (prendido de entrada)',
   'dojo.air': 'cuánto se puede corregir un salto en el aire, en m/s²',

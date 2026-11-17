@@ -26,6 +26,14 @@ Un piso, un cubo grande que gira y empuja lo que toca, cubos que caen del azar d
 
 Cómo se maneja el personaje es igual en todos los juegos: está en [Cómo se juega](../como-se-juega/). Lo propio del Dojo es una acción más, **tirar una pelota** hacia donde apunta el personaje (con la cámara `aim`, también hacia arriba o hacia abajo): con la **F**, o con la **X** del mando. Mientras se la tiene apretada, el tiro se carga (el HUD muestra cuánto), y sale al soltarla: un toque la tira cerca; un segundo apretada, casi al doble de velocidad.
 
+En la sala **What a body can do** hay un **muñeco de entrenamiento** con 100 puntos de vida: cada golpe le saca según su fuerza (una pelota, cuatro puntos por cada joule con que lo golpea; en la cabeza, el doble), y sin puntos cae, inerte, y a los tres segundos se levanta. Detrás de un vidrio de 2 cm hay otro. Y en los tres soportes del fondo hay **armas**: se agarran pasando por encima, y se usan con la **X** o con el clic (con el puntero capturado), o con **RB** del mando:
+
+| Arma     | Cómo golpea                                                                                                                                              | Cuánto |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| el dardo | al instante, hacia donde apunta, con un grado de dispersión (por la red, va a acertar donde quien tira veía al blanco, hasta un cuarto de segundo atrás) | 25     |
+| la saeta | vuela, a 80 m/s: tan rápido que avanza 1,3 m por paso, y aun así el vidrio la frena                                                                      | 35     |
+| el palo  | su punta barre un arco de 120° adelante, en un quinto de segundo; a cada uno, una vez por golpe                                                          | 30     |
+
 ## Sus salas
 
 Cada sala es una **receta** (_recipe_) guardada: unas líneas de la consola con las que el Dojo arranca ya preparado. Están por grupos; cada tarjeta lleva a su sala, y en "ver la receta" están sus líneas. Desde la consola, `load` la carga. Una sala nueva es un archivo nuevo en `games/dojo/recipes/`, que dice su grupo en el encabezado (`# group: world`): su tarjeta y su página aparecen solas.

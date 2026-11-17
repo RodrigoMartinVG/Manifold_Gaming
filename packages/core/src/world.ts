@@ -1,5 +1,6 @@
 import { Random, quat, vec3, type Quat, type Vec3 } from '@manifold/common';
 import { HISTORY, moveCharacter, newCharacter, poseOf } from './character';
+import { castHit } from './hits';
 import { pressed } from './input';
 import { COMPONENT_NAME } from './components';
 import { EARTH, gravityAt } from './gravity';
@@ -159,6 +160,8 @@ export interface WorldSnapshot {
   readonly tick: number;
   readonly lastId: number;
   readonly random: readonly [number, number, number, number];
+  /** The seed it was born with (stage 4c: a shot's own dice start from it). */
+  readonly seed?: number;
   readonly gravity: GravityField;
   readonly ambient: number;
   /** The level it was built from (stage 3j). */
@@ -223,6 +226,7 @@ export function copyData<T>(x: T): T {
  *   5. readBack: every moving body's pose and velocities go to its components;
  *   5b. history: every character's pose, as it ends this step, at the end of its history (stage 4c,
  *      decision 0022): what a shot looks back at;
+ *   5c. projectiles: each one a segment of ray on, and what it strikes it hurts (stage 4c);
  *   6. zones: who came into each zone, and who left (stage 2a);
  *   7. light: every lamp on or off as its signal was, how lit every character is, and who every watcher
  *      sees (stage 3d);
@@ -241,6 +245,7 @@ export const PHASES = [
   'breaks',
   'readBack',
   'history',
+  'projectiles',
   'zones',
   'light',
   'signals',
@@ -309,7 +314,11 @@ export class World {
    */
   readonly physics: PhysicsBackend;
 
+  /** The seed it was born with (stage 4c, decision 0022): a shot's dice are made from it, the step, the player and the shot. */
+  readonly seed: number;
+
   constructor(o: WorldOptions) {
+    this.seed = o.seed;
     this.random = new Random(o.seed);
     this.field = o.gravity ?? EARTH;
     this.table = copyData(o.materials ?? (MATERIALS as Record<string, Material>));
@@ -340,6 +349,7 @@ export class World {
       tick: this.tick,
       lastId: this.lastId,
       random: [...this.random.state],
+      seed: this.seed,
       gravity: copyData(this.field),
       ambient: this.ambient,
       origin: copyData(this.origin),
@@ -361,7 +371,7 @@ export class World {
     if (s.version !== SIMULATION_VERSION)
       throw new Error(`A snapshot of version ${s.version}, and this engine is version ${SIMULATION_VERSION}.`);
     const world = new World({
-      seed: 0,
+      seed: s.seed ?? 0,
       gravity: copyData(s.gravity),
       materials: copyData(s.materials) as Record<string, Material>,
       physics: s.physics,
@@ -683,6 +693,7 @@ export class World {
     breaks: () => this.shatter(),
     readBack: () => this.readBack(),
     history: () => this.remember(),
+    projectiles: () => this.fly(),
     zones: () => this.sense(),
     light: () => this.illuminate(),
     signals: () => this.compute(),
@@ -752,6 +763,39 @@ export class World {
    * did to it; half its mass times that change squared, the energy of the hit. From what the world
    * already has (the velocity before, the one after): the same in every copy, and after a snapshot.
    */
+  /**
+   * PROJECTILES SYSTEM (stage 4c): each one moves a segment of ray, its velocity for a step (bent by
+   * the gravity if it says so), swept with its radius against the characters as they are now and the
+   * world (`castHit`, its shooter left out): so a fast one crosses nothing between two steps. What it
+   * strikes first, if it has health, it hurts (a character's part by name), and it is gone (`impact`).
+   * Out of steps, it is gone too.
+   */
+  private fly() {
+    for (const e of [...this.entities.values()]) {
+      const p = e.projectile;
+      if (!p || !e.transform) continue;
+      const at = e.transform.position;
+      if (p.gravity) p.velocity = vec3.add(p.velocity, vec3.scale(gravityAt(this.field, at), STEP));
+      const move = vec3.scale(p.velocity, STEP);
+      const length = vec3.length(move);
+      if (length > 0) {
+        const hit = castHit(this, at, vec3.scale(move, 1 / length), length, {
+          ...(p.from === null ? {} : { skip: p.from }),
+          radius: p.radius,
+        });
+        if (hit) {
+          if (this.entities.get(hit.entity)?.health)
+            this.hurt(hit.entity, p.damage, { from: p.from, part: hit.kind === 'character' ? hit.part : null, kind: p.kind });
+          this.emit({ type: 'impact', projectile: e.id, at: hit.point, hit: hit.entity, kind: p.kind });
+          this.removeEntity(e.id);
+          continue;
+        }
+        e.transform.position = vec3.add(at, move);
+      }
+      if (--p.life <= 0) this.removeEntity(e.id);
+    }
+  }
+
   /**
    * HISTORY SYSTEM (stage 4c, decision 0022): each character's pose as it ends this step, at the end
    * of its history, which keeps the last `HISTORY` (the oldest goes).

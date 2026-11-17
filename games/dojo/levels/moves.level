@@ -36,3 +36,14 @@ signal struck   latch hit never
 # A training dummy (stage 4c), at the side of the start, looking into the room: thrown at, it is hurt
 # (twice on the head), goes down when its points run out, and is back on its feet three seconds later.
 sensor dummy  -8 1 2   0.3 0.8 0.3  rotate y -90  name dummy_spot
+
+# Weapons to pick up (stage 4c), behind the start: walk into one to carry it, and X (or a click while
+# the aim camera holds the mouse) uses it. A dart (hitscan), a bolt (a projectile), a stick (a strike).
+sensor weapon  -6.5 0.5 8.2   0.4 0.5 0.4  kind 1  name dart_rack
+sensor weapon  -5 0.5 8.6     0.4 0.5 0.4  kind 2  name bolt_rack
+sensor weapon  -3.5 0.5 8.2   0.4 0.5 0.4  kind 3  name stick_rack
+
+# A pane 2 cm thin, before a second dummy (stage 4c): a bolt at 80 m/s goes 1.3 m a step, and still
+# never crosses it.
+box -8 1 -3   1 1 0.01  color #8ab0c0  name pane
+sensor dummy  -8 1 -5   0.3 0.8 0.3  name dummy_behind
