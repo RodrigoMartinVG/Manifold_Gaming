@@ -878,17 +878,25 @@ test('a jump in the air is a somersault, and coming down from high up, the landi
     const gestures: string[] = [];
     (window as unknown as { seen: string[]; gestures: string[] }).seen = seen;
     (window as unknown as { seen: string[]; gestures: string[] }).gestures = gestures;
+    // At the jump's top (rising no more: falling), the second jump, pressed from here the moment the page
+    // says so: pressed by the test after it polled that, under load (polls back off to a second) it came
+    // after the landing, a jump from the ground, and no somersault (two runs in six, stage 4b).
+    const space = (type: 'keydown' | 'keyup') => document.dispatchEvent(new KeyboardEvent(type, { code: 'Space', key: ' ' }));
     new MutationObserver(() => {
-      if (seen.at(-1) !== el.dataset.clip) seen.push(el.dataset.clip!);
+      if (seen.at(-1) !== el.dataset.clip) {
+        seen.push(el.dataset.clip!);
+        if (el.dataset.clip === 'fall' && seen.filter((c) => c === 'fall').length === 1) {
+          space('keydown');
+          setTimeout(() => space('keyup'), 50);
+        }
+      }
       const gesture = el.dataset.gesture?.split(' ')[1];
       if (gesture && el.dataset.gesture !== gestures.at(-1)) gestures.push(el.dataset.gesture!);
     }).observe(el, { attributes: true, attributeFilter: ['data-clip', 'data-gesture'] });
   });
-  const seen = () => page.evaluate(() => (window as unknown as { seen: string[] }).seen);
   const gestures = () => page.evaluate(() => (window as unknown as { gestures: string[] }).gestures.map((g) => g.split(' ')[1]));
-  // A jump, and at its top (rising no more: falling), a second one in the air.
-  await page.keyboard.press('Space');
-  await expect.poll(async () => (await seen()).includes('fall'), { timeout: 15_000 }).toBe(true);
+  const seen = () => page.evaluate(() => (window as unknown as { seen: string[] }).seen);
+  // A jump; at its top, the second one, in the air (above).
   await page.keyboard.press('Space');
   await expect.poll(async () => (await gestures()).includes('flip'), { timeout: 15_000 }).toBe(true);
   // Down from 4.7 m (about 9 m/s): the landing, over everything else; then quiet.
