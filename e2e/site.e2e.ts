@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { deflateRawSync } from 'node:zlib';
 import { afterSteps, position, settled } from './helpers';
 import path from 'node:path';
-import { expect, test, type Page } from '@playwright/test';
+import { devices, expect, test, type Page } from '@playwright/test';
 import {
   initPhysics,
   levelFromText,
@@ -334,7 +334,8 @@ test('the watcher (stage 3d): in a pool of light it sees you, in the dark it los
 
 // Stage 3d: what is drawn has its budgets too, as the simulation's (stage 2.5a): what a room costs the
 // GPU, as three.js counts it. Measured on 2026-11-15 (Chromium, without a GPU): the watcher room, 28
-// draw calls and 5,024 triangles (its four lamps' balls are 3,072 of them); the circuit, 45 and 1,992;
+// draw calls and 5,024 triangles (its four lamps' balls were 3,072 of them; 672 since stage 4.5's close,
+// a simpler sphere for what is small); the circuit, 45 and 1,992;
 // the stress room, 226 and 4,152 (a draw call for every cube: one shape for all would be one).
 for (const [room, draws, triangles] of [
   ['watch', 40, 8000],
@@ -1062,6 +1063,32 @@ test('the citadel: built with the kit, drawn within its budget everywhere in it,
   }
   expect(warnings).toEqual([]);
   expect(list).toEqual([]);
+});
+
+// ---------------------------------------------------------------- on a phone (decision 0028)
+
+test.describe('on a phone', () => {
+  // A phone's screen, touch and coarse pointer (its browser type is the project's: a group cannot change it).
+  const { defaultBrowserType: _, ...phone } = devices['Pixel 7']!;
+  test.use(phone);
+
+  test('a game tells a phone it is played with a keyboard or a gamepad, and lets you look anyway', async ({ page }) => {
+    const list = errors(page);
+    await page.goto('jugar/dojo/course/');
+    await expect.poll(async () => (await position(page, 'player')).length, { timeout: 20_000 }).toBe(3);
+    await expect(page.locator('#game')).toHaveAttribute('data-touch', 'told');
+    await expect(page.locator('.mg-touch')).toContainText('teclado y mouse, o con un gamepad');
+    await page.locator('.mg-touch button').tap();
+    await expect(page.locator('.mg-touch')).toHaveCount(0);
+    await expect(page.locator('#game')).not.toHaveAttribute('data-touch', /./);
+    expect(list).toEqual([]);
+  });
+});
+
+test('on a computer (a fine pointer), no such notice', async ({ page }) => {
+  await page.goto('jugar/dojo/course/');
+  await expect.poll(async () => (await position(page, 'player')).length, { timeout: 20_000 }).toBe(3);
+  await expect(page.locator('.mg-touch')).toHaveCount(0);
 });
 
 // ---------------------------------------------------------------- the camera before the levels (stage 4.5d)

@@ -27,50 +27,57 @@ const others = async (page: Page) =>
       }),
   );
 
-test('two tabs, one match: the second joins with its own character, each drives its own, and the copies agree', async ({
-  context,
-}) => {
-  test.setTimeout(120_000);
-  const host = await context.newPage();
-  const guest = await context.newPage();
-  for (const page of [host, guest]) {
-    await page.goto('jugar/dojo/course/');
-    await expect.poll(() => data(page, 'me'), { timeout: 20_000 }).toBe('1');
-  }
-  await host.keyboard.press('Backquote');
-  await typeInConsole(host, 'net open');
-  await expect(host.locator('.mg-console-log')).toContainText('the match is open');
-  await host.keyboard.press('Escape');
+// (`@quiet`: it runs after the rest, alone, playwright.config.ts: its two pages must draw at speed.)
+test(
+  'two tabs, one match: the second joins with its own character, each drives its own, and the copies agree',
+  { tag: '@quiet' },
+  async ({ context }) => {
+    test.setTimeout(120_000);
+    const host = await context.newPage();
+    const guest = await context.newPage();
+    // Each page's first frame (`data-me` is written on every frame from the first). At a full run's start
+    // the other workers' browsers start too, all drawing on the CPU, and a page's first frame took over
+    // 20 s twice (stage 4.5's close): the wait is for the page to be up, as the home page's showcase
+    // waits 40 s, not a measure of the match; the match's own waits below are unchanged.
+    for (const page of [host, guest]) {
+      await page.goto('jugar/dojo/course/');
+      await expect.poll(() => data(page, 'me'), { timeout: 60_000 }).toBe('1');
+    }
+    await host.keyboard.press('Backquote');
+    await typeInConsole(host, 'net open');
+    await expect(host.locator('.mg-console-log')).toContainText('the match is open');
+    await host.keyboard.press('Escape');
 
-  await guest.keyboard.press('Backquote');
-  await typeInConsole(guest, 'net join');
-  await expect(guest.locator('.mg-console-log')).toContainText('you joined the match: you are player 2', { timeout: 10_000 });
-  await guest.keyboard.press('Escape');
-  await expect.poll(() => data(guest, 'net')).toBe('joined');
+    await guest.keyboard.press('Backquote');
+    await typeInConsole(guest, 'net join');
+    await expect(guest.locator('.mg-console-log')).toContainText('you joined the match: you are player 2', { timeout: 10_000 });
+    await guest.keyboard.press('Escape');
+    await expect.poll(() => data(guest, 'net')).toBe('joined');
 
-  // Each sees the other's character.
-  await expect.poll(async () => (await others(host)).has(2), { timeout: 20_000 }).toBe(true);
-  await expect.poll(async () => (await others(guest)).has(1), { timeout: 20_000 }).toBe(true);
+    // Each sees the other's character.
+    await expect.poll(async () => (await others(host)).has(2), { timeout: 20_000 }).toBe(true);
+    await expect.poll(async () => (await others(guest)).has(1), { timeout: 20_000 }).toBe(true);
 
-  // The guest drives its own (player 2), and the host sees it move.
-  const [, , z0] = await xyz(guest, 'player');
-  await guest.keyboard.down('KeyW');
-  await expect.poll(async () => (await xyz(guest, 'player'))[2], { timeout: 30_000 }).toBeLessThan(z0! - 1.5);
-  await guest.keyboard.up('KeyW');
-  await expect.poll(async () => (await others(host)).get(2)?.[2] ?? 99, { timeout: 20_000 }).toBeLessThan(z0! - 1.5);
+    // The guest drives its own (player 2), and the host sees it move.
+    const [, , z0] = await xyz(guest, 'player');
+    await guest.keyboard.down('KeyW');
+    await expect.poll(async () => (await xyz(guest, 'player'))[2], { timeout: 30_000 }).toBeLessThan(z0! - 1.5);
+    await guest.keyboard.up('KeyW');
+    await expect.poll(async () => (await others(host)).get(2)?.[2] ?? 99, { timeout: 20_000 }).toBeLessThan(z0! - 1.5);
 
-  // The host drives its own (player 1), and the guest sees it move.
-  const [, , h0] = await xyz(host, 'player');
-  await host.keyboard.down('KeyW');
-  await expect.poll(async () => (await xyz(host, 'player'))[2], { timeout: 30_000 }).toBeLessThan(h0! - 1.5);
-  await host.keyboard.up('KeyW');
-  await expect.poll(async () => (await others(guest)).get(1)?.[2] ?? 99, { timeout: 20_000 }).toBeLessThan(h0! - 1.5);
+    // The host drives its own (player 1), and the guest sees it move.
+    const [, , h0] = await xyz(host, 'player');
+    await host.keyboard.down('KeyW');
+    await expect.poll(async () => (await xyz(host, 'player'))[2], { timeout: 30_000 }).toBeLessThan(h0! - 1.5);
+    await host.keyboard.up('KeyW');
+    await expect.poll(async () => (await others(guest)).get(1)?.[2] ?? 99, { timeout: 20_000 }).toBeLessThan(h0! - 1.5);
 
-  // Every second, the guest's copy checked its world with the host's: always the same.
-  await expect.poll(async () => Number(await data(guest, 'checks')), { timeout: 20_000 }).toBeGreaterThan(2);
-  expect(await data(guest, 'desyncs')).toBeNull();
+    // Every second, the guest's copy checked its world with the host's: always the same.
+    await expect.poll(async () => Number(await data(guest, 'checks')), { timeout: 20_000 }).toBeGreaterThan(2);
+    expect(await data(guest, 'desyncs')).toBeNull();
 
-  // The guest leaves: its character leaves the host's world.
-  await guest.close();
-  await expect.poll(async () => (await others(host)).size, { timeout: 20_000 }).toBe(0);
-});
+    // The guest leaves: its character leaves the host's world.
+    await guest.close();
+    await expect.poll(async () => (await others(host)).size, { timeout: 20_000 }).toBe(0);
+  },
+);

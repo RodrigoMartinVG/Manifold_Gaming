@@ -26,6 +26,7 @@ import { mountHud, type Hud } from './hud';
 import { mountMenu } from './menu';
 import { mountSettings } from './settings';
 import { mountSubtitles } from './subtitles';
+import { mountTouchNotice } from './touch';
 import type { Tools } from './tools';
 import { ENGINE_WORDS, languageOf, sayer, type Words } from './words';
 
@@ -239,6 +240,7 @@ export function mount(cartridge: Cartridge, container: HTMLElement, o: MountOpti
     mountDebris(page, { timeScale: () => (match.paused ? 0 : match.timescale) }),
     mountAudio(page),
     mountSubtitles(page),
+    mountTouchNotice(page),
     replays,
     mountStats(page, match),
     mountNotices(page),

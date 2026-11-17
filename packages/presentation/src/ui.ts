@@ -60,6 +60,15 @@ export function addInterfaceStyles() {
     }
     .mg-subtitles div { padding: 0.15rem 0.55rem; border-radius: 0.25rem; background: rgb(10 9 7 / 0.72); transition: opacity 0.4s; }
     @media (prefers-reduced-motion: reduce) { .mg-subtitles div { transition: none; } }
+    .mg-touch {
+      position: absolute; left: 1rem; right: 1rem; bottom: 1rem; z-index: 5; max-width: 30rem; margin: 0 auto;
+      padding: 0.8rem 1rem; border-radius: 0.4rem; background: rgb(10 9 7 / 0.86); color: #f3ead8;
+      font: 0.95rem/1.4 system-ui, sans-serif; text-align: center;
+    }
+    .mg-touch p { margin: 0 0 0.6rem; }
+    .mg-touch button {
+      font: inherit; padding: 0.45rem 1rem; border-radius: 0.3rem; border: 1px solid #a88d5a; background: #3a3020; color: inherit;
+    }
     .mg-objective {
       position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 10; pointer-events: none;
       padding: 0.3rem 0.8rem; border-radius: 0.35rem; background: rgb(18 16 13 / 0.6); color: #f0d59a;

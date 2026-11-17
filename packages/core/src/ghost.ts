@@ -1,6 +1,6 @@
 import { quat, vec3, type Vec3 } from '@manifold/common';
 import { degreesOf, direction } from './input';
-import type { Character, ModeName } from './types';
+import type { Character, EntityId, ModeName } from './types';
 import type { World } from './world';
 
 /**
@@ -24,7 +24,7 @@ import type { World } from './world';
  *   pose -500 82 600 0 walk      the first: x y z in cm, where it looks in tenths of a degree, its mode
  *   0 0 -30 0                    each next: how much what changed changed (and its mode, if it changed)
  *   0 0 0 2
- *   end 1840                     the step it ends at
+ *   end 1840                     the step it ends at (if off the grid, its last pose is there)
  */
 export const GHOST_HEADER = '# Manifold ghost';
 /** The strip's own format (not the simulation's version: a strip outlives those). */
@@ -83,26 +83,40 @@ export const yawOf = (c: Pick<Character, 'facing'>): number => degreesOf(c.facin
  */
 export class GhostRecorder {
   readonly poses: GhostPose[] = [];
+  /** The player's latest pose, every step (the strip's last one, where it ended: stage 4.5's close). */
+  private latest: { tick: number; pose: GhostPose } | null = null;
+  private id: EntityId | null = null;
   constructor(readonly every = GHOST_EVERY) {}
 
-  /** After a step: if it is one of the strip's, the player's pose then. */
+  /** After a step: the player's pose, kept if the step is one of the strip's. */
   record(world: World, player: number) {
-    if (world.tick % this.every !== 0) return;
-    const e = [...world.entities.values()].find((x) => x.character?.player === player);
+    let e = this.id === null ? undefined : world.entities.get(this.id);
+    if (e?.character?.player !== player) {
+      e = [...world.entities.values()].find((x) => x.character?.player === player);
+      this.id = e?.id ?? null;
+    }
     if (!e?.character || !e.transform) return;
+    const pose = { position: [...e.transform.position] as Vec3, yaw: yawOf(e.character), mode: e.character.mode };
+    this.latest = { tick: world.tick, pose };
+    if (world.tick % this.every !== 0) return;
     const at = world.tick / this.every;
     // (Born at step 0 or joined later: the poses before it are where it first was.)
-    const pose = { position: [...e.transform.position] as Vec3, yaw: yawOf(e.character), mode: e.character.mode };
     while (this.poses.length < at) this.poses.push(pose);
     this.poses[at] = pose;
   }
 
+  /**
+   * The strip, to step `end`; its last pose where the player was then, if that is between two of the
+   * strip's (stage 4.5's close: the ghost stopped up to five steps short, 45 cm walking).
+   */
   ghost(game: string, birth: string, end: number): Ghost {
     const lines = birth
       .split('\n')
       .map((l) => l.trim())
       .filter((l) => l);
-    return { game, birth: lines.join('\n'), every: this.every, poses: this.poses.map((p) => back(quantize(p))), end };
+    const poses = this.poses.map((p) => back(quantize(p)));
+    if (this.latest?.tick === end && end % this.every !== 0) poses.push(back(quantize(this.latest.pose)));
+    return { game, birth: lines.join('\n'), every: this.every, poses, end };
   }
 }
 
@@ -191,15 +205,20 @@ export function ghostFromText(text: string): Ghost {
 /**
  * WHERE A GHOST IS at a step (with its fraction): between its two poses around it, along the line
  * between them, looking by the shorter way round between theirs; its way of moving, the earlier one's.
- * Past its end, its last pose.
+ * Pose k is at step k × every, the last one at the strip's end if that comes first (where the player
+ * ended, between two of the strip's steps; an older strip has none there, and reads as it did). Past
+ * its end, its last pose.
  */
 export function ghostAt(g: Ghost, step: number): GhostPose | null {
   if (g.poses.length === 0) return null;
-  const t = Math.max(0, step) / g.every;
-  const i = Math.min(g.poses.length - 1, Math.floor(t));
+  const last = g.poses.length - 1;
+  const when = (k: number) => (g.end > 0 ? Math.min(k * g.every, g.end) : k * g.every);
+  const s = Math.max(0, step);
+  const i = Math.min(last, Math.floor(s / g.every));
   const a = g.poses[i]!;
-  const b = g.poses[Math.min(g.poses.length - 1, i + 1)]!;
-  const u = Math.min(1, t - i);
+  const b = g.poses[Math.min(last, i + 1)]!;
+  const span = when(Math.min(last, i + 1)) - when(i);
+  const u = span > 0 ? Math.min(1, (s - when(i)) / span) : 1;
   let turn = b.yaw - a.yaw;
   if (turn > 180) turn -= 360;
   if (turn < -180) turn += 360;

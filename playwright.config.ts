@@ -2,8 +2,19 @@ import { defineConfig, devices } from '@playwright/test';
 
 const BASE = 'http://localhost:4321/Manifold_Gaming/';
 
-/** What Firefox and WebKit run: the determinism check always; the physics tests, which draw, locally. */
-const alsoDrawing = process.env.CI ? ['determinism.e2e.ts'] : ['determinism.e2e.ts', 'physics.e2e.ts'];
+/**
+ * What Firefox and WebKit run: the determinism check always; the physics tests, which draw, locally, and
+ * in continuous integration only in the step that checks their WebGL on Linux (`DRAWING: 1`, stage
+ * 4.5's close: not blocking until it has passed there).
+ */
+/** Chromium, as every test but Firefox's and WebKit's runs in. */
+const CHROMIUM = {
+  ...devices['Desktop Chrome'],
+  // Without a GPU (in continuous integration), WebGL runs on the CPU with SwiftShader.
+  launchOptions: { args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] },
+};
+
+const alsoDrawing = process.env.CI && !process.env.DRAWING ? ['determinism.e2e.ts'] : ['determinism.e2e.ts', 'physics.e2e.ts'];
 
 /**
  * The tests IN A REAL BROWSER (decision 0001): the site built as it is published, every page opens
@@ -22,6 +33,10 @@ export default defineConfig({
   // what the tests read every 10 frames (the meshes, the frames drawn), and 10 frames without a GPU,
   // with another test drawing alongside, can take more than 5 s.
   expect: { timeout: 15_000 },
+  // Three at a time on the author's machine (stage 4.5's close): every test draws on the CPU, and with
+  // four (Playwright's half of its eight cores) pages went so slowly at a run's start that a different
+  // pair of tests ran out of time each run; with three, none did. In continuous integration, Playwright's.
+  workers: process.env.CI ? undefined : 3,
   forbidOnly: !!process.env.CI,
   // In continuous integration a failed test runs once more, to tell a test that fails from one that
   // fails sometimes; but one that passes only the second time fails the run too: it is reported, not
@@ -36,12 +51,15 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: {
-        ...devices['Desktop Chrome'],
-        // Without a GPU (in continuous integration), WebGL runs on the CPU with SwiftShader.
-        launchOptions: { args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] },
-      },
+      // (What must draw at speed runs after, alone: the next project.)
+      grepInvert: /@quiet/,
+      use: CHROMIUM,
     },
+    // WHAT MUST DRAW AT SPEED (stage 4.5's close): two tabs in one match, a measure taken frame by frame.
+    // With every test drawing on the CPU at once, a page went at 3 steps a second, not 60 (measured: six
+    // workers, two pages each), and these failed at a full run's start, passing alone. Tagged `@quiet`,
+    // they run after the rest, when the machine is quiet.
+    { name: 'chromium-quiet', grep: /@quiet/, dependencies: ['chromium'], use: CHROMIUM },
     // Determinism across JavaScript engines (decision 0012): Firefox (SpiderMonkey) and WebKit
     // (JavaScriptCore, Safari's) run the determinism check, which needs no WebGL (the reference
     // replays played without drawing), also in continuous integration; and the physics tests, which

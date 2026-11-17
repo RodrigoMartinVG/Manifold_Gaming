@@ -7,9 +7,10 @@ import type { GamePage, Piece } from './page';
  * the game is mounted in. Where the character is, ON EVERY FRAME (stage 2c): every 10 frames was too
  * coarse without a GPU, where a frame can take 5 steps, and a whole jump (about 36 steps above a
  * meter) could happen between two readings. The match too (a test that waits for "joined" should not
- * wait ten frames). The rest, every 10 frames: how many frames were drawn, how many entities are really
- * drawn in the scene (not in a map: a bug of step 0 did not show there), what the last frame cost the
- * GPU (draw calls, triangles: stage 3d), and the other players.
+ * wait ten frames), how many entities are really drawn in the scene (not in a map: a bug of step 0 did
+ * not show there) and what the last frame cost the GPU (draw calls, triangles: stage 3d), these two on
+ * every frame since stage 4.5's close. The rest, every 10 frames: how many frames were drawn, what
+ * drawing costs the page, and the other players.
  * (Other pieces write what they own when it happens: `notice`, `replay`, `ghost`, `contacts`, `desyncs`,
  * and the bodies `clip`, the animation the player's model plays, and `gesture`, the last gesture it
  * started, numbered.)
@@ -29,16 +30,19 @@ export function mountProbe(page: GamePage, match: PageMatch): Piece {
       data.look = fixed([look.x, look.y, look.z]);
       data.net = match.net;
       data.me = String(match.me);
-      if (++frames % 10 !== 0) return;
-      data.frames = String(frames);
-      // What is drawn for an entity (a mesh, or a model's copy), and the ghost: not shadows or lines.
+      // What is drawn for an entity (a mesh, or a model's copy), and the ghost: not shadows or lines. On
+      // every frame too (stage 4.5's close): at a full run's start a frame took over a second, and ten of
+      // them were more than a test waits for something it made to be drawn.
       data.meshes = String(page.stage.scene.children.filter((x) => x.userData.entity !== undefined || x.userData.ghost).length);
-      data.checks = String(match.checks);
       // What the last frame cost the GPU (stage 3d: the budgets for what is drawn): its draw calls and
-      // its triangles, as three.js counts them.
+      // its triangles, as three.js counts them; on every frame with what is drawn, so that a test that
+      // waits for the one finds the other (two numbers three.js keeps anyway).
       const drawn = page.stage.renderer.info.render;
       data.draws = String(drawn.calls);
       data.triangles = String(drawn.triangles);
+      if (++frames % 10 !== 0) return;
+      data.frames = String(frames);
+      data.checks = String(match.checks);
       // And what handing them to the GPU costs the page (stage 4.5f), in milliseconds.
       data.render = page.stage.renderMs.toFixed(2);
       data.others = [...world.entities.values()]

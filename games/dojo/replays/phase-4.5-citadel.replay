@@ -1,4 +1,4 @@
-# Manifold replay 37
+# Manifold replay 38
 game dojo
 profile rapier-deterministic server 60
 birth seed 45
@@ -6,24 +6,31 @@ birth dojo.level citadel
 input 1 100 move @270
 input 1 101 move @270
 input 1 1 move @350
-input 15 100 face @222.6
-input 16 100 face @222.3
-input 17 100 face @222
-input 18 100 face @221.9
-input 19 100 face @221.8
+input 52 100
+input 53 100 move @90
 input 65 101
 input 66 101 move @90
 input 82 1 move @351
+input 103 100 face @211.1
+input 104 100 face @211.7
+input 105 100 face @212
+input 106 100 face @212.3
+input 107 100 face @212.5
 input 109 1 use
 input 110 1
+input 111 100 face @213.7
 input 111 101 face @199.5
 input 112 101 face @200
 input 113 101 face @200.3
 input 114 101 face @200.5
 input 115 101 face @200.7
 input 116 101 face @200.9
+input 156 100 move @214
 input 156 101 move @201
 input 181 1 move @176
+input 185 100 face @216.9
+input 189 100 face @217
+input 196 100 face @209.5
 input 196 1 move @177
 input 202 1 move @263
 input 203 1 move @266
@@ -31,638 +38,395 @@ input 204 1 move @268
 input 205 1 move @269
 input 206 1 move @271
 input 207 1 move @272
-input 209 101 face @223.7
 input 209 1 move @273
-input 210 101 face @223.5
+input 211 101 move @200
+input 214 101 move @199
+input 217 101 move @198
+input 219 100 face @215.3
+input 219 101 move @197
+input 222 101 move @196
 input 222 1 move @274
 input 224 1 move @310
+input 225 101 move @195
+input 228 101 move @194
+input 230 100 face @223.2
+input 231 101 move @193
 input 231 1 move @311
+input 234 101 move @192
+input 238 101 move @191
+input 240 100 face @231
+input 242 101 move @190
+input 246 101 move @189
+input 251 100 face @239.1
+input 251 101 move @188
+input 256 101 move @187
+input 262 101 move @186
 input 263 1 move @179
 input 264 1 move @178
 input 265 1 move @176
 input 267 1 move @174
+input 269 101 move @185
 input 269 1 move @173
 input 272 1 move @172
+input 277 101 move @171
+input 288 101 move @172
 input 290 1 move @171
+input 294 101 move @173
 input 294 1 move @90:0.3
 input 295 1
+input 296 100 move @240
 input 300 1 grab
+input 301 101 move @174
 input 301 1
 input 302 1 move @89
-input 303 100 face @221.7
-input 304 101 face @223.4
-input 305 101 face @223.3
-input 306 100 face @221.5
-input 306 101 face @223.1
-input 307 101 face @223
-input 308 100 face @221.3
-input 308 101 face @222.7
-input 309 100 face @221.1
-input 309 101 face @222.4
-input 310 100 face @220.9
-input 310 101 face @222.1
-input 311 100 face @220.7
-input 311 101 face @221.7
-input 312 100 face @220.4
-input 312 101 face @221.2
-input 313 100 face @220.1
-input 313 101 face @220.7
-input 314 100 face @219.7
-input 314 101 face @220.1
-input 315 100 face @219.3
-input 315 101 face @219.4
-input 316 100 face @218.9
-input 316 101 face @218.7
-input 317 100 face @218.4
-input 317 101 face @217.9
-input 318 100 face @217.9
-input 318 101 face @217
-input 319 100 face @217.3
-input 319 101 face @216
-input 320 100 face @216.7
-input 320 101 face @214.9
-input 321 100 face @216.1
-input 321 101 face @213.7
-input 322 100 face @215.4
-input 322 101 face @212.4
-input 323 100 face @214.7
-input 323 101 face @211.2
-input 324 100 face @214.1
-input 324 101 face @209.9
-input 325 100 face @213.4
-input 325 101 face @208.7
-input 326 100 face @212.8
-input 326 101 face @207.5
-input 327 100 face @212.2
-input 327 101 face @206.3
-input 328 100 face @211.6
-input 328 101 face @205.2
-input 336 100 face @206.8
-input 336 101 face @195.7
-input 337 100 face @206.2
-input 337 101 face @194.5
-input 338 100 face @205.6
-input 338 101 face @193.2
-input 339 100 face @205
-input 339 101 face @192
-input 340 100 face @204.4
-input 340 101 face @190.8
-input 341 100 face @203.8
-input 341 101 face @189.6
-input 342 100 face @203.2
-input 342 101 face @188.3
-input 343 100 face @202.6
-input 343 101 face @187.1
-input 344 100 face @201.9
-input 344 101 face @185.9
-input 345 100 face @201.3
-input 345 101 face @184.6
-input 346 100 face @200.7
-input 346 101 face @183.4
-input 347 100 face @200.1
-input 347 101 face @182.1
-input 348 100 face @199.4
-input 348 101 face @180.9
-input 349 100 face @198.8
-input 349 101 face @179.6
-input 350 100 face @198.1
-input 350 101 face @178.4
-input 351 100 face @197.5
-input 351 101 face @177.1
-input 352 100 face @196.8
-input 352 101 face @175.9
-input 353 100 face @196.2
-input 353 101 face @174.6
-input 354 100 face @195.5
-input 354 101 face @173.4
-input 355 100 face @194.8
-input 355 101 face @172.2
-input 356 100 face @194.2
-input 356 101 face @170.9
+input 308 101 move @175
+input 316 101 move @176
+input 319 100 face @223.3
+input 320 100 face @222.9
+input 321 100 face @222.5
+input 322 100 face @222.3
+input 326 101 move @177
+input 329 100 face @214.9
+input 338 101 move @178
+input 340 100 face @204.9
+input 351 100 face @192.9
 input 356 1 move @90
-input 357 100 face @193.5
-input 357 101 face @169.7
-input 358 100 face @192.8
-input 358 101 face @168.5
+input 357 101 move @179
 input 358 1 move @135
-input 359 100 face @192.1
-input 359 101 face @167.3
-input 360 100 face @191.4
-input 360 101 face @166.2
-input 361 100 face @190.8
-input 361 101 face @165.2
-input 362 100 face @190.1
-input 362 101 face @164.3
-input 363 100 face @189.5
-input 363 101 face @163.5
-input 364 100 face @188.9
-input 364 101 face @162.7
-input 365 100 face @188.3
-input 365 101 face @162.1
-input 366 100 face @187.7
-input 366 101 face @161.5
-input 367 100 face @187.2
-input 367 101 face @161.1
-input 368 100 face @186.7
-input 368 101 face @160.7
-input 369 100 face @186.2
-input 369 101 face @160.4
-input 370 100 face @185.7
-input 370 101 face @160.2
-input 371 100 face @185.3
-input 371 101 face @160
-input 372 100 face @184.9
-input 373 100 face @184.5
-input 374 100 face @184.2
-input 375 100 face @183.8
-input 376 100 face @183.5
-input 376 101 face @160.2
-input 377 100 face @183.2
-input 378 100 face @183
-input 378 101 face @160.4
-input 379 100 face @182.7
-input 379 101 face @160.5
-input 380 100 face @182.4
-input 381 100 face @182.2
-input 381 101 face @160.6
-input 382 100 face @181.9
-input 383 100 face @181.6
-input 384 100 face @181.3
-input 385 100 face @181
-input 385 101 face @160.4
+input 362 100 face @180.4
+input 372 100 face @173
+input 383 100 face @167
 input 385 1 move @136
-input 386 100 face @180.6
-input 386 101 face @160.2
-input 387 100 face @180.3
-input 387 101 face @160
-input 432 100 move @181
-input 432 101 move @161
-input 440 101 move @162
-input 445 101 move @163
-input 450 101 move @164
-input 455 101 move @165
-input 460 101 move @166
-input 466 101 move @167
+input 394 100 face @162.6
+input 396 101 move @180
+input 439 100 move @165
+input 451 100 move @166
+input 456 100 move @167
+input 462 100 move @168
+input 467 100 move @169
 input 468 1 move @90
-input 470 100 face @156.9
-input 470 101 face @151
-input 471 100 face @156.7
-input 471 101 face @150.9
-input 472 100 face @156.5
-input 472 101 face @150.7
-input 473 100 face @156.3
-input 473 101 face @150.5
-input 474 100 face @156
-input 474 101 face @150.2
-input 475 100 face @155.7
-input 475 101 face @150
-input 476 100 face @155.4
-input 476 101 face @149.7
-input 477 100 face @155
-input 477 101 face @149.4
-input 478 100 face @154.6
-input 478 101 face @149
-input 479 100 face @154.2
-input 479 101 face @148.7
-input 480 100 face @153.8
-input 480 101 face @148.3
-input 481 100 face @153.4
-input 481 101 face @147.9
-input 482 100 face @152.9
-input 482 101 face @147.4
-input 483 100 face @152.4
-input 483 101 face @146.9
-input 484 100 face @151.9
-input 484 101 face @146.5
-input 485 100 face @151.3
-input 485 101 face @145.9
-input 486 100 face @150.8
-input 486 101 face @145.4
-input 487 100 face @150.2
-input 487 101 face @144.9
-input 488 100 face @149.6
-input 488 101 face @144.3
-input 489 100 face @149
-input 489 101 face @143.8
-input 490 100 face @148.4
-input 490 101 face @143.2
-input 491 100 face @147.9
-input 491 101 face @142.7
-input 492 100 face @147.3
-input 492 101 face @142.2
-input 493 100 face @146.8
-input 493 101 face @141.7
-input 494 100 face @146.3
-input 494 101 face @141.3
-input 495 100 face @145.9
-input 495 101 face @140.9
-input 496 100 face @145.5
-input 496 101 face @140.5
-input 497 100 face @145.1
-input 497 101 face @140.1
-input 498 100 face @144.7
-input 498 101 face @139.8
-input 499 100 face @144.4
-input 499 101 face @139.5
+input 473 100 move @170
+input 480 100 move @171
+input 488 100 move @172
+input 493 100 face @95.9
+input 493 101 face @94.6
 input 499 1
-input 501 100 face @143.8
-input 501 101 face @139
-input 502 100 face @143.5
-input 502 101 face @138.8
-input 503 100 face @143.3
-input 503 101 face @138.6
-input 504 100 face @143.1
-input 504 101 face @138.4
-input 505 100 face @142.9
-input 505 101 face @138.2
-input 506 100 face @142.8
-input 507 100 face @142.7
-input 507 101 face @138
-input 508 100 face @142.6
-input 509 101 face @137.9
-input 514 101 face @138
-input 515 100 face @142.8
-input 515 101 face @138.1
-input 516 101 face @138.2
-input 517 100 face @143
 input 529 1 grab
 input 530 1
 input 531 1 move @267
+input 538 100 move @64
+input 538 101 move @97
+input 552 101 move @98
 input 553 1 move @268
-input 554 100 face @143.9
-input 554 101 face @139.1
+input 554 100 face @144.1
+input 554 101 face @138.3
 input 554 1
-input 613 100 move @49
-input 613 101 move @138
-input 621 101 move @139
+input 555 100 face @144.3
+input 555 101 face @138.5
+input 556 100 face @144.6
+input 556 101 face @138.6
+input 557 100 face @144.7
+input 557 101 face @138.8
+input 558 100 face @144.8
+input 599 100 move @65
+input 599 101 move @138
+input 609 101 move @139
+input 614 101 move @140
+input 616 100 move @64
+input 620 100 move @113
+input 620 101 move @141
+input 621 100 move @116
+input 622 100 move @119
+input 623 100 move @121
 input 624 1 move @348
-input 627 101 move @140
-input 629 100 move @48
-input 633 101 move @141
-input 637 100 move @113
-input 638 100 move @117
-input 638 101 move @142
-input 639 100 move @121
-input 640 100 move @124
-input 641 100 move @127 run
-input 641 1 face @345 pitch -0.04 dojo.attack
-input 642 100 move @130 run
-input 642 1 face @345.4 pitch -0.04
-input 643 100 move @133 run
-input 643 1 face @345.7 pitch -0.041
-input 644 100 move @136 run
-input 644 101 move @143
-input 644 1 face @346.1 pitch -0.041
-input 645 100 move @167 run
-input 645 1 face @346.5 pitch -0.041
-input 646 100 move @171 run
-input 646 1 face @346.9 pitch -0.042
-input 647 100 move @176 run
-input 647 1 face @347.1 pitch -0.042
-input 648 100 move @181 run
-input 648 1 face @347.3 pitch -0.043
-input 649 100 move @187 run
-input 649 101 move @144
-input 649 1 face @347.4 pitch -0.043
-input 650 100 move @185 run
-input 650 1 face @347.4 pitch -0.044
-input 651 100 move @188 run
-input 652 100 move @189 run
-input 652 1 face @347.3 pitch -0.045
-input 653 100 move @191 run
-input 653 1 face @347 pitch -0.045
-input 654 100 move @184 run
-input 654 101 move @145
-input 654 1 face @346.7 pitch -0.046
-input 655 1 face @346.4 pitch -0.047 dojo.attack
-input 656 1 face @346.2 pitch -0.047
-input 657 1 face @345.9 pitch -0.048
-input 658 100 move @180 run
-input 658 1 face @345.6 pitch -0.049
-input 659 1 face @345.4 pitch -0.049
-input 660 101 move @146
-input 660 1 face @345.2 pitch -0.05
-input 661 1 face @345 pitch -0.051
-input 662 1 face @344.7 pitch -0.052
-input 663 1 face @344.5 pitch -0.053
-input 664 1 face @344.2 pitch -0.053
-input 665 101 move @147
-input 665 1 face @343.9 pitch -0.054
-input 666 1 face @343.6 pitch -0.055
-input 667 1 face @343.4 pitch -0.056
-input 668 1 face @343.1 pitch -0.057
-input 669 1 face @342.8 pitch -0.058 dojo.attack
-input 670 1 face @342.4 pitch -0.059
-input 671 101 move @148
-input 671 1 face @342.1 pitch -0.06
-input 672 1 face @341.8 pitch -0.061
-input 673 1 face @341.4 pitch -0.063
-input 674 1 face @341 pitch -0.064
-input 675 1 face @340.6 pitch -0.065
-input 676 101 move @149
-input 676 1 face @340.2 pitch -0.066
-input 677 100 move @181 run
-input 677 1 face @339.8 pitch -0.068
-input 678 1 face @339.4 pitch -0.069
-input 679 1 face @338.9 pitch -0.07
-input 680 1 face @338.4 pitch -0.072
-input 681 1 face @337.9 pitch -0.073
-input 682 101 move @150
-input 682 1 face @337.4 pitch -0.075
-input 683 1 face @336.8 pitch -0.077 dojo.attack
-input 684 1 face @336.2 pitch -0.078
-input 685 1 face @335.6 pitch -0.08
-input 686 100 move @155 run
-input 686 1 face @335 pitch -0.082
-input 687 101 move @151
-input 687 1 face @334.5 pitch -0.084
-input 688 1 face @334.1 pitch -0.086
-input 689 1 face @333.9 pitch -0.088
-input 690 1 face @333.9 pitch -0.091
-input 691 1 face @333.9 pitch -0.094
-input 692 1 face @333.8 pitch -0.097
-input 693 101 move @152
-input 693 1 face @333.8 pitch -0.1
-input 694 1 face @333.7 pitch -0.103
-input 695 1 face @333.7 pitch -0.106
-input 696 1 face @333.7 pitch -0.11
-input 697 1 face @333.6 pitch -0.114 dojo.attack
-input 698 100
-input 698 101 move @153
-input 698 1 move @348
-input 703 101 move @144
-input 704 101 move @146
-input 705 101 move @148
-input 706 101 move @150
-input 707 101 move @153
-input 708 101 move @155
-input 709 101 move @158
-input 710 101 move @160
-input 711 101 move @162
-input 712 101 move @165
-input 713 101 move @167
-input 714 101 move @169
-input 715 101 move @171
-input 716 101 move @172
-input 717 101 move @174
-input 718 101 move @175
-input 719 101 move @177
-input 721 101 move @178
-input 722 101 move @179
-input 724 101 move @181
-input 731 101 move @182
-input 741 101 move @181
-input 749 101 move @180
-input 752 1 move @349
-input 782 1 move @359
-input 818 1 move @0
-input 822 1 move @297
-input 871 1 move @296
-input 941 1 move @359
-input 948 1 move @0
-input 1071 1 move @89
-input 1074 1 move @90
-input 1157 1 move @91
-input 1248 1 use
-input 1249 1
-input 1298 100 face @131.7
-input 1320 1 move @345
-input 1335 1 move @346
-input 1340 1 move @86
-input 1341 1 move @87
-input 1342 1 move @88
-input 1343 1 move @89
-input 1345 1 move @91
-input 1374 1 move @92
-input 1384 1 move @123
-input 1404 1 move @124
-input 1416 1
+input 625 100 move @122 run
+input 626 100 move @124 run
+input 626 101 move @142
+input 627 100 move @130 run
+input 628 100 move @163 run
+input 629 100 move @168 run
+input 630 100 move @173 run
+input 631 100 move @179 run
+input 631 101 move @143
+input 632 100 move @184 run
+input 633 100 move @190 run
+input 633 1 face @347.8 pitch -0.039 dojo.attack
+input 634 100 move @196 run
+input 634 1 face @347.9 pitch -0.04
+input 635 100 move @203 run
+input 635 1 face @347.9 pitch -0.041
+input 636 100 move @192 run
+input 636 101 move @144
+input 637 100 move @194 run
+input 637 1 face @347.8 pitch -0.042
+input 638 100 move @195 run
+input 638 1 face @347.6 pitch -0.042
+input 639 100 move @196 run
+input 639 1 face @347.3 pitch -0.043
+input 640 100 move @186 run
+input 640 1 face @346.9 pitch -0.043
+input 641 1 face @346.6 pitch -0.044
+input 642 101 move @145
+input 642 1 face @346.3 pitch -0.044
+input 643 1 face @346.1 pitch -0.045
+input 644 100 move @180 run
+input 644 1 face @345.8 pitch -0.045
+input 645 1 face @345.6 pitch -0.046
+input 646 1 face @345.4 pitch -0.047
+input 647 101 move @146
+input 647 1 face @345.2 pitch -0.047 dojo.attack
+input 648 1 face @344.9 pitch -0.048
+input 649 1 face @344.7 pitch -0.049
+input 650 1 face @344.5 pitch -0.05
+input 651 1 face @344.2 pitch -0.05
+input 652 1 face @344 pitch -0.051
+input 653 101 move @147
+input 653 1 face @343.7 pitch -0.052
+input 654 1 face @343.4 pitch -0.053
+input 655 1 face @343.2 pitch -0.054
+input 656 1 face @342.9 pitch -0.054
+input 657 1 face @342.6 pitch -0.055
+input 658 101 move @148
+input 658 1 face @342.3 pitch -0.056
+input 659 1 face @341.9 pitch -0.057
+input 660 1 face @341.6 pitch -0.058
+input 661 1 face @341.3 pitch -0.059 dojo.attack
+input 662 100 move @181 run
+input 662 1 face @340.9 pitch -0.06
+input 663 1 face @340.5 pitch -0.062
+input 664 101 move @149
+input 664 1 face @340.1 pitch -0.063
+input 665 1 face @339.7 pitch -0.064
+input 666 1 face @339.3 pitch -0.065
+input 667 1 face @338.8 pitch -0.066
+input 668 1 face @338.4 pitch -0.068
+input 669 101 move @150
+input 669 1 face @337.9 pitch -0.069
+input 670 1 face @337.4 pitch -0.07
+input 671 1 face @336.9 pitch -0.072
+input 672 100 move @158 run
+input 672 1 face @336.3 pitch -0.073
+input 673 1 face @335.9 pitch -0.075
+input 674 100 move @157 run
+input 674 1 face @335.6 pitch -0.077
+input 675 101 move @151
+input 675 1 face @335.5 pitch -0.079 dojo.attack
+input 676 100
+input 676 1 move @348
+input 680 101 move @152
+input 686 101 move @153
+input 689 101 move @142
+input 690 101 move @143
+input 691 101 move @146
+input 692 101 move @148
+input 693 101 move @150
+input 694 101 move @152
+input 695 101 move @155
+input 696 101 move @157
+input 697 101 move @160
+input 698 101 move @162
+input 699 101 move @165
+input 700 101 move @167
+input 701 101 move @169
+input 702 101 move @171
+input 703 101 move @172
+input 704 101 move @174
+input 705 101 move @175
+input 706 101 move @177
+input 708 101 move @179
+input 710 101 move @180
+input 712 101 move @181
+input 717 101 move @182
+input 728 101 move @181
+input 735 101 move @180
+input 738 1 move @349
+input 768 1 move @359
+input 804 1 move @0
+input 808 1 move @297
+input 857 1 move @296
+input 927 1 move @359
+input 934 1 move @0
+input 1058 1 move @90
+input 1112 1 move @91
+input 1235 1 use
+input 1236 1
+input 1276 100 move @18
+input 1307 1 move @345
+input 1321 1 move @346
+input 1325 100 move @6
+input 1327 1 move @86
+input 1328 1 move @87
+input 1329 1 move @88
+input 1330 1 move @89
+input 1331 100 move @3
+input 1332 1 move @91
+input 1338 100 move @1
+input 1348 100 move @0
+input 1351 100 move @39
+input 1352 100 move @40
+input 1354 100 move @41
+input 1356 100 move @43
+input 1358 100 move @45
+input 1360 1 move @92
+input 1371 1 move @123
+input 1376 100
+input 1377 100 move @4
+input 1391 1 move @124
+input 1401 100 move @3
+input 1403 1
+input 1457 100
+input 1458 100 move @273
+input 1461 100 move @272
 input 1498 1 move @179
 input 1519 1 move @178
+input 1521 100 move @271
 input 1521 1 move @179
 input 1531 1
+input 1561 100
+input 1562 100 move @184
+input 1565 100 move @183
+input 1597 100 move @182
+input 1632 100
+input 1633 100 move @97
+input 1635 100 move @96
 input 1649 1 move @180
-input 1711 1 move @197
-input 1738 1 move @195
-input 1740 1 move @193
-input 1742 1 move @191
-input 1743 1 move @190
-input 1745 1 move @189
+input 1663 100 move @95
+input 1710 1 move @197
+input 1729 100
+input 1730 100 move @8
+input 1731 100 move @7
+input 1733 100 move @5
+input 1737 1 move @195
+input 1739 1 move @193
+input 1741 1 move @191
+input 1742 1 move @190
+input 1744 1 move @189
 input 1753 1 move @188
-input 1759 1 move @158
-input 1772 1 move @157
+input 1758 1 move @158
+input 1760 100 move @4
+input 1770 1 move @157
+input 1775 100 move @11
+input 1796 100 move @10
+input 1806 100
+input 1807 100 move @273
+input 1812 100 move @272
 input 1821 1 move @158
-input 1826 1
-input 1836 1 move @333
-input 1861 1 move @332
-input 1876 1 move @180:0.3
-input 1877 1
-input 1882 1 dojo.throw
-input 1883 1
-input 1894 100 face @88.5
-input 1894 101 face @120.3
-input 1894 1 move @153
-input 1895 100 face @131.7
-input 1909 100 face @84.5
-input 1909 101 face @116.8
-input 1910 100 face @131.7
-input 1918 1 move @152
-input 1926 100 face @92.1
-input 1926 101 face @121.1
-input 1927 100 face @131.7
-input 1929 1 move @153
-input 1934 1
-input 1958 100 face @102.3
-input 1959 100 face @131.7
-input 1971 101 move @122
-input 1981 101 move @123
-input 1987 101 move @124
-input 1992 101 move @125
-input 1998 101 move @126
-input 2003 101 move @127
-input 2007 101 move @128
-input 2012 101 move @129
-input 2014 1 move @180
-input 2017 101 move @130
-input 2021 101 move @131
-input 2025 100 face @98.5
-input 2025 101 face @135.2
-input 2026 100 face @131.7
-input 2026 101 face @135.3
-input 2027 101 face @135.4
-input 2028 101 face @135.5
-input 2036 100 face @102.3
-input 2036 101 face @138.2
-input 2038 100 face @131.7
-input 2041 100 face @102.6
-input 2041 101 face @138.9
-input 2042 100 face @131.7
-input 2045 100 face @102.7
-input 2045 101 face @140.6
-input 2046 100 face @131.7
-input 2049 1 move @179
-input 2059 1 move @247
-input 2060 1 move @248
+input 1825 1
+input 1835 1 move @333
+input 1860 1 move @332
+input 1875 1 move @180:0.3
+input 1876 1
+input 1881 1 dojo.throw
+input 1882 1
+input 1893 100 face @135.2
+input 1893 101 face @120.3
+input 1893 1 move @153
+input 1894 100 face @135.1
+input 1896 100 face @134.9
+input 1917 1 move @152
+input 1925 101 face @121.1
+input 1927 1 move @153
+input 1933 1
+input 1938 100 move @135
+input 1970 101 move @122
+input 1980 101 move @123
+input 1986 101 move @124
+input 1991 101 move @125
+input 1997 101 move @126
+input 2002 101 move @127
+input 2006 101 move @128
+input 2011 101 move @129
+input 2013 1 move @180
+input 2016 101 move @130
+input 2020 101 move @131
+input 2024 101 move @132
+input 2029 101 move @133
+input 2033 101 move @134
+input 2037 101 move @135
+input 2041 101 move @136
+input 2045 101 move @137
+input 2048 1 move @179
+input 2049 101 move @138
+input 2052 101 move @139
+input 2056 101 move @140
+input 2058 1 move @247
+input 2059 1 move @248
+input 2060 101 move @141
+input 2060 1 move @249
 input 2062 1 move @250
-input 2065 1 move @251
-input 2067 1 move @253
-input 2070 1 move @254
-input 2077 1 move @255
-input 2080 100 face @91.3
-input 2080 101 face @152.6
-input 2081 100 face @131.7
-input 2081 1 move @256
-input 2101 1 move @257
+input 2063 101 move @142
+input 2064 1 move @251
+input 2066 1 move @253
+input 2067 101 move @143
+input 2069 1 move @254
+input 2071 101 move @144
+input 2074 101 move @145
+input 2076 1 move @255
+input 2078 101 move @146
+input 2079 1 move @256
+input 2084 101 move @147
+input 2087 101 face @171.1
+input 2088 101 face @171.3
+input 2090 101 face @171.4
+input 2092 101 face @171.5
+input 2093 1 move @257
+input 2099 100 move @136
+input 2103 100 move @137
+input 2106 100 move @138
 input 2107 1
-input 2125 101 move @150
-input 2133 101 move @151
-input 2137 101 move @152
-input 2140 101 move @153
-input 2144 101 move @154
-input 2147 101 move @155
-input 2151 101 move @156
-input 2155 101 move @157
-input 2159 101 move @158
-input 2163 101 move @159
-input 2167 101 move @160
-input 2171 101 move @161
-input 2175 101 move @162
-input 2179 101 move @163
-input 2182 101 face @106.9
-input 2205 1 move @32
-input 2227 101 move @111
-input 2232 101 move @112
-input 2233 1 move @30
-input 2234 101 move @113
-input 2236 101 move @114
-input 2236 1 move @28
-input 2238 101 move @115
-input 2238 1 move @27
-input 2240 101 move @116
-input 2240 1 move @25
-input 2241 101 move @117
-input 2242 1 move @24
-input 2243 101 move @159 run
-input 2243 1 face @338.5 pitch -0.021 dojo.attack
-input 2244 1 face @338.8 pitch -0.024
-input 2245 1 face @338.9 pitch -0.025
-input 2246 1 face @339.1 pitch -0.027
-input 2247 1 face @339.1 pitch -0.028
-input 2248 1 face @339.3 pitch -0.03
-input 2249 1 face @339.5 pitch -0.03
-input 2250 1 face @339.7 pitch -0.03
-input 2251 1 face @339.8 pitch -0.031
-input 2253 1 face @339.9 pitch -0.032
-input 2255 1 face @339.9 pitch -0.034
-input 2256 1 face @339.9 pitch -0.035
-input 2257 1 face @339.9 pitch -0.037 dojo.attack
-input 2258 1 face @339.9 pitch -0.039
-input 2259 101 move @160 run
-input 2259 1 face @340 pitch -0.04
-input 2260 1 face @340 pitch -0.042
-input 2261 1 face @340 pitch -0.044
-input 2262 1 face @340 pitch -0.046
-input 2263 1 face @340 pitch -0.048
-input 2264 1 face @340 pitch -0.05
-input 2265 1 face @340 pitch -0.052
-input 2266 1 face @340 pitch -0.054
-input 2267 1 face @340 pitch -0.055
-input 2268 1 face @340 pitch -0.056
-input 2269 1 face @340 pitch -0.057
-input 2270 1 face @340 pitch -0.058
-input 2271 1 face @340 pitch -0.059 dojo.attack
-input 2272 1 face @340 pitch -0.06
-input 2273 1 face @340 pitch -0.062
-input 2274 1 face @340 pitch -0.063
-input 2275 1 face @340 pitch -0.064
-input 2276 1 face @340 pitch -0.066
-input 2277 1 face @340 pitch -0.067
-input 2278 1 face @340 pitch -0.068
-input 2279 1 face @340 pitch -0.07
-input 2280 1 face @340 pitch -0.071
-input 2281 1 face @340 pitch -0.073
-input 2282 1 face @340 pitch -0.075
-input 2283 1 face @340 pitch -0.077
-input 2284 1 face @340 pitch -0.079
-input 2285 1 face @340 pitch -0.081 dojo.attack
-input 2286 101
-input 2286 1 move @24
-input 2287 1 move @22
-input 2886 101 move @162 run
-input 2886 1 face @335.3 pitch -0.1 dojo.attack
-input 2887 1 face @335.3 pitch -0.1
-input 2888 1 face @335.3 pitch -0.101
-input 2889 1 face @335.2 pitch -0.102
-input 2890 1 face @335.1 pitch -0.104
-input 2891 1 face @334.9 pitch -0.106
-input 2892 1 face @334.7 pitch -0.108
-input 2893 1 face @334.5 pitch -0.111
-input 2894 1 face @334.3 pitch -0.114
-input 2895 1 face @334 pitch -0.119
-input 2896 1 face @333.7 pitch -0.123
-input 2897 1 face @333.3 pitch -0.128
-input 2898 1 face @333 pitch -0.133
-input 2899 1 face @332.5 pitch -0.139
-input 2900 1 face @332.1 pitch -0.145 dojo.attack
-input 2901 1 face @331.6 pitch -0.152
-input 2902 1 face @331.1 pitch -0.159
-input 2903 1 face @330.5 pitch -0.168
-input 2904 1 face @329.8 pitch -0.177
-input 2905 1 face @329.1 pitch -0.186
-input 2906 1 face @328.3 pitch -0.197
-input 2907 1 face @327.4 pitch -0.21
-input 2908 1 face @326.3 pitch -0.224
-input 2909 1 face @325 pitch -0.239
-input 2910 101 face @143.6 dojo.attack
-input 2910 1 face @323.6 pitch -0.257
-input 2911 101 face @142.1
-input 2911 1 face @322.1 pitch -0.274
-input 2912 101 face @140.6 dojo.attack
-input 2912 1 face @320.6 pitch -0.292
-input 2913 101 face @139.1
-input 2913 1 face @319.1 pitch -0.308
-input 2914 101 face @137.8 dojo.attack
-input 2914 1 face @317.8 pitch -0.323 dojo.attack
-input 2915 101 face @136.5
-input 2915 1 face @316.5 pitch -0.335
-input 2916 101 face @135.5 dojo.attack
-input 2916 1 face @315.5 pitch -0.345
-input 2917 101 face @134.8
-input 2917 1 face @314.8 pitch -0.352
-input 2918 101 face @134.5 dojo.attack
-input 2918 1 face @314.5 pitch -0.356
-input 2919 101 face @134.5
-input 2920 101 face @134.5 dojo.attack
-input 2921 101 face @134.5
-input 2922 101 face @134.5 dojo.attack
-input 2923 101 face @134.5
-input 2924 101 face @134.5 dojo.attack
-input 2925 101 face @134.5
-input 2926 101 face @134.5 dojo.attack
-input 2927 101 face @134.5
-input 2928 101 face @134.5 dojo.attack
-input 2928 1 face @314.5 pitch -0.356 dojo.attack
-input 2929 101
-input 2929 1 move @22
-input 2958 1 move @357
-input 3055 1 move @356
-input 3085 1 move @0
-input 3198 1 move @359
-input 3205 1 move @267
-input 3209 1 move @266
-input 3236 1 move @265
-input 3299 1 move @229
-input 3365 1 move @228
-input 3370 1 move @229
-input 3371 1 move @230
-input 3373 1 move @231
-input 3389 1 move @358
-input 3392 1 move @359
-input 3394 1 move @0
-input 3405 1 move @1
-input 3462 1 move @0
-input 3529 101 move @343
-input 3616 101 move @342
-input 3620 101 move @332
-input 3628 1
-end 3632 0ff0fe2d
+input 2110 100 move @139
+input 2113 100 move @140
+input 2116 100 move @141
+input 2120 100 move @142
+input 2123 100 move @143
+input 2132 101 move @172
+input 2166 1 face @351.1 pitch 0.073 dojo.attack
+input 2167 101 move @172 run
+input 2167 1 face @351.1 pitch 0.072
+input 2169 1 face @351.1 pitch 0.071
+input 2172 101 move @171 run
+input 2172 1 face @351 pitch 0.071
+input 2179 1 face @351 pitch 0.07
+input 2180 1 face @351 pitch 0.07 dojo.attack
+input 2181 1 face @351 pitch 0.07
+input 2186 1 face @351 pitch 0.069
+input 2192 1 face @351 pitch 0.068
+input 2194 1 face @351 pitch 0.068 dojo.attack
+input 2195 1 face @351 pitch 0.068
+input 2197 1 face @351 pitch 0.067
+input 2200 1 face @351 pitch 0.066
+input 2202 1 face @351 pitch 0.065
+input 2205 1 face @351 pitch 0.064
+input 2207 1 face @351 pitch 0.063
+input 2208 1 face @351 pitch 0.062 dojo.attack
+input 2209 101
+input 2209 1
+input 2210 1 move @32
+input 2238 1 move @31
+input 2239 1 move @30
+input 2241 1 move @28
+input 2244 1 move @26
+input 2248 1 move @25
+input 2252 1 move @24
+input 2281 1 move @357
+input 2392 1 move @356
+input 2408 1 move @0
+input 2520 1 move @359
+input 2528 1 move @268
+input 2530 1 move @267
+input 2532 1 move @266
+input 2577 1 move @265
+input 2622 1 move @229
+input 2687 1 move @228
+input 2693 1 move @229
+input 2694 1 move @230
+input 2696 1 move @231
+input 2712 1 move @358
+input 2714 1 move @359
+input 2717 1 move @0
+input 2725 1 move @1
+input 2785 1 move @0
+input 2809 101 move @350
+input 2810 101 move @353
+input 2951 1
+end 2955 4eb17031

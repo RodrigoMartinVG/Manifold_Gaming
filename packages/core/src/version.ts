@@ -79,5 +79,9 @@
  *      keeps no velocity into it; down a slope too steep to stand on, it slides, less its floor's
  *      friction; what is lighter than 5 kg does not move it (it pushes it); what leaves the world is
  *      gone; our cosine has its last term; the Dojo's shots leave the head in each way of moving
+ *  38  stage 4.5's close: a hit is heard (and, in the Dojo, hurts) only as a contact begins, and for
+ *      what it did beyond holding a body up against gravity (at rest, a heavy one was heard on every
+ *      step); a push is part of a body's velocity as the world knows it; what is held is held short of
+ *      what is in the way, not pushed into it
  */
-export const SIMULATION_VERSION = 37;
+export const SIMULATION_VERSION = 38;

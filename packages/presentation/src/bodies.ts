@@ -166,7 +166,15 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
   const zones = new Map<EntityId, THREE.LineSegments>();
   let wireframe = false;
   let showZones = false;
-  const geometries = { box: new THREE.BoxGeometry(1, 1, 1), sphere: new THREE.SphereGeometry(0.5, 24, 16) };
+  // (And a simpler sphere for what is small, stage 4.5's close: a lamp's ball or a thrown one, 30 cm
+  // across, drawn with 720 triangles was 3,072 of the keep's hall's 5,024 in stage 3d; 168 do.)
+  const geometries = {
+    box: new THREE.BoxGeometry(1, 1, 1),
+    sphere: new THREE.SphereGeometry(0.5, 24, 16),
+    small: new THREE.SphereGeometry(0.5, 12, 8),
+  };
+  /** Up to this size (m), a sphere is drawn with the simpler one. */
+  const SMALL = 0.5;
 
   page.registry.declareVariable({
     ...BODIES_VARIABLES.wireframe,
@@ -228,7 +236,8 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
       return group;
     }
     if (a.shape !== 'capsule') {
-      const mesh = own(new THREE.Mesh(geometries[a.shape], material), { material: true });
+      const geometry = a.shape === 'sphere' && Math.max(...a.size) <= SMALL ? geometries.small : geometries[a.shape];
+      const mesh = own(new THREE.Mesh(geometry, material), { material: true });
       mesh.scale.set(...a.size);
       return mesh;
     }

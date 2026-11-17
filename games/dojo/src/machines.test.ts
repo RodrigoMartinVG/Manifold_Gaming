@@ -138,6 +138,55 @@ describe('the machines: a crate that holds a door open, a block too heavy (stage
   });
 });
 
+describe('what is heard of the crate (stage 4.5’s close: the author heard noises that did not stop)', () => {
+  /** The crate's hit sounds, step by step. */
+  const heard = (m: ReturnType<typeof machines>) => {
+    const crate = m.session.world.named('crate')!;
+    const block = m.session.world.named('block')!;
+    const hits: { tick: number; source: number }[] = [];
+    const step = (input = NO_INPUT) => {
+      m.step(input);
+      for (const ev of m.session.world.stepEvents)
+        if (ev.type === 'sound' && ev.sound === 'hit') hits.push({ tick: m.session.world.tick, source: ev.source });
+    };
+    return { crate, block, hits, step };
+  };
+
+  test('at rest, the crate and the block are silent (a floor holding them up is no hit)', () => {
+    const m = machines();
+    const h = heard(m);
+    // (Before, each was heard on every step: a step of gravity taken back by the floor, 0.6 J for the
+    // crate's 45 kg, 16 for the block's tonne: 120 hits a second, for ever.)
+    for (let i = 0; i < 300; i++) h.step();
+    expect(h.hits).toEqual([]);
+  });
+
+  test('held and walked into a wall: heard once as it strikes, then held up there, still, and silent', () => {
+    const m = machines();
+    const h = heard(m);
+    // Behind the crate, facing it (−Z) and the wall across the start (z = 2) behind it; grabbed.
+    m.put(1.2, 1, 6.3);
+    h.step({ ...NO_INPUT, move: [0, 0, -0.3] });
+    for (let i = 0; i < 30; i++) h.step();
+    h.step({ ...NO_INPUT, grab: true });
+    h.step();
+    expect(m.c().holding).toBe(h.crate.id);
+    // Into the wall, and on into it for three seconds.
+    for (let i = 0; i < 240; i++) h.step({ ...NO_INPUT, move: [0, 0, -1] });
+    const struck = h.hits.filter((x) => x.source === h.crate.id).length;
+    expect(struck).toBeGreaterThanOrEqual(1);
+    expect(struck).toBeLessThanOrEqual(3);
+    // Held up against it, where it is held (not sinking, as it did: what the push could do went into the
+    // wall), and standing still, silent and not turning.
+    expect(h.crate.transform!.position[1]).toBeGreaterThan(0.75);
+    const before = h.hits.length;
+    for (let i = 0; i < 120; i++) h.step();
+    expect(h.hits.length).toBe(before);
+    expect(Math.hypot(...h.crate.body!.angularVelocity)).toBeLessThan(0.05);
+    expect(m.c().holding).toBe(h.crate.id);
+  });
+});
+
 describe('the machines (stage 3a)', () => {
   /** The ferry, and whether the character stands on it. */
   const theFerry = (m: ReturnType<typeof machines>) => {

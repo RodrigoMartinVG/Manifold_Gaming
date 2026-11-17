@@ -516,6 +516,14 @@ export const HOLD = Object.freeze({ reach: 1.2, distance: 0.95, lift: 0.2, letGo
  * back; never more than `HOLD.force` can do in a step for its mass, so a heavy thing hangs back. Too far
  * (it fell, it caught on something, it was too heavy to lift), it lets go.
  */
+/** How far what is held reaches from its center, at most (a box's half diagonal across, a ball's radius). */
+function heldRadius(held: Entity): number {
+  const shape = held.body!.shape;
+  if (shape.kind === 'ball') return shape.radius;
+  if (shape.kind === 'box') return Math.max(...shape.halfExtents);
+  return 0.2;
+}
+
 function hold(world: World, e: Entity, c: Character, up: Vec3, dt: number) {
   let held = c.holding ? world.entities.get(c.holding) : undefined;
   if (c.holding && held?.body?.type !== 'dynamic') {
@@ -545,14 +553,36 @@ function hold(world: World, e: Entity, c: Character, up: Vec3, dt: number) {
     return;
   }
   if (!held?.transform || !held.body) return;
-  const target = vec3.add(position, vec3.add(vec3.scale(ahead, HOLD.distance), vec3.scale(up, HOLD.lift)));
+  let target = vec3.add(position, vec3.add(vec3.scale(ahead, HOLD.distance), vec3.scale(up, HOLD.lift)));
+  // It moves as the character moves; but not on into what stops it (walking into a wall with it).
+  let moving = c.velocity;
+  // Not into what is in the way (stage 4.5's close): held at a wall, it was pushed into it on every
+  // step, the wall pushing back, and what the push could do went into the wall, not into holding it up:
+  // it shook, turned and sank. Where it is held comes as near as what is in the way lets a ball of its
+  // size come, from the character's center.
+  const reach = vec3.sub(target, position);
+  const far = vec3.length(reach);
+  if (far > 1e-9) {
+    const along = vec3.scale(reach, 1 / far);
+    const size = heldRadius(held);
+    const wall = world.castShape({ kind: 'ball', radius: size }, position, quat.identity(), along, far, {
+      skip: e.id,
+      besides: held.id,
+      characters: false,
+      dynamic: false,
+    });
+    if (wall) {
+      target = vec3.add(position, vec3.scale(along, wall.distance));
+      moving = vec3.sub(moving, vec3.scale(along, Math.max(0, vec3.dot(moving, along))));
+    }
+  }
   const to = vec3.sub(target, held.transform.position);
   if (vec3.length(to) > HOLD.letGo) {
     c.holding = 0;
     return;
   }
   const g = gravityAt(world.gravity, held.transform.position);
-  const want = vec3.add(vec3.scale(to, 1 / HOLD.settle), c.velocity);
+  const want = vec3.add(vec3.scale(to, 1 / HOLD.settle), moving);
   let change = vec3.sub(vec3.sub(want, held.body.linearVelocity), vec3.scale(g, dt));
   const most = (HOLD.force * dt) / Math.max(1e-9, world.physics.massOf(held.body.handle));
   const length = vec3.length(change);

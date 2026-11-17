@@ -487,11 +487,15 @@ export class World {
   /**
    * Pushes what the physics moves (stage 3g: a game, a grab, a current): changes its velocity by
    * `change`, with the impulse that takes for its mass (so a heavy thing is as easy to push as a light
-   * one by this; how hard a push may be is the caller's), waking it if it sleeps.
+   * one by this; how hard a push may be is the caller's), waking it if it sleeps. Its velocity as the
+   * world knows it changes with it (stage 4.5's close): what changed its velocity after the push is
+   * what it ran into. Without that, a held crate, pushed every step towards where it is held, was heard
+   * as a hit every step (the author heard it), and in the Dojo a hit hurts what it is on.
    */
   push(e: Entity, change: Vec3) {
     if (e.body?.type !== 'dynamic') return;
     this.physics.push(e.body.handle, vec3.scale(change, this.physics.massOf(e.body.handle)));
+    e.body.linearVelocity = vec3.add(e.body.linearVelocity, change);
   }
 
   /**
@@ -932,14 +936,23 @@ export class World {
         gone.push(e.id);
         continue;
       }
-      const change = vec3.sub(vec3.sub(e.body.linearVelocity, before), vec3.scale(g, STEP));
+      // What its contacts did to its velocity, beyond holding it up against gravity (stage 4.5's close: a
+      // crate at rest takes back a step of gravity on every step, 0.6 J for its 45 kg, and was heard on
+      // every one; the author heard it).
+      const contact = vec3.sub(vec3.sub(e.body.linearVelocity, before), vec3.scale(g, STEP));
+      const fall = vec3.length(g);
+      const up = fall > 1e-9 ? vec3.scale(g, -1 / fall) : ([0, 0, 0] as Vec3);
+      const change = vec3.sub(contact, vec3.scale(up, Math.min(Math.max(vec3.dot(contact, up), 0), fall * STEP)));
       // Its mass from its density and its shape, here (asking the physics, a call into WebAssembly for
       // every body on every step, took the stress room's step near its budget): the same number.
       const energy = 0.5 * bodyMass(e.body) * vec3.dot(change, change);
       if (energy < HIT_HEARD) continue;
-      // On what: the first thing it touches (its material), or its own.
-      const other = this.physics.touching(e.body.handle)[0];
-      const against = other === undefined ? undefined : [...this.entities.values()].find((x) => x.body?.handle === other);
+      // Only as a contact begins (stage 4.5's close): what it was pressed against, or slides along, it does
+      // not strike again on every step. On what: the first thing it began to touch (its material), or its own.
+      const struck = this.physics.struck(e.body.handle);
+      if (struck.length === 0) continue;
+      const other = this.byHandle.get(struck[0]!);
+      const against = other === undefined ? undefined : this.entities.get(other);
       this.emit({
         type: 'sound',
         sound: 'hit',

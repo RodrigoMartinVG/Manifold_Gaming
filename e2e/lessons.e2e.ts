@@ -336,18 +336,22 @@ test('rays and sweeps: the ball stops a radius before the ray, only the ray fits
   await expect.poll(() => value(f, 'new box: seen after')).toBe('1');
 });
 
-test('an animated character: with the phase by distance the planted foot barely slides; by the clock it slides', async ({
-  page,
-}) => {
-  const f = await open(page, 'tutorial/archivo/etapa-2/06-un-personaje-animado/');
-  // The first lap looks north: its north side walks to its right, one clip alone.
-  await expect.poll(() => value(f, 'direction weights'), { timeout: 20_000 }).toBe('right 1.00');
-  const slide = await number(f, 'foot slide');
-  expect(slide).toBeGreaterThan(0);
-  expect(slide).toBeLessThan(12);
-  await toggle(f, 'phase by distance');
-  await expect.poll(() => number(f, 'foot slide'), { timeout: 20_000 }).toBeGreaterThan(18);
-});
+// (`@quiet`: it runs after the rest, alone, playwright.config.ts: its measure is taken frame by frame,
+// and a frame of a loaded machine holds half a step.)
+test(
+  'an animated character: with the phase by distance the planted foot barely slides; by the clock it slides',
+  { tag: '@quiet' },
+  async ({ page }) => {
+    const f = await open(page, 'tutorial/archivo/etapa-2/06-un-personaje-animado/');
+    // The first lap looks north: its north side walks to its right, one clip alone.
+    await expect.poll(() => value(f, 'direction weights'), { timeout: 20_000 }).toBe('right 1.00');
+    const slide = await number(f, 'foot slide');
+    expect(slide).toBeGreaterThan(0);
+    expect(slide).toBeLessThan(12);
+    await toggle(f, 'phase by distance');
+    await expect.poll(() => number(f, 'foot slide'), { timeout: 20_000 }).toBeGreaterThan(18);
+  },
+);
 
 test('friction and bounce: ice slides where stone stays, rubber comes back up e² of the height, ice takes 65 steps to stop', async ({
   page,

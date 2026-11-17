@@ -61,6 +61,9 @@ export const ENGINE_WORDS = {
     'settings.fov': 'Campo de visión (grados, de arriba abajo)',
     'settings.crosshair': 'Mira al apuntar',
     'settings.saved': 'Se guardan en este navegador.',
+    'touch.needs':
+      'Este juego se juega con teclado y mouse, o con un gamepad: en un teléfono, conectá uno. Mientras, podés mirar: arrastrá para girar la cámara.',
+    'touch.look': 'Mirar igual',
     'sound.step': 'Pasos',
     'sound.land': 'Un aterrizaje',
     'sound.hit': 'Un golpe',
@@ -108,6 +111,9 @@ export const ENGINE_WORDS = {
     'settings.fov': 'Field of view (degrees, top to bottom)',
     'settings.crosshair': 'Crosshair while aiming',
     'settings.saved': 'They are kept in this browser.',
+    'touch.needs':
+      'This game is played with a keyboard and a mouse, or a gamepad: on a phone, connect one. Meanwhile you can look around: drag to turn the camera.',
+    'touch.look': 'Look anyway',
     'sound.step': 'Steps',
     'sound.land': 'A landing',
     'sound.hit': 'A hit',

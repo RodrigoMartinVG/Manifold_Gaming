@@ -56,6 +56,27 @@ describe('a ghost, as a strip of poses (stage 4.5c)', () => {
     session.world.dispose();
   });
 
+  test('it ends where the player ended, also between two of its steps (stage 4.5’s close)', () => {
+    const { session, recorder, hero } = run(20);
+    // Four steps more, still walking: the strip's last step was 1200, it ends at 1204.
+    for (let i = 0; i < 4; i++) {
+      session.setInput(1, { move: [0, 0, -1] });
+      session.step();
+      recorder.record(session.world, 1);
+    }
+    const strip = ghostFromText(ghostToText(recorder.ghost('dojo', replayOf(session).birth, session.world.tick)));
+    expect(strip.end).toBe(1204);
+    expect(strip.poses).toHaveLength(20 * 10 + 2);
+    const at = hero().transform!.position;
+    const end = ghostAt(strip, 1204)!;
+    for (let k = 0; k < 3; k++) expect(Math.abs(end.position[k]! - at[k]!)).toBeLessThanOrEqual(0.005 + 1e-9);
+    // Halfway through those four steps, halfway between the strip's last step and where it ended.
+    const before = strip.poses.at(-2)!.position;
+    const half = ghostAt(strip, 1202)!.position;
+    for (let k = 0; k < 3; k++) expect(half[k]).toBeCloseTo((before[k]! + end.position[k]!) / 2, 9);
+    session.world.dispose();
+  });
+
   test('drawn between its poses: along the line between them, and looking by the shorter way round', () => {
     const strip = ghostFromText(
       // (Each line, how much what changed changed: 40 cm along and 10° round, then the same again.)

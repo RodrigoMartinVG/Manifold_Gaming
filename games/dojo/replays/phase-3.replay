@@ -1,4 +1,4 @@
-# Manifold replay 37
+# Manifold replay 38
 # Phase 3: the machines: a button that opens a door, plates that call a lift, a ride up to a star.
 # A reference replay (stage 2.5a): playing it must end with the hash on its last line. A refactor
 # keeps it bit for bit. Recorded by games/dojo/src/reference.test.ts; recorded again (npm run

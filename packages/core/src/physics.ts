@@ -239,6 +239,11 @@ export interface PhysicsBackend {
   contacts(): { points: number[]; normals: number[] };
   /** The bodies touching this one now (stage 3e), by handle, in order: with at least one contact the solver uses. */
   touching(handle: number): number[];
+  /**
+   * The bodies a body began to touch in the last step (stage 4.5's close), lowest handle first: what
+   * it struck, for a hit to be heard once when a contact begins, not on every step it lasts.
+   */
+  struck(handle: number): number[];
   /** A body's mass (stage 3e): what the physics gives it from its shape and density (0 if it moves only as told). */
   massOf(handle: number): number;
   /** Changes a moving body's velocity by an impulse (stage 3g: kg·m/s), waking it if it sleeps. */
@@ -273,6 +278,9 @@ export class RapierPhysics implements PhysicsBackend {
    * about a body while it computes (it holds the world).
    */
   private readonly lightColliders = new Set<number>();
+  /** Rapier's events of a step (its contacts that began), and by body, what each began to touch. */
+  private readonly events = new RAPIER.EventQueue(true);
+  private readonly struckBy = new Map<number, number[]>();
 
   /** A new physics world; or, with `snapshot`, the one that snapshot keeps (its bodies keep their handles). */
   constructor(gravity: Vec3, timestep: number, snapshot?: Uint8Array) {
@@ -358,6 +366,8 @@ export class RapierPhysics implements PhysicsBackend {
     collider.setRestitution(body.restitution).setFriction(body.friction);
     if (body.density !== undefined) collider.setDensity(body.density);
     if (body.groups) collider.setCollisionGroups(groupsOf(body.groups)).setSolverGroups(groupsOf(body.groups));
+    // What the physics moves says when a contact of its begins (`struck`).
+    if (body.type === 'dynamic') collider.setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS);
     const made = this.world.createCollider(collider, rigid);
     if (body.type === 'dynamic' && bodyMass(body) < LIGHT) this.lightColliders.add(made.handle);
     body.handle = rigid.handle;
@@ -690,9 +700,27 @@ export class RapierPhysics implements PhysicsBackend {
   }
 
   step() {
-    this.world.step();
+    this.world.step(this.events);
     // Stepping, Rapier updated what its queries see: every body, where it is.
     this.unseen.clear();
+    // The contacts that began in this step, each way round (Rapier's, from its narrow phase: the same
+    // after a snapshot, which keeps it).
+    this.struckBy.clear();
+    const add = (a: number, b: number) => this.struckBy.set(a, [...(this.struckBy.get(a) ?? []), b]);
+    this.events.drainCollisionEvents((h1, h2, started) => {
+      if (!started) return;
+      const [c1, c2] = [this.world.getCollider(h1), this.world.getCollider(h2)];
+      if (!c1 || !c2 || c1.isSensor() || c2.isSensor()) return;
+      const [a, b] = [c1.parent()?.handle, c2.parent()?.handle];
+      if (a === undefined || b === undefined || a === b) return;
+      add(a, b);
+      add(b, a);
+    });
+    for (const list of this.struckBy.values()) list.sort((x, y) => x - y);
+  }
+
+  struck(handle: number): number[] {
+    return this.struckBy.get(handle) ?? [];
   }
 
   /** Copies where the body is and how it moves into the entity's components (after a step). */
@@ -839,6 +867,7 @@ export class RapierPhysics implements PhysicsBackend {
   /** Frees the physics' memory (WebAssembly's, which the garbage collector does not see). */
   dispose() {
     if (this.controller) this.world.removeCharacterController(this.controller);
+    this.events.free();
     this.world.free();
   }
 }

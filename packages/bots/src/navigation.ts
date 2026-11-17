@@ -251,9 +251,15 @@ export function buildNav(world: World, body: NavBody = NAV_BODY): Nav {
  * A way between two cells is asked about once: from one to the other or back, the body sweeps the same
  * space (half the queries).
  */
-export function* navBuilding(world: World, body: NavBody = NAV_BODY): Generator<void, Nav, void> {
-  const nav: Nav = { body, cells: [], out: [], columns: new Map(), reason: null };
+export function* navBuilding(world: World, given: NavBody = NAV_BODY): Generator<void, Nav, void> {
   const g = world.gravity.vector;
+  // Its falls and jumps by the world's gravity, not the Earth's (stage 4.5's close, found by the audit
+  // of what assumes "up" is +Y): the same push off the ground goes as much higher and farther as the
+  // gravity is weaker (on the Dojo's moon, six times).
+  const weaker = g[1] < 0 ? given.gravity / -g[1] : 1;
+  const body: NavBody =
+    weaker === 1 ? given : { ...given, gravity: -g[1], jumpUp: given.jumpUp * weaker, jumpAcross: given.jumpAcross * weaker };
+  const nav: Nav = { body, cells: [], out: [], columns: new Map(), reason: null };
   if (Math.abs(g[0]) > 1e-9 || Math.abs(g[2]) > 1e-9 || !(g[1] < 0)) {
     nav.reason = `its gravity is not along −Y (${g.join(' ')}): the grid is sampled along one "down"`;
     return nav;
@@ -569,11 +575,18 @@ const navs = new WeakMap<
     building: { steps: Generator<void, Nav, void>; signature: string; at: number } | null;
   }
 >();
+/**
+ * What a navigation is sampled from, as text: the gravity, and what never moves or a program moves (by
+ * entity, and where it is, for what never moves: stage 4.5's close found the gravity and a body put
+ * elsewhere with `set` left out, the navigation as it was).
+ */
 const signatureOf = (world: World) =>
-  [...world.entities.values()]
-    .filter((e) => e.body && !e.character && e.body.type !== 'dynamic')
-    .map((e) => e.id)
-    .join(' ');
+  [
+    world.gravity.vector.join(' '),
+    ...[...world.entities.values()]
+      .filter((e) => e.body && !e.character && e.body.type !== 'dynamic')
+      .map((e) => (e.body!.type === 'fixed' && e.transform ? `${e.id}@${e.transform.position.join(',')}` : String(e.id))),
+  ].join(' ');
 
 /**
  * A world's navigation for the games' character, built the first time a brain asks, and again when

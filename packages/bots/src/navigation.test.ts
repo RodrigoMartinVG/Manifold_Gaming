@@ -79,6 +79,20 @@ describe('the navigation of a level (stage 4d, decision 0024)', () => {
     world.dispose();
   });
 
+  test('by its world’s gravity (stage 4.5’s close): on the moon, a block 3 m high is jumped onto, not climbed', () => {
+    const text = `${FLOOR}\nbox -3 1.5 3  1 1.5 1`;
+    const earth = room(text);
+    expect(findPath(earth, buildNav(earth), [0, 1, 3], [-3, 4, 3])).toBeNull();
+    earth.dispose();
+    const moon = new World({ seed: 1, gravity: { kind: 'uniform', vector: [0, -1.62, 0] } });
+    buildLevel(moon, levelFromText(`# Manifold level 7\n${text}`));
+    moon.step();
+    const nav = buildNav(moon);
+    expect(nav.body.gravity).toBeCloseTo(1.62, 9);
+    expect(kinds(nav, [0, 1, 3], [-3, 4, 3], moon)).toContain('jump');
+    moon.dispose();
+  });
+
   test('a gap of 2 m between two floors: jumped across; of 4 m: nowhere', () => {
     const world = room('box -3 -0.5 0  2 0.5 2\nbox 3 -0.5 0  2 0.5 2\nbox 11 -0.5 0  2 0.5 2');
     const nav = buildNav(world);

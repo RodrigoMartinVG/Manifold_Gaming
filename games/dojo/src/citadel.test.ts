@@ -168,131 +168,137 @@ describe('the citadel (stage 4.5f)', () => {
     k.session.world.dispose();
   });
 
-  test('it can be played from the start to the goal, on three floors, past its guards; the run, a reference replay', async () => {
-    const k = citadel();
-    const { session, at, c, signal, step, until, go, wait, face, notices } = k;
-    const world = () => session.world;
+  // (A minute of play with two guards thinking: 8 to 17 s alone, 27 with every other test running beside
+  // it; its own time, past the 20 s the rest are given.)
+  test(
+    'it can be played from the start to the goal, on three floors, past its guards; the run, a reference replay',
+    { timeout: 60_000 },
+    async () => {
+      const k = citadel();
+      const { session, at, c, signal, step, until, go, wait, face, notices } = k;
+      const world = () => session.world;
 
-    // The gatehouse: its button, its door; the dart from its rack.
-    go('to the gatehouse button', -3.3, 1.4);
-    step({ use: true });
-    step(NO_INPUT);
-    expect(signal('small_door')).toBe(1);
-    wait(70);
-    go('in front of the gatehouse door', -3.2, 3);
-    go('through the gatehouse door', -4.8, 3);
-    go('to the dart', -7, 1);
-    expect(weapon(k.me())!.kind).toBe('dart');
-    // The crate: behind it, looking at it and at the door along +X, grabbed; carried out and onto the
-    // gate's plate.
-    go('behind the crate', -6.8, 3, 0.12);
-    face(1, 0);
-    step({ grab: true });
-    step(NO_INPUT);
-    expect(c().holding).toBe(world().named('crate')!.id);
-    go('carrying the crate out', -2.6, 3, 0.4);
-    go('carrying the crate across the courtyard', 3, 9);
-    until(
-      'the crate over the plate',
-      () => at()[0]! >= 5.05,
-      () => ({ move: [1, 0, 0] }),
-      200,
-    );
-    wait(30);
-    step({ grab: true });
-    step(NO_INPUT);
-    expect(c().holding).toBe(0);
-    go('back off the plate', 3.5, 9);
-    wait(70);
-    expect(signal('gate_open')).toBeGreaterThan(0);
+      // The gatehouse: its button, its door; the dart from its rack.
+      go('to the gatehouse button', -3.3, 1.4);
+      step({ use: true });
+      step(NO_INPUT);
+      expect(signal('small_door')).toBe(1);
+      wait(70);
+      go('in front of the gatehouse door', -3.2, 3);
+      go('through the gatehouse door', -4.8, 3);
+      go('to the dart', -7, 1);
+      expect(weapon(k.me())!.kind).toBe('dart');
+      // The crate: behind it, looking at it and at the door along +X, grabbed; carried out and onto the
+      // gate's plate.
+      go('behind the crate', -6.8, 3, 0.12);
+      face(1, 0);
+      step({ grab: true });
+      step(NO_INPUT);
+      expect(c().holding).toBe(world().named('crate')!.id);
+      go('carrying the crate out', -2.6, 3, 0.4);
+      go('carrying the crate across the courtyard', 3, 9);
+      until(
+        'the crate over the plate',
+        () => at()[0]! >= 5.05,
+        () => ({ move: [1, 0, 0] }),
+        200,
+      );
+      wait(30);
+      step({ grab: true });
+      step(NO_INPUT);
+      expect(c().holding).toBe(0);
+      go('back off the plate', 3.5, 9);
+      wait(70);
+      expect(signal('gate_open')).toBeGreaterThan(0);
 
-    // The gate, the hall; up the stairs to the gallery.
-    go('to the gate', 2, 1.5);
-    go('through the gate', 2, -1.5);
-    go('to the foot of the stairs', -6, -5.4);
-    go('up the stairs', -6, -12.6);
-    expect(at()[1]!).toBeGreaterThan(2.9);
-    // The double door: its button, then through it to the landing.
-    go('to the double door button', 7.2, -12.5);
-    step({ use: true });
-    step(NO_INPUT);
-    expect(signal('wide_open')).toBe(1);
-    wait(70);
-    go('in front of the double door', 6.8, -14);
-    go('through the double door', 10, -14);
+      // The gate, the hall; up the stairs to the gallery.
+      go('to the gate', 2, 1.5);
+      go('through the gate', 2, -1.5);
+      go('to the foot of the stairs', -6, -5.4);
+      go('up the stairs', -6, -12.6);
+      expect(at()[1]!).toBeGreaterThan(2.9);
+      // The double door: its button, then through it to the landing.
+      go('to the double door button', 7.2, -12.5);
+      step({ use: true });
+      step(NO_INPUT);
+      expect(signal('wide_open')).toBe(1);
+      wait(70);
+      go('in front of the double door', 6.8, -14);
+      go('through the double door', 10, -14);
 
-    // The ferry: on when it is at the landing, off at the far one.
-    const ferry = world().named('ferry')!;
-    go('to the well', 12, -12.6);
-    until(
-      'the ferry at the landing',
-      () => ferry.transform!.position[2] < -10.4,
-      () => NO_INPUT,
-      400,
-    );
-    go('onto the ferry', 12, -10.5, 0.4);
-    until(
-      'the crossing',
-      () => ferry.transform!.position[2] > -5.6,
-      () => ({ move: towards3(at(), ferry.transform!.position) }),
-      400,
-    );
-    go('off the ferry', 12, -2);
-    expect(notices).toContain('dojo.checkpoint');
+      // The ferry: on when it is at the landing, off at the far one.
+      const ferry = world().named('ferry')!;
+      go('to the well', 12, -12.6);
+      until(
+        'the ferry at the landing',
+        () => ferry.transform!.position[2] < -10.4,
+        () => NO_INPUT,
+        400,
+      );
+      go('onto the ferry', 12, -10.5, 0.4);
+      until(
+        'the crossing',
+        () => ferry.transform!.position[2] > -5.6,
+        () => ({ move: towards3(at(), ferry.transform!.position) }),
+        400,
+      );
+      go('off the ferry', 12, -2);
+      expect(notices).toContain('dojo.checkpoint');
 
-    // The library: the plate in the lamp's light, seen; the lamp broken; the plate in the dark, the door.
-    go('through the library doorway', 11, 1);
-    go('to the plate, in the light', 13, 5.6);
-    wait(10);
-    expect(signal('seen_me')).toBe(1);
-    expect(signal('opened')).toBe(0);
-    go('in front of the lamp', 11.6, 2.9);
-    face(0, 1);
-    step({ 'dojo.throw': true });
-    until(
-      'the lamp breaking',
-      () => world().named('lamp')!.breakable!.broken,
-      () => NO_INPUT,
-      120,
-    );
-    go('to the plate, in the dark', 13, 5.6);
-    wait(10);
-    expect(signal('seen_me')).toBe(0);
-    expect(signal('opened')).toBe(1);
-    wait(70);
-    go('through the library door', 13, 9);
+      // The library: the plate in the lamp's light, seen; the lamp broken; the plate in the dark, the door.
+      go('through the library doorway', 11, 1);
+      go('to the plate, in the light', 13, 5.6);
+      wait(10);
+      expect(signal('seen_me')).toBe(1);
+      expect(signal('opened')).toBe(0);
+      go('in front of the lamp', 11.6, 2.9);
+      face(0, 1);
+      step({ 'dojo.throw': true });
+      until(
+        'the lamp breaking',
+        () => world().named('lamp')!.breakable!.broken,
+        () => NO_INPUT,
+        120,
+      );
+      go('to the plate, in the dark', 13, 5.6);
+      wait(10);
+      expect(signal('seen_me')).toBe(0);
+      expect(signal('opened')).toBe(1);
+      wait(70);
+      go('through the library door', 13, 9);
 
-    // The lift, up to the roof.
-    go('onto the lift', 10.1, 10);
-    until(
-      'the ride up',
-      () => c().grounded && at()[1]! > 5.9,
-      () => NO_INPUT,
-      400,
-    );
-    expect(signal('lift_up')).toBe(1);
+      // The lift, up to the roof.
+      go('onto the lift', 10.1, 10);
+      until(
+        'the ride up',
+        () => c().grounded && at()[1]! > 5.9,
+        () => NO_INPUT,
+        400,
+      );
+      expect(signal('lift_up')).toBe(1);
 
-    // The roofs: across the well by its bridges, onto the hall's roof, up the ramp, across to the tower.
-    go('off the lift', 12.6, 6);
-    go('to the bridges', 12, -3.5);
-    go('across the bridges', 12, -12.5);
-    go('onto the hall roof', 5, -12);
-    go('to the foot of the ramp', 0, -7.5);
-    go('up the ramp', 0, -12.5);
-    expect(at()[1]!).toBeGreaterThan(6.9);
-    go('to the bridge', 0, -15.5);
-    go('across to the tower', 0, -20.5);
-    go('to the goal', 0, -25);
-    wait(5);
-    expect(notices.at(-1)).toBe('dojo.goal');
-    // The guards were in the way: the hall's, the roof's (each brought down where it came).
-    expect(k.fights()).toBeGreaterThanOrEqual(1);
-    // The run, a reference replay (decision 0025; recorded again with `npm run references`): the guards'
-    // inputs in it, as anyone's (decision 0023), the heaviest replay the site plays in every browser to
-    // the hash Node gave (e2e/determinism.e2e.ts).
-    await expect(replayToText(replayOf(session))).toMatchFileSnapshot('../replays/phase-4.5-citadel.replay');
-    session.world.dispose();
-  });
+      // The roofs: across the well by its bridges, onto the hall's roof, up the ramp, across to the tower.
+      go('off the lift', 12.6, 6);
+      go('to the bridges', 12, -3.5);
+      go('across the bridges', 12, -12.5);
+      go('onto the hall roof', 5, -12);
+      go('to the foot of the ramp', 0, -7.5);
+      go('up the ramp', 0, -12.5);
+      expect(at()[1]!).toBeGreaterThan(6.9);
+      go('to the bridge', 0, -15.5);
+      go('across to the tower', 0, -20.5);
+      go('to the goal', 0, -25);
+      wait(5);
+      expect(notices.at(-1)).toBe('dojo.goal');
+      // The guards were in the way: the hall's, the roof's (each brought down where it came).
+      expect(k.fights()).toBeGreaterThanOrEqual(1);
+      // The run, a reference replay (decision 0025; recorded again with `npm run references`): the guards'
+      // inputs in it, as anyone's (decision 0023), the heaviest replay the site plays in every browser to
+      // the hash Node gave (e2e/determinism.e2e.ts).
+      await expect(replayToText(replayOf(session))).toMatchFileSnapshot('../replays/phase-4.5-citadel.replay');
+      session.world.dispose();
+    },
+  );
 });
 
 /** Towards a moving point, in the plane: to stay on what carries you. */
