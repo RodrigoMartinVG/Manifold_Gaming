@@ -4,7 +4,7 @@ import { tractionOf } from './materials';
 import { CHARACTER_GAP, STANDS_ON } from './physics';
 import { STRIDE, stepRadius } from './sound';
 import { axisOf, isDown, NO_INPUT, pressed, vectorOf } from './input';
-import type { Body, Character, CharacterSpec, CollisionPose, Entity, ModeName, Movement, Shape } from './types';
+import type { Body, Character, CharacterSpec, CollisionPose, Entity, HitPart, ModeName, Movement, Shape } from './types';
 import type { World } from './world';
 
 /**
@@ -59,8 +59,19 @@ export function newCharacter(spec: CharacterSpec): Character {
     ground: { velocity: [0, 0, 0], spin: 0 },
     carriedTurn: quat.identity(),
     ...(spec.poses ? { poses: structuredPoses(spec.poses) } : {}),
+    ...(spec.hits ? { hits: structuredHits(spec.hits) } : {}),
+    history: [],
   };
 }
+
+/** A copy of the hit parts a character is given (plain data, its own). */
+const structuredHits = (hits: Partial<Record<ModeName, HitPart[]>>): Partial<Record<ModeName, HitPart[]>> =>
+  Object.fromEntries(
+    Object.entries(hits).map(([mode, parts]) => [
+      mode,
+      parts!.map((p) => ({ name: p.name, shape: { ...p.shape }, offset: [...p.offset], rotation: [...p.rotation] })),
+    ]),
+  ) as Partial<Record<ModeName, HitPart[]>>;
 
 /** A copy of the poses a character is given (plain data, its own). */
 const structuredPoses = (poses: Partial<Record<ModeName, CollisionPose>>): Partial<Record<ModeName, CollisionPose>> =>
@@ -76,10 +87,28 @@ const structuredPoses = (poses: Partial<Record<ModeName, CollisionPose>>): Parti
  * the game gave one; crouching, if it gave none, its body made lower (`crouchPoseOf`); if not, its
  * body's shape, centered and upright.
  */
-export function poseOf(c: Character, body: Pick<Body, 'shape'>): CollisionPose {
-  if (c.mode === 'roll') return c.poses?.roll ?? crouchPoseOf(c, body);
-  if (c.mode === 'crouch') return crouchPoseOf(c, body);
-  return c.poses?.[c.mode] ?? { shape: body.shape, offset: [0, 0, 0], rotation: quat.identity() };
+export function poseOf(c: Character, body: Pick<Body, 'shape'>, mode: ModeName = c.mode): CollisionPose {
+  if (mode === 'roll') return c.poses?.roll ?? crouchPoseOf(c, body);
+  if (mode === 'crouch') return crouchPoseOf(c, body);
+  return c.poses?.[mode] ?? { shape: body.shape, offset: [0, 0, 0], rotation: quat.identity() };
+}
+
+/** How many steps of poses a character keeps (decision 0022): this one and 15 before, a quarter of a second. */
+export const HISTORY = 16;
+
+/**
+ * WHAT A HIT CAN FIND OF A CHARACTER in a way of moving (stage 4c, decision 0022): the parts the game
+ * gives for it; if none, one part, `body`, its pose for that mode (a body that is not a ball or a
+ * capsule, as the ball around it).
+ */
+export function hitPartsOf(c: Character, body: Pick<Body, 'shape'>, mode: ModeName = c.mode): HitPart[] {
+  const given = c.hits?.[mode];
+  if (given) return given;
+  const pose = poseOf(c, body, mode);
+  const s = pose.shape;
+  const shape: HitPart['shape'] =
+    s.kind === 'ball' || s.kind === 'capsule' ? s : { kind: 'ball', radius: s.kind === 'box' ? vec3.length(s.halfExtents) : 0.5 };
+  return [{ name: 'body', shape, offset: pose.offset, rotation: pose.rotation }];
 }
 
 /** Whether a mode moves the low body (stage 4b): crouching, and rolling. */

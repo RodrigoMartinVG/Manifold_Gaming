@@ -1,4 +1,4 @@
-# Manifold replay 30
+# Manifold replay 31
 # Phase 4, what a body can do: aiming up and down, a ball thrown where it aims; crouching under a low passage; seen later crouched; rolling, into the passage too.
 # A reference replay (stage 2.5a): playing it must end with the hash on its last line. A refactor
 # keeps it bit for bit. Recorded by games/dojo/src/reference.test.ts; recorded again (npm run
@@ -40,4 +40,4 @@ input 1301 1 move @0
 change 1451 dojo.goto 5 1 9.5
 input 1451 1
 input 1511 1 move @0 crouch
-end 1770 df45e27a
+end 1770 08e82210

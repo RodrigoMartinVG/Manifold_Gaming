@@ -1,5 +1,5 @@
 import { quat, type Vec3 } from '@manifold/common';
-import type { Appearance, BodySpec, CharacterSpec, CollisionPose, ModeName } from '@manifold/core';
+import type { Appearance, BodySpec, CharacterSpec, CollisionPose, HitPart, ModeName } from '@manifold/core';
 
 /**
  * THE GAMES' CHARACTER (stage 4a): one body for every game, so the guards of phase 4 and each game's
@@ -32,6 +32,54 @@ export const POSES: Partial<Record<ModeName, CollisionPose>> = {
   },
 };
 
+/** A part a hit can find: a ball or an upright capsule, where it is from the character's center. */
+const ball = (name: string, radius: number, offset: [number, number, number]): HitPart => ({
+  name,
+  shape: { kind: 'ball', radius },
+  offset,
+  rotation: quat.identity(),
+});
+const capsule = (name: string, halfHeight: number, radius: number, offset: [number, number, number], tilt = 0): HitPart => ({
+  name,
+  shape: { kind: 'capsule', halfHeight, radius },
+  offset,
+  rotation: quat.fromDegrees([1, 0, 0], tilt),
+});
+/** Parts turned with the body (gliding: tilted forward): their places and their turns. */
+const tilted = (parts: HitPart[], degrees: number): HitPart[] => {
+  const turn = quat.fromDegrees([1, 0, 0], degrees);
+  return parts.map((p) => ({ ...p, offset: quat.rotate(turn, p.offset), rotation: quat.multiply(turn, p.rotation) }));
+};
+
+const STANDING: HitPart[] = [
+  ball('head', 0.16, [0, 0.62, 0]),
+  capsule('body', 0.16, 0.24, [0, 0.2, 0]),
+  capsule('legs', 0.2, 0.2, [0, -0.44, 0]),
+];
+
+/**
+ * WHAT A HIT CAN FIND OF THE MANNEQUIN in each way of moving (stage 4c, decision 0022), from its
+ * animations: standing (walking, climbing), its head, its body and its legs; crouched, its head ahead
+ * and low, its back bent 55°, its legs folded; in the air, its knees up; gliding, all of it tilted 55°
+ * forward; rolling, tucked into one ball. Simple shapes, computed in Node without the model.
+ */
+export const HITS: Partial<Record<ModeName, HitPart[]>> = {
+  walk: STANDING,
+  climb: STANDING,
+  crouch: [
+    ball('head', 0.16, [0, 0.12, -0.4]),
+    capsule('body', 0.16, 0.24, [0, -0.15, -0.18], -55),
+    capsule('legs', 0.1, 0.22, [0, -0.6, 0]),
+  ],
+  air: [
+    ball('head', 0.16, [0, 0.62, 0]),
+    capsule('body', 0.16, 0.24, [0, 0.2, 0]),
+    capsule('legs', 0.12, 0.2, [0, -0.25, -0.12]),
+  ],
+  glide: tilted(STANDING, -55),
+  roll: [ball('body', 0.45, [0, -0.35, 0])],
+};
+
 /**
  * A CHARACTER'S PARTS, for a game's `createEntity`: its body, its character (the player who drives it,
  * where it looks, its poses) and its appearance (the mannequin, once it loaded; the capsule meanwhile, in
@@ -45,7 +93,7 @@ export function characterParts(o: { player: number; facing: Vec3; color: number 
   return {
     body: { type: 'character', shape: { ...CHARACTER_SHAPE } },
     // It can crouch and roll (stage 4b): every game's character does; a game may take it away.
-    character: { player: o.player, facing: [...o.facing], poses: POSES, can: { crouch: true, roll: true } },
+    character: { player: o.player, facing: [...o.facing], poses: POSES, hits: HITS, can: { crouch: true, roll: true } },
     appearance: { shape: 'capsule', size: [0.6, 1.6, 0.6], color: o.color, model: MANNEQUIN },
   };
 }

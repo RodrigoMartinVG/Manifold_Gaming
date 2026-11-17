@@ -412,6 +412,41 @@ export interface Character {
    * Only when the game gives them; for a mode without one, its body (`poseOf`).
    */
   poses?: Partial<Record<ModeName, CollisionPose>>;
+  /**
+   * What a hit can find of it in each way of moving (stage 4c, decision 0022): two or three named
+   * parts (a head, a body, legs), when the game gives them; for a mode without them, one part, `body`,
+   * its pose (`hitPartsOf`).
+   */
+  hits?: Partial<Record<ModeName, HitPart[]>>;
+  /**
+   * Its last poses (stage 4c, decision 0022): one for the end of each of its last `HISTORY` steps,
+   * the oldest first. What a shot looks back at, as far as its shooter saw.
+   */
+  history: Pose[];
+}
+
+/**
+ * A PART A HIT CAN FIND (stage 4c, decision 0022): its name (`head`, `body`, `legs`…), its shape (a
+ * ball or a capsule), where it is from the character's center and how it is turned, in the
+ * character's own frame (forward −Z, up +Y).
+ */
+export interface HitPart {
+  name: string;
+  shape: Extract<Shape, { kind: 'ball' | 'capsule' }>;
+  offset: Vec3;
+  rotation: Quat;
+}
+
+/**
+ * A CHARACTER'S POSE at the end of a step (stage 4c, decision 0022): where it is, its body's turn
+ * (where it looks, flat about its up), where it aims above or below that, and its way of moving.
+ * Everything a hit needs comes from it, without the models.
+ */
+export interface Pose {
+  position: Vec3;
+  rotation: Quat;
+  pitch: number;
+  mode: ModeName;
 }
 
 /**
@@ -440,6 +475,7 @@ export type CharacterSpec = Pick<Character, 'player'> & {
   };
   can?: Partial<Capabilities>;
   poses?: Partial<Record<ModeName, CollisionPose>>;
+  hits?: Partial<Record<ModeName, HitPart[]>>;
 };
 
 /**

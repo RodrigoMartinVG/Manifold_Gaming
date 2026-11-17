@@ -12,10 +12,13 @@ export interface InputAction {
   name: string;
   /**
    * `button`: held or not; `axis`: an amount from −1 to 1; `vector`: three numbers; `direction`
-   * (stage 2.5c): where on the ground, in whole degrees, and how much (see `direction`).
+   * (stage 2.5c): where on the ground, in whole degrees, and how much (see `direction`); `count`
+   * (stage 4c, decision 0022): a whole number from 0 to `max` (how many steps back a shooter saw).
    */
-  kind: 'button' | 'axis' | 'vector' | 'direction';
+  kind: 'button' | 'axis' | 'vector' | 'direction' | 'count';
   description: string;
+  /** A count's most (its least is 0). */
+  max?: number;
 }
 
 /** What the character system reads (stages 1b and 1c2): every game has them. */
@@ -63,6 +66,11 @@ export const vectorOf = (input: PlayerInput, name: string): Vec3 => {
 export const axisOf = (input: PlayerInput, name: string): number => {
   const v = input[name];
   return typeof v === 'number' ? v : 0;
+};
+/** A count the player gives (stage 4c), or zero: a whole number from 0 to `max`. */
+export const countOf = (input: PlayerInput, name: string, max: number): number => {
+  const v = input[name];
+  return typeof v === 'number' && Number.isFinite(v) ? Math.max(0, Math.min(max, Math.round(v))) : 0;
 };
 /** Whether a button is held. */
 export const isDown = (input: PlayerInput, name: string): boolean => input[name] === true;
@@ -143,6 +151,9 @@ export function normalizeInput(input: PlayerInput, actions: readonly InputAction
     } else if (a.kind === 'axis') {
       const x = typeof v === 'number' ? hundredth(Math.max(-1, Math.min(1, v))) : 0;
       if (x !== 0) out[a.name] = x;
+    } else if (a.kind === 'count') {
+      const n = countOf(input, a.name, a.max ?? 0);
+      if (n !== 0) out[a.name] = n;
     } else if (a.kind === 'direction') {
       if (!Array.isArray(v) || v.length !== 3) continue;
       const length = Math.sqrt(v[0] * v[0] + v[2] * v[2]);
@@ -184,8 +195,11 @@ export function inputProblem(input: PlayerInput, actions: readonly InputAction[]
     if (!a) return `"${name}" is not something a player can ask for here`;
     const kind = value === true ? 'button' : typeof value === 'number' ? 'axis' : Array.isArray(value) ? 'vector' : '?';
     // (A direction travels as the vector it is.)
-    if (kind !== a.kind && !(a.kind === 'direction' && kind === 'vector'))
+    if (kind !== a.kind && !(a.kind === 'direction' && kind === 'vector') && !(a.kind === 'count' && kind === 'axis'))
       return `"${name}" is a ${a.kind}, and it came as a ${kind}`;
+    // (A count, a whole number within its range.)
+    if (a.kind === 'count' && (!Number.isInteger(value) || (value as number) < 0 || (value as number) > (a.max ?? 0)))
+      return `"${name}" is a whole number from 0 to ${a.max ?? 0}, and it came as ${String(value)}`;
   }
   return null;
 }

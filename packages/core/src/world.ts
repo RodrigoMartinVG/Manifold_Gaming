@@ -1,5 +1,5 @@
 import { Random, quat, vec3, type Quat, type Vec3 } from '@manifold/common';
-import { moveCharacter, newCharacter, poseOf } from './character';
+import { HISTORY, moveCharacter, newCharacter, poseOf } from './character';
 import { pressed } from './input';
 import { COMPONENT_NAME } from './components';
 import { EARTH, gravityAt } from './gravity';
@@ -220,6 +220,8 @@ export function copyData<T>(x: T): T {
  *   4b. breaks: what a hit with enough energy touched breaks (stage 3e), read with the velocities the
  *      bodies came with, before the next phase reads the ones the hit left;
  *   5. readBack: every moving body's pose and velocities go to its components;
+ *   5b. history: every character's pose, as it ends this step, at the end of its history (stage 4c,
+ *      decision 0022): what a shot looks back at;
  *   6. zones: who came into each zone, and who left (stage 2a);
  *   7. light: every lamp on or off as its signal was, how lit every character is, and who every watcher
  *      sees (stage 3d);
@@ -230,7 +232,18 @@ export function copyData<T>(x: T): T {
  * (`Cartridge.beforeStep`: what these phases will use at this step: a bot's inputs, a mechanism's
  * target, what a character carries) and after (`Cartridge.onStep`: its rules, on the step's events).
  */
-export const PHASES = ['spin', 'kinematics', 'characters', 'physics', 'breaks', 'readBack', 'zones', 'light', 'signals'] as const;
+export const PHASES = [
+  'spin',
+  'kinematics',
+  'characters',
+  'physics',
+  'breaks',
+  'readBack',
+  'history',
+  'zones',
+  'light',
+  'signals',
+] as const;
 export type Phase = (typeof PHASES)[number];
 
 export class World {
@@ -623,6 +636,7 @@ export class World {
     physics: () => this.physics.step(),
     breaks: () => this.shatter(),
     readBack: () => this.readBack(),
+    history: () => this.remember(),
     zones: () => this.sense(),
     light: () => this.illuminate(),
     signals: () => this.compute(),
@@ -692,6 +706,19 @@ export class World {
    * did to it; half its mass times that change squared, the energy of the hit. From what the world
    * already has (the velocity before, the one after): the same in every copy, and after a snapshot.
    */
+  /**
+   * HISTORY SYSTEM (stage 4c, decision 0022): each character's pose as it ends this step, at the end
+   * of its history, which keeps the last `HISTORY` (the oldest goes).
+   */
+  private remember() {
+    for (const e of this.entities.values()) {
+      const c = e.character;
+      if (!c || !e.transform) continue;
+      c.history.push({ position: [...e.transform.position], rotation: [...e.transform.rotation], pitch: c.pitch, mode: c.mode });
+      if (c.history.length > HISTORY) c.history.splice(0, c.history.length - HISTORY);
+    }
+  }
+
   private readBack() {
     const g = this.uniformGravity();
     for (const e of this.entities.values()) {

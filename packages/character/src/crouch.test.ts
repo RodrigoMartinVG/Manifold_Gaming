@@ -3,7 +3,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { beforeAll, describe, expect, test } from 'vitest';
 import { FAMILIES } from '@manifold/presentation/locomotion';
 import { modelInstance } from '@manifold/presentation/models';
-import { POSES } from './index';
+import { HITS, POSES } from './index';
 
 /**
  * THE MANNEQUIN CROUCHED (stage 4b): what is drawn fits the body the controller moves, so that under a
@@ -42,5 +42,29 @@ describe('the mannequin crouched (stage 4b)', () => {
           ).toBeGreaterThan(-0.75);
       }
     }
+  });
+});
+
+describe('what a hit finds of the mannequin (stage 4c, decision 0022)', () => {
+  test('its head part is where its head is drawn, standing and crouched; its parts stack from the head down', () => {
+    const copy = modelInstance(model);
+    const headAt = (clip: string) => {
+      const action = copy.actions.get(clip)!;
+      for (const a of copy.actions.values()) a.setEffectiveWeight(a === action ? 1 : 0);
+      action.time = 0;
+      copy.mixer.update(0);
+      copy.object.updateMatrixWorld(true);
+      return new THREE.Box3().setFromObject(copy.object.getObjectByName('head_piece')!, true).getCenter(new THREE.Vector3());
+    };
+    for (const [clip, mode] of [
+      ['idle', 'walk'],
+      ['crouch_idle', 'crouch'],
+    ] as const) {
+      const head = HITS[mode]!.find((p) => p.name === 'head')!;
+      expect(headAt(clip).distanceTo(new THREE.Vector3(...head.offset)), `${clip}: the head part`).toBeLessThan(0.08);
+    }
+    const [head, body, legs] = HITS.walk!.map((p) => p.offset[1]);
+    expect(head).toBeGreaterThan(body!);
+    expect(body).toBeGreaterThan(legs!);
   });
 });

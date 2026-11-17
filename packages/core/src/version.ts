@@ -59,5 +59,7 @@
  *  29  stage 4b: rolling, a mode with its capability, its numbers and its state (`roll`, `rolling`):
  *      a dodge, low, for its time, the way it was asked
  *  30  stage 4b: the Dojo's throw charges while held and goes when let go (`dojo.charge`), near or far
+ *  31  stage 4c (decision 0022): every character keeps the history of its last 16 poses, and its hit
+ *      parts by mode (`history`, `hits`)
  */
-export const SIMULATION_VERSION = 30;
+export const SIMULATION_VERSION = 31;

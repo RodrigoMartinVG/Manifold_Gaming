@@ -28,12 +28,27 @@ export {
   type SessionState,
   type WorldChange,
 } from './session';
-export { aimOf, CROUCHED, crouchPoseOf, DEFAULT_MOVEMENT, faceFor, HOLD, PUSH, turned, upAt, poseOf } from './character';
+export {
+  aimOf,
+  CROUCHED,
+  crouchPoseOf,
+  DEFAULT_MOVEMENT,
+  faceFor,
+  HISTORY,
+  hitPartsOf,
+  HOLD,
+  PUSH,
+  turned,
+  upAt,
+  poseOf,
+} from './character';
+export { castHit, MOST_BACK, poseBack, rayBall, rayCapsule, type ShotHit } from './hits';
 export {
   actionsFor,
   axisOf,
   CHARACTER_ACTIONS,
   inputProblem,
+  countOf,
   isDown,
   NO_INPUT,
   normalizeInput,
@@ -78,6 +93,8 @@ export type {
   Character,
   CharacterSpec,
   CollisionPose,
+  HitPart,
+  Pose,
   CompoundPart,
   Components,
   Entity,
