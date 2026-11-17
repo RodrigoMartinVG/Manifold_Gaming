@@ -88,6 +88,8 @@ export const CONSOLE_ES: Readonly<Record<string, string>> = {
   'dojo.climb': 'trepar: empujando contra una pared, el personaje la sube',
   'dojo.glide': 'planear: manteniendo el salto mientras cae, cae despacio y se dirige mejor',
   'dojo.doublejump': 'un salto más en el aire',
+  'dojo.roll':
+    'rodar: con la V, en el piso, el personaje rueda hacia donde se le pide ir, bajo, unos 3 m (prendido de entrada)',
   'dojo.crouch':
     'agacharse: con la C apretada, en el piso, el personaje va más lento, pasa por donde parado no cabe, y se lo ve y se lo oye menos (prendido de entrada)',
   'dojo.air': 'cuánto se puede corregir un salto en el aire, en m/s²',

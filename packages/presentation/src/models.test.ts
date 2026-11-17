@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { describe, expect, test } from 'vitest';
 import { STEP, type Character } from '@manifold/core';
-import { motion, turnBody } from './models';
+import { motion, rollProgress, turnBody } from './models';
 
 /** Only what `motion` reads of a character: what carries it. */
 const standing = (ground: [number, number, number] = [0, 0, 0]) =>
@@ -41,5 +41,15 @@ describe('what the view reads of a character (stage 2e2)', () => {
     const still = new THREE.Quaternion();
     expect(turnBody(still, half, up, 0)).toBe(0);
     expect(still.angleTo(new THREE.Quaternion())).toBe(0);
+  });
+
+  test('how far a roll has gone (stage 4b): the steps gone of its steps, from the simulation; not rolling, 0', () => {
+    const c = (mode: string, rolling: number) =>
+      ({ mode, rolling, movement: { roll: { speed: 5, time: 0.6 } } }) as unknown as Character;
+    // 0.6 s: 36 steps.
+    expect(rollProgress(c('roll', 35))).toBeCloseTo(1 / 36, 12);
+    expect(rollProgress(c('roll', 18))).toBe(0.5);
+    expect(rollProgress(c('roll', 0))).toBe(1);
+    expect(rollProgress(c('walk', 0))).toBe(0);
   });
 });

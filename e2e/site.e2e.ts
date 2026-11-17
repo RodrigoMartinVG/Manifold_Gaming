@@ -1127,6 +1127,30 @@ test('crouching (stage 4b): standing, the low passage stops it; crouched (C), it
   expect(list).toEqual([]);
 });
 
+test('rolling (stage 4b): V rolls it about 3 m the way it goes, playing its roll', async ({ page }) => {
+  test.setTimeout(120_000);
+  const list = errors(page);
+  await page.goto('jugar/dojo/moves/#recipe=view.camera+free');
+  await expect.poll(async () => (await position(page, 'player')).length, { timeout: 15_000 }).toBe(3);
+  await afterSteps(page, 60);
+  await page.evaluate(() => {
+    const game = document.querySelector<HTMLElement>('#game')!;
+    const seen = new Set<string>();
+    (window as unknown as { clips: Set<string> }).clips = seen;
+    new MutationObserver(() => seen.add(game.dataset.clip ?? '')).observe(game, { attributeFilter: ['data-clip'] });
+  });
+  // From the spawn, on the open floor, looking at −Z: V, and nothing else.
+  const [, , z] = await position(page, 'player');
+  await page.keyboard.press('KeyV');
+  await afterSteps(page, 60);
+  const moved = z! - (await position(page, 'player'))[2]!;
+  expect(moved).toBeGreaterThan(2.7);
+  expect(moved).toBeLessThan(3.4);
+  const clips = await page.evaluate(() => [...(window as unknown as { clips: Set<string> }).clips]);
+  expect(clips, clips.join(', ')).toContain('roll');
+  expect(list).toEqual([]);
+});
+
 test('its hands on the tower (stage 4a): on its wall while it climbs, on its top before it gets over; show.ik draws them', async ({
   page,
 }) => {

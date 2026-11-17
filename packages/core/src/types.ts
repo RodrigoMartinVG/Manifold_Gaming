@@ -306,12 +306,14 @@ export interface Movement {
    * steps are heard, as parts of standing's (posture, decision 0000's stealth).
    */
   crouch: { speed: number; seen: number; heard: number };
+  /** Rolling (stage 4b): how fast (m/s) and for how long (s): a dodge of speed × time meters. */
+  roll: { speed: number; time: number };
   /** How fast it turns on its own axis when asked to (`turn` at 1), radians per second. */
   turn: number;
 }
 
-/** The ways of moving (stage 2b): exactly one at each step. Gliding and climbing came with stage 2c; crouching with 4b. */
-export type ModeName = 'walk' | 'air' | 'glide' | 'climb' | 'crouch';
+/** The ways of moving (stage 2b): exactly one at each step. Gliding and climbing came with stage 2c; crouching and rolling with 4b. */
+export type ModeName = 'walk' | 'air' | 'glide' | 'climb' | 'crouch' | 'roll';
 
 /**
  * WHAT A CHARACTER CAN DO besides walking and jumping (stage 2c): each one, on or off, and it can
@@ -327,6 +329,8 @@ export interface Capabilities {
   climb: boolean;
   /** Holding `crouch` on the ground, it goes low (stage 4b): slower, under what it could not stand under, seen and heard less. */
   crouch: boolean;
+  /** Pressing `roll` on the ground, it rolls (stage 4b): a dodge, low, for its time, the way it was asked to go. */
+  roll: boolean;
 }
 
 /**
@@ -370,6 +374,9 @@ export interface Character {
   pitch: number;
   /** What it holds (stage 3g), by id; 0, nothing. Held by a pull towards in front of it, it stays the physics'. */
   holding: EntityId;
+  /** Rolling (stage 4b): the steps of its roll still to come (0: not rolling), and which way it goes (flat, of length 1). */
+  rolling: number;
+  rollDirection: Vec3;
   /**
    * How lit it is (stage 3d), at its center: the world's ambient light, plus what every lamp that sees
    * it gives, at the end of the last step. What a watcher compares with its threshold (and, one day, a
@@ -428,6 +435,7 @@ export type CharacterSpec = Pick<Character, 'player'> & {
     glide?: Partial<Movement['glide']>;
     climb?: Partial<Movement['climb']>;
     crouch?: Partial<Movement['crouch']>;
+    roll?: Partial<Movement['roll']>;
     turn?: number;
   };
   can?: Partial<Capabilities>;

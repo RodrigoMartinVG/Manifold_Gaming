@@ -44,8 +44,8 @@ export function characterParts(o: { player: number; facing: Vec3; color: number 
 } {
   return {
     body: { type: 'character', shape: { ...CHARACTER_SHAPE } },
-    // It can crouch (stage 4b): every game's character goes low; a game may take it away.
-    character: { player: o.player, facing: [...o.facing], poses: POSES, can: { crouch: true } },
+    // It can crouch and roll (stage 4b): every game's character does; a game may take it away.
+    character: { player: o.player, facing: [...o.facing], poses: POSES, can: { crouch: true, roll: true } },
     appearance: { shape: 'capsule', size: [0.6, 1.6, 0.6], color: o.color, model: MANNEQUIN },
   };
 }

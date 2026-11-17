@@ -12,7 +12,7 @@ Blender without a screen (`npm run art`), never by hand. It writes `packages/cha
   `CHARACTER_CLIPS`): quiet (`idle`); walking and running, each forward, back and to each side
   (`walk`, `walk_back`, `walk_left`, `walk_right`, and `run…`); stepping on the spot while it turns
   (`turn`); crouching, quiet and moving the four ways (`crouch_idle`, `crouch`, `crouch_back`,
-  `crouch_left`, `crouch_right`: stage 4b); climbing up and to each side (`climb`, `climb_left`,
+  `crouch_left`, `crouch_right`: stage 4b); rolling, a dodge (`roll`, 4b); climbing up and to each side (`climb`, `climb_left`,
   `climb_right`); rising and falling
   (`rise`, `fall`); gliding (`glide`); and two gestures played once over the rest: a somersault for
   the jump in the air (`flip`) and the weight of a landing (`land`). Made of keyframes computed here
@@ -644,6 +644,30 @@ def impact(t):
     return t / 0.3 if t < 0.3 else (1 - t) / 0.7
 
 
+# A roll (stage 4b), a dodge, played by how far the roll has gone (the presentation reads it from the
+# simulation, 0 to 1): a somersault forward on the ground, low and tucked, around the hips. It starts
+# and ends low (the hips 0.3 m down, the knees bent, the feet on the floor), so it comes from a walk
+# or a crouch and goes back to them without a jump; in the middle, tucked tight, the hips 0.45 m down.
+def rolling(t):
+    k = tucked(t)
+    return {
+        HIPS_HEIGHT: -0.3 - 0.15 * k,
+        "hips": lean(360 * (t * t * (3 - 2 * t))),
+        "spine": lean(30 + 25 * k),
+        "head": lean(-20 + 50 * k),
+        "thigh_L": swing_limb(70 + 50 * k, 4, "L"),
+        "shin_L": bend_knee(100 + 35 * k),
+        "thigh_R": swing_limb(70 + 50 * k, 4, "R"),
+        "shin_R": bend_knee(100 + 35 * k),
+        "upper_arm_L": swing_limb(35 + 35 * k, 12, "L"),
+        "forearm_L": bend_elbow(60 + 50 * k),
+        "upper_arm_R": swing_limb(35 + 35 * k, 12, "R"),
+        "forearm_R": bend_elbow(60 + 50 * k),
+    }
+
+
+animate("roll", 0.6, rolling)
+
 # A landing's weight: the knees give, the body leans, the arms come forward (played once, over the rest).
 animate(
     "land",
@@ -752,4 +776,88 @@ bpy.ops.export_scene.gltf(
     export_optimize_animation_size=True,
     export_optimize_animation_keep_anim_armature=True,
 )
+
+
+# ---------------------------------------------------------------- compacted
+#
+# The exporter keeps every bone's three channels in every animation (it must keep the turns, even the
+# ones that do not change: constant is not resting), so it also writes a place and a size for each bone,
+# which never change: with 24 animations, 528 channels for nothing, half the file. Here they go (every
+# bone's size, and every place but the hips', which go up and down), and the buffer is written again
+# with only what is still used. The turns, the meshes and the skin are as they were, bit for bit.
+
+
+def compact(path):
+    import json
+    import struct
+
+    data = open(path, "rb").read()
+    json_length = struct.unpack_from("<I", data, 12)[0]
+    doc = json.loads(data[20 : 20 + json_length])
+    start = 20 + json_length
+    binary = data[start + 8 : start + 8 + struct.unpack_from("<I", data, start)[0]]
+    hips = next(i for i, n in enumerate(doc["nodes"]) if n.get("name") == "hips")
+    for animation in doc["animations"]:
+        kept = [
+            c
+            for c in animation["channels"]
+            if c["target"]["path"] == "rotation" or (c["target"]["path"] == "translation" and c["target"]["node"] == hips)
+        ]
+        used = sorted({c["sampler"] for c in kept})
+        renumber = {old: new for new, old in enumerate(used)}
+        animation["samplers"] = [animation["samplers"][i] for i in used]
+        for c in kept:
+            c["sampler"] = renumber[c["sampler"]]
+        animation["channels"] = kept
+    # What still points at an accessor: the meshes, the skin, the animations.
+    used = set()
+    for mesh in doc["meshes"]:
+        for primitive in mesh["primitives"]:
+            used.update(primitive["attributes"].values())
+            if "indices" in primitive:
+                used.add(primitive["indices"])
+    for skin in doc.get("skins", []):
+        if "inverseBindMatrices" in skin:
+            used.add(skin["inverseBindMatrices"])
+    for animation in doc["animations"]:
+        for sampler in animation["samplers"]:
+            used.update((sampler["input"], sampler["output"]))
+    order = sorted(used)
+    renumber = {old: new for new, old in enumerate(order)}
+    accessors, views, chunks, offset = [], [], [], 0
+    for old in order:
+        accessor = dict(doc["accessors"][old])
+        view = dict(doc["bufferViews"][accessor["bufferView"]])
+        piece = binary[view.get("byteOffset", 0) : view.get("byteOffset", 0) + view["byteLength"]]
+        pad = (-offset) % 4
+        chunks.append(b"\0" * pad + piece)
+        offset += pad
+        view["byteOffset"] = offset
+        offset += len(piece)
+        accessor["bufferView"] = len(views)
+        views.append(view)
+        accessors.append(accessor)
+    doc["accessors"], doc["bufferViews"] = accessors, views
+    for mesh in doc["meshes"]:
+        for primitive in mesh["primitives"]:
+            primitive["attributes"] = {k: renumber[v] for k, v in primitive["attributes"].items()}
+            if "indices" in primitive:
+                primitive["indices"] = renumber[primitive["indices"]]
+    for skin in doc.get("skins", []):
+        if "inverseBindMatrices" in skin:
+            skin["inverseBindMatrices"] = renumber[skin["inverseBindMatrices"]]
+    for animation in doc["animations"]:
+        for sampler in animation["samplers"]:
+            sampler["input"], sampler["output"] = renumber[sampler["input"]], renumber[sampler["output"]]
+    body = b"".join(chunks)
+    body += b"\0" * ((-len(body)) % 4)
+    doc["buffers"] = [{"byteLength": len(body)}]
+    text = json.dumps(doc, separators=(",", ":")).encode()
+    text += b" " * ((-len(text)) % 4)
+    out = struct.pack("<III", 0x46546C67, 2, 12 + 8 + len(text) + 8 + len(body))
+    out += struct.pack("<II", len(text), 0x4E4F534A) + text + struct.pack("<II", len(body), 0x004E4942) + body
+    open(path, "wb").write(out)
+
+
+compact(OUT)
 print(f"MANNEQUIN written: {OUT}")

@@ -1,8 +1,9 @@
-# What a body can do: aiming and crouching
+# What a body can do: aiming, crouching, rolling
 # group: character
 # Stage 4b, growing with it. Aim with `view.camera aim` (a click takes the mouse): the character aims
 # up and down with the camera, its chest and head show it, and the ball (F) leaves that way. Crouch (C)
-# under the low passage, where standing does not fit. And walk from the far end towards the lamp the
-# eye watches: standing, it sees you soon; crouched, only much closer.
+# under the low passage, where standing does not fit; or roll into it (V), and crouch out. And walk
+# from the far end towards the lamp the eye watches: standing, it sees you soon; crouched, only much
+# closer.
 seed 13
 dojo.level moves

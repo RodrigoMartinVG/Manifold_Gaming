@@ -566,6 +566,94 @@ describe('the character (stage 1b)', () => {
     copy.dispose();
   });
 
+  test('roll (stage 4b): pressed on the ground, it rolls its time, the way it was asked, looking that way; then as it was', () => {
+    const { world, hero } = setUp();
+    const c = hero.character!;
+    c.can.roll = true;
+    run(world, 60);
+    // Told to look at −Z (an aiming camera), asked to go to +X, it presses roll.
+    const asked = (roll: boolean) => ({ ...input([1, 0, 0], false, false, [0, 0, -1]), roll });
+    run(world, 1, () => asked(false));
+    const from = hero.transform!.position[0];
+    const modes: string[] = [];
+    const facings: Vec3[] = [];
+    run(world, 50, (s) => {
+      modes.push(c.mode);
+      facings.push([...c.facing]);
+      return asked(s === 1);
+    });
+    // 0.6 s at 60 steps a second: 36 steps rolling, at 5 m/s, looking where it rolls.
+    const rolled = modes.filter((m) => m === 'roll').length;
+    expect(rolled).toBe(36);
+    expect(facings[10]).toEqual([1, 0, 0]);
+    // Then walking, looking where it is told again; it went 3 m rolling, and on walking.
+    expect(modes.at(-1)).toBe('walk');
+    expect(c.facing).toEqual([0, 0, -1]);
+    expect(hero.transform!.position[0] - from).toBeGreaterThan(3);
+    // Its body for blows, rolling, is the low one.
+    run(world, 2, (s) => asked(s === 2));
+    expect(c.mode).toBe('roll');
+    expect(poseOf(c, hero.body!).offset[1]).toBeCloseTo(-0.3, 9);
+    world.dispose();
+  });
+
+  test('roll (stage 4b): not from the air, not again while it rolls, not without the capability; a jump asked just before its end, after it', () => {
+    const { world, hero } = setUp();
+    const c = hero.character!;
+    run(world, 60);
+    run(world, 3, (s) => ({ ...input(), roll: s === 1 }));
+    expect(c.mode).toBe('walk');
+    c.can.roll = true;
+    // In the air (a jump), pressing roll: nothing.
+    run(world, 10, (s) => ({ ...input([0, 0, 0], s === 1), roll: s === 6 }));
+    expect(c.mode).toBe('air');
+    run(world, 60);
+    // Pressed again in the middle of a roll: the same roll, 36 steps.
+    let rolled = 0;
+    run(world, 60, (s) => {
+      if (c.mode === 'roll') rolled++;
+      return { ...input([0, 0, -1]), roll: s === 1 || s === 20, jump: s === 25 };
+    });
+    expect(rolled).toBe(36);
+    // The jump asked for at step 25, eleven before the roll's end, was kept its 6 steps: it is lost.
+    expect(c.grounded).toBe(true);
+    // One asked three steps before the end: it jumps as the roll ends.
+    const vertical: number[] = [];
+    run(world, 45, (s) => {
+      vertical.push(c.velocity[1]);
+      return { ...input([0, 0, -1]), roll: s === 1, jump: s === 34 };
+    });
+    expect(vertical.slice(0, 36).every((v) => v <= 1e-9)).toBe(true);
+    expect(Math.max(...vertical.slice(36))).toBeGreaterThan(5);
+    world.dispose();
+  });
+
+  test('roll (stage 4b): low, it rolls under the beam; ending under it, it crouches until it is out', () => {
+    const { world, hero } = setUp({
+      boxes: [
+        [
+          [3, 1.3, 0],
+          [1, 0.25, 3],
+        ],
+      ],
+    });
+    const c = hero.character!;
+    c.can.roll = true;
+    run(world, 60);
+    // From x = 0.5, a roll of 3 m: it ends under the beam (from x = 2 to 4).
+    world.place(hero, [0.5, 0.82, 0]);
+    run(world, 10, () => NO_INPUT);
+    run(world, 40, (s) => ({ ...input([1, 0, 0]), roll: s === 1 }));
+    expect(hero.transform!.position[0]).toBeGreaterThan(2.5);
+    expect(hero.transform!.position[0]).toBeLessThan(3.8);
+    expect(c.mode).toBe('crouch');
+    // Not asking to crouch, it crouches on, out of it, and stands.
+    run(world, 120, () => input([1, 0, 0]));
+    expect(hero.transform!.position[0]).toBeGreaterThan(4.4);
+    expect(c.mode).toBe('walk');
+    world.dispose();
+  });
+
   test('crouch (stage 4b): its steps are heard half as far as standing ones at the same speed', () => {
     const { world, hero } = setUp();
     hero.character!.can.crouch = true;

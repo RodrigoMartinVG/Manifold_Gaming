@@ -1,5 +1,5 @@
-# Manifold replay 28
-# Phase 4, what a body can do: aiming up and down, a ball thrown where it aims; crouching under a low passage; seen later crouched.
+# Manifold replay 29
+# Phase 4, what a body can do: aiming up and down, a ball thrown where it aims; crouching under a low passage; seen later crouched; rolling, into the passage too.
 # A reference replay (stage 2.5a): playing it must end with the hash on its last line. A refactor
 # keeps it bit for bit. Recorded by games/dojo/src/reference.test.ts; recorded again (npm run
 # references) only when the simulation changes on purpose, with SIMULATION_VERSION.
@@ -21,8 +21,16 @@ input 331 1 move @0
 change 451 dojo.goto 0 1 2
 input 451 1 move @0 crouch
 input 570 1 move @0
-change 691 dojo.goto 5 1 9.5
-change 841 dojo.goto 5 1 9.5
-input 841 1
-input 901 1 move @0 crouch
-end 1160 867353ef
+change 691 dojo.goto -5 1 2
+input 691 1 move @90 face @0
+input 720 1 move @90 face @0 roll
+input 721 1 move @90 face @0
+change 771 dojo.goto 0 1 2
+input 771 1 move @0
+input 800 1 move @0 roll
+input 801 1 move @0
+change 971 dojo.goto 5 1 9.5
+change 1121 dojo.goto 5 1 9.5
+input 1121 1
+input 1181 1 move @0 crouch
+end 1440 b84925fb

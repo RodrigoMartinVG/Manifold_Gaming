@@ -88,8 +88,8 @@ describe("the characters' art (stage 2e, shared since 4a)", () => {
         const values = glb.floats(a.samplers[c.sampler]!.output, json);
         const what = `${a.name}: ${json.nodes[c.target.node]?.name}'s ${c.target.path} changes`;
         const bounce = c.target.node === hipsNode && c.target.path === 'translation';
-        // (Crouched, stage 4b, they go down 30 cm on purpose.)
-        const lowest = a.name.startsWith('crouch') ? -0.35 : -0.15;
+        // (Crouched, stage 4b, they go down 30 cm on purpose; rolling, 45.)
+        const lowest = a.name.startsWith('crouch') ? -0.35 : a.name === 'roll' ? -0.5 : -0.15;
         for (let i = 3; i < values.length; i++) {
           if (bounce && i % 3 === 1) {
             // Up and down (glTF's Y): never above where they are built, and not much below.

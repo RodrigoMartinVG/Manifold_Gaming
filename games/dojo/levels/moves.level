@@ -1,7 +1,7 @@
 # Manifold level 7
-# What a body can do (stage 4b), growing with the stage: aim and throw on the open floor; crouch under
-# a low passage that standing does not fit; and walk towards a lamp an eye watches: standing, it sees
-# you soon; crouched (lower, and half as easy to see), only much closer.
+# What a body can do (stage 4b), growing with the stage: aim and throw on the open floor; crouch (or
+# roll) under a low passage that standing does not fit; and walk towards a lamp an eye watches:
+# standing, it sees you soon; crouched (lower, and half as easy to see), only much closer.
 title What a body can do
 spawn -5 1 6
 facing 0 0 -1

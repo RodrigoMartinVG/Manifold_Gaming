@@ -52,6 +52,7 @@ const copyMovement = (m: Movement): Movement => ({
   glide: { ...m.glide },
   climb: { ...m.climb },
   crouch: { ...m.crouch },
+  roll: { ...m.roll },
   turn: m.turn,
 });
 
@@ -335,6 +336,12 @@ export function createDojo(levels: Readonly<Record<string, Level>>): Cartridge {
         'dojo.crouch',
         'crouch',
         'Holding C on the ground, the characters crouch: slower, under what they could not stand under, seen and heard less (stage 4b).',
+        true,
+      );
+      capability(
+        'dojo.roll',
+        'roll',
+        'Pressing V on the ground, the characters roll: a dodge, low, the way they are asked to go (stage 4b).',
         true,
       );
       registry.declareVariable({

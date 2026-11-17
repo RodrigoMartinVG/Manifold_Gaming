@@ -18,6 +18,7 @@ export const DEFAULT_MOVEMENT: Readonly<Movement> = Object.freeze({
   glide: { fall: 1.5, control: 20 },
   climb: { speed: 2.5, top: 4, off: 4 },
   crouch: { speed: 2, seen: 0.5, heard: 0.5 },
+  roll: { speed: 5, time: 0.6 },
   turn: 3,
 });
 
@@ -30,13 +31,14 @@ export function newCharacter(spec: CharacterSpec): Character {
     glide: { ...DEFAULT_MOVEMENT.glide, ...m.glide },
     climb: { ...DEFAULT_MOVEMENT.climb, ...m.climb },
     crouch: { ...DEFAULT_MOVEMENT.crouch, ...m.crouch },
+    roll: { ...DEFAULT_MOVEMENT.roll, ...m.roll },
     turn: m.turn ?? DEFAULT_MOVEMENT.turn,
   };
   return {
     player: spec.player,
     movement,
     // Without capabilities, unless the game gives them (stage 2c).
-    can: { doubleJump: false, glide: false, climb: false, crouch: false, ...spec.can },
+    can: { doubleJump: false, glide: false, climb: false, crouch: false, roll: false, ...spec.can },
     airJumps: movement.jump.air,
     wall: [0, 0, 0],
     mode: 'air',
@@ -51,6 +53,8 @@ export function newCharacter(spec: CharacterSpec): Character {
     light: 0,
     stride: 0,
     holding: 0,
+    rolling: 0,
+    rollDirection: [0, 0, 0],
     carry: [0, 0, 0],
     ground: { velocity: [0, 0, 0], spin: 0 },
     carriedTurn: quat.identity(),
@@ -73,9 +77,13 @@ const structuredPoses = (poses: Partial<Record<ModeName, CollisionPose>>): Parti
  * body's shape, centered and upright.
  */
 export function poseOf(c: Character, body: Pick<Body, 'shape'>): CollisionPose {
+  if (c.mode === 'roll') return c.poses?.roll ?? crouchPoseOf(c, body);
   if (c.mode === 'crouch') return crouchPoseOf(c, body);
   return c.poses?.[c.mode] ?? { shape: body.shape, offset: [0, 0, 0], rotation: quat.identity() };
 }
+
+/** Whether a mode moves the low body (stage 4b): crouching, and rolling. */
+const low = (mode: ModeName) => mode === 'crouch' || mode === 'roll';
 
 /** How tall a crouched body is, of the standing one, when the game gives no pose for it (1.6 m: 1 m). */
 export const CROUCHED = 0.625;
@@ -157,11 +165,15 @@ const MODES: Record<ModeName, Mode> = {
     steer: (c, now, _wanted, move, dt, traction) =>
       approach(now, vec3.scale(move, c.movement.crouch.speed), c.movement.walk.acceleration * traction * dt),
   },
+  // Rolling (stage 4b): the way it rolls, at its speed, whatever it asks, its body low.
+  roll: { steer: (c) => vec3.scale(c.rollDirection, c.movement.roll.speed) },
 };
 
 /**
  * WHICH MODE, decided here and only here (stage 2b), with what it can do (stage 2c):
- * - crouched with no room to stand up (stage 4b: under a low gap): it stays crouched, whatever it asks;
+ * - rolling (stage 4b): it rolls, until its roll's time is over;
+ * - low (crouched, or at the end of a roll) with no room to stand up (stage 4b: under a low gap): it
+ *   crouches, whatever it asks;
  * - pushing against a wall it touches, if it can climb: it climbs (from the ground, or going on
  *   climbing, or in the air while it is not going up: just after jumping off a wall, it does not grab
  *   it again before it starts to fall);
@@ -171,7 +183,8 @@ const MODES: Record<ModeName, Mode> = {
  * - otherwise: it is in the air.
  */
 const modeFor = (c: Character, move: Vec3, jumping: boolean, vUp: number, crouching: boolean, room: boolean): ModeName => {
-  if (c.mode === 'crouch' && !room) return 'crouch';
+  if (c.rolling > 0) return 'roll';
+  if (low(c.mode) && !room) return 'crouch';
   if (c.can.climb && vec3.dot(move, c.wall) > 0.5 && (c.grounded || c.mode === 'climb' || vUp <= 0)) return 'climb';
   if (c.grounded && crouching && c.can.crouch) return 'crouch';
   if (c.grounded) return 'walk';
@@ -451,7 +464,7 @@ function sweep(world: World, e: Entity, from: Vec3, by: Vec3, platform: number):
   // The body the controller moves: crouched, the low one (stage 4b), where it is from the center.
   const c = e.character!;
   const rotation = e.transform!.rotation;
-  const pose = c.mode === 'crouch' ? crouchPoseOf(c, e.body!) : null;
+  const pose = low(c.mode) ? crouchPoseOf(c, e.body!) : null;
   const shape = pose ? pose.shape : e.body!.shape;
   if (pose) from = vec3.add(from, quat.rotate(rotation, pose.offset));
   let moved: Vec3 = [0, 0, 0];
@@ -544,12 +557,19 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
   const floor = under ? world.entities.get(under.entity)?.body : undefined;
   const traction = floor ? tractionOf(floor.friction) : 1;
   const before = c.mode;
-  // Crouched, whether it could stand up where it is (stage 4b): its standing body, there, touching nothing.
-  const room = before !== 'crouch' || fits(world, e, body.shape, up);
+  // A roll (stage 4b): pressed on the ground (walking or crouched), it starts, the way it is asked to go
+  // (or where it looks), for its time; off the ground, it is over.
+  if (!c.grounded) c.rolling = 0;
+  else if (c.rolling === 0 && c.can.roll && (before === 'walk' || before === 'crouch') && pressed(world, c.player, 'roll')) {
+    c.rolling = Math.max(1, Math.round(c.movement.roll.time / dt));
+    c.rollDirection = vec3.length(move) > 0.1 ? vec3.normalize(move) : vec3.normalize(vec3.onPlane(c.facing, up));
+  }
+  // Low, whether it could stand up where it is (stage 4b): its standing body, there, touching nothing.
+  const room = !low(before) || fits(world, e, body.shape, up);
   c.mode = modeFor(c, move, jumping, vUp, isDown(input, 'crouch'), room);
-  // Going low or standing up, the controller moves the crouched body, or the standing one, from then on.
-  if ((before === 'crouch') !== (c.mode === 'crouch')) {
-    const pose = c.mode === 'crouch' ? crouchPoseOf(c, body) : { shape: body.shape, offset: [0, 0, 0] as Vec3 };
+  // Going low or standing up, the controller moves the low body, or the standing one, from then on.
+  if (low(before) !== low(c.mode)) {
+    const pose = low(c.mode) ? crouchPoseOf(c, body) : { shape: body.shape, offset: [0, 0, 0] as Vec3 };
     world.physics.setCharacterPose(body.handle, pose.shape, pose.offset);
   }
   let mode = MODES[c.mode];
@@ -593,7 +613,10 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
   if (jumping && !c.jumpHeld) c.jumpPending = jump.buffer;
   c.jumpHeld = jumping;
   if (c.grounded || c.mode === 'climb') c.airJumps = jump.air;
-  if (c.jumpPending > 0) {
+  // (Rolling, it does not jump: a jump asked for is kept as long as ever, `jump.buffer` steps, and if
+  // the roll ends before that, it jumps then.)
+  if (c.jumpPending > 0 && c.mode === 'roll') c.jumpPending--;
+  else if (c.jumpPending > 0) {
     if (c.mode === 'climb') {
       // Off the wall: up, and away from it.
       vUp = jump.speed;
@@ -676,11 +699,15 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
   // Climbing, it looks at its wall. What it is told is read inside the turn the platforms gave it
   // (`carriedTurn`): told the same thing step after step, a turning platform still turns it.
   const toldLooking = told ? vec3.onPlane(quat.rotate(c.carriedTurn, vectorOf(input, 'face')), up) : null;
-  if (toldLooking && vec3.length(toldLooking) > 1e-6) c.facing = vec3.normalize(toldLooking);
+  // Rolling, it looks the way it rolls (stage 4b), whatever it is told; told again after the roll.
+  if (c.mode === 'roll') c.facing = [...c.rollDirection];
+  else if (toldLooking && vec3.length(toldLooking) > 1e-6) c.facing = vec3.normalize(toldLooking);
   else if (c.mode === 'climb' && !isZero(c.wall)) c.facing = [...c.wall];
   else if (vec3.length(inWorld) > 0.1) c.facing = vec3.normalize(inWorld);
   // And where it aims, above or below that (stage 4b).
   c.pitch = 90 * Math.max(-1, Math.min(1, axisOf(input, 'pitch')));
+  // A step of its roll gone (stage 4b).
+  if (c.mode === 'roll') c.rolling--;
   const position = vec3.add(walked, riding);
   world.physics.setNextPose(body.handle, position, quat.look(c.facing, up));
 

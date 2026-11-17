@@ -3,6 +3,7 @@ import type { Vec3 } from '@manifold/common';
 import {
   advance,
   CHARACTER_CLIPS,
+  cycleTime,
   directions,
   finalWeights,
   footing,
@@ -25,6 +26,7 @@ const reading = (over: Partial<Reading> = {}): Reading => ({
   vertical: 0,
   airJumps: 1,
   turning: 0,
+  roll: 0,
   ...over,
 });
 const sum = (w: Partial<Record<string, number>>) => Object.values(w).reduce((a, b) => a! + b!, 0)!;
@@ -144,6 +146,28 @@ describe('how the model moves (stage 2e2)', () => {
     expect(climbing([-2.5, 0, 0]).climb_left).toBe(1);
     // Holding still on the wall (it does not, today: letting go, it falls), it keeps the last direction.
     expect(climbing([0, 0, 0])).toEqual({ climb: 1, climb_right: 0 });
+  });
+
+  test('crouched (stage 4b): its quiet, or its four cycles at its own strides; rolling, its roll, by how far it has gone', () => {
+    expect(targets(reading({ mode: 'crouch' }), newGait())).toEqual({
+      crouch_idle: 1,
+      crouch: 0,
+      crouch_right: 0,
+      crouch_back: 0,
+      crouch_left: 0,
+    });
+    const forward = targets(reading({ mode: 'crouch', velocity: [0, 0, -2] }), newGait());
+    expect(forward.crouch).toBeCloseTo(1, 12);
+    expect(sum(forward)).toBeCloseTo(1, 12);
+    // A second at 2 m/s, forward: 2 m of a 1.44 m cycle.
+    const g = newGait();
+    for (let i = 0; i < 60; i++) advance(g, reading({ mode: 'crouch', velocity: [0, 0, -2] }), 1 / 60);
+    expect(g.phase).toBeCloseTo((2 / STRIDES.crouch.forward) % 1, 9);
+    expect(cycleTime(g, 'crouch_back')).toEqual({ phase: g.phase });
+    // Rolling: its roll alone, at the point the simulation says.
+    expect(targets(reading({ mode: 'roll', roll: 0.4 }), newGait())).toEqual({ roll: 1 });
+    advance(g, reading({ mode: 'roll', roll: 0.4 }), 1 / 60);
+    expect(cycleTime(g, 'roll')).toEqual({ phase: 0.4 });
   });
 
   test('in the air, rising and then falling, by its vertical speed', () => {

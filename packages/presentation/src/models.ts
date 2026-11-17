@@ -159,6 +159,16 @@ export function turnBody(drawn: THREE.Quaternion, target: THREE.Quaternion, up: 
   return THREE.MathUtils.radToDeg(Math.atan2(sin, before.dot(ahead))) / dt;
 }
 
+/**
+ * How far a character's roll has gone (stage 4b), 0 to 1: the steps gone of its roll's steps (its time,
+ * over the step), from the simulation's state. Not rolling, 0.
+ */
+export function rollProgress(c: Pick<Character, 'mode' | 'rolling' | 'movement'>): number {
+  if (c.mode !== 'roll') return 0;
+  const steps = Math.max(1, Math.round(c.movement.roll.time / STEP));
+  return Math.min(1, Math.max(0, 1 - c.rolling / steps));
+}
+
 /** How fast the drawn aim follows the world's (degrees per second): a flick of the mouse, quick but not a jump. */
 const AIM_RATE = 720;
 /**
@@ -219,6 +229,7 @@ export function animate(
       airJumps: c.airJumps,
       // (What a turning platform turns it is not turning on its feet.)
       turning: turning - spin,
+      roll: rollProgress(c),
     },
     dt,
   );
@@ -239,8 +250,8 @@ export function animate(
   // And the feet where the cycles' feet are, mixed; on the ground, they stay there (feet.ts).
   const where = { L: footing(model.gait, 'L', c.grounded), R: footing(model.gait, 'R', c.grounded) };
   plant(model.object, model.legs, model.paths, model.actions, model.feet, where, up, dt);
-  // Its aim, over the spine and the head (the arms go with the chest).
-  aimBody(model, c.pitch, dt);
+  // Its aim, over the spine and the head (the arms go with the chest); rolling, none.
+  aimBody(model, c.mode === 'roll' ? 0 : c.pitch, dt);
   // And the hands on what they hold: a wall, a ledge, what is carried (hands.ts).
   grip(model.object, model.arms, model.hands, c, around, model.gait.climbPhase, moved, up, dt);
   model.playing = dominant(weights);

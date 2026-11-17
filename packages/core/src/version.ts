@@ -56,5 +56,7 @@
  *      the Dojo's ball leaves along the aim
  *  28  stage 4b: crouching, a mode with its capability and numbers (`crouch`): the controller moves a
  *      lower body, it stands only where it fits, and it is seen and heard less
+ *  29  stage 4b: rolling, a mode with its capability, its numbers and its state (`roll`, `rolling`):
+ *      a dodge, low, for its time, the way it was asked
  */
-export const SIMULATION_VERSION = 28;
+export const SIMULATION_VERSION = 29;

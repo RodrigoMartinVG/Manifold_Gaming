@@ -261,7 +261,7 @@ describe('the reference replays (stage 2.5a), recorded from their scripts', () =
 });
 
 describe('the reference replays of phase 4, growing with it', () => {
-  test('phase 4, what a body can do (from 4b): aiming up and down, a ball thrown where it aims; crouching under a low passage; seen later crouched', async () => {
+  test('phase 4, what a body can do (from 4b): aiming up and down, a ball thrown where it aims; crouching under a low passage; seen later crouched; rolling', async () => {
     // The room `moves`, written here. On its open floor, looking at −Z: up, a little down, and almost
     // straight up, each throw where it aims (its pitch, a quarter turn per unit); the last one looking
     // at +X.
@@ -280,6 +280,10 @@ describe('the reference replays of phase 4, growing with it', () => {
       { lines: ['dojo.goto 0 1 2'], steps: 120, drive: () => ({ move: [0, 0, -1] }) },
       // (Two seconds crouched at 2 m/s: from z = 2, to about the middle of the passage.)
       { lines: ['dojo.goto 0 1 2'], steps: 240, drive: (s) => ({ move: [0, 0, -1], crouch: s < 120 }) },
+      // Rolling: on the open floor, looking at −Z (told), a roll to its right; then into the passage,
+      // where it ends under the slab: it crouches on, out of it, and stands.
+      { lines: ['dojo.goto -5 1 2'], steps: 80, drive: (s) => ({ face: [0, 0, -1], move: [1, 0, 0], roll: s === 30 }) },
+      { lines: ['dojo.goto 0 1 2'], steps: 200, drive: (s) => ({ move: [0, 0, -1], roll: s === 30 }) },
       // From the far end towards the lamp: standing, then (from the dark again) crouched.
       { lines: ['dojo.goto 5 1 9.5'], steps: 150, drive: () => ({ move: [0, 0, -1] }) },
       { lines: ['dojo.goto 5 1 9.5'], steps: 60 },
@@ -294,11 +298,13 @@ describe('the reference replays of phase 4, growing with it', () => {
     expect(up! - 1.2).toBeGreaterThan(2.4);
     expect(low! - 1.2).toBeLessThan(0.1);
     expect(high! - 1.2).toBeGreaterThan(4);
-    // Under the slab (z from 0 to −4, and the body's radius past each end), always crouched; out of it,
-    // standing again. (Standing, it stopped before it: the first time it got there was crouched.)
+    // Under the slab (z from 0 to −4, and the body's radius past each end), always low (crouched, or
+    // rolling); out of it, standing again. (Standing, it stopped before it.)
     const under = seen.trail.filter((t) => t.z < -0.3 && t.z > -3.7);
-    expect(under.length).toBeGreaterThan(60);
-    expect(new Set(under.map((t) => t.mode))).toEqual(new Set(['crouch']));
+    expect(under.length).toBeGreaterThan(100);
+    expect(new Set(under.map((t) => t.mode))).toEqual(new Set(['crouch', 'roll']));
+    // Two rolls, each its 36 steps.
+    expect(seen.trail.filter((t) => t.mode === 'roll')).toHaveLength(72);
     expect(seen.trail.some((t) => t.z < -4.5 && t.mode === 'walk')).toBe(true);
     // Seen standing about 5 m from the lamp (at z = 0); crouched, under 2 m.
     expect(seen.seenAt).toHaveLength(2);
@@ -308,7 +314,7 @@ describe('the reference replays of phase 4, growing with it', () => {
     await expect(
       referenceText(
         session,
-        'Phase 4, what a body can do: aiming up and down, a ball thrown where it aims; crouching under a low passage; seen later crouched.',
+        'Phase 4, what a body can do: aiming up and down, a ball thrown where it aims; crouching under a low passage; seen later crouched; rolling, into the passage too.',
       ),
     ).toMatchFileSnapshot('../replays/phase-4.replay');
     session.world.dispose();

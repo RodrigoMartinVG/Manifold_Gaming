@@ -42,6 +42,7 @@ export const CHARACTER_CLIPS = [
   'fall',
   'glide',
   'flip',
+  'roll',
   'land',
 ] as const;
 export type CharacterClip = (typeof CHARACTER_CLIPS)[number];
@@ -100,6 +101,8 @@ export interface Reading {
   airJumps: number;
   /** How fast its body is drawn turning around "up" (degrees per second), apart from what carries it. */
   turning: number;
+  /** How far its roll has gone (stage 4b), 0 to 1, from the simulation (0, not rolling). */
+  roll: number;
 }
 
 /** What a copy remembers from one frame to the next. */
@@ -110,6 +113,8 @@ export interface Gait {
   phase: number;
   climbPhase: number;
   turnPhase: number;
+  /** How far the roll has gone (stage 4b): the simulation's, as the last reading said. */
+  rollPhase: number;
   clock: number;
   /** The last direction it moved in (degrees, from where it looks): stopping does not jump to "forward". */
   angle: number;
@@ -134,6 +139,7 @@ export function newGait(lengths: { flip: number; land: number } = { flip: 0.45, 
     phase: 0,
     climbPhase: 0,
     turnPhase: 0,
+    rollPhase: 0,
     clock: 0,
     angle: 0,
     climbAngle: 0,
@@ -224,6 +230,8 @@ export function strideAlong(angle: number, stride: Stride): number {
 export function targets(r: Reading, g: Pick<Gait, 'angle' | 'climbAngle'>): Partial<Record<CharacterClip, number>> {
   const right = vec3.cross(r.facing, r.up);
   if (r.mode === 'glide') return { glide: 1 };
+  // Rolling (stage 4b): its roll, played by how far it has gone.
+  if (r.mode === 'roll') return { roll: 1 };
   if (r.mode === 'air') {
     // Rising (fast up), and falling (from a little before the top): a jump reads its arc.
     const rise = clamp01((r.vertical + 1) / 4);
@@ -307,6 +315,7 @@ export function advance(g: Gait, r: Reading, dt: number) {
   g.phase = (g.phase + (dt * speed) / stride) % 1;
   if (r.mode === 'climb') g.climbPhase = (g.climbPhase + (dt * vec3.length(r.velocity)) / CLIMB_STRIDE) % 1;
   g.turnPhase = (g.turnPhase + (dt * Math.abs(r.turning)) / TURN_CYCLE) % 1;
+  g.rollPhase = r.roll;
   g.clock += dt;
 
   // The gestures. A jump in the air (it had one more a moment ago, and it is not standing): a
@@ -358,6 +367,7 @@ export function cycleTime(g: Gait, clip: CharacterClip): { phase: number } | { s
     return { phase: g.phase };
   if ((FAMILIES.climb as readonly string[]).includes(clip)) return { phase: g.climbPhase };
   if (clip === 'turn') return { phase: g.turnPhase };
+  if (clip === 'roll') return { phase: g.rollPhase };
   if (clip === 'flip' || clip === 'land') return { seconds: g.gesture?.clip === clip ? g.gesture.time : 0 };
   return { seconds: g.clock };
 }
