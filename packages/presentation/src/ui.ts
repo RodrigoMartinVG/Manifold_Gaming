@@ -70,6 +70,10 @@ export function addInterfaceStyles() {
       max-width: min(36rem, calc(100% - 2rem)); padding: 0.6rem 0.9rem; border-radius: 0.4rem;
       background: rgb(18 16 13 / 0.85); border: 1px solid #c4a06a; color: #f3e9d8; font: 15px/1.45 system-ui, sans-serif;
     }
+    .mg-hurt {
+      position: absolute; inset: 0; z-index: 5; pointer-events: none; opacity: 0;
+      box-shadow: inset 0 0 90px 24px rgb(190 24 24 / 0.8);
+    }
     .mg-scene b { display: block; color: #f0d59a; font: 600 13px/1.4 'Cinzel Variable', Georgia, serif; letter-spacing: 0.04em; }
   `;
   document.head.append(style);

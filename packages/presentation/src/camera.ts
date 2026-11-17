@@ -31,7 +31,7 @@ export const CAMERA_VARIABLES = {
   camera: {
     name: 'view.camera',
     description:
-      "With a character to drive: `follow` follows it as if on a leash: it keeps its distance, and turns little by little when the character goes to a side (dragging turns it around); `chase` goes back behind the character by itself (dragging looks around, and it comes back when you let go: for `controls.scheme tank`); `aim` takes the mouse with a click, the mouse turns the camera and the character looks where the camera looks, walking sideways without turning (a shooter's way; Esc lets the mouse go); `first` is `aim` from the character's own eyes (stage 4g): its body is not drawn, and what it holds is drawn with a field of view of its own; `free` leaves the camera where it is. A gamepad's right stick turns it too.",
+      "With a character to drive: `follow` follows it as if on a leash: it keeps its distance, and turns little by little when the character goes to a side (dragging turns it around); `chase` goes back behind the character by itself (dragging looks around, and it comes back when you let go: for `controls.scheme tank`); `aim` takes the mouse with a click, the mouse turns the camera and the character looks where the camera looks, walking sideways without turning (a shooter's way; Esc lets the mouse go); `first` is `aim` from the character's own eyes (stage 4g): its body is not drawn, and what it holds is drawn with a field of view of its own; while the character is down, it steps back behind its head, and its body is drawn, falling; `free` leaves the camera where it is. A gamepad's right stick turns it too.",
     scope: 'view',
     type: { kind: 'option', options: ['follow', 'chase', 'aim', 'first', 'free'] },
     default: 'follow',
@@ -172,6 +172,13 @@ export function mountCamera(
   /** First person (stage 4g): how far the camera was put from the aim's place, to the eyes; and the body not drawn. */
   const firstAway = new THREE.Vector3();
   let shown: THREE.Object3D | undefined;
+  /**
+   * Whether it is at the eyes now: in first person, while the character stands. Down, nobody is behind
+   * those eyes: it steps back to where the aim's camera is, behind the head, and the body is drawn,
+   * falling (the arena found it: at the eyes, nothing showed a fall, and the three seconds down, when
+   * the character takes nothing, read as the controls locking up).
+   */
+  let atEyes = false;
   /** Whether the mouse turns it, taken with a click: aiming, from behind or from the eyes. */
   const aiming = () => mode === 'aim' || mode === 'first';
   // WHAT IT HOLDS, IN FIRST PERSON (stage 4g): a scene and a camera of its own, drawn over the world
@@ -185,8 +192,18 @@ export function mountCamera(
   const viewCamera = new THREE.PerspectiveCamera(VIEW_FOV, 1, 0.01, 10);
   const viewTool = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshLambertMaterial({ color: 0xffffff }));
   viewScene.add(viewTool);
-  /** Back where it wants to be: what moves it (a drag, the wheel, the leash) moves that, never the pull. */
+  /**
+   * Back where it wants to be: what moves it (a drag, the wheel, the mouse aiming, the leash) moves
+   * that, never the pull, nor first person's move to the eyes. The mouse's moves come between frames,
+   * while it is drawn at the eyes: a first version turned it there, round the head's center 2 cm
+   * below them, which is no turn at all (the mouse turned it only where a wall behind had brought it
+   * in, and by that much: the keep and the arena's open middle found it). Taken back first, the aim's
+   * camera turns, and the eyes look where it looks. (Drawn at the eyes or behind them, it looks along
+   * the same line: no need to look again.)
+   */
   const unpull = () => {
+    camera.position.sub(firstAway);
+    firstAway.set(0, 0, 0);
     camera.position.sub(pulled);
     pulled.set(0, 0, 0);
   };
@@ -282,7 +299,11 @@ export function mountCamera(
   const onClickDown = (e: PointerEvent) => (down = e.button === 0 ? { x: e.clientX, y: e.clientY } : null);
   const onClickUp = (e: PointerEvent) => {
     if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 5 || !takesClick()) return;
-    if (document.pointerLockElement !== canvas) void canvas.requestPointerLock();
+    // (The browser may refuse: Chrome does for about a second after Esc let the mouse go. Then the mouse
+    // stays free, and another click takes it; a refusal is not an error of the page. Safari gives no
+    // promise to refuse with.)
+    if (document.pointerLockElement !== canvas)
+      (canvas.requestPointerLock() as Promise<void> | undefined)?.catch(() => undefined);
   };
   if (orbiting) {
     // The browser does not scroll or zoom the page with gestures on it: they are the camera's.
@@ -309,6 +330,7 @@ export function mountCamera(
   function reset() {
     drift.x = drift.y = 0;
     pulled.set(0, 0, 0);
+    firstAway.set(0, 0, 0);
     cut = 0;
     lookHeight = null;
     const hero = page.player();
@@ -366,7 +388,7 @@ export function mountCamera(
     },
     turn: () => (cameraTurn ? [cameraTurn.x, cameraTurn.y, cameraTurn.z, cameraTurn.w] : null),
     afterRender({ hero }) {
-      if (mode !== 'first' || !hero?.character) return;
+      if (!atEyes || !hero?.character) return;
       const model = bodies.models.get(hero.id);
       const pose = model?.holding.pose;
       if (!model || !pose) {
@@ -408,9 +430,8 @@ export function mountCamera(
     },
     frame({ now, dt, alpha, world, hero }) {
       if (!orbiting) return;
-      // (First person, stage 4g: back where the aim's camera was, behind the head, before it moves on.)
-      camera.position.sub(firstAway);
-      // Where it wants to be, not where a wall brought it (stage 3h): the leash works from there.
+      // Where it wants to be, not where a wall brought it (stage 3h), nor at the eyes (first person,
+      // stage 4g): the leash works from there.
       unpull();
       // A gamepad's right stick turns the camera (2.5 radians per second, pushed all the way).
       const [stickX, stickY] = o.stick();
@@ -549,14 +570,15 @@ export function mountCamera(
       camera.lookAt(target);
       // FIRST PERSON (stage 4g): the aim's camera, but at the eyes, looking the same way (it works as the
       // aim's behind the head, and is put at the eyes after: so turning it is the same). The body is not
-      // drawn (the camera would be inside its head).
+      // drawn (the camera would be inside its head). Down, it stays behind the head (`atEyes`).
       const heroDrawn = hero ? bodies.meshes.get(hero.id) : undefined;
       if (shown && shown !== heroDrawn) shown.visible = true;
       shown = heroDrawn;
-      if (heroDrawn) heroDrawn.visible = mode !== 'first';
+      atEyes = mode === 'first' && (hero?.health?.down ?? -1) < 0;
+      if (heroDrawn) heroDrawn.visible = !atEyes;
       const heroModel = hero ? bodies.models.get(hero.id) : undefined;
-      if (heroModel) heroModel.holding.inView = mode === 'first';
-      if (mode === 'first' && heroDrawn && hero?.transform) {
+      if (heroModel) heroModel.holding.inView = atEyes;
+      if (atEyes && heroDrawn && hero?.transform) {
         const up = new THREE.Vector3(...upAt(world, hero.transform.position));
         const eyes = heroDrawn.position.clone().addScaledVector(up, EYES);
         const way = target.clone().sub(camera.position).normalize();

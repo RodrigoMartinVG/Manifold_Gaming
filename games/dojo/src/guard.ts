@@ -45,9 +45,12 @@ export interface GuardMemory extends Memory {
   /** When it last pressed `use`, and its stick's press (pressed one step, let go the next). */
   used: number;
   swing: boolean;
-  /** (Stage 4g) Since when it sees whoever it shoots at, and when it last shot. */
+  /** (Stage 4g) Since when it sees whoever it shoots at, and when it last shot; where it aims, following them. */
   sighted: number;
   shot: number;
+  aim?: Vec3 | null;
+  /** When a player last hit it (it is on its guard: it shoots whoever it sees at once). */
+  alert?: number;
 }
 
 /** How near a point it must be to have reached it (m, along the ground); within its stick's reach (m, to the other's center). */
@@ -57,12 +60,22 @@ const REACH = 1.5;
 const LISTEN = 45;
 /**
  * With a dart or a bolt (stage 4g): how far it shoots from (m; nearer than `CLOSE` it steps back), how
- * long it takes to shoot once it sees someone (steps), and how often it shoots then (steps).
+ * long it takes to shoot once it sees someone (steps), how often it shoots then (steps), and how much
+ * of the way to them its aim goes each step. (The first numbers, half a second to see and one shot a
+ * second dead on, brought a player down in the arena's open in a second and a half, over and over:
+ * the author found no time to play.) The aim, 15% of the way each step, catches one who stands still;
+ * one who keeps moving it trails, at a walk by v·Δt·(1 − k)/k ≈ 0.42 m (about the body's width), and
+ * misses more often than not. Measured in the arena's open over 30 s, before and after: standing
+ * still, down 6 times (half the time down) and now once, at 4.8 s; going side to side, 17 darts of 18
+ * struck and now 4 of 19, down first at 17 s; walking about, down 3 times and now none.
  */
 const SHOOTS = 18;
 const CLOSE = 4;
-const REACT = 30;
-const SHOT_EVERY = 60;
+const REACT = 60;
+const SHOT_EVERY = 90;
+const FOLLOW = 0.15;
+/** How long out of sight it still counts as seeing them, for its time to shoot and its aim (steps). */
+const GLIMPSE = 30;
 /** How long it chases whoever it no longer sees (steps), looks around where it went to look, and keeps a plan before planning again. */
 const LOSE = 180;
 const LOOK = 120;
@@ -108,6 +121,8 @@ export const guardBrain: Brain = (world, self, memory) => {
       swing: false,
       sighted: -1,
       shot: -1000,
+      aim: null,
+      alert: -1000,
     } satisfies GuardMemory);
   const c = self.character!;
   if ((self.health?.down ?? -1) >= 0) {
@@ -136,7 +151,19 @@ export const guardBrain: Brain = (world, self, memory) => {
   // Hit (stage 4g): it knows where from, as if it had seen who did it.
   for (const ev of world.stepEvents) {
     const by = ev.type === 'hurt' && ev.target === self.id && ev.from !== null ? world.entities.get(ev.from) : undefined;
-    if (isPlayer(by)) m.seen = { id: by.id, at: [...feetOf(by)], tick: world.tick };
+    if (isPlayer(by)) {
+      m.seen = { id: by.id, at: [...feetOf(by)], tick: world.tick };
+      m.alert = world.tick;
+    }
+  }
+  // Whoever it was after is down: it lets them go, back to its rounds. (It went to stand where they
+  // fell, and the arena's player came back to find the guards waiting.)
+  if (m.seen && (world.entities.get(m.seen.id)?.health?.down ?? -1) >= 0) {
+    m.seen = null;
+    if (m.mode === 'chase' || m.mode === 'search') {
+      m.mode = 'patrol';
+      m.plan = null;
+    }
   }
 
   // What it does about it.
@@ -157,18 +184,34 @@ export const guardBrain: Brain = (world, self, memory) => {
   // moment to see them), from its eyes, aiming at their middle; too near, it steps back as it shoots.
   const kind = weapon(self)?.kind;
   if (target && (kind === 'dart' || kind === 'bolt')) {
-    if (m.sighted < 0) m.sighted = world.tick;
-    const to = vec3.sub(target.transform!.position, [center[0], center[1] + EYE, center[2]]);
+    const p = target.transform!.position;
+    if (m.sighted < 0 || !m.aim) {
+      m.sighted = world.tick;
+      m.aim = [...p];
+    }
+    const aim = (m.aim = [
+      m.aim[0] + (p[0] - m.aim[0]) * FOLLOW,
+      m.aim[1] + (p[1] - m.aim[1]) * FOLLOW,
+      m.aim[2] + (p[2] - m.aim[2]) * FOLLOW,
+    ]);
+    const to = vec3.sub(aim, [center[0], center[1] + EYE, center[2]]);
     const along = Math.hypot(to[0], to[2]);
     if (along <= SHOOTS) {
-      const face = toward(center, target.transform!.position);
+      const face = toward(center, aim);
       const pitch = (Math.atan2(to[1], along) * 180) / Math.PI / 90;
-      const fire = world.tick - m.sighted >= REACT && world.tick - m.shot >= SHOT_EVERY;
+      // (Hit a moment ago, it is on its guard: it does not take its time to see them.)
+      const ready = world.tick - m.sighted >= REACT || world.tick - (m.alert ?? -Infinity) <= LOSE;
+      const fire = ready && world.tick - m.shot >= SHOT_EVERY;
       if (fire) m.shot = world.tick;
       const back: Vec3 = along < CLOSE ? [-face[0], 0, -face[2]] : [0, 0, 0];
       return { face, pitch, move: back, ...(fire ? { 'dojo.attack': true } : {}) };
     }
-  } else m.sighted = -1;
+  } else if (world.tick - (m.seen?.tick ?? -Infinity) > GLIMPSE) {
+    // Out of sight for more than a moment, it will take its time to see them again. (A step lost
+    // behind cover's edge started its time over: a first version shot only those it saw unbroken.)
+    m.sighted = -1;
+    m.aim = null;
+  }
   // A sound just heard: it turns to it and listens a moment before it goes.
   if (m.mode === 'look' && m.heard && world.tick - m.heard.tick < LISTEN) return { face: toward(center, m.heard.at) };
   // Within reach of whoever it chases: it faces them and strikes (a press, then a release); while they

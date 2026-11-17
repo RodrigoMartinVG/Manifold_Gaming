@@ -110,8 +110,8 @@ function character(world: World, player: number, at: Vec3, facing: Vec3, color: 
   });
 }
 
-/** A player's character (stage 4e): its health. */
-export const HERO = Object.freeze({ health: 100 });
+/** A player's character (stage 4e): its health, and how many steps it stays down (then, at its checkpoint). */
+export const HERO = Object.freeze({ health: 100, back: 180 });
 
 /**
  * A GUARD (stage 4e, decision 0023): a bot, a character of a player of its own (100, 101…: the session
@@ -170,6 +170,9 @@ export function guard(world: World, at: Vec3, facing: Vec3, route: string | null
  * mannequin in straw, with health, standing where a `dummy` zone is and looking where the zone looks.
  */
 export const DUMMY = Object.freeze({ health: 100, color: 0xc9a86a, back: 180 });
+
+/** How many steps a character down stays down: a guard's, a player's or a dummy's (the HUD counts it down too). */
+export const downFor = (e: Entity) => (e.brain ? GUARD.back : runner(e) ? HERO.back : DUMMY.back);
 function dummy(world: World, zone: Entity) {
   const facing = quat.rotate(zone.transform!.rotation, [0, 0, -1]);
   const parts = characterParts({ player: 0, facing, color: DUMMY.color });
@@ -764,7 +767,7 @@ export function createDojo(levels: Readonly<Record<string, Level>>, brains: Read
         }
       // Down three seconds, it is back on its feet (a dummy; a guard, ten); a player's, at its checkpoint.
       for (const e of world.entities.values())
-        if (e.health && e.health.down >= 0 && world.tick - e.health.down >= (e.brain ? GUARD.back : DUMMY.back)) {
+        if (e.health && e.health.down >= 0 && world.tick - e.health.down >= downFor(e)) {
           world.revive(e.id);
           const run = runner(e);
           if (run) world.place(e, run.checkpoint);

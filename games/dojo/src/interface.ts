@@ -1,6 +1,6 @@
 import { STEP, type Entity, type World } from '@manifold/core';
 import { openDialog, timeIn, type GamePage, type Hud, type Piece, type Tool, type Words } from '@manifold/presentation';
-import { charge, chargeOf, runner, weapon, WEAPONS, type WeaponKind } from './rules';
+import { charge, chargeOf, downFor, runner, weapon, WEAPONS, type WeaponKind } from './rules';
 
 /**
  * THE DOJO'S WORDS (stage 3i, decision 0019): what its notices say (the world sends their keys and
@@ -38,6 +38,9 @@ export const DOJO_WORDS = {
     'dojo.hud.of': '{0} de {1}',
     'dojo.hud.charge': 'Fuerza',
     'dojo.hud.weapon': 'Arma',
+    'dojo.hud.health': 'Vida',
+    'dojo.hud.down': 'Caído',
+    'dojo.hud.back': 'volvés en {0} s',
     'dojo.weapon.dart': 'dardo',
     'dojo.weapon.bolt': 'saeta',
     'dojo.weapon.stick': 'palo',
@@ -76,6 +79,9 @@ export const DOJO_WORDS = {
     'dojo.hud.of': '{0} of {1}',
     'dojo.hud.charge': 'Strength',
     'dojo.hud.weapon': 'Weapon',
+    'dojo.hud.health': 'Health',
+    'dojo.hud.down': 'Down',
+    'dojo.hud.back': 'back in {0} s',
     'dojo.weapon.dart': 'dart',
     'dojo.weapon.bolt': 'bolt',
     'dojo.weapon.stick': 'stick',
@@ -103,12 +109,22 @@ const starsLeft = (world: World) => [...world.entities.values()].filter((e) => e
 /**
  * THE DOJO'S HUD: in a level with a goal, the time since the character started (stopped at the goal),
  * its falls, and its stars (taken, of all there were), from its runner, which is the world's. And, in
- * any level, while the throw is held (stage 4b), how charged it is: ten marks, filled as it charges.
+ * any level, while the throw is held (stage 4b), how charged it is: ten marks, filled as it charges;
+ * what it carries (4c); and, hurt, its health, or, down, how long until it is back.
  */
 export const dojoHud: Hud = ({ world, hero, say, language }) => {
+  // Hurt (the arena found it, after 4g): its health once below its most, and down, how long until it
+  // is back (nothing else showed being down in first person).
+  const strength: { label: string; value: string }[] = [];
+  const health = hero?.health;
+  if (hero && health && health.down >= 0) {
+    const left = Math.max(1, Math.ceil((downFor(hero) - (world.tick - health.down)) * STEP));
+    strength.push({ label: say('dojo.hud.down'), value: say('dojo.hud.back', [left]) });
+  } else if (health && health.points < health.most)
+    strength.push({ label: say('dojo.hud.health'), value: say('dojo.hud.of', [Math.ceil(health.points), health.most]) });
   const held = hero ? charge(hero) : undefined;
   const filled = held && held.steps > 0 ? Math.round(10 * chargeOf(held.steps)) : -1;
-  const strength = filled >= 0 ? [{ label: say('dojo.hud.charge'), value: '▮'.repeat(filled) + '▯'.repeat(10 - filled) }] : [];
+  if (filled >= 0) strength.push({ label: say('dojo.hud.charge'), value: '▮'.repeat(filled) + '▯'.repeat(10 - filled) });
   // What it carries (stage 4c), once it picked something up.
   const carried = hero ? weapon(hero) : undefined;
   if (carried && carried.kind !== 'none')

@@ -4,6 +4,7 @@ import { ENGINE_WORDS, missingKeys, sayer } from '@manifold/presentation';
 import { DojoCartridge } from './cartridge';
 import { DOJO_WORDS, dojoHud } from './interface';
 import { ROOMS } from './rooms';
+import { downFor, HERO } from './rules';
 // Their source, as text (Vite reads it): to find the keys they use.
 import rulesSource from './rules.ts?raw';
 import interfaceSource from './interface.ts?raw';
@@ -79,6 +80,33 @@ describe("the Dojo's interface (stage 3i)", () => {
       session.step();
     }
     expect(dojoHud({ world: session.world, hero, say, language: 'es' })[0]!.value).toBe('▮▮▮▮▮▮▮▮▮▮');
+    session.world.dispose();
+  });
+
+  test('hurt, the HUD shows its health; down, how long until it is back; back, whole, nothing (the arena found it)', () => {
+    const registry = registryFor(DojoCartridge);
+    registry.run('dojo.level moves', 'recipe');
+    const session = new Session(DojoCartridge, { registry });
+    for (let i = 0; i < 30; i++) session.step();
+    const hero = [...session.world.entities.values()].find((e) => e.character?.player === 1)!;
+    const es = sayer([DOJO_WORDS, ENGINE_WORDS], 'es');
+    const hud = (say = es) => dojoHud({ world: session.world, hero, say, language: 'es' });
+    expect(hud()).toEqual([]);
+    session.world.hurt(hero.id, 30.5);
+    expect(hud()).toEqual([{ label: 'Vida', value: '70 de 100' }]);
+    session.world.hurt(hero.id, 100);
+    session.step();
+    // Down three seconds (a player's: `downFor`), counted down in whole seconds, and never zero.
+    expect(downFor(hero)).toBe(HERO.back);
+    expect(hud()).toEqual([{ label: 'Caído', value: 'volvés en 3 s' }]);
+    for (let i = 0; i < 70; i++) session.step();
+    expect(hud()).toEqual([{ label: 'Caído', value: 'volvés en 2 s' }]);
+    expect(hud(sayer([DOJO_WORDS, ENGINE_WORDS], 'en'))).toEqual([{ label: 'Down', value: 'back in 2 s' }]);
+    for (let i = 0; i < 108; i++) session.step();
+    expect(hud()).toEqual([{ label: 'Caído', value: 'volvés en 1 s' }]);
+    session.step();
+    expect(hero.health!.down).toBe(-1);
+    expect(hud()).toEqual([]);
     session.world.dispose();
   });
 });

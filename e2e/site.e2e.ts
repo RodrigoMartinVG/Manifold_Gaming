@@ -1335,6 +1335,98 @@ test('the arena (stage 4g): in first person, three guards with darts, the object
   expect(list).toEqual([]);
 });
 
+test('first person: the mouse, once taken, turns it wherever the character stands, as aiming does (the keep and moves found it)', async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  const list = errors(page);
+  // Headless Chromium refuses a real pointer lock: this stands in for the browser's (the canvas holds
+  // the mouse once clicked) and the test sends the moves it would (`movementX`). What is checked is the
+  // page's handling of them.
+  await page.addInitScript(() => {
+    let locked: Element | null = null;
+    Object.defineProperty(Document.prototype, 'pointerLockElement', { get: () => locked, configurable: true });
+    const lock = (to: Element) => {
+      locked = to;
+      document.dispatchEvent(new Event('pointerlockchange'));
+      return Promise.resolve();
+    };
+    Element.prototype.requestPointerLock = function (this: Element) {
+      return lock(this);
+    };
+  });
+  // Where it starts in `moves`, nothing behind brings the camera in (there, the first version did not turn at all).
+  await page.goto('jugar/dojo/moves/');
+  await expect.poll(async () => (await position(page, 'player')).length, { timeout: 15_000 }).toBe(3);
+  const turned = async (camera: string) => {
+    await page.keyboard.press('Backquote');
+    await typeInConsole(page, `view.camera ${camera}`);
+    await page.keyboard.press('Escape');
+    const box = (await page.locator('#game canvas').first().boundingBox())!;
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+    await afterSteps(page, 30);
+    const angle = (f: number[]) => Math.atan2(f[0]!, -f[2]!);
+    const before = angle(await position(page, 'facing'));
+    // Moves worth a radian (20 of 20 px, at 0.0025 rad a pixel), to the right.
+    await page.evaluate(() => {
+      for (let i = 0; i < 20; i++) document.dispatchEvent(new MouseEvent('mousemove', { movementX: 20, bubbles: true }));
+    });
+    await afterSteps(page, 10);
+    const d = angle(await position(page, 'facing')) - before;
+    return Math.atan2(Math.sin(d), Math.cos(d));
+  };
+  // In first person, in the open (nothing behind to bring the camera in), as much as aiming from behind.
+  expect(await turned('first')).toBeCloseTo(1, 1);
+  expect(await turned('aim')).toBeCloseTo(1, 1);
+  expect(list).toEqual([]);
+});
+
+test('down in first person (the arena found it): hits glow, the HUD says it, and the camera steps back to see the fall', async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  const list = errors(page);
+  await page.goto('jugar/dojo/arena/');
+  await expect.poll(async () => (await position(page, 'player')).length, { timeout: 15_000 }).toBe(3);
+  // Every HUD the page shows, however briefly (a hit's health lasts until the next one).
+  await page.evaluate(() => {
+    const hud = document.querySelector<HTMLElement>('.mg-hud')!;
+    const seen = new Set<string>();
+    (window as unknown as { huds: Set<string> }).huds = seen;
+    new MutationObserver(() => seen.add(hud.textContent ?? '')).observe(hud, {
+      subtree: true,
+      childList: true,
+      characterData: true,
+    });
+  });
+  const huds = () => page.evaluate(() => [...(window as unknown as { huds: Set<string> }).huds].join(' | '));
+  const fromEyes = async () => {
+    const [p, c] = [await position(page, 'player'), await position(page, 'camera')];
+    return Math.hypot(c[0]! - p[0]!, c[1]! - p[1]! - 0.62, c[2]! - p[2]!);
+  };
+  // In the middle, where the three guards see you; standing, the camera is at the eyes.
+  await page.keyboard.press('Backquote');
+  await typeInConsole(page, 'dojo.goto 0 1 3');
+  await page.keyboard.press('Escape');
+  await expect.poll(fromEyes, { timeout: 15_000 }).toBeLessThan(0.05);
+  // Hit: the edges glow red, and the HUD shows what is left; down, how long until you are back.
+  await expect
+    .poll(async () => Number(await page.locator('#game').getAttribute('data-hurt')), { timeout: 30_000 })
+    .toBeGreaterThan(0);
+  await expect.poll(() => page.locator('#game').getAttribute('data-falls'), { timeout: 30_000 }).toBe('1');
+  expect(await huds()).toMatch(/Vida\s*\d+ de 100/);
+  await expect(page.locator('.mg-hud')).toContainText('volvés en');
+  // Down, the camera is behind the head (a wall may bring it in, never nearer than 35 cm), and the
+  // body is drawn, falling.
+  expect(await fromEyes()).toBeGreaterThan(0.3);
+  // Back at the entrance, standing: at the eyes again. (Three seconds of the world, 180 steps: without
+  // a GPU, with other tests drawing alongside, the world may go at a fifth of the clock.)
+  await afterSteps(page, 180, 60_000);
+  await expect.poll(() => page.locator('#game').getAttribute('data-falls'), { timeout: 30_000 }).toBe('0');
+  await expect.poll(fromEyes, { timeout: 15_000 }).toBeLessThan(0.05);
+  expect(list).toEqual([]);
+});
+
 test('its hands on the tower (stage 4a): on its wall while it climbs, on its top before it gets over; show.ik draws them', async ({
   page,
 }) => {

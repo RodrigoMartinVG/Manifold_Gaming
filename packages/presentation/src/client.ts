@@ -6,6 +6,7 @@ import { mountConsole, type ConsoleOptions, type GameConsole } from './console';
 import { mountDrive } from './drive';
 import { mountInspect } from './inspect';
 import { mountNav } from './nav';
+import { mountHurt } from './hurt';
 import { mountStory } from './story';
 import { loadModels } from './models';
 import { createMatch } from './match';
@@ -232,6 +233,7 @@ export function mount(cartridge: Cartridge, container: HTMLElement, o: MountOpti
     mountViews(page, bodies),
     mountNav(page),
     mountStory(page),
+    mountHurt(page),
     mountSignals(page, bodies),
     mountLights(page, bodies),
     mountDebris(page, { timeScale: () => (match.paused ? 0 : match.timescale) }),
