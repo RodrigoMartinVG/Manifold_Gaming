@@ -17,6 +17,7 @@ import {
 import { footPaths, LEGS, newFeet, plant, type Feet, type FootPaths } from './feet';
 import { ARMS, grip, newHands, type Hands, type Surroundings } from './hands';
 import { limbOf, rotateInWorld, type Limb } from './ik';
+import { inertialize, newInertia, type Inertia } from './inertia';
 
 /** A copy of a model, ready to draw, and the animations it plays. */
 export interface ModelInstance {
@@ -34,6 +35,11 @@ export interface ModelInstance {
   readonly arms: Readonly<Record<'L' | 'R', Limb>> | null;
   /** What its hands hold (hands.ts), from one frame to the next. */
   readonly hands: Hands;
+  /** Its bones, and what dies out of the pose it showed when a gesture starts (stage 4b: inertia.ts). */
+  readonly bones: readonly THREE.Object3D[];
+  readonly inertia: Inertia;
+  /** How many gestures it has seen start (the gait's count): one more, and the pose changes by inertia. */
+  gestures: number;
   /** Its aim as drawn (stage 4b): the pitch it shows (degrees), and the bones it is spread over. */
   readonly aim: { pitch: number; readonly spine: THREE.Object3D | null; readonly head: THREE.Object3D | null };
   /** The animation that weighs most now (null: none yet). */
@@ -78,6 +84,15 @@ export function loadModels(urls: Readonly<Record<string, string>> = {}): Models 
   };
 }
 
+/** A copy's bones, in its tree's order. */
+const bonesOf = (object: THREE.Object3D) => {
+  const bones: THREE.Object3D[] = [];
+  object.traverse((o) => {
+    if ((o as THREE.Bone).isBone) bones.push(o);
+  });
+  return bones;
+};
+
 /** Each model's foot paths (feet.ts), by its animations: read with its first copy, shared by the rest. */
 const pathsOf = new WeakMap<readonly THREE.AnimationClip[], FootPaths>();
 
@@ -118,6 +133,9 @@ export function modelInstance(model: { scene: THREE.Object3D; clips: readonly TH
     legs,
     arms,
     hands: newHands(),
+    bones: bonesOf(object),
+    inertia: newInertia(),
+    gestures: 0,
     aim: { pitch: 0, spine: object.getObjectByName('spine') ?? null, head: object.getObjectByName('head') ?? null },
     playing: null,
   };
@@ -247,6 +265,11 @@ export function animate(
       'phase' in at ? at.phase * length : clip === 'flip' || clip === 'land' ? Math.min(at.seconds, length) : at.seconds % length;
   }
   model.mixer.update(0);
+  // A gesture started (a somersault, a landing): its pose at once, and the one drawn until now dying out
+  // (inertia.ts: a cross-fade of 0.05 s from the fall's arms-up pose snapped the landing).
+  const started = model.gait.started.count !== model.gestures;
+  model.gestures = model.gait.started.count;
+  inertialize(model.bones, model.inertia, started, dt);
   // And the feet where the cycles' feet are, mixed; on the ground, they stay there (feet.ts).
   const where = { L: footing(model.gait, 'L', c.grounded), R: footing(model.gait, 'R', c.grounded) };
   plant(model.object, model.legs, model.paths, model.actions, model.feet, where, up, dt);

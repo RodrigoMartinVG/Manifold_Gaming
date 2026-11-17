@@ -223,11 +223,13 @@ describe('how the model moves (stage 2e2)', () => {
   });
 
   test('a landing seen at three frames per second still starts, and is counted (stage 3b)', () => {
-    // Its weight comes in from nothing, and its 0.3 s are over by the next frame: it never weighs most.
+    // Its 0.3 s are over by the next frame. (Since stage 4b it weighs all of it from its first frame,
+    // the pose before it dying out in the view, inertia.ts: before, it came in from nothing, and at three
+    // frames a second it never weighed at all.)
     const g = newGait({ flip: 0.4, land: 0.3 });
     advance(g, reading({ mode: 'air', grounded: false, vertical: -9, airJumps: 0 }), 1 / 3);
     advance(g, reading({ airJumps: 1 }), 1 / 3);
-    expect(finalWeights(g).land).toBe(0);
+    expect(finalWeights(g).land).toBe(1);
     advance(g, reading({ airJumps: 1 }), 1 / 3);
     expect(g.gesture).toBeNull();
     expect(g.started).toEqual({ count: 1, clip: 'land' });

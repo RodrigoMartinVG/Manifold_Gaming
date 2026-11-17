@@ -333,12 +333,15 @@ export function advance(g: Gait, r: Reading, dt: number) {
   g.last = { mode: r.mode, airJumps: r.airJumps, vertical: r.vertical };
 }
 
-/** How much a gesture weighs now: in fast, out at its end (0 when there is none). */
+/**
+ * How much a gesture weighs now: all of it from its start (the pose before it dies out by inertia, in
+ * the view: inertia.ts), out at its end (0 when there is none).
+ */
 export function gestureWeight(g: Gait): number {
   if (!g.gesture) return 0;
   const length = g.lengths[g.gesture.clip];
   const { time, strength } = g.gesture;
-  return strength * clamp01(Math.min(time / 0.05, (length - time) / 0.1, 1));
+  return strength * clamp01(Math.min((length - time) / 0.1, 1));
 }
 
 /** Every animation's weight as it is drawn: the gait's, under the gesture's (they add up to 1). */
