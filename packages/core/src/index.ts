@@ -37,6 +37,7 @@ export {
   HISTORY,
   eyeHeightOf,
   hitPartsOf,
+  newCharacter,
   HOLD,
   PUSH,
   turned,
@@ -136,3 +137,17 @@ export { entityNamed, levelDiff, levelOfWorld, pieceFromLine, setField, declareB
 export { assertThat, declareChecks, readValue } from './checks';
 export { mapParts, type LevelMap, type MapPart } from './map';
 export { declareProgress, readSave, SAVE_FORMAT, saveGame, saveRecipe, type Progress, type SavedGame } from './saved';
+export {
+  ghostAt,
+  ghostFacing,
+  ghostFromText,
+  GhostRecorder,
+  ghostToText,
+  ghostTurn,
+  GHOST_EVERY,
+  GHOST_FORMAT,
+  GHOST_HEADER,
+  yawOf,
+  type Ghost,
+  type GhostPose,
+} from './ghost';

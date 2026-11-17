@@ -31,3 +31,4 @@ Each one has: **context** (what problem there was), **decision**, **consequences
 | [0022](0022-hits-and-the-history-of-poses.md) | Hits and the history of poses: a shot looks back as far as its shooter saw                | Accepted                                                                     |
 | [0023](0023-where-a-bot-thinks.md)            | Where a bot thinks: a bot is a player, its brain runs where the match is hosted           | Accepted                                                                     |
 | [0024](0024-navigation.md)                    | Navigation: a grid of where a body fits, with edges that ask for a capability or a signal | Accepted                                                                     |
+| [0025](0025-replays-ghosts-and-baselines.md)  | Replays stay by inputs and of their version; ghosts are strips of poses; the baselines    | Accepted                                                                     |
