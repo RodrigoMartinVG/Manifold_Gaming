@@ -1,5 +1,6 @@
 import { quat, sinCosDegrees, vec3, type Vec3 } from '@manifold/common';
 import { characterParts } from '@manifold/character';
+import { KIT } from '@manifold/kit';
 import {
   aimOf,
   castHit,
@@ -647,6 +648,8 @@ export function createDojo(levels: Readonly<Record<string, Level>>, brains: Read
   return {
     id: 'dojo',
     title: 'Dojo',
+    // The games' kit of level pieces (stage 4.5e): its levels' `kit` lines build with it.
+    kit: KIT,
     // Its guards' brains (stage 4e): given here by whoever hosts its matches (the page, a test); a
     // replay, which only plays the inputs they gave, does not need them.
     brains,

@@ -1,14 +1,16 @@
 ---
 /**
  * WHERE WHAT IS SEEN COMES FROM (stage 2e, decision 0015): the Dojo's art files, from their list
- * (`games/dojo/assets/assets.json`, and the characters' in `packages/character/assets/`, which tests keep whole). Made by a script of the repository, or
+ * (`games/dojo/assets/assets.json`, the characters' in `packages/character/assets/` and the kit's in
+ * `packages/kit/assets/`, which tests keep whole). Made by a script of the repository, or
  * from outside with its author, its source and its license. The texts are the site's, in Spanish.
  */
 import list from '@manifold/dojo/assets';
-// The games' character (stage 4a), which the Dojo draws too.
+// The games' character (stage 4a), which the Dojo draws too; and the games' kit (stage 4.5e).
 import characters from '@manifold/character/assets';
+import kit from '@manifold/kit/assets';
 
-const entries = Object.entries({ ...characters, ...list } as Record<
+const entries = Object.entries({ ...characters, ...kit, ...list } as Record<
   string,
   { madeBy?: string; source?: string; author?: string; license?: string }
 >);

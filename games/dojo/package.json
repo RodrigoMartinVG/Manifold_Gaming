@@ -20,6 +20,7 @@
     "@manifold/commands": "0.0.0",
     "@manifold/common": "0.0.0",
     "@manifold/core": "0.0.0",
+    "@manifold/kit": "0.0.0",
     "@manifold/presentation": "0.0.0"
   },
   "scripts": {

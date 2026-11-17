@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, test } from 'vitest';
 import { approx, quat } from '@manifold/common';
 import { levelOfWorld } from './building';
-import { buildLevel, levelFromText, levelToText } from './level';
+import { buildLevel, LEVEL_FORMAT, levelFromText, levelToText } from './level';
 import { initPhysics } from './physics';
 import { World } from './world';
 
@@ -38,7 +38,8 @@ describe('levels as data (stage 2a)', () => {
     expect(bad('sensor 0 0 0  1 1 1')).toThrow(/line 3: a zone needs what it is for/);
     expect(bad('tree 1 2 3')).toThrow(/line 3: "tree" is not understood/);
     expect(() => levelFromText('title x')).toThrow(/line 1: it must start with/);
-    expect(() => levelFromText('# Manifold level 9\n')).toThrow(/format 9/);
+    // (A format newer than the engine's: the next one, whichever that is.)
+    expect(() => levelFromText(`# Manifold level ${LEVEL_FORMAT + 1}\n`)).toThrow(new RegExp(`format ${LEVEL_FORMAT + 1}`));
   });
 
   test('what the format does not say is an error too (closing phase 2: before, these were read)', () => {
@@ -287,7 +288,9 @@ sensor fog  0 2 -20  4 2 4  rotate y 30  opacity 0.2  color 0.8 0.8 0.9
     expect(v1('box 0 0 0  1 1 1  grid')).toThrow(/line 3: "grid" is format 2/);
     expect(v1('material oil friction 0 bounce 0 density 1 drag 0')).toThrow(/line 3: "material" is format 2/);
     expect(v1('sensor current 0 0 0  1 1 1  flow 1 0 0')).toThrow(/line 3: "flow": a zone carries what it says from format 2 on/);
-    expect(() => levelFromText('# Manifold level 9\n')).toThrow(/line 1: a level of format 9: this engine reads formats 1 to 8/);
+    expect(() => levelFromText(`# Manifold level ${LEVEL_FORMAT + 1}\n`)).toThrow(
+      new RegExp(`line 1: a level of format ${LEVEL_FORMAT + 1}: this engine reads formats 1 to ${LEVEL_FORMAT}`),
+    );
   });
 
   test('what format 2 does not allow says which line, and why', () => {
@@ -632,6 +635,72 @@ scene hello when on_a  master:dojo.story.hello  you:dojo.story.yes
     expect(events).toEqual(['first done', 'second active', 'scene hello 2', 'second done']);
     step(60);
     expect(events.filter((e) => e.startsWith('scene'))).toHaveLength(1);
+    world.dispose();
+  });
+});
+
+describe('the level format, version 9: a game’s kit of pieces (stage 4.5e, decision 0026)', () => {
+  // A kit of two pieces, as a game gives it: a wall with a doorway, and a ramp turned within its piece.
+  const KIT = {
+    door: {
+      boxes: [
+        { center: [-0.75, 1.5, 0] as [number, number, number], half: [0.25, 1.5, 0.15] as [number, number, number] },
+        { center: [0.75, 1.5, 0] as [number, number, number], half: [0.25, 1.5, 0.15] as [number, number, number] },
+        { center: [0, 2.6, 0] as [number, number, number], half: [0.5, 0.4, 0.15] as [number, number, number] },
+      ],
+      size: [2, 3, 0.3] as [number, number, number],
+      model: 'kit.door',
+    },
+    ramp: {
+      boxes: [
+        {
+          center: [0, 0.4, 0] as [number, number, number],
+          half: [1, 0.1, 2] as [number, number, number],
+          turn: { axis: 'x' as const, degrees: 14 },
+        },
+      ],
+      size: [2, 1.2, 4] as [number, number, number],
+      model: 'kit.ramp',
+    },
+  };
+  const TEXT =
+    '# Manifold level 9\nbox 0 -0.5 0  10 0.5 10\nkit door  0 0 -3  rotate y 90  name gate\nkit ramp  4 0 0  material wood\n';
+
+  test('a kit line: which piece, where, turned, named; written back as it was read', () => {
+    const level = levelFromText(TEXT, { kit: KIT });
+    expect(level.kits).toEqual([
+      { name: 'gate', piece: 'door', center: [0, 0, -3], turn: { axis: 'y', degrees: 90 }, material: null },
+      { name: null, piece: 'ramp', center: [4, 0, 0], turn: null, material: 'wood' },
+    ]);
+    expect(levelFromText(levelToText(level), { kit: KIT })).toEqual(level);
+  });
+
+  test('a piece the game’s kit does not have is an error with its line; an older format, too', () => {
+    expect(() => levelFromText('# Manifold level 9\nkit tower 0 0 0\n', { kit: KIT })).toThrow(
+      /line 2.*not a piece of this game's kit/,
+    );
+    expect(() => levelFromText('# Manifold level 8\nkit door 0 0 0\n', { kit: KIT })).toThrow(/format 9/);
+  });
+
+  test('built: one body that never moves, the piece’s boxes as one compound (turned within it), drawn with its model; and back', () => {
+    const world = new World({ seed: 1 });
+    world.kit = KIT;
+    buildLevel(world, levelFromText(TEXT, { kit: KIT }));
+    const gate = world.named('gate')!;
+    expect(gate.body!.type).toBe('fixed');
+    expect(gate.body!.shape.kind).toBe('compound');
+    expect(gate.body!.shape.kind === 'compound' && gate.body!.shape.parts).toHaveLength(3);
+    expect(gate.appearance).toMatchObject({ model: 'kit.door' });
+    const ramp = [...world.entities.values()].find((e) => e.appearance?.model === 'kit.ramp')!;
+    const part = ramp.body!.shape.kind === 'compound' ? ramp.body!.shape.parts[0]! : null;
+    expect(part?.rotation).toEqual(quat.fromDegrees([1, 0, 0], 14));
+    expect(ramp.body!.material).toBe('wood');
+    // A ray down onto the ramp's middle meets it turned: its normal leans 14° (cos 14° = 0.970).
+    world.step();
+    const hit = world.castRay([4, 3, 0], [0, -1, 0], 5)!;
+    expect(hit.normal[1]).toBeCloseTo(Math.cos((14 * Math.PI) / 180), 3);
+    // Written back as the level said it.
+    expect(levelToText(levelOfWorld(world))).toBe(levelToText(levelFromText(TEXT, { kit: KIT })));
     world.dispose();
   });
 });

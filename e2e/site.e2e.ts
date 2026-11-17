@@ -1010,6 +1010,26 @@ test('aim: the character looks where the camera looks, and walks sideways withou
 
 // ---------------------------------------------------------------- turning and the camera (stage 1c2)
 
+// ---------------------------------------------------------------- the kit (stage 4.5e)
+
+test('the kit room: every piece of the games’ kit drawn with its model, each a node of one file', async ({ page }) => {
+  const list = errors(page);
+  const warnings: string[] = [];
+  page.on('console', (m) => {
+    if (m.type() === 'warning' && /model/.test(m.text())) warnings.push(m.text());
+  });
+  await page.goto('jugar/dojo/kit/');
+  await expect.poll(async () => (await position(page, 'player')).length, { timeout: 15_000 }).toBe(3);
+  // Its 29 pieces (the 23 kinds, some twice), the floor, the four boxes that hold platforms up, the player.
+  await expect.poll(async () => Number(await page.locator('#game').getAttribute('data-meshes')), { timeout: 20_000 }).toBe(35);
+  // Drawn with their models (they loaded: no piece fell back to its box), and few triangles for so much.
+  await afterSteps(page, 30);
+  const triangles = Number(await page.locator('#game').getAttribute('data-triangles'));
+  expect(triangles).toBeGreaterThan(3000);
+  expect(warnings).toEqual([]);
+  expect(list).toEqual([]);
+});
+
 // ---------------------------------------------------------------- the camera before the levels (stage 4.5d)
 
 /** A gamepad of the test's: its left stick (x, y) as `window.__stick`, nothing pressed. */

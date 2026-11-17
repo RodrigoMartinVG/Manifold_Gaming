@@ -85,11 +85,14 @@ function voxelsOf(shape: Extract<Shape, { kind: 'compound' }>, cell: Vec3) {
 
 /** A compound's parts as Rapier wants them: boxes cut to meet whole faces, where they are, unturned, with their seams mended. */
 const compoundOf = (shape: Extract<Shape, { kind: 'compound' }>) => {
-  const parts = conforming(shape.parts);
+  // (Parts turned within it, a kit's ramp, stage 4.5e, are not cut to meet face to face: as they are.)
+  const parts = shape.parts.some((p) => p.rotation) ? shape.parts : conforming(shape.parts);
   return [
     parts.map((p) => new RAPIER.Cuboid(...p.halfExtents)),
     parts.map((p) => ({ x: p.offset[0], y: p.offset[1], z: p.offset[2] })),
-    parts.map(() => ({ x: 0, y: 0, z: 0, w: 1 })),
+    parts.map((p) =>
+      p.rotation ? { x: p.rotation[0], y: p.rotation[1], z: p.rotation[2], w: p.rotation[3] } : { x: 0, y: 0, z: 0, w: 1 },
+    ),
     RAPIER.CompoundFlags.FIX_INTERNAL_EDGES,
   ] as const;
 };

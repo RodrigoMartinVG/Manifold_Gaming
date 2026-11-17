@@ -1,0 +1,51 @@
+# Manifold level 9
+# The kit (stage 4.5e, decision 0026): every piece of the games' kit, made by art/kit.py, each where a
+# level puts it with one line. Walk among them; up the stairs to a platform a floor up, up the ramp to
+# one a meter up, and across the bridge.
+title The kit
+spawn 0 1 18
+facing 0 0 -1
+
+box 0 -0.5 0     20 0.5 20   grid  name floor
+
+# The walls: 1, 2 and 4 m; a doorway, a wide one, a gate, a window.
+kit wall_1          -15 0 -12
+kit wall_2          -12 0 -12
+kit wall_4          -7 0 -12
+kit wall_door       -2 0 -12
+kit wall_door_wide  3 0 -12
+kit wall_gate       9 0 -12
+kit wall_window     15 0 -12
+
+# What stands: a corner, a pillar, a column, a railing, a beam overhead, a block, a ledge.
+kit corner     -15 0 -5
+kit pillar     -12 0 -5
+kit column     -9 0 -5
+kit railing_2  -5 0 -5
+kit pillar     -1.75 0 -5
+kit pillar     1.75 0 -5
+kit beam_4     0 3.15 -5
+kit block_1    5 0 -5
+kit ledge_2    9 0 -5
+
+# What is walked on: floors of 1, 2 and 4 m, a raised slab, and a roof on four pillars.
+kit floor_1  -15 0.2 3
+kit floor_2  -12 0.2 3
+kit floor_4  -7 0.2 3
+kit slab_2   -1 0 3
+kit pillar   4.25 0 1.25
+kit pillar   7.75 0 1.25
+kit pillar   4.25 0 4.75
+kit pillar   7.75 0 4.75
+kit roof_4   6 3 3
+
+# Up and across: the stairs of a meter, the stairs of a floor to a platform 3 m up, the ramp to one a
+# meter up, and a bridge between two platforms a meter up.
+kit stairs_1  -14 0 12
+kit stairs_3  -6 0 12
+box -6 1.5 8      1 1.5 1     color #6f6a62  name landing
+kit ramp_1    3 0 12
+box 3 0.5 9       1 0.5 1     color #6f6a62  name ramp_top
+box 12 0.5 9      1 0.5 1     color #6f6a62  name bridge_north
+box 12 0.5 15     1 0.5 1     color #6f6a62  name bridge_south
+kit bridge_4  12 1 12

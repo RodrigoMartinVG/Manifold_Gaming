@@ -165,10 +165,11 @@ function heightOn(t: Top, x: number, z: number): number | null {
   return Math.abs(vec3.dot(d, t.u)) <= t.hu + eps && Math.abs(vec3.dot(d, t.v)) <= t.hv + eps ? y : null;
 }
 
-/** The boxes a shape is made of, in its body's frame: itself, or a compound's parts. */
-function boxesOf(shape: Shape): { offset: Vec3; half: Vec3 }[] {
-  if (shape.kind === 'box') return [{ offset: [0, 0, 0], half: shape.halfExtents }];
-  if (shape.kind === 'compound') return shape.parts.map((p) => ({ offset: p.offset, half: p.halfExtents }));
+/** The boxes a shape is made of, in its body's frame: itself, or a compound's parts (turned within it: a kit's ramp, stage 4.5e). */
+function boxesOf(shape: Shape): { offset: Vec3; half: Vec3; rotation: Quat }[] {
+  if (shape.kind === 'box') return [{ offset: [0, 0, 0], half: shape.halfExtents, rotation: quat.identity() }];
+  if (shape.kind === 'compound')
+    return shape.parts.map((p) => ({ offset: p.offset, half: p.halfExtents, rotation: p.rotation ?? quat.identity() }));
   return [];
 }
 
@@ -303,7 +304,8 @@ export function* navBuilding(world: World, body: NavBody = NAV_BODY): Generator<
     // A program moves it (a platform that goes or turns): not sampled.
     if (b.type !== 'fixed' || e.mover || e.spin || m) continue;
     for (const part of boxesOf(b.shape)) {
-      const top = topOf(vec3.add(t.position, quat.rotate(t.rotation, part.offset)), t.rotation, part.half, e.id, null);
+      const turn = quat.multiply(t.rotation, part.rotation);
+      const top = topOf(vec3.add(t.position, quat.rotate(t.rotation, part.offset)), turn, part.half, e.id, null);
       if (top) tops.push(top);
     }
   }
@@ -380,6 +382,8 @@ export function* navBuilding(world: World, body: NavBody = NAV_BODY): Generator<
   const fallTime = (h: number) => Math.sqrt((2 * Math.max(0, h)) / body.gravity);
   // What was asked of a way between two cells, either way round (by the pair, the lower number first).
   const asked = new Map<number, boolean>();
+  // And whether the ground halfway between two cells makes them a stair (by the pair, too).
+  const halfway = new Map<number, boolean>();
   const n = nav.cells.length;
   const pair = (a: Cell, b: Cell) => (a.id < b.id ? a.id * n + b.id : b.id * n + a.id);
   const around = [
@@ -407,7 +411,22 @@ export function* navBuilding(world: World, body: NavBody = NAV_BODY): Generator<
           yield;
         }
         if (!open) continue;
-        if (Math.abs(rise) <= body.stepUp) link(a, b, 'walk', flat / body.speed, null);
+        // Up or down a stair (stage 4.5e: a kit's steps are 0.4 m deep, the cells 0.5 apart, so two
+        // cells may be two steps apart): within two steps' height, the ground halfway between them
+        // asked once, and if each half is a step, it is walked.
+        let stepped = false;
+        if (Math.abs(rise) > body.stepUp && Math.abs(rise) <= 2 * body.stepUp) {
+          const known = halfway.get(pair(a, b));
+          if (known === undefined) {
+            const mid: Vec3 = [(a.at[0] + b.at[0]) / 2, Math.max(a.at[1], b.at[1]) + 0.5, (a.at[2] + b.at[2]) / 2];
+            const hit = world.castRay(mid, DOWN, Math.abs(rise) + 1, QUERY);
+            const y = hit ? hit.point[1] : -Infinity;
+            stepped = Math.abs(y - a.at[1]) <= body.stepUp + 1e-6 && Math.abs(b.at[1] - y) <= body.stepUp + 1e-6;
+            halfway.set(pair(a, b), stepped);
+            yield;
+          } else stepped = known;
+        }
+        if (Math.abs(rise) <= body.stepUp || stepped) link(a, b, 'walk', flat / body.speed, null);
         else if (rise < 0) link(a, b, 'drop', flat / body.speed + fallTime(-rise), null);
         else if (rise <= body.jumpUp) link(a, b, 'jump', flat / body.speed + 2 * fallTime(rise), null);
         else link(a, b, 'climb', rise / body.climbSpeed + 0.3, 'climb');

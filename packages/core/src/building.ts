@@ -25,6 +25,7 @@ export function levelOfWorld(world: World): Level {
         .map(([name, m]) => [name, { ...m }]),
     ),
     boxes: [],
+    kits: [],
     maps: [],
     sensors: [],
     signals: world.signals.map((s) => ({ name: s.name, op: s.op, reads: [...s.reads] })),
@@ -40,6 +41,7 @@ export function levelOfWorld(world: World): Level {
     const s = e.source;
     if (!s) continue;
     if ('box' in s) level.boxes.push(copyData(s.box));
+    else if ('kit' in s) level.kits.push(copyData(s.kit));
     else if ('map' in s) level.maps.push(copyData(s.map));
     else if ('sensor' in s) level.sensors.push(copyData(s.sensor));
     else if ('lamp' in s) level.lamps.push(copyData(s.lamp));
@@ -74,14 +76,14 @@ export function levelDiff(from: Level, to: Level): string[] {
 export function pieceFromLine(world: World, line: string, zones?: ZoneKinds): LevelPiece {
   const words = line.trim().split(/\s+/);
   const kind = words[0];
-  if (kind !== 'box' && kind !== 'sensor' && kind !== 'lamp' && kind !== 'watcher' && kind !== 'route')
-    throw new Error(`"${kind ?? ''}": what is added is a box, a sensor, a lamp, a watcher or a route`);
+  if (kind !== 'box' && kind !== 'kit' && kind !== 'sensor' && kind !== 'lamp' && kind !== 'watcher' && kind !== 'route')
+    throw new Error(`"${kind ?? ''}": what is added is a box, a kit piece, a sensor, a lamp, a watcher or a route`);
   // The world as a level, and the new line at its end: read as one, so names and signals are checked.
   const before = levelOfWorld(world);
   const text = levelToText(before) + line + '\n';
   let level: Level;
   try {
-    level = levelFromText(text, zones ? { zones } : {});
+    level = levelFromText(text, { ...(zones ? { zones } : {}), kit: world.kit });
   } catch (e) {
     // The line number is the new line's, at the end, and the first of a name is somewhere in the
     // world: said without them.
@@ -93,6 +95,7 @@ export function pieceFromLine(world: World, line: string, zones?: ZoneKinds): Le
     );
   }
   if (kind === 'box') return { box: level.boxes.at(-1)! };
+  if (kind === 'kit') return { kit: level.kits.at(-1)! };
   if (kind === 'sensor') return { sensor: level.sensors.at(-1)! };
   if (kind === 'lamp') return { lamp: level.lamps.at(-1)! };
   if (kind === 'route') return { route: level.routes.at(-1)! };
@@ -119,7 +122,7 @@ function moved(piece: LevelPiece, by: Vec3): LevelPiece {
     p.route.points = p.route.points.map((q) => [q[0] + by[0], q[1] + by[1], q[2] + by[2]]);
     return p;
   }
-  const item = 'box' in p ? p.box : 'sensor' in p ? p.sensor : 'lamp' in p ? p.lamp : p.watcher;
+  const item = 'box' in p ? p.box : 'kit' in p ? p.kit : 'sensor' in p ? p.sensor : 'lamp' in p ? p.lamp : p.watcher;
   item.center = [item.center[0] + by[0], item.center[1] + by[1], item.center[2] + by[2]];
   item.name = null;
   return p;
@@ -137,7 +140,7 @@ export function declareBuilding(registry: Registry<World>, cartridge?: Cartridge
   registry.declareCommand({
     name: 'add',
     description:
-      'Adds what a line of a level says, in the world as it is (stage 3j): `add box 0 1 -3  1 1 1  material wood  name crate`, a `sensor`, a `lamp`, a `watcher` or a `route` (stage 4d). Its names and signals are checked against the world. Like every world change it enters at the next step: in a recipe, `wait 1` before using it.',
+      "Adds what a line of a level says, in the world as it is (stage 3j): `add box 0 1 -3  1 1 1  material wood  name crate`, a piece of the game's kit (`add kit wall_2 0 0 -3`, stage 4.5e), a `sensor`, a `lamp`, a `watcher` or a `route` (stage 4d). Its names and signals are checked against the world. Like every world change it enters at the next step: in a recipe, `wait 1` before using it.",
     args: [{ name: 'line', type: { kind: 'rest' } }],
     inRecipes: true,
     check: (world, [line], out) => {
@@ -320,7 +323,7 @@ function itemOf(e: Entity) {
   const s = e.source;
   // (A map's floor, stage 4a, has no item of its own to change: it is written back as its map; nor a route, stage 4d.)
   if (!s || 'map' in s || 'route' in s || 'objective' in s || 'scene' in s) return null;
-  return 'box' in s ? s.box : 'sensor' in s ? s.sensor : 'lamp' in s ? s.lamp : s.watcher;
+  return 'box' in s ? s.box : 'kit' in s ? s.kit : 'sensor' in s ? s.sensor : 'lamp' in s ? s.lamp : s.watcher;
 }
 
 /**

@@ -184,6 +184,7 @@ export class Session {
     ].join('\n');
     this.current = new World({ seed: o.seed ?? Number(this.registry.value('seed')), profile: cartridge.profile ?? VERIFIED });
     this.current.filterDamage = cartridge.filterDamage?.bind(cartridge) ?? null;
+    this.current.kit = cartridge.kit ?? {};
     cartridge.onStart(this.world, this.registry);
     // World values that already came changed (from a recipe) are part of how it is born: step 0.
     this.registry.applyToWorld(this.world);

@@ -1,7 +1,7 @@
 import type { Registry } from '@manifold/commands';
 import type { InputAction } from './input';
 import type { Profile } from './profile';
-import type { ZoneKinds } from './level';
+import type { KitPieces, ZoneKinds } from './level';
 import type { Progress } from './saved';
 import type { Damage, Entity, Event, PlayerInput } from './types';
 import type { World } from './world';
@@ -21,6 +21,8 @@ export interface Cartridge {
   /** For addresses and replays: "dojo". */
   readonly id: string;
   readonly title: string;
+  /** Its kit of level pieces (stage 4.5e, decision 0026), if it has one: its levels' `kit` lines build with it. */
+  readonly kit?: KitPieces;
   /**
    * Its variables and commands (decision 0010): what this game lets people change and do. Each
    * game decides what it exposes: the Dojo, everything; a competitive game, maybe nothing. Called

@@ -24,6 +24,7 @@
     "@fontsource-variable/cinzel": "^5.3.0",
     "@manifold/adventure": "0.0.0",
     "@manifold/character": "0.0.0",
+    "@manifold/kit": "0.0.0",
     "@manifold/dojo": "0.0.0",
     "astro": "^7.4.10",
     "codemirror": "^6.0.2",

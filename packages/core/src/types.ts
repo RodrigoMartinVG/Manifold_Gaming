@@ -295,10 +295,11 @@ export type Shape =
    */
   | { kind: 'compound'; parts: CompoundPart[]; cell?: Vec3 };
 
-/** One part of a compound shape: a box, centered `offset` from the body's center. */
+/** One part of a compound shape: a box, centered `offset` from the body's center, turned `rotation` there (stage 4.5e: a kit's ramp). */
 export interface CompoundPart {
   offset: Vec3;
   halfExtents: Vec3;
+  rotation?: Quat;
 }
 
 /**

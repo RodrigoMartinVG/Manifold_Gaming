@@ -9,6 +9,7 @@ import { HIT_HEARD, hitRadius } from './sound';
 import { bodyMass, PHYSICS, type PhysicsBackend, type PhysicsHit } from './physics';
 
 import { VERIFIED, type Profile } from './profile';
+import type { KitPieces } from './level';
 import type {
   CollisionGroups,
   Components,
@@ -262,6 +263,8 @@ export class World {
   tick = 0;
   readonly random: Random;
   readonly entities = new Map<EntityId, Entity>();
+  /** Its game's kit of level pieces (stage 4.5e, decision 0026), by name: a level's `kit` lines build with it. */
+  kit: KitPieces = {};
   private lastId = 0;
   /**
    * Events have TWO readers, at two rates:

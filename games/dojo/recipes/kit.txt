@@ -1,0 +1,10 @@
+# The kit: the games' pieces
+# group: world
+# Stage 4.5e (decision 0026): every piece of the kit the three games build their levels with, made by
+# a Blender script (art/kit.py) with the boxes it collides with: floors, walls with a doorway, a gate
+# and a window, a corner, a pillar and a column, stairs a meter and a floor up, a ramp, a railing, a
+# bridge, a beam, a slab, a roof, a ledge and a block. Each one is one line of its level
+# (`kit wall_door -2 0 -12`); the console adds more: `add kit block_1 0 0 10`. Walk up the long stairs
+# to the platform a floor up, up the ramp, and across the bridge.
+seed 7
+dojo.level kit

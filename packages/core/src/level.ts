@@ -90,11 +90,17 @@ import { copyData, ENTITY_NAME, type World } from './world';
  *                                             a short scene, once, when its signal turns on: who says
  *                                             which key, in order
  *
+ * Format 9 (stage 4.5e, decision 0026) adds the game's kit of pieces:
+ *
+ *   kit wall_door  4 0 -6  rotate y 90  name gate_west
+ *                                             a piece of the game's kit where it goes, turned: what it
+ *                                             collides with and how it looks are the kit's
+ *
  * The turns are written in degrees, as a person thinks them, and become quaternions with our own sine
  * and cosine (`quat.fromDegrees`): the browser's would give other bits in another browser, and the
  * world must be born the same everywhere.
  */
-export const LEVEL_FORMAT = 8;
+export const LEVEL_FORMAT = 9;
 const HEADER = '# Manifold level';
 
 /** A turn around one of the axes, as it is written. */
@@ -178,6 +184,30 @@ export interface LevelScene {
   lines: { who: string; say: string }[];
 }
 
+/** A kit piece (format 9, decision 0026): which piece of the game's kit, where its origin goes, turned how. */
+export interface LevelKit {
+  name: string | null;
+  piece: string;
+  center: Vec3;
+  turn: Turn | null;
+  /** What it is made of (its friction, its sound), if it says: the engine's or the level's materials. */
+  material: string | null;
+  /** What it is for (format 8), if it says. */
+  affords?: Affordance[];
+}
+
+/**
+ * A GAME'S KIT OF LEVEL PIECES (stage 4.5e, decision 0026), by name: for each, the boxes it collides
+ * with in its own frame (a box may be turned within it), its size, and the model it is drawn with. The
+ * game gives it (its `kit`, as it gives its zones); the engine knows what a kit is, not what is in one.
+ */
+export interface KitPiece {
+  boxes: readonly { center: Vec3; half: Vec3; turn?: Turn }[];
+  size: Vec3;
+  model: string;
+}
+export type KitPieces = Readonly<Record<string, KitPiece>>;
+
 /** A route (format 8): its name, its points, and whether it goes round. */
 export interface LevelRoute {
   name: string;
@@ -212,6 +242,8 @@ export interface Level {
   /** The level's own materials (format 2), by name, in the order written. */
   materials: Record<string, Material>;
   boxes: LevelBox[];
+  /** Its kit pieces (format 9), in the order written. */
+  kits: LevelKit[];
   /** Its maps (format 7): parts drawn as text, made into boxes and zones when it is built. */
   maps: LevelMap[];
   sensors: LevelSensor[];
@@ -238,6 +270,8 @@ export type ZoneKinds = Readonly<Record<string, Readonly<Record<string, number>>
 
 export interface LevelOptions {
   zones?: ZoneKinds;
+  /** The game's kit (format 9): a `kit` line of a piece it does not have is an error, with its line. */
+  kit?: KitPieces;
 }
 
 /** A box's color when it is not said, and a grid's lines. */
@@ -276,6 +310,7 @@ const SINCE: Record<string, number> = {
   affords: 8,
   objective: 8,
   scene: 8,
+  kit: 9,
 };
 /** How many signals or zones each kind of signal reads (−1: one or more), as the world says. */
 const READS: Record<SignalOp, number> = { input: 0, zone: 1, used: 1, seen: 1, any: -1, all: -1, not: 1, toggle: 1, latch: 2 };
@@ -288,6 +323,7 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
     facing: [0, 0, -1],
     materials: {},
     boxes: [],
+    kits: [],
     maps: [],
     sensors: [],
     signals: [],
@@ -645,6 +681,33 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
         });
         break;
       }
+      case 'kit': {
+        since(kind);
+        const piece = words[at++] ?? '';
+        if (!/^[a-z][a-z0-9_]*$/.test(piece)) fail(n, `"${piece}" is not a kit piece's name (like wall_2)`);
+        if (o.kit && !o.kit[piece]) fail(n, `"${piece}" is not a piece of this game's kit (${Object.keys(o.kit).join(', ')})`);
+        const center = vector();
+        let turn: Turn | null = null;
+        let name: string | null = null;
+        let material: string | null = null;
+        let affords: Affordance[] | null = null;
+        const seen = new Set<string>();
+        while (at < words.length) {
+          const word = words[at++]!;
+          if (seen.has(word)) fail(n, `"${word}" twice on one line`);
+          seen.add(word);
+          since(word);
+          if (word === 'rotate') turn = axisAndDegrees();
+          else if (word === 'name') name = aName();
+          else if (word === 'affords') affords = affordances();
+          else if (word === 'material') {
+            material = words[at++] ?? '';
+            madeOf.push({ material, line: n });
+          } else fail(n, `"${word}" is not understood here (rotate, name, material, affords)`);
+        }
+        level.kits.push({ name, piece, center, turn, material, ...(affords ? { affords } : {}) });
+        break;
+      }
       case 'signal': {
         since(kind);
         const name = signalName();
@@ -867,6 +930,13 @@ export function levelToText(level: Level): string {
         ([name, m]) => `material ${name}  friction ${m.friction}  bounce ${m.bounce}  density ${m.density}  drag ${m.drag}`,
       ),
       ...level.boxes.map(boxText),
+      ...level.kits.map(
+        (k) =>
+          `kit ${k.piece}  ${numbersText(k.center)}${turnText(k.turn)}` +
+          (k.material ? `  material ${k.material}` : '') +
+          affordsText(k.affords) +
+          (k.name ? `  name ${k.name}` : ''),
+      ),
       ...level.maps.flatMap((m) => [
         `map ${numbersText(m.origin)}  ${m.cell} ${m.height}` +
           Object.entries(m.legend)
@@ -906,6 +976,8 @@ export function levelToText(level: Level): string {
  */
 export type LevelPiece =
   | { box: LevelBox }
+  /** A piece of the game's kit (format 9): one body of its boxes, drawn with its model. */
+  | { kit: LevelKit }
   | { sensor: LevelSensor }
   | { lamp: LevelLamp }
   | { watcher: LevelWatcher }
@@ -975,6 +1047,7 @@ export function buildLevel(world: World, level: Level) {
     return mapPieces(m).filter((_, i) => parts[i]!.kind !== 'floor');
   });
   for (const b of level.boxes) buildPiece(world, { box: b });
+  for (const kit of level.kits) buildPiece(world, { kit });
   for (const p of fromMaps) if ('box' in p) buildPiece(world, p);
   for (const m of level.maps) if (m.rows.some((r) => r.trim() !== '')) buildPiece(world, { map: floorOnly(m) });
   for (const sensor of level.sensors) buildPiece(world, { sensor });
@@ -1018,6 +1091,32 @@ export function buildPiece(world: World, piece: LevelPiece) {
   }
   /** What the line says the thing is for (format 8), if it says. */
   const affords = (list: readonly Affordance[] | undefined) => (list?.length ? { affords: [...list] } : {});
+  // A kit piece (format 9): one body that never moves, its shape the piece's boxes as one compound, its
+  // look the piece's model (the world has its game's kit).
+  if ('kit' in piece) {
+    const k = piece.kit;
+    const made = world.kit[k.piece];
+    if (!made) throw new Error(`"${k.piece}" is not a piece of this game's kit`);
+    return world.createEntity({
+      ...(k.name ? { name: k.name } : {}),
+      transform: { position: [...k.center], rotation: turnOf(k.turn) },
+      body: {
+        type: 'fixed',
+        shape: {
+          kind: 'compound',
+          parts: made.boxes.map((b) => ({
+            offset: [...b.center] as Vec3,
+            halfExtents: [...b.half] as Vec3,
+            ...(b.turn ? { rotation: turnOf(b.turn) } : {}),
+          })),
+        },
+        ...(k.material ? { material: k.material } : {}),
+      },
+      appearance: { shape: 'box', size: [...made.size], color: DEFAULT_COLOR, model: made.model },
+      ...affords(k.affords),
+      source,
+    });
+  }
   if ('box' in piece) {
     const b = piece.box;
     const moves = b.move !== null || b.spin !== null || b.door !== null || b.lift !== null;

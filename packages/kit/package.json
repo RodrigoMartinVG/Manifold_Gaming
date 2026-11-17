@@ -1,0 +1,19 @@
+{
+  "name": "@manifold/kit",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The kit of level pieces the games share (stage 4.5e, decision 0026): made by art/kit.py, each piece a mesh and the boxes it collides with. Its rules part (the catalog) runs without a screen; its model is for the presentation.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./models": "./src/models.ts",
+    "./assets": "./assets/assets.json"
+  },
+  "dependencies": {
+    "@manifold/common": "0.0.0",
+    "@manifold/core": "0.0.0"
+  },
+  "scripts": {
+    "check": "tsc -p tsconfig.json"
+  }
+}

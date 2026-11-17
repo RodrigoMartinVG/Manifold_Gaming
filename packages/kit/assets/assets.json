@@ -1,0 +1,6 @@
+{
+  "kit.glb": {
+    "what": "The kit of level pieces the games share (stage 4.5e): floors, walls of 1, 2 and 4 m (with a doorway, a wide one, a gate, a window), a corner, a pillar, a column, stairs one meter and one floor up, a ramp, a railing, a bridge, a beam, a raised slab, a roof, a ledge and a block, each a node of the file at its own origin. Beside it, kit.json: each piece's boxes, its size and its triangles.",
+    "madeBy": "art/kit.py"
+  }
+}

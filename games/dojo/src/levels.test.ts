@@ -9,6 +9,7 @@ import {
   World,
   type LevelBox,
 } from '@manifold/core';
+import { DojoCartridge } from './cartridge';
 import { LEVELS } from './levels';
 import { DOJO_ZONES } from './rules';
 
@@ -77,18 +78,21 @@ describe("the Dojo's levels (stage 3a)", () => {
     // build the same world again.
     test(`${name}: built and written back from its world, the same`, () => {
       const world = new World({ seed: 1 });
+      // (A level with the games' kit builds with it: stage 4.5e.)
+      world.kit = DojoCartridge.kit!;
       buildLevel(world, level);
       const once = levelOfWorld(world);
       world.dispose();
       if (level.maps.length === 0) return void expect(once).toEqual(level);
       const again = new World({ seed: 1 });
+      again.kit = DojoCartridge.kit!;
       buildLevel(again, once);
       expect(levelOfWorld(again)).toEqual(once);
       again.dispose();
     });
     // Stage 3b: written in the format's latest version and read again, it is the same level.
     test(`${name}: written as text and read again, the same`, () => {
-      expect(levelFromText(levelToText(level), { zones: DOJO_ZONES })).toEqual(level);
+      expect(levelFromText(levelToText(level), { zones: DOJO_ZONES, kit: DojoCartridge.kit })).toEqual(level);
     });
   }
 

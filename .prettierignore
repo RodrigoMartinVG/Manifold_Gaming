@@ -9,3 +9,6 @@ site/public/vendor/
 
 # Local drafts and idea banks (not part of the project)
 borradores_ideas/
+
+# Written by an art script (art/kit.py), never by hand: its bytes are the script's
+packages/kit/assets/kit.json

@@ -1,4 +1,5 @@
 import { levelFromText, type Level } from '@manifold/core';
+import { KIT } from '@manifold/kit';
 import { DOJO_ZONES } from './rules';
 
 /**
@@ -9,10 +10,14 @@ const files = import.meta.glob<string>('../levels/*.level', { query: '?raw', imp
 
 /**
  * By name (the file's, without `.level`). A level that is not understood stops the build: better now
- * than in a player's hands. Read with the Dojo's zones (stage 3b): one it does not have is an error too.
+ * than in a player's hands. Read with the Dojo's zones (stage 3b) and the games' kit (stage 4.5e): one
+ * it does not have is an error too.
  */
 export const LEVELS: Readonly<Record<string, Level>> = Object.fromEntries(
   Object.entries(files)
-    .map(([path, text]) => [path.replace(/^.*\/([^/]+)\.level$/, '$1'), levelFromText(text, { zones: DOJO_ZONES })] as const)
+    .map(
+      ([path, text]) =>
+        [path.replace(/^.*\/([^/]+)\.level$/, '$1'), levelFromText(text, { zones: DOJO_ZONES, kit: KIT })] as const,
+    )
     .sort(([a], [b]) => a.localeCompare(b)),
 );

@@ -82,17 +82,32 @@ export function loadModels(urls: Readonly<Record<string, string>> = {}): Models 
   const loaded = new Map<string, { scene: THREE.Object3D; clips: THREE.AnimationClip[] }>();
   const listeners: ((name: string) => void)[] = [];
   const loader = new GLTFLoader();
-  for (const [name, url] of Object.entries(urls))
+  // Each file once (stage 4.5e: a kit is one file, each piece a node of it, named `file#node`).
+  const files = new Map<string, { name: string; node: string | null }[]>();
+  for (const [name, url] of Object.entries(urls)) {
+    const hash = url.lastIndexOf('#');
+    const file = hash < 0 ? url : url.slice(0, hash);
+    const node = hash < 0 ? null : url.slice(hash + 1);
+    files.set(file, [...(files.get(file) ?? []), { name, node }]);
+  }
+  for (const [file, wanted] of files)
     loader.load(
-      url,
+      file,
       (gltf) => {
         // Its geometry and materials are shared by every copy: a copy owns none of them, so removing
         // it does not free them (owned.ts).
-        loaded.set(name, { scene: gltf.scene, clips: gltf.animations });
-        for (const listen of listeners) listen(name);
+        for (const { name, node } of wanted) {
+          const scene = node === null ? gltf.scene : gltf.scene.getObjectByName(node);
+          if (!scene) {
+            console.warn(`the model "${name}": "${file}" has no node "${node}"`);
+            continue;
+          }
+          loaded.set(name, { scene, clips: node === null ? gltf.animations : [] });
+          for (const listen of listeners) listen(name);
+        }
       },
       undefined,
-      (error) => console.warn(`the model "${name}" (${url}) did not load: ${(error as Error).message ?? error}`),
+      (error) => console.warn(`the models of "${file}" did not load: ${(error as Error).message ?? error}`),
     );
   return {
     instance(name) {

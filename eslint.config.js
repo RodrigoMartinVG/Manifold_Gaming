@@ -158,6 +158,7 @@ export default defineConfig(
       'packages/core/src/**',
       'packages/net/src/**',
       'packages/character/src/index.ts',
+      'packages/kit/src/index.ts',
       'games/*/src/cartridge.ts',
       'games/*/src/rules.ts',
       'games/*/src/levels.ts',
@@ -186,6 +187,17 @@ export default defineConfig(
     rules: { 'no-restricted-imports': ['error', { patterns: [games] }] },
   },
   {
+    // The games' kit of level pieces (stage 4.5e, decision 0026): its catalog runs without a screen,
+    // like a game's rules; its model (models.ts) is the presentation's.
+    files: ['packages/kit/src/index.ts'],
+    rules: { 'no-restricted-imports': ['error', { patterns: [drawing, models, presentation, games, network] }] },
+  },
+  {
+    files: ['packages/kit/src/**'],
+    ignores: ['packages/kit/src/index.ts'],
+    rules: { 'no-restricted-imports': ['error', { patterns: [games] }] },
+  },
+  {
     // A game uses the engine, never another game.
     files: ['games/*/src/**'],
     rules: {
@@ -202,6 +214,8 @@ export default defineConfig(
                 '!@manifold/presentation',
                 '!@manifold/character',
                 '!@manifold/character/*',
+                '!@manifold/kit',
+                '!@manifold/kit/*',
                 '!@manifold/bots',
               ],
               message: 'A game imports the engine, never another game (decision 0003).',
