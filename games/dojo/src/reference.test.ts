@@ -265,11 +265,15 @@ describe('the reference replays of phase 4, growing with it', () => {
     // The room `moves`, written here. On its open floor, looking at −Z: up, a little down, and almost
     // straight up, each throw where it aims (its pitch, a quarter turn per unit); the last one looking
     // at +X.
-    const aimed = (pitch: number, face: [number, number, number] = [0, 0, -1]) => (s: number) => ({
-      face,
-      pitch,
-      'dojo.throw': s === 5,
-    });
+    // (A throw goes when it is let go: pressed at step 5, it leaves at step 6, a tap.)
+    const aimed =
+      (pitch: number, face: [number, number, number] = [0, 0, -1]) =>
+      (s: number) => ({
+        face,
+        pitch,
+        'dojo.throw': s === 5,
+      });
+    let struckAfterTap = -1;
     const { session, seen } = run('seed 9\ndojo.level moves', [
       { steps: 30 },
       { steps: 90, drive: aimed(0.4) },
@@ -284,6 +288,17 @@ describe('the reference replays of phase 4, growing with it', () => {
       // where it ends under the slab: it crouches on, out of it, and stands.
       { lines: ['dojo.goto -5 1 2'], steps: 80, drive: (s) => ({ face: [0, 0, -1], move: [1, 0, 0], roll: s === 30 }) },
       { lines: ['dojo.goto 0 1 2'], steps: 200, drive: (s) => ({ move: [0, 0, -1], roll: s === 30 }) },
+      // The charge: from the start, aiming a little up at the target 15 m ahead, a tap (short of it),
+      // then a throw held a second (it gets there, and its lamp lights for good).
+      { lines: ['dojo.goto -5 1 6'], steps: 150, drive: (s) => ({ face: [0, 0, -1], pitch: 0.11, 'dojo.throw': s === 30 }) },
+      {
+        lines: (s) => {
+          struckAfterTap = s.world.signal('struck');
+          return [];
+        },
+        steps: 180,
+        drive: (s) => ({ face: [0, 0, -1], pitch: 0.11, 'dojo.throw': s >= 10 && s < 75 }),
+      },
       // From the far end towards the lamp: standing, then (from the dark again) crouched.
       { lines: ['dojo.goto 5 1 9.5'], steps: 150, drive: () => ({ move: [0, 0, -1] }) },
       { lines: ['dojo.goto 5 1 9.5'], steps: 60 },
@@ -294,7 +309,7 @@ describe('the reference replays of phase 4, growing with it', () => {
     // Thrown from the chest (1.2 m up): up at 36°, it rises about 2.7 m; at −13.5°, hardly at all; at
     // 72°, about 4.4 m.
     const [up, low, high] = [...seen.heights.values()];
-    expect(seen.heights.size).toBe(3);
+    expect(seen.heights.size).toBe(5);
     expect(up! - 1.2).toBeGreaterThan(2.4);
     expect(low! - 1.2).toBeLessThan(0.1);
     expect(high! - 1.2).toBeGreaterThan(4);
@@ -306,6 +321,9 @@ describe('the reference replays of phase 4, growing with it', () => {
     // Two rolls, each its 36 steps.
     expect(seen.trail.filter((t) => t.mode === 'roll')).toHaveLength(72);
     expect(seen.trail.some((t) => t.z < -4.5 && t.mode === 'walk')).toBe(true);
+    // The tap fell short of the target; the throw held a second reached it.
+    expect(struckAfterTap).toBe(0);
+    expect(session.world.signal('struck')).toBe(1);
     // Seen standing about 5 m from the lamp (at z = 0); crouched, under 2 m.
     expect(seen.seenAt).toHaveLength(2);
     expect(seen.seenAt[0]).toBeGreaterThan(4.5);

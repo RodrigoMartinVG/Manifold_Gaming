@@ -16,7 +16,7 @@ import {
 } from '@manifold/core';
 import { DojoCartridge } from './cartridge';
 import { ROOMS } from './rooms';
-import { runner } from './rules';
+import { charge, CHARGE, runner } from './rules';
 
 // The Dojo's worlds have physics (stage 1a), and Rapier loads asynchronously.
 beforeAll(initPhysics);
@@ -177,20 +177,32 @@ test('a run through the course, recorded and played again, ends in the same worl
   session.world.dispose();
 });
 
-test('dojo.throw, the Dojo’s own button: one ball per press, thrown where the character looks, and in the replay', () => {
+test('dojo.throw, the Dojo’s own button: held, it charges; let go, one ball, faster the longer it was held (stage 4b); and in the replay', () => {
   const session = new Session(DojoCartridge, { registry: registryWith('dojo.level course') });
   for (let i = 0; i < 90; i++) session.step();
-  const before = session.world.entities.size;
-  // Held for half a second: a single ball. Then pressed again: another.
-  for (let step = 1; step <= 60; step++) {
-    session.setInput(1, step <= 30 || step > 40 ? { 'dojo.throw': true } : NO_INPUT);
+  const sphere = (e: { appearance?: { shape: string } }) => e.appearance?.shape === 'sphere';
+  const thrown: { step: number; speed: number; z: number }[] = []; // z: its velocity along z
+  const seen = new Set<number>();
+  // Held for half a second (nothing while held), let go; then a tap; then held two seconds.
+  const holding = (step: number) => step <= 30 || step === 41 || (step > 60 && step <= 180);
+  for (let step = 1; step <= 200; step++) {
+    session.setInput(1, holding(step) ? { 'dojo.throw': true } : NO_INPUT);
     session.step();
+    for (const e of session.world.entities.values())
+      if (sphere(e) && !seen.has(e.id)) {
+        seen.add(e.id);
+        thrown.push({ step, speed: Math.hypot(...e.body!.linearVelocity), z: e.body!.linearVelocity[2] });
+      }
   }
-  const balls = [...session.world.entities.values()].filter((e) => e.appearance?.shape === 'sphere');
-  expect(session.world.entities.size).toBe(before + 2);
-  expect(balls).toHaveLength(2);
-  // The character looks at −Z: the first ball went that way.
-  expect(balls[0]!.transform!.position[2]).toBeLessThan(5);
+  expect(thrown.map((t) => t.step)).toEqual([31, 42, 181]);
+  // A tap throws as the throw always did (9 m/s along the aim, 2.5 above it); half a second, 12.4;
+  // held a second or more, 16 along the aim.
+  expect(thrown[1]!.speed).toBeCloseTo(Math.hypot(CHARGE.near, 2.5), 3);
+  expect(thrown[0]!.speed).toBeCloseTo(Math.hypot(CHARGE.near + (CHARGE.far - CHARGE.near) * (29 / 59), 2.5), 3);
+  expect(thrown[2]!.speed).toBeCloseTo(Math.hypot(CHARGE.far, 2.5), 3);
+  expect(charge([...session.world.entities.values()].find((e) => e.character)!)!.steps).toBe(0);
+  // The character looks at −Z: the balls went that way.
+  expect(thrown.every((t) => t.z < -8)).toBe(true);
   const text = replayToText(replayOf(session));
   expect(text).toMatch(/^input \d+ 1 dojo\.throw$/m);
   expect(playReplay(DojoCartridge, replayFromText(text)).same).toBe(true);

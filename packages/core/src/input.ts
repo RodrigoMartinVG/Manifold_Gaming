@@ -79,6 +79,14 @@ export function pressed(world: World, player: number, name: string): boolean {
 }
 
 /**
+ * Whether a button was LET GO at this step (stage 4b): held at the step before, and not now. What is
+ * charged while it is held (a bow, a throw) goes when it is let go.
+ */
+export function released(world: World, player: number, name: string): boolean {
+  return !isDown(world.inputs.get(player) ?? NO_INPUT, name) && isDown(world.lastInputs.get(player) ?? NO_INPUT, name);
+}
+
+/**
  * A DIRECTION ON THE GROUND (stage 2.5c): `degrees` from forward (−Z) towards the right (+X), whole,
  * and `amount` (0 to 1, in hundredths), as the vector the character reads. With our own sine and
  * cosine (`sinCosDegrees`): the same bits in every browser. A direction asked for is one of 360, and

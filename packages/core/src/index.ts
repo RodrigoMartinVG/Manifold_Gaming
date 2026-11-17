@@ -38,6 +38,7 @@ export {
   NO_INPUT,
   normalizeInput,
   pressed,
+  released,
   sameInput,
   vectorOf,
   type InputAction,

@@ -1,7 +1,8 @@
 # Manifold level 7
-# What a body can do (stage 4b), growing with the stage: aim and throw on the open floor; crouch (or
-# roll) under a low passage that standing does not fit; and walk towards a lamp an eye watches:
-# standing, it sees you soon; crouched (lower, and half as easy to see), only much closer.
+# What a body can do (stage 4b), growing with the stage: aim and throw on the open floor, near or far
+# by how long the throw is held, at a target 15 m away; crouch (or roll) under a low passage that
+# standing does not fit; and walk towards a lamp an eye watches: standing, it sees you soon; crouched
+# (lower, and half as easy to see), only much closer.
 title What a body can do
 spawn -5 1 6
 facing 0 0 -1
@@ -21,3 +22,13 @@ box 0 1.4 -2      1.2 0.25 2    color #5a4a38  name low
 box 5 1.4 0       0.06 1.4 0.06 color #4a4440
 lamp 5 3 0        7 1           name lamp
 watcher 7 2 -9    16 70 0.35    rotate y 180  name eye
+
+# The target (the throw's charge): a board 15 m ahead of the start, a plate in front of it, and a lamp
+# above it that lights for good once a ball reaches the plate. A tap (F) throws short of it; held a
+# second, and aimed a little up, the ball gets there.
+box -5 1.5 -9.6     1 1.5 0.1     color #5a4a38  name board
+sensor plate  -5 1.6 -9.2   1 1 0.3  name target
+lamp -5 3.4 -9.2    4 1           signal struck  name target_lamp
+signal hit      zone target
+signal never
+signal struck   latch hit never

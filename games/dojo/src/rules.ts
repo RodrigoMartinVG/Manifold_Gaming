@@ -6,7 +6,9 @@ import {
   component,
   DEFAULT_MOVEMENT,
   GRID_COLOR,
-  pressed,
+  isDown,
+  NO_INPUT,
+  released,
   STEP,
   upAt,
   type Capabilities,
@@ -66,6 +68,19 @@ const RUNNER = 'dojo.runner';
 /** A character's runner, if it has one. */
 export const runner = (e: Entity) => component<Runner>(e, RUNNER);
 
+/**
+ * THE THROW'S CHARGE (stage 4b): how many steps `dojo.throw` has been held (0: not held). Let go, the
+ * ball leaves where it aims, at `CHARGE.near` m/s for a tap and up to `CHARGE.far` held a second: the
+ * same aim throws near or far. (A tap throws as the throw did before the charge.)
+ */
+export type Charge = { steps: number };
+const CHARGE_COMPONENT = 'dojo.charge';
+export const CHARGE = Object.freeze({ full: 60, near: 9, far: 16 });
+/** A character's charge, if it has one. */
+export const charge = (e: Entity) => component<Charge>(e, CHARGE_COMPONENT);
+/** How charged a throw held for `steps` steps is, from 0 (a tap: one step) to 1 (a second or more). */
+export const chargeOf = (steps: number) => Math.min(1, Math.max(0, steps - 1) / (CHARGE.full - 1));
+
 /** A character: a capsule 1.6 m tall, and its runner for the level's loop. */
 function character(world: World, player: number, at: Vec3, facing: Vec3, color: number, like?: Character) {
   // The games' character (stage 4a: @manifold/character): its body, its poses, the mannequin.
@@ -78,6 +93,7 @@ function character(world: World, player: number, at: Vec3, facing: Vec3, color: 
     appearance: parts.appearance,
     game: {
       [RUNNER]: { spawn: [...at], checkpoint: [...at], start: world.tick, finish: -1, falls: 0, stars: 0 } satisfies Runner,
+      [CHARGE_COMPONENT]: { steps: 0 } satisfies Charge,
     },
   });
 }
@@ -274,7 +290,7 @@ function joinedPlayers(world: World) {
  * - `dojo.cubes` is STARTUP: how many cubes there are when the world is born (changing it restarts it);
  * - `dojo.spin` is WORLD: the big cube's spin, which changes at a given step;
  * - `dojo.spawn x y z` is a WORLD action: a ball that falls from there, at a given step.
- * - `dojo.throw` is a PLAYER's button (stage 1d): the character throws a ball where it aims. The core does
+ * - `dojo.throw` is a PLAYER's button (stage 1d): held, it charges; let go, the character throws a ball where it aims (stage 4b). The core does
  *   not know it: the Dojo declares it, reads it on every step, and its page says which key presses it.
  * (And the engine's `seed` and `physics.gravity`, which the Dojo lets people touch too.)
  *
@@ -285,7 +301,14 @@ export function createDojo(levels: Readonly<Record<string, Level>>): Cartridge {
   return {
     id: 'dojo',
     title: 'Dojo',
-    inputs: [{ name: 'dojo.throw', kind: 'button', description: 'the character throws a ball where it aims' }],
+    inputs: [
+      {
+        name: 'dojo.throw',
+        kind: 'button',
+        description:
+          'held, the character charges a throw; let go, it throws a ball where it aims, farther the longer it was held',
+      },
+    ],
     // A lab: in a match, everybody may change the world (another game may let only its host).
     mayChange: () => true,
     // Its zones (stage 3b), for its levels and for what the console adds (stage 3j).
@@ -395,14 +418,20 @@ export function createDojo(levels: Readonly<Record<string, Level>>): Cartridge {
     onStep(world, events) {
       joinedPlayers(world);
       levelLoop(world, events);
-      // Each press throws one ball (held, it does not throw more): from the chest, where it aims (stage
-      // 4b: with its pitch), and up a little from there.
+      // Held, the throw charges; let go, one ball leaves: from the chest, where it aims (stage 4b: with
+      // its pitch), up a little from there, as fast as it was charged.
       for (const e of world.entities.values()) {
-        if (!e.character || !e.transform || !pressed(world, e.character.player, 'dojo.throw')) continue;
+        const held = e.character && charge(e);
+        if (!e.character || !e.transform || !held) continue;
+        const player = e.character.player;
+        if (isDown(world.inputs.get(player) ?? NO_INPUT, 'dojo.throw')) held.steps = Math.min(held.steps + 1, CHARGE.full);
+        if (!released(world, player, 'dojo.throw')) continue;
+        const speed = CHARGE.near + (CHARGE.far - CHARGE.near) * chargeOf(held.steps);
+        held.steps = 0;
         const up = upAt(world, e.transform.position);
         const { ahead, above } = aimOf(e.character, up);
         const from = vec3.add(e.transform.position, vec3.add(vec3.scale(ahead, 0.75), vec3.scale(up, 0.4)));
-        ball(world, from, vec3.add(vec3.scale(ahead, 9), vec3.scale(above, 2.5)));
+        ball(world, from, vec3.add(vec3.scale(ahead, speed), vec3.scale(above, 2.5)));
       }
     },
 

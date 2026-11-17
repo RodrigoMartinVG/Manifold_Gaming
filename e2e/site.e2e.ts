@@ -1151,6 +1151,26 @@ test('rolling (stage 4b): V rolls it about 3 m the way it goes, playing its roll
   expect(list).toEqual([]);
 });
 
+test('the charge (stage 4b): F held, the HUD shows the throw filling up; let go, the ball goes and the meter with it', async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  const list = errors(page);
+  await page.goto('jugar/dojo/moves/#recipe=view.camera+free');
+  await expect.poll(async () => (await position(page, 'player')).length, { timeout: 15_000 }).toBe(3);
+  await afterSteps(page, 60);
+  const hud = page.locator('.mg-hud');
+  await expect(hud).not.toContainText('Fuerza');
+  await page.keyboard.down('KeyF');
+  await afterSteps(page, 70);
+  // Held more than a second: full.
+  await expect(hud).toContainText('Fuerza');
+  await expect(hud).toContainText('▮▮▮▮▮▮▮▮▮▮');
+  await page.keyboard.up('KeyF');
+  await expect(hud).not.toContainText('Fuerza', { timeout: 15_000 });
+  expect(list).toEqual([]);
+});
+
 test('its hands on the tower (stage 4a): on its wall while it climbs, on its top before it gets over; show.ik draws them', async ({
   page,
 }) => {

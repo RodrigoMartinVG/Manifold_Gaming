@@ -58,5 +58,6 @@
  *      lower body, it stands only where it fits, and it is seen and heard less
  *  29  stage 4b: rolling, a mode with its capability, its numbers and its state (`roll`, `rolling`):
  *      a dodge, low, for its time, the way it was asked
+ *  30  stage 4b: the Dojo's throw charges while held and goes when let go (`dojo.charge`), near or far
  */
-export const SIMULATION_VERSION = 29;
+export const SIMULATION_VERSION = 30;
