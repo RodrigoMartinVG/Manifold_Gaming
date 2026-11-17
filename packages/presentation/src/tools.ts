@@ -21,6 +21,8 @@ export interface Tool {
   lift: number;
   /** A strike under way: its turn about the body's up from straight ahead (degrees, + to its right); at rest, null. */
   sweep: number | null;
+  /** Blocking (stage 4f): held across in front of the chest, level, to take what comes. */
+  block?: boolean;
 }
 
 /** What each character carries, as a game says it (mount's `tools`). */
@@ -117,9 +119,13 @@ export function holdTool(
     .applyQuaternion(aimTurn)
     .applyQuaternion(turn);
   const gripR = mid.clone().add(offset);
-  // Where it points: the aim, swept, and raised by the lift about its own right.
+  // Where it points: the aim, swept, and raised by the lift about its own right; blocking, across in
+  // front (to its left), the right hand a little to its right and higher.
   const swungRight = right.clone().applyQuaternion(turn);
-  const direction = forward.clone().applyQuaternion(aimTurn).applyQuaternion(turn).applyAxisAngle(swungRight, deg(holding.lift));
+  const direction = tool.block
+    ? right.clone().negate()
+    : forward.clone().applyQuaternion(aimTurn).applyQuaternion(turn).applyAxisAngle(swungRight, deg(holding.lift));
+  if (tool.block) gripR.copy(mid).addScaledVector(forward, 0.32).addScaledVector(right, 0.22).addScaledVector(upward, -0.05);
   const back = gripR.clone().addScaledVector(direction, -(tool.grips[0] ?? 0));
   const second = tool.grips[1];
   // Its box: along it, its +Z; across it, as level as it can be (its +X square to "up").

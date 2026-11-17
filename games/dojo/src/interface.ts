@@ -41,6 +41,13 @@ export const DOJO_WORDS = {
     'dojo.weapon.dart': 'dardo',
     'dojo.weapon.bolt': 'saeta',
     'dojo.weapon.stick': 'palo',
+    'dojo.weapon.grenade': 'granada',
+    'dojo.who.master': 'El maestro',
+    'dojo.story.hello': 'Llegaste. Ese guardia no te va a dejar salir: tendrás que pasar por encima de él.',
+    'dojo.story.lock': 'Tomá el palo del soporte. Fijate en él con la T, bloqueá con la B y pegale con la X.',
+    'dojo.story.arm': 'tomá el palo del soporte',
+    'dojo.story.fight': 'derribá al guardia',
+    'dojo.story.leave': 'salí por la puerta',
     'dojo.goal.title': '¡Llegaste!',
     'dojo.goal.line': 'Tiempo {0} · caídas {1} · estrellas {2} de {3}',
     'dojo.goal.again': 'Otra vez',
@@ -70,6 +77,13 @@ export const DOJO_WORDS = {
     'dojo.weapon.dart': 'dart',
     'dojo.weapon.bolt': 'bolt',
     'dojo.weapon.stick': 'stick',
+    'dojo.weapon.grenade': 'grenade',
+    'dojo.who.master': 'The master',
+    'dojo.story.hello': 'You made it. That guard will not let you out: you will have to get past it.',
+    'dojo.story.lock': 'Take the stick from its rack. Lock on to him with T, block with B, strike with X.',
+    'dojo.story.arm': 'take the stick from its rack',
+    'dojo.story.fight': 'bring the guard down',
+    'dojo.story.leave': 'go out through the gate',
     'dojo.goal.title': 'You made it!',
     'dojo.goal.line': 'Time {0} · falls {1} · stars {2} of {3}',
     'dojo.goal.again': 'Again',
@@ -134,6 +148,7 @@ const LOOKS: Readonly<Record<WeaponKind, Omit<Tool, 'sweep'>>> = {
   dart: { size: [0.04, 0.07, 0.26], color: 0x8fa8c0, grips: [0.04, 0.16], lift: 0 },
   bolt: { size: [0.07, 0.06, 0.5], color: 0x9a6e48, grips: [0.08, 0.26], lift: 0 },
   stick: { size: [0.035, 0.035, WEAPONS.stick.reach], color: 0xc8a060, grips: [0.06, 0.24], lift: 50 },
+  grenade: { size: [0.14, 0.14, 0.14], color: 0x4a6a3a, grips: [0.07], lift: 0 },
 };
 
 export function dojoTool(_world: World, e: Entity): Tool | null {
@@ -141,5 +156,6 @@ export function dojoTool(_world: World, e: Entity): Tool | null {
   if (!w || w.kind === 'none') return null;
   const { steps, arc } = WEAPONS.stick;
   const sweep = w.kind === 'stick' && w.strike > 0 ? arc / 2 - (arc * (steps - w.strike - 1)) / steps : null;
-  return { ...LOOKS[w.kind], sweep };
+  // Blocking (stage 4f): held across in front.
+  return { ...LOOKS[w.kind], sweep, ...(e.character?.mode === 'block' ? { block: true } : {}) };
 }

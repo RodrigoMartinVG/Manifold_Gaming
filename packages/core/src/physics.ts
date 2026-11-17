@@ -488,7 +488,8 @@ export class RapierPhysics implements PhysicsBackend {
       if (left.has(handle)) continue;
       const body = this.world.getRigidBody(handle);
       const collider = body?.collider(0);
-      if (!body || !collider || (o.dynamic === false && body.isDynamic()) || (o.kinematic === false && body.isKinematic())) continue;
+      if (!body || !collider || (o.dynamic === false && body.isDynamic()) || (o.kinematic === false && body.isKinematic()))
+        continue;
       if (groups !== undefined && !meets(groups, collider.collisionGroups())) continue;
       out.push(collider);
     }

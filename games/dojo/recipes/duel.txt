@@ -1,0 +1,9 @@
+# A duel: lock on, block, strike; objectives that chain
+# group: demos
+# Stage 4f, the adventure's pieces. A master tells you why you are here; then: take the stick from
+# its rack, bring the guard down, and go out through the gate (the objective to do is at the top).
+# Lock on to the guard with T (or the cross's up): you face it, and your moves to the side go round it
+# at the same distance. Hold B (or the right button, or the cross's down) to block: a hit from in front
+# takes a quarter. X strikes. The other rack has grenades: their blast throws what is near.
+seed 21
+dojo.level duel

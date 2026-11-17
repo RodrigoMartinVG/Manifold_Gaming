@@ -291,7 +291,14 @@ export function createMatch(o: {
           `${e.name ?? e.id} (entity ${e.id}, player ${e.character!.player}) · ${e.brain!.name}${e.brain!.route ? ` on ${e.brain!.route}` : ''}${down}`,
           `  ${String(m.mode ?? '-')}, going to ${at(m.goal)}${driving === e.character!.player ? ' · you drive it' : ''}`,
           `  heard ${heard ? `${ago(heard.tick)} at ${at(heard.at)}` : 'nothing'} · saw ${seen ? `${ago(seen.tick)} at ${at(seen.at)}` : 'nobody'}`,
-          `  path: ${plan ? plan.steps.slice(plan.next).map((s) => s.kind).join(', ') || '(there)' : '-'}`,
+          `  path: ${
+            plan
+              ? plan.steps
+                  .slice(plan.next)
+                  .map((s) => s.kind)
+                  .join(', ') || '(there)'
+              : '-'
+          }`,
         ].join('\n');
       });
       out.write(lines.join('\n'));

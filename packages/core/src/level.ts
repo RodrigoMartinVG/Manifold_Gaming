@@ -81,6 +81,15 @@ import { copyData, ENTITY_NAME, type World } from './world';
  *   box 2 0.5 0  1 0.5 0.2  affords cover     what a thing is for, on any line: cover, throw, kick,
  *                                             weak (a weak point): words the brains read
  *
+ * And (stage 4f) the story's pieces, keys of the game's words that signals move on:
+ *
+ *   objective take when armed say dojo.story.take then cross
+ *                                             an objective: done when its signal is on, then the next
+ *                                             one is the one to do (one nothing leads to starts so)
+ *   scene hello when arrived  master:dojo.story.hello  master:dojo.story.go
+ *                                             a short scene, once, when its signal turns on: who says
+ *                                             which key, in order
+ *
  * The turns are written in degrees, as a person thinks them, and become quaternions with our own sine
  * and cosine (`quat.fromDegrees`): the browser's would give other bits in another browser, and the
  * world must be born the same everywhere.
@@ -154,6 +163,21 @@ export interface LevelWatcher {
   affords?: Affordance[];
 }
 
+/** An objective (format 8, stage 4f): its name, the signal that completes it, its words' key, the one after it. */
+export interface LevelObjective {
+  name: string;
+  when: string;
+  say: string;
+  then: string | null;
+}
+
+/** A short scene (format 8, stage 4f): its name, the signal that plays it, and who says which key. */
+export interface LevelScene {
+  name: string;
+  when: string;
+  lines: { who: string; say: string }[];
+}
+
 /** A route (format 8): its name, its points, and whether it goes round. */
 export interface LevelRoute {
   name: string;
@@ -199,6 +223,9 @@ export interface Level {
   watchers: LevelWatcher[];
   /** Its routes (format 8), in the order written. */
   routes: LevelRoute[];
+  /** Its objectives and scenes (format 8, stage 4f), in the order written. */
+  objectives: LevelObjective[];
+  scenes: LevelScene[];
 }
 
 /**
@@ -247,6 +274,8 @@ const SINCE: Record<string, number> = {
   map: 7,
   route: 8,
   affords: 8,
+  objective: 8,
+  scene: 8,
 };
 /** How many signals or zones each kind of signal reads (−1: one or more), as the world says. */
 const READS: Record<SignalOp, number> = { input: 0, zone: 1, used: 1, seen: 1, any: -1, all: -1, not: 1, toggle: 1, latch: 2 };
@@ -266,6 +295,8 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
     lamps: [],
     watchers: [],
     routes: [],
+    objectives: [],
+    scenes: [],
   };
   const rows = text.split(/\r?\n/);
   /** A map being read (format 7): its rows come as they are written, until `end`. */
@@ -289,6 +320,8 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
   const followed: { signal: string; line: number }[] = [];
   /** Where each signal was declared. */
   const signalLines = new Map<string, number>();
+  /** The objectives one leads to, with their lines (checked at the end: one may come below). */
+  const ledTo: { name: string; line: number }[] = [];
   /** The watchers signals read, with their lines (checked at the end: a watcher may come below). */
   const watchersRead: { watcher: string; line: number }[] = [];
   rows.forEach((row, n) => {
@@ -372,6 +405,12 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
       if (first !== undefined) fail(n, `the name "${name}" twice in a level (the first, on line ${first + 1})`);
       names.set(name, n);
       return name;
+    };
+    /** A key of the game's words (stage 4f: `dojo.story.hello`). */
+    const wordKey = (): string => {
+      const key = words[at++] ?? '';
+      if (!KEY.test(key)) fail(n, `"${key}" is not a key of the game's words (like dojo.story.hello)`);
+      return key;
     };
     /** What a thing is for (format 8): the words that come next, as many as are what things are for (one at least). */
     const affordances = (): Affordance[] => {
@@ -708,6 +747,42 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
         drawing = { map: { origin, cell, height, legend, rows: [] }, line: n };
         break;
       }
+      case 'objective': {
+        since(kind);
+        const name = aName();
+        if (words[at++] !== 'when') fail(n, 'an objective says `when <signal>` after its name');
+        const when = signalName();
+        followed.push({ signal: when, line: n });
+        if (words[at++] !== 'say') fail(n, 'an objective says `say <key>` after its signal');
+        const say = wordKey();
+        let then: string | null = null;
+        if (words[at] === 'then') {
+          at++;
+          then = words[at++] ?? '';
+          if (!ENTITY_NAME.test(then)) fail(n, `"${then}" is not an objective's name`);
+          ledTo.push({ name: then, line: n });
+        }
+        level.objectives.push({ name, when, say, then });
+        break;
+      }
+      case 'scene': {
+        since(kind);
+        const name = aName();
+        if (words[at++] !== 'when') fail(n, 'a scene says `when <signal>` after its name');
+        const when = signalName();
+        followed.push({ signal: when, line: n });
+        const lines: { who: string; say: string }[] = [];
+        while (at < words.length) {
+          const pair = words[at++]!;
+          const [who, say] = pair.split(':');
+          if (!who || !say || !KEY.test(who) || !KEY.test(say))
+            fail(n, `"${pair}" is not a line of a scene: who:key, like master:dojo.story.hello`);
+          lines.push({ who: who!, say: say! });
+        }
+        if (lines.length === 0) fail(n, 'a scene needs a line at least (who:key)');
+        level.scenes.push({ name, when, lines });
+        break;
+      }
       case 'route': {
         since(kind);
         const name = aName();
@@ -724,7 +799,7 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
       default:
         fail(
           n,
-          `"${kind}" is not understood (title, spawn, facing, ambient, material, box, map, sensor, lamp, watcher, signal, route)`,
+          `"${kind}" is not understood (title, spawn, facing, ambient, material, box, map, sensor, lamp, watcher, signal, route, objective, scene)`,
         );
     }
     if (at < words.length) fail(n, `"${words[at]}" is extra`);
@@ -739,10 +814,14 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
   const watcherNames = new Set(level.watchers.flatMap((w) => (w.name ? [w.name] : [])));
   for (const { watcher, line } of watchersRead)
     if (!watcherNames.has(watcher)) fail(line, `no watcher named "${watcher}" in the level`);
+  const objectiveNames = new Set(level.objectives.map((o) => o.name));
+  for (const { name, line } of ledTo) if (!objectiveNames.has(name)) fail(line, `no objective named "${name}" in the level`);
   return level;
 }
 
 const numbersText = (v: readonly number[]) => v.join(' ');
+/** A key of the game's words (decision 0019): its name first, then words, dots between. */
+const KEY = /^[a-z][a-z0-9_.-]*$/;
 const affordsText = (affords: readonly Affordance[] | undefined) => (affords?.length ? `  affords ${affords.join(' ')}` : '');
 const turnText = (turn: Turn | null) => (turn ? `  rotate ${turn.axis} ${turn.degrees}` : '');
 /** Bits as the groups' numbers (1 to 16). */
@@ -814,6 +893,8 @@ export function levelToText(level: Level): string {
       ),
       ...level.signals.map((g) => ['signal', g.name, ...(g.op === 'input' ? [] : [g.op, ...g.reads])].join(' ')),
       ...level.routes.map((r) => `route ${r.name}${r.loop ? ' loop' : ''}  ${r.points.map(numbersText).join('  ')}`),
+      ...level.objectives.map((o) => `objective ${o.name} when ${o.when} say ${o.say}${o.then ? ` then ${o.then}` : ''}`),
+      ...level.scenes.map((sc) => `scene ${sc.name} when ${sc.when}  ${sc.lines.map((l) => `${l.who}:${l.say}`).join('  ')}`),
     ].join('\n') + '\n'
   );
 }
@@ -831,7 +912,10 @@ export type LevelPiece =
   /** A map's floor (stage 4a), one body: written back as a map of floor alone (its walls and zones are their own lines). */
   | { map: LevelMap }
   /** A route (stage 4d): an entity with its name and its points, and nothing else. */
-  | { route: LevelRoute };
+  | { route: LevelRoute }
+  /** An objective, a scene (stage 4f): an entity with its name and them. */
+  | { objective: LevelObjective }
+  | { scene: LevelScene };
 
 /** A map's color for its walls and its floor. */
 const MAP_WALL = 0x6f6a62;
@@ -900,6 +984,8 @@ export function buildLevel(world: World, level: Level) {
   for (const watcher of level.watchers) buildPiece(world, { watcher });
   for (const g of level.signals) world.addSignal(g.name, g.op, g.reads);
   for (const route of level.routes) buildPiece(world, { route });
+  for (const objective of level.objectives) buildPiece(world, { objective });
+  for (const scene of level.scenes) buildPiece(world, { scene });
 }
 
 /** One piece of a level, in a world: the entity it makes, which keeps it (`source`). */
@@ -908,6 +994,27 @@ export function buildPiece(world: World, piece: LevelPiece) {
   if ('route' in piece) {
     const r = piece.route;
     return world.createEntity({ name: r.name, route: { points: r.points.map((p) => [...p] as Vec3), loop: r.loop }, source });
+  }
+  // An objective (stage 4f): the one to do if no objective leads to it (and one it leads to waits, now).
+  if ('objective' in piece) {
+    const o = piece.objective;
+    const objectives = [...world.entities.values()].filter((e) => e.objective);
+    const led = objectives.some((e) => e.objective!.then === o.name);
+    const next = o.then ? world.named(o.then) : undefined;
+    if (next?.objective?.state === 'active') next.objective.state = 'waiting';
+    return world.createEntity({
+      name: o.name,
+      objective: { say: o.say, when: o.when, then: o.then, state: led ? 'waiting' : 'active' },
+      source,
+    });
+  }
+  if ('scene' in piece) {
+    const sc = piece.scene;
+    return world.createEntity({
+      name: sc.name,
+      scene: { lines: sc.lines.map((l) => ({ ...l })), when: sc.when, played: false },
+      source,
+    });
   }
   /** What the line says the thing is for (format 8), if it says. */
   const affords = (list: readonly Affordance[] | undefined) => (list?.length ? { affords: [...list] } : {});

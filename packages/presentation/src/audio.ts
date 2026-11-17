@@ -139,6 +139,11 @@ export function mountAudio(page: GamePage): Piece {
         for (let i = 0; i < 8; i++)
           ring(out, at + Math.random() * 0.2, 2200 + Math.random() * 4500, 0.12, 0.15 + Math.random() * 0.2);
         break;
+      case 'blast':
+        // (Stage 4f) A deep thump and a long rush of noise.
+        ring(out, at, 45, 0.9, 0.7, 'sine', 30);
+        burst(out, at, 900, 0.5, 0.9, 1.1);
+        break;
     }
     made++;
     page.container.dataset.sounds = String(made);

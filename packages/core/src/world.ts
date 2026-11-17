@@ -132,6 +132,9 @@ export function mechanismAt(m: Mechanism, progress: number): { position: Vec3; r
 /** An entity's name (stage 3b): one word, lowercase, digits and _ (`door_north`, `cube`). */
 export const ENTITY_NAME = /^[a-z][a-z0-9_]*$/;
 
+/** What a character weighs for a blast's push (stage 4f, kg): it has no mass of its own (its body moves only as its controller says). */
+export const CHARACTER_MASS = 80;
+
 /** The fixed step: the simulation always advances 1/60 of a second, whatever the frame rate. */
 export const STEP = 1 / 60;
 
@@ -237,6 +240,8 @@ export function copyData<T>(x: T): T {
  *      sees (stage 3d);
  *   8. signals: every signal, from what the zones noticed and the watchers saw, in the order declared
  *      (stage 3c, decision 0018); mechanisms and lamps read them at the next step.
+ *   9. story: an active objective whose signal is on is done, and the one after it becomes active; a
+ *      scene whose signal is on plays, once (stage 4f).
  *
  * A game hooks in around them, never inside (mechanism and policy, decision 0000): before
  * (`Cartridge.beforeStep`: what these phases will use at this step: a bot's inputs, a mechanism's
@@ -254,6 +259,7 @@ export const PHASES = [
   'zones',
   'light',
   'signals',
+  'story',
 ] as const;
 export type Phase = (typeof PHASES)[number];
 
@@ -461,6 +467,77 @@ export class World {
   push(e: Entity, change: Vec3) {
     if (e.body?.type !== 'dynamic') return;
     this.physics.push(e.body.handle, vec3.scale(change, this.physics.massOf(e.body.handle)));
+  }
+
+  /**
+   * A BLAST (stage 4f, the explosion's push of the plan): from `at`, what the physics moves and the
+   * characters within `radius` are pushed away from it, by `strength` (an impulse, N·s) at its center,
+   * less with the distance (all of it at 0, none at the radius), unless something that does not move
+   * stands between. A body takes it as an impulse; a character, as a change of its velocity, as if it
+   * weighed `CHARACTER_MASS` (a push up lifts it off the ground). It is heard (a `blast` sound, as far as
+   * a hit of its strength) and said (`blast`). Returns what it pushed, and how much of the blast each
+   * one took (0 to 1): what that does to them (their health) is each game's.
+   */
+  explode(at: Vec3, radius: number, strength: number, by: EntityId | null = null): { entity: EntityId; share: number }[] {
+    const pushed: { entity: EntityId; share: number }[] = [];
+    for (const e of this.entities.values()) {
+      const b = e.body;
+      if (!b || !e.transform || (b.type !== 'dynamic' && !e.character)) continue;
+      const to = vec3.sub(e.transform.position, at);
+      const d = vec3.length(to);
+      if (d >= radius) continue;
+      const away: Vec3 = d > 1e-6 ? vec3.scale(to, 1 / d) : [0, 1, 0];
+      // Behind something that does not move, sheltered.
+      if (d > 1e-6) {
+        const wall = this.castRay(at, away, d, { besides: e.id, dynamic: false, characters: false });
+        if (wall && wall.distance < d - 1e-6) continue;
+      }
+      const share = 1 - d / radius;
+      if (e.character) {
+        // Off the ground from this step on, and thrown until it lands.
+        e.character.velocity = vec3.add(e.character.velocity, vec3.scale(away, (strength * share) / CHARACTER_MASS));
+        e.character.grounded = false;
+        e.character.thrown = true;
+      } else this.physics.push(b.handle, vec3.scale(away, strength * share));
+      pushed.push({ entity: e.id, share });
+    }
+    this.emit({ type: 'blast', at: [...at], radius, by });
+    this.emit({
+      type: 'sound',
+      sound: 'blast',
+      source: by ?? 0,
+      at: [...at],
+      surface: null,
+      speed: 0,
+      energy: strength,
+      radius: Math.min(40, 2 + 8 * Math.sqrt(strength)),
+    });
+    return pushed;
+  }
+
+  /**
+   * THE STORY'S PIECES (stage 4f), after the signals: each active objective whose signal is on is done
+   * (`objective`, done), and the one it leads to becomes active (`objective`, active); each scene whose
+   * signal is on and has not played, plays (`scene`). What they say is keys of the game's words.
+   */
+  private tell() {
+    for (const e of [...this.entities.values()]) {
+      const o = e.objective;
+      if (o?.state !== 'active' || this.signal(o.when) === 0) continue;
+      o.state = 'done';
+      this.emit({ type: 'objective', name: e.name ?? String(e.id), say: o.say, state: 'done' });
+      const next = o.then ? this.named(o.then)?.objective : undefined;
+      if (next && next.state === 'waiting') {
+        next.state = 'active';
+        this.emit({ type: 'objective', name: o.then!, say: next.say, state: 'active' });
+      }
+    }
+    for (const e of this.entities.values()) {
+      const sc = e.scene;
+      if (!sc || sc.played || this.signal(sc.when) === 0) continue;
+      sc.played = true;
+      this.emit({ type: 'scene', name: e.name ?? String(e.id), lines: sc.lines.map((l) => ({ ...l })) });
+    }
   }
 
   /** A signal's value: what it was at the end of the last step. */
@@ -703,6 +780,7 @@ export class World {
     zones: () => this.sense(),
     light: () => this.illuminate(),
     signals: () => this.compute(),
+    story: () => this.tell(),
   };
 
   /**

@@ -321,7 +321,10 @@ export class Server {
     this.behind = this.behind.filter((b) => b.save.world.tick <= kept.save.world.tick);
     for (const other of this.connections) if (other.player !== null) this.welcome(other);
     this.syncPlayers();
-    this.say(c, `back at step ${this.session.world.tick}, ${((to + Math.round(seconds * 60) - this.session.world.tick) / 60).toFixed(1)} s ago`);
+    this.say(
+      c,
+      `back at step ${this.session.world.tick}, ${((to + Math.round(seconds * 60) - this.session.world.tick) / 60).toFixed(1)} s ago`,
+    );
   }
 
   private say(c: Connection, text: string, level: Level = 'info') {

@@ -1,6 +1,7 @@
 import { cellAt, findPath, inZone, navOf, type Step } from '@manifold/bots';
 import { vec3, type Vec3 } from '@manifold/common';
 import { CHARACTER_GAP, type Brain, type Entity, type Memory, type PlayerInput, type World } from '@manifold/core';
+import { weapon } from './rules';
 
 /**
  * THE GUARD'S BRAIN (stage 4e, decision 0023): it runs where the match is hosted, once, and asks for
@@ -136,10 +137,13 @@ export const guardBrain: Brain = (world, self, memory) => {
 
   // A sound just heard: it turns to it and listens a moment before it goes.
   if (m.mode === 'look' && m.heard && world.tick - m.heard.tick < LISTEN) return { face: toward(center, m.heard.at) };
-  // Within reach of whoever it chases: it faces them and strikes (a press, then a release).
+  // Within reach of whoever it chases: it faces them and strikes (a press, then a release); while they
+  // swing at it, it blocks (stage 4f).
   if (m.mode === 'chase' && target && vec3.length(vec3.sub(target.transform!.position, center)) <= REACH) {
+    const face = toward(center, target.transform!.position);
+    if ((weapon(target)?.strike ?? 0) > 0) return { face, block: true };
     m.swing = !m.swing;
-    return { face: toward(center, target.transform!.position), 'dojo.attack': m.swing };
+    return { face, 'dojo.attack': m.swing };
   }
   if (!m.goal) return {};
 

@@ -35,6 +35,10 @@ export interface Entity {
   projectile?: Projectile;
   /** A route (stage 4d, level format 8): points a guard patrols, there and back or round. Nothing else in it. */
   route?: Route;
+  /** An objective (stage 4f, level format 8): what it says, the signal that completes it, the one after it, and how it stands. */
+  objective?: Objective;
+  /** A short scene (stage 4f, level format 8): its lines (who says which key), the signal that plays it, and whether it played. */
+  scene?: Scene;
   /** What it is for, as its level says (stage 4d, decision 0024: cover, something to throw…): data the brains read. */
   affords?: Affordance[];
   /**
@@ -180,6 +184,25 @@ export interface Mechanism {
 export interface Route {
   points: Vec3[];
   loop: boolean;
+}
+
+/**
+ * AN OBJECTIVE (stage 4f): a key of the game's words that says it, the signal that completes it (on),
+ * and the objective after it, if any: they chain. `state`: waiting (not yet), active (the one to do),
+ * done. A level's first objective that no other one leads to starts active.
+ */
+export interface Objective {
+  say: string;
+  when: string;
+  then: string | null;
+  state: 'waiting' | 'active' | 'done';
+}
+
+/** A SHORT SCENE (stage 4f, decision 0017 leaves longer ones out): who says which key, in order; the signal that plays it, once. */
+export interface Scene {
+  lines: { who: string; say: string }[];
+  when: string;
+  played: boolean;
 }
 
 /** Which brain thinks for a character (stage 4e), and the route it keeps to (a route's name), if any. */
@@ -379,12 +402,14 @@ export interface Movement {
   crouch: { speed: number; seen: number; heard: number };
   /** Rolling (stage 4b): how fast (m/s) and for how long (s): a dodge of speed × time meters. */
   roll: { speed: number; time: number };
+  /** Blocking (stage 4f): how fast it goes while it guards itself (m/s). What a block saves is each game's (its filter). */
+  block: { speed: number };
   /** How fast it turns on its own axis when asked to (`turn` at 1), radians per second. */
   turn: number;
 }
 
 /** The ways of moving (stage 2b): exactly one at each step. Gliding and climbing came with stage 2c; crouching and rolling with 4b. */
-export type ModeName = 'walk' | 'air' | 'glide' | 'climb' | 'crouch' | 'roll';
+export type ModeName = 'walk' | 'air' | 'glide' | 'climb' | 'crouch' | 'roll' | 'block';
 
 /**
  * WHAT A CHARACTER CAN DO besides walking and jumping (stage 2c): each one, on or off, and it can
@@ -402,6 +427,8 @@ export interface Capabilities {
   crouch: boolean;
   /** Pressing `roll` on the ground, it rolls (stage 4b): a dodge, low, for its time, the way it was asked to go. */
   roll: boolean;
+  /** Holding `block` on the ground, it guards itself (stage 4f): slower; what a hit from the front takes then is its game's. */
+  block: boolean;
 }
 
 /**
@@ -448,6 +475,13 @@ export interface Character {
   /** Rolling (stage 4b): the steps of its roll still to come (0: not rolling), and which way it goes (flat, of length 1). */
   rolling: number;
   rollDirection: Vec3;
+  /**
+   * Locked on (stage 4f): the character it faces and circles, by id, chosen with `lock` (the nearest in
+   * front, within `LOCK_RANGE`); null, none. Its moves to the side go round it, at the same distance.
+   */
+  lock: EntityId | null;
+  /** Thrown by a blast (stage 4f), until it lands: in the air, what it was given stays (it steers only with what it asks). */
+  thrown: boolean;
   /**
    * How lit it is (stage 3d), at its center: the world's ambient light, plus what every lamp that sees
    * it gives, at the end of the last step. What a watcher compares with its threshold (and, one day, a
@@ -542,6 +576,7 @@ export type CharacterSpec = Pick<Character, 'player'> & {
     climb?: Partial<Movement['climb']>;
     crouch?: Partial<Movement['crouch']>;
     roll?: Partial<Movement['roll']>;
+    block?: Partial<Movement['block']>;
     turn?: number;
   };
   can?: Partial<Capabilities>;
@@ -634,6 +669,12 @@ export type Event =
   /** A signal changed its value (stage 3c), at the end of the step: what it is now, and what it was. */
   | { type: 'signalChanged'; signal: string; value: number; was: number }
   /** A watcher began to see a character (stage 3d), or lost it. */
+  /** An objective (stage 4f) became the one to do, or was done: its entity's name and its words' key. */
+  | { type: 'objective'; name: string; say: string; state: 'active' | 'done' }
+  /** A scene (stage 4f) plays: its lines, who says which key. */
+  | { type: 'scene'; name: string; lines: { who: string; say: string }[] }
+  /** A blast (stage 4f: `World.explode`): where, how far it pushed, and whose it was. */
+  | { type: 'blast'; at: Vec3; radius: number; by: EntityId | null }
   | { type: 'seen'; watcher: EntityId; entity: EntityId }
   | { type: 'lost'; watcher: EntityId; entity: EntityId }
   /**
@@ -649,7 +690,7 @@ export type Event =
    */
   | {
       type: 'sound';
-      sound: 'step' | 'land' | 'hit' | 'door' | 'lift' | 'break';
+      sound: 'step' | 'land' | 'hit' | 'door' | 'lift' | 'break' | 'blast';
       source: EntityId;
       at: Vec3;
       surface: string | null;

@@ -107,7 +107,9 @@ describe('the guards (stage 4e)', () => {
     expect(hits.every((h) => h.from === guard().id && h.kind === 'stick')).toBe(true);
     // Out of points, you went down.
     expect(events.some((e) => e.type === 'down' && e.target === hero().id)).toBe(true);
-    console.log(`heard ${heard}, door ${pressed}, called ${called}, rode ${rode}, up ${guardTop}, ${hits.length} hits, down at ${world().tick}`);
+    console.log(
+      `heard ${heard}, door ${pressed}, called ${called}, rode ${rode}, up ${guardTop}, ${hits.length} hits, down at ${world().tick}`,
+    );
     session.world.dispose();
   });
 });

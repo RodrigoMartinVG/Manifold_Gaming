@@ -66,6 +66,8 @@ const STANDING: HitPart[] = [
 export const HITS: Partial<Record<ModeName, HitPart[]>> = {
   walk: STANDING,
   climb: STANDING,
+  // Blocking (stage 4f): standing, guarding itself.
+  block: STANDING,
   crouch: [
     ball('head', 0.16, [0, 0.12, -0.4]),
     capsule('body', 0.16, 0.24, [0, -0.15, -0.18], -55),
@@ -93,7 +95,13 @@ export function characterParts(o: { player: number; facing: Vec3; color: number 
   return {
     body: { type: 'character', shape: { ...CHARACTER_SHAPE } },
     // It can crouch and roll (stage 4b): every game's character does; a game may take it away.
-    character: { player: o.player, facing: [...o.facing], poses: POSES, hits: HITS, can: { crouch: true, roll: true } },
+    character: {
+      player: o.player,
+      facing: [...o.facing],
+      poses: POSES,
+      hits: HITS,
+      can: { crouch: true, roll: true, block: true },
+    },
     appearance: { shape: 'capsule', size: [0.6, 1.6, 0.6], color: o.color, model: MANNEQUIN },
   };
 }

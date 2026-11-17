@@ -4,7 +4,18 @@ import { tractionOf } from './materials';
 import { CHARACTER_GAP, STANDS_ON } from './physics';
 import { STRIDE, stepRadius } from './sound';
 import { axisOf, isDown, NO_INPUT, pressed, vectorOf } from './input';
-import type { Body, Character, CharacterSpec, CollisionPose, Entity, HitPart, ModeName, Movement, Shape } from './types';
+import type {
+  Body,
+  Character,
+  CharacterSpec,
+  CollisionPose,
+  Entity,
+  EntityId,
+  HitPart,
+  ModeName,
+  Movement,
+  Shape,
+} from './types';
 import type { World } from './world';
 
 /**
@@ -19,6 +30,7 @@ export const DEFAULT_MOVEMENT: Readonly<Movement> = Object.freeze({
   climb: { speed: 2.5, top: 4, off: 4 },
   crouch: { speed: 2, seen: 0.5, heard: 0.5 },
   roll: { speed: 5, time: 0.6 },
+  block: { speed: 2 },
   turn: 3,
 });
 
@@ -32,13 +44,14 @@ export function newCharacter(spec: CharacterSpec): Character {
     climb: { ...DEFAULT_MOVEMENT.climb, ...m.climb },
     crouch: { ...DEFAULT_MOVEMENT.crouch, ...m.crouch },
     roll: { ...DEFAULT_MOVEMENT.roll, ...m.roll },
+    block: { ...DEFAULT_MOVEMENT.block, ...m.block },
     turn: m.turn ?? DEFAULT_MOVEMENT.turn,
   };
   return {
     player: spec.player,
     movement,
     // Without capabilities, unless the game gives them (stage 2c).
-    can: { doubleJump: false, glide: false, climb: false, crouch: false, roll: false, ...spec.can },
+    can: { doubleJump: false, glide: false, climb: false, crouch: false, roll: false, block: false, ...spec.can },
     airJumps: movement.jump.air,
     wall: [0, 0, 0],
     mode: 'air',
@@ -55,6 +68,8 @@ export function newCharacter(spec: CharacterSpec): Character {
     holding: 0,
     rolling: 0,
     rollDirection: [0, 0, 0],
+    lock: null,
+    thrown: false,
     carry: [0, 0, 0],
     ground: { velocity: [0, 0, 0], spin: 0 },
     carriedTurn: quat.identity(),
@@ -176,7 +191,13 @@ const MODES: Record<ModeName, Mode> = {
   // floor lets them (stage 3b: on ice, it slides).
   walk: { steer: (c, now, wanted, _move, dt, traction) => approach(now, wanted, c.movement.walk.acceleration * traction * dt) },
   // In the air: the same, but with what the game allows to steer (0: the jump's arc cannot change).
-  air: { steer: (c, now, wanted, _move, dt) => approach(now, wanted, c.movement.air.control * dt) },
+  // (Thrown by a blast, stage 4f: what it was given stays, until it lands; it steers only with what it asks.)
+  air: {
+    steer: (c, now, wanted, move, dt) =>
+      c.thrown && vec3.length(move) < 0.1
+        ? now
+        : approach(now, c.thrown ? vec3.add(now, wanted) : wanted, c.movement.air.control * dt),
+  },
   // Gliding (stage 2c): it steers more, and it falls slowly.
   glide: {
     steer: (c, now, wanted, _move, dt) => approach(now, wanted, c.movement.glide.control * dt),
@@ -194,6 +215,11 @@ const MODES: Record<ModeName, Mode> = {
     steer: (c, now, _wanted, move, dt, traction) =>
       approach(now, vec3.scale(move, c.movement.crouch.speed), c.movement.walk.acceleration * traction * dt),
   },
+  // Blocking (stage 4f): as walking, slower (running does not hurry it), guarding itself.
+  block: {
+    steer: (c, now, _wanted, move, dt, traction) =>
+      approach(now, vec3.scale(move, c.movement.block.speed), c.movement.walk.acceleration * traction * dt),
+  },
   // Rolling (stage 4b): the way it rolls, at its speed, whatever it asks, its body low.
   roll: { steer: (c) => vec3.scale(c.rollDirection, c.movement.roll.speed) },
 };
@@ -207,19 +233,72 @@ const MODES: Record<ModeName, Mode> = {
  *   climbing, or in the air while it is not going up: just after jumping off a wall, it does not grab
  *   it again before it starts to fall);
  * - standing on something, holding `crouch`, if it can: it crouches;
+ * - standing on something, holding `block`, if it can (stage 4f): it blocks;
  * - standing on something: it walks;
  * - falling while it holds the jump, if it can glide: it glides;
  * - otherwise: it is in the air.
  */
-const modeFor = (c: Character, move: Vec3, jumping: boolean, vUp: number, crouching: boolean, room: boolean): ModeName => {
+const modeFor = (
+  c: Character,
+  move: Vec3,
+  jumping: boolean,
+  vUp: number,
+  crouching: boolean,
+  room: boolean,
+  blocking: boolean,
+): ModeName => {
   if (c.rolling > 0) return 'roll';
   if (low(c.mode) && !room) return 'crouch';
   if (c.can.climb && vec3.dot(move, c.wall) > 0.5 && (c.grounded || c.mode === 'climb' || vUp <= 0)) return 'climb';
   if (c.grounded && crouching && c.can.crouch) return 'crouch';
+  if (c.grounded && blocking && c.can.block) return 'block';
   if (c.grounded) return 'walk';
   if (c.can.glide && jumping && vUp < 0) return 'glide';
   return 'air';
 };
+
+/** How far a lock-on reaches (m): it takes one this near, and lets go of one farther. */
+export const LOCK_RANGE = 15;
+
+/**
+ * WHOM `lock` TAKES (stage 4f): the nearest other character in front of it (within a quarter turn of
+ * where it looks), within `LOCK_RANGE`, standing; null, none.
+ */
+function lockTarget(world: World, e: Entity, up: Vec3): EntityId | null {
+  const c = e.character!;
+  const forward = vec3.normalize(vec3.onPlane(c.facing, up));
+  let best: EntityId | null = null;
+  let nearest = LOCK_RANGE;
+  for (const other of world.entities.values()) {
+    if (other.id === e.id || !other.character || !other.transform || (other.health?.down ?? -1) >= 0) continue;
+    const to = vec3.onPlane(vec3.sub(other.transform.position, e.transform!.position), up);
+    const d = vec3.length(to);
+    if (d > nearest || d < 1e-6 || vec3.dot(to, forward) < 0) continue;
+    nearest = d;
+    best = other.id;
+  }
+  return best;
+}
+
+/**
+ * CIRCLING WHAT IT IS LOCKED ON (stage 4f): what is asked to the side goes round it, at the same distance.
+ * Straight to the side, the distance grows at every step (by d² / 2r, d the step's length, r the
+ * distance): over a whole circle at 4.5 m/s, 3 m away, 1.5 m. So the step to the side goes along the
+ * chord of the arc instead, turned in towards it by half the arc's angle: sin φ = d / 2r. With a square
+ * root (the cosine from the sine), the same bits everywhere. What is asked towards it or away stays.
+ */
+function circling(move: Vec3, to: Vec3, up: Vec3, speed: number, dt: number): Vec3 {
+  const r = vec3.length(to);
+  if (r < 0.3) return move;
+  const towards = vec3.scale(to, 1 / r);
+  const side = vec3.cross(towards, up);
+  const radial = vec3.dot(move, towards);
+  const across = vec3.dot(move, side);
+  const sine = Math.min(0.5, (Math.abs(across) * speed * dt) / (2 * r));
+  const cosine = Math.sqrt(1 - sine * sine);
+  const sign = across < 0 ? -1 : 1;
+  return vec3.add(vec3.scale(towards, radial + Math.abs(across) * sine), vec3.scale(side, sign * Math.abs(across) * cosine));
+}
 
 /** "Up" at a point: the opposite of the gravity there (if there is no gravity, +Y). */
 export function upAt(world: World, position: Vec3): Vec3 {
@@ -555,17 +634,29 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
   const told = vec3.length(face) > 0.1;
   const turn = axisOf(input, 'turn');
   if (!told && turn !== 0) c.facing = turned(c.facing, up, turn, c.movement.turn, dt);
+  // 1b: LOCKED ON (stage 4f): `lock` takes the nearest one in front, or lets go; gone, down or too far,
+  // it lets go by itself.
+  if (!down && pressed(world, c.player, 'lock')) c.lock = c.lock === null ? lockTarget(world, e, up) : null;
+  const locked = c.lock === null ? undefined : world.entities.get(c.lock);
+  const toLocked = locked?.transform ? vec3.onPlane(vec3.sub(locked.transform.position, e.transform!.position), up) : null;
+  if (c.lock !== null && (!toLocked || (locked!.health?.down ?? -1) >= 0 || vec3.length(toLocked) > LOCK_RANGE)) c.lock = null;
 
   // 2: what is asked for (in the world, plus forward and to the side by where it looks now); the
   // mode; and the velocity along the ground, as the mode steers it.
   let vUp = vec3.dot(c.velocity, up);
   let vH = vec3.onPlane(c.velocity, up);
   const inWorld = vec3.onPlane(vectorOf(input, 'move'), up);
-  const ahead = vec3.normalize(vec3.onPlane(c.facing, up));
+  // (Locked on, ahead is towards it, now: where it looked a step ago is a little off as it goes round.)
+  const ahead =
+    c.lock !== null && toLocked && vec3.length(toLocked) > 1e-6
+      ? vec3.normalize(toLocked)
+      : vec3.normalize(vec3.onPlane(c.facing, up));
   const right = vec3.cross(ahead, up);
   let move = vec3.add(inWorld, vec3.add(vec3.scale(ahead, axisOf(input, 'ahead')), vec3.scale(right, axisOf(input, 'side'))));
   const asked = vec3.length(move);
   if (asked > 1) move = vec3.scale(move, 1 / asked);
+  if (c.lock !== null && toLocked)
+    move = circling(move, toLocked, up, isDown(input, 'run') ? c.movement.walk.run : c.movement.walk.speed, dt);
   const wanted = vec3.scale(move, isDown(input, 'run') ? c.movement.walk.run : c.movement.walk.speed);
   const jumping = isDown(input, 'jump');
   // A wall, if it can climb: from its feet, towards the wall it climbs, or towards where it is asked
@@ -603,7 +694,7 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
   }
   // Low, whether it could stand up where it is (stage 4b): its standing body, there, touching nothing.
   const room = !low(before) || fits(world, e, body.shape, up);
-  c.mode = modeFor(c, move, jumping, vUp, isDown(input, 'crouch'), room);
+  c.mode = modeFor(c, move, jumping, vUp, isDown(input, 'crouch'), room, isDown(input, 'block'));
   // Going low or standing up, the controller moves the low body, or the standing one, from then on.
   if (low(before) !== low(c.mode)) {
     const pose = low(c.mode) ? crouchPoseOf(c, body) : { shape: body.shape, offset: [0, 0, 0] as Vec3 };
@@ -715,6 +806,8 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
   if (vUp > 0 && ceiling) vUp = 0;
   if (grounded && vUp < 0) vUp = 0;
   c.grounded = grounded;
+  // (Landed: on the ground and no longer going up. Just thrown, a hair above it, it is still on its way.)
+  if (grounded && vUp <= 0) c.thrown = false;
   c.stepsInAir = grounded ? 0 : c.stepsInAir + 1;
   // A platform that moves or turns carries it (stage 2d), if it stood on it and did not jump off it:
   // exactly as far as the platform takes the point where it is. After the controller, not through
@@ -738,6 +831,7 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
   const toldLooking = told ? vec3.onPlane(quat.rotate(c.carriedTurn, vectorOf(input, 'face')), up) : null;
   // Rolling, it looks the way it rolls (stage 4b), whatever it is told; told again after the roll.
   if (c.mode === 'roll') c.facing = [...c.rollDirection];
+  else if (c.lock !== null && toLocked && vec3.length(toLocked) > 1e-6) c.facing = vec3.normalize(toLocked);
   else if (toldLooking && vec3.length(toldLooking) > 1e-6) c.facing = vec3.normalize(toldLooking);
   else if (c.mode === 'climb' && !isZero(c.wall)) c.facing = [...c.wall];
   else if (vec3.length(inWorld) > 0.1) c.facing = vec3.normalize(inWorld);

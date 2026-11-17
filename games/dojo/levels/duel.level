@@ -1,0 +1,40 @@
+# Manifold level 8
+# A duel (stage 4f), the adventure's pieces: a courtyard walled round, a stick and grenades on their
+# racks, and a guard between you and the gate. A master tells you so as you come in; then the
+# objectives chain: take the stick, bring the guard down, go out through the gate.
+title The duel
+spawn 0 1 7
+facing 0 0 -1
+
+# The courtyard, 16 by 18 m, walled; the gate, a gap in the far wall, and the ground beyond it.
+box 0 -0.5 0     8 0.5 9     color #6f6a62  name yard
+box -8.2 1.5 0   0.2 1.5 9   color #5a544c
+box 8.2 1.5 0    0.2 1.5 9   color #5a544c
+box 0 1.5 9.2    8.4 1.5 0.2  color #5a544c
+box -4.6 1.5 -9.2  3.8 1.5 0.2  color #5a544c
+box 4.6 1.5 -9.2   3.8 1.5 0.2  color #5a544c
+box 0 -0.5 -11   2 0.5 2     color #6f6a62
+# A pillar to fight round, cover for whoever stands behind it.
+box -3 1.5 -1    0.6 1.5 0.6  color #5a544c  affords cover
+
+# The racks: the stick (3) and the grenades (4).
+sensor weapon  -3 0.5 5   0.4 0.5 0.4  kind 3  name stick_rack
+sensor weapon  3 0.5 5    0.4 0.5 0.4  kind 4  name grenade_rack
+
+# The guard, by the gate, walking its beat across the courtyard.
+route beat  -4 0 -6  4 0 -6
+sensor guard  0 1 -6   0.3 0.8 0.3  name guard_spot
+
+# Where you come in, and the gate.
+sensor plate  0 0.8 7     1 0.8 1    name arrival
+sensor goal   0 0.8 -11   1 0.8 0.8  name gate
+
+signal here   zone arrival
+signal armed  zone stick_rack
+signal down
+signal out    zone gate
+
+scene hello when here  dojo.who.master:dojo.story.hello  dojo.who.master:dojo.story.lock
+objective arm when armed say dojo.story.arm then fight
+objective fight when down say dojo.story.fight then leave
+objective leave when out say dojo.story.leave

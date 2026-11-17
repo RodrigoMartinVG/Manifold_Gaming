@@ -1294,6 +1294,29 @@ test('a guard in the keep (stage 4e): `bots` says what it does; `possess guard` 
   expect(list).toEqual([]);
 });
 
+test('the duel (stage 4f): a scene as you come in, the objective to do at the top, in Spanish; walking into the stick, the next one', async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  const list = errors(page);
+  await page.goto('jugar/dojo/duel/#recipe=view.camera+free');
+  await expect.poll(async () => (await position(page, 'player')).length, { timeout: 15_000 }).toBe(3);
+  // The master's first line, and the first objective.
+  await expect(page.locator('.mg-scene')).toBeVisible();
+  await expect(page.locator('.mg-scene')).toContainText('El maestro');
+  await expect(page.locator('.mg-objective')).toHaveText('Objetivo: tomá el palo del soporte');
+  // A click goes on (to its next line, or, on the last one, away).
+  const line = await page.locator('#game').getAttribute('data-scene');
+  await page.locator('.mg-scene').click();
+  await expect.poll(() => page.locator('#game').getAttribute('data-scene')).not.toBe(line);
+  // To the stick's rack: the next objective.
+  await page.keyboard.press('Backquote');
+  await typeInConsole(page, 'dojo.goto -3 1 5');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.mg-objective')).toHaveText('Objetivo: derribá al guardia');
+  expect(list).toEqual([]);
+});
+
 test('its hands on the tower (stage 4a): on its wall while it climbs, on its top before it gets over; show.ik draws them', async ({
   page,
 }) => {

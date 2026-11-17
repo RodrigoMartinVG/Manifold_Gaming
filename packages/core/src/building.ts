@@ -33,6 +33,8 @@ export function levelOfWorld(world: World): Level {
     lamps: [],
     watchers: [],
     routes: [],
+    objectives: [],
+    scenes: [],
   };
   for (const e of [...world.entities.values()].sort((a, b) => a.id - b.id)) {
     const s = e.source;
@@ -42,6 +44,8 @@ export function levelOfWorld(world: World): Level {
     else if ('sensor' in s) level.sensors.push(copyData(s.sensor));
     else if ('lamp' in s) level.lamps.push(copyData(s.lamp));
     else if ('route' in s) level.routes.push(copyData(s.route));
+    else if ('objective' in s) level.objectives.push(copyData(s.objective));
+    else if ('scene' in s) level.scenes.push(copyData(s.scene));
     else level.watchers.push(copyData(s.watcher));
   }
   return level;
@@ -108,6 +112,8 @@ function moved(piece: LevelPiece, by: Vec3): LevelPiece {
     p.map.origin = [p.map.origin[0] + by[0], p.map.origin[1] + by[1], p.map.origin[2] + by[2]];
     return p;
   }
+  // (An objective or a scene, stage 4f, has no place: as it was.)
+  if ('objective' in p || 'scene' in p) return p;
   // (A route, stage 4d: its points move; it needs a name, so the copy's is the first free one after it.)
   if ('route' in p) {
     p.route.points = p.route.points.map((q) => [q[0] + by[0], q[1] + by[1], q[2] + by[2]]);
@@ -156,6 +162,10 @@ export function declareBuilding(registry: Registry<World>, cartridge?: Cartridge
     inRecipes: true,
     check: (world, [which], out) => {
       const e = entityNamed(world, String(which));
+      if (e?.source && ('objective' in e.source || 'scene' in e.source)) {
+        out.write(`clone: ${String(which)} is an objective or a scene: one of a kind (stage 4f)`, 'error');
+        return false;
+      }
       if (e?.source) return true;
       out.write(e ? `clone: ${String(which)} was not built from a level line` : `clone: no entity ${String(which)}`, 'error');
       return false;
@@ -309,7 +319,7 @@ export function setField(world: World, which: string, field: string, words: stri
 function itemOf(e: Entity) {
   const s = e.source;
   // (A map's floor, stage 4a, has no item of its own to change: it is written back as its map; nor a route, stage 4d.)
-  if (!s || 'map' in s || 'route' in s) return null;
+  if (!s || 'map' in s || 'route' in s || 'objective' in s || 'scene' in s) return null;
   return 'box' in s ? s.box : 'sensor' in s ? s.sensor : 'lamp' in s ? s.lamp : s.watcher;
 }
 

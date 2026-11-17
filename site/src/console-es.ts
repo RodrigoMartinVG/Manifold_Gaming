@@ -47,7 +47,8 @@ export const CONSOLE_ES: Readonly<Record<string, string>> = {
   'players.leave': 'un jugador deja la partida (en el recorrido del Dojo, su personaje se va)',
   signal: 'pone una señal del nivel que es una entrada, en un paso (las que se calculan dicen de qué)',
   add: 'agrega lo que dice una línea de un nivel (`add box 0 1 -3  1 1 1  material wood  name caja`): una caja, una zona, una lámpara, un vigía o un recorrido (`route`); entra en el paso siguiente',
-  clone: 'una copia de lo que hizo una línea de nivel, corrida `x y z` (`clone caja 1 0 0`); la copia no tiene nombre (un recorrido, el siguiente libre después del suyo)',
+  clone:
+    'una copia de lo que hizo una línea de nivel, corrida `x y z` (`clone caja 1 0 0`); la copia no tiene nombre (un recorrido, el siguiente libre después del suyo)',
   delete: 'saca una entidad, por su número o su nombre (`delete caja`); un personaje no: se va con su jugador',
   set: 'cambia un valor de una entidad: `set caja transform.position 0 2 0`, `set lampara lamp.intensity 2`; también relativo, `+0 +1 +0` o `*2`',
   'level.export':
@@ -75,7 +76,8 @@ export const CONSOLE_ES: Readonly<Record<string, string>> = {
   restart: 'el mundo empieza de nuevo, con los valores de ahora',
   snapshot: 'guardar este momento (`snapshot`), y volver a él (`snapshot load`)',
   net: 'la partida, y dónde vive',
-  possess: 'manejar un bot con tus teclas (`possess guard`): su cerebro espera, tu personaje se queda quieto y la cámara va con él; sin nada, volvés al tuyo',
+  possess:
+    'manejar un bot con tus teclas (`possess guard`): su cerebro espera, tu personaje se queda quieto y la cámara va con él; sin nada, volvés al tuyo',
   back: 'la partida vuelve esa cantidad de segundos (1 si no se dice, 10 a lo sumo), con lo que recuerdan sus bots',
   bots: 'qué hace cada bot: su modo (patrulla, mira, persigue, busca), adónde va, qué oyó y qué vio y hace cuánto, los pasos de su camino',
   'camera.reset': 'la cámara a donde empezó, o detrás del personaje',
@@ -101,6 +103,7 @@ export const CONSOLE_ES: Readonly<Record<string, string>> = {
   'dojo.air': 'cuánto se puede corregir un salto en el aire, en m/s²',
   'dojo.spin': 'cómo gira el cubo grande (en el Dojo sin nivel): radianes por segundo alrededor de cada eje (x y z)',
   'dojo.goto': 'pone quieto en ese punto al personaje del jugador 1: para explorar un nivel',
-  'dojo.guard': 'pone un guardia en ese punto (etapa 4e): un bot con vida, un palo y ojos, que sigue un recorrido (el que se nombra, o el más cercano), te oye y te ve, va a buscarte y pelea',
+  'dojo.guard':
+    'pone un guardia en ese punto (etapa 4e): un bot con vida, un palo y ojos, que sigue un recorrido (el que se nombra, o el más cercano), te oye y te ve, va a buscarte y pelea',
   'dojo.spawn': 'deja caer una pelota desde ese punto, con un tamaño y un color que salen del azar del mundo',
 };

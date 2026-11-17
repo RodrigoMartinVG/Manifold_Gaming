@@ -60,6 +60,17 @@ export function addInterfaceStyles() {
     }
     .mg-subtitles div { padding: 0.15rem 0.55rem; border-radius: 0.25rem; background: rgb(10 9 7 / 0.72); transition: opacity 0.4s; }
     @media (prefers-reduced-motion: reduce) { .mg-subtitles div { transition: none; } }
+    .mg-objective {
+      position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 10; pointer-events: none;
+      padding: 0.3rem 0.8rem; border-radius: 0.35rem; background: rgb(18 16 13 / 0.6); color: #f0d59a;
+      font: 600 14px/1.4 'Cinzel Variable', Georgia, serif; letter-spacing: 0.03em; max-width: calc(100% - 2rem);
+    }
+    .mg-scene {
+      position: absolute; left: 50%; transform: translateX(-50%); top: 56px; z-index: 11; cursor: pointer;
+      max-width: min(36rem, calc(100% - 2rem)); padding: 0.6rem 0.9rem; border-radius: 0.4rem;
+      background: rgb(18 16 13 / 0.85); border: 1px solid #c4a06a; color: #f3e9d8; font: 15px/1.45 system-ui, sans-serif;
+    }
+    .mg-scene b { display: block; color: #f0d59a; font: 600 13px/1.4 'Cinzel Variable', Georgia, serif; letter-spacing: 0.04em; }
   `;
   document.head.append(style);
 }

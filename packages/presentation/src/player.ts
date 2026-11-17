@@ -82,7 +82,20 @@ const MOVE_KEYS: Record<string, [forward: number, right: number]> = {
 };
 /** To the sides without turning, in the `tank` scheme. */
 const SIDE_KEYS: Record<string, number> = { KeyQ: -1, KeyE: 1 };
-const OTHER_KEYS = new Set(['Space', 'ShiftLeft', 'ShiftRight', 'AltLeft', 'AltRight', 'KeyE', 'KeyR', 'KeyG', 'KeyC', 'KeyV']);
+const OTHER_KEYS = new Set([
+  'Space',
+  'ShiftLeft',
+  'ShiftRight',
+  'AltLeft',
+  'AltRight',
+  'KeyE',
+  'KeyR',
+  'KeyG',
+  'KeyC',
+  'KeyV',
+  'KeyB',
+  'KeyT',
+]);
 /** Below this, a gamepad's stick is resting (sticks never return exactly to zero). */
 const DEAD_ZONE = 0.2;
 const axis = (pad: Gamepad, i: number) => (Math.abs(pad.axes[i] ?? 0) > DEAD_ZONE ? pad.axes[i]! : 0);
@@ -153,6 +166,9 @@ export function mountPlayerControls(o: { blocked(): boolean; buttons?: readonly 
       // Crouching while held (stage 4b): C. Rolling: V.
       let crouch = keys.has('KeyC');
       let roll = keys.has('KeyV');
+      // Blocking while held (stage 4f): B, or the right button with the mouse taken. Locking on: T.
+      let block = keys.has('KeyB') || keys.has('Mouse2');
+      let lock = keys.has('KeyT');
       const alt = keys.has('AltLeft') || keys.has('AltRight');
 
       const pad = navigator.getGamepads?.()[0];
@@ -166,6 +182,9 @@ export function mountPlayerControls(o: { blocked(): boolean; buttons?: readonly 
         grab ||= pad.buttons[7]?.pressed ?? false;
         crouch ||= pad.buttons[11]?.pressed ?? false;
         roll ||= pad.buttons[6]?.pressed ?? false;
+        // (The cross: down blocks, up locks on.)
+        block ||= pad.buttons[13]?.pressed ?? false;
+        lock ||= pad.buttons[12]?.pressed ?? false;
       }
 
       // The game's buttons, by their keys (or the gamepad's).
@@ -186,6 +205,8 @@ export function mountPlayerControls(o: { blocked(): boolean; buttons?: readonly 
           grab,
           crouch,
           roll,
+          block,
+          lock,
           ...own,
         };
 
@@ -195,7 +216,7 @@ export function mountPlayerControls(o: { blocked(): boolean; buttons?: readonly 
       let move = vec3.add(vec3.scale(ahead, forward), vec3.scale(side, right));
       const length = vec3.length(move);
       if (length > 1) move = vec3.scale(move, 1 / length);
-      return { move, jump, run, use, grab, crouch, roll, ...own };
+      return { move, jump, run, use, grab, crouch, roll, block, lock, ...own };
     },
     cameraStick() {
       const pad = navigator.getGamepads?.()[0];

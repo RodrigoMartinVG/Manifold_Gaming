@@ -569,3 +569,69 @@ route there  0 0 0  0 0 -3
     expect(v7('box 0 0 0  1 1 1  affords cover')).toThrow(/line 2: "affords" is format 8/);
   });
 });
+
+describe('the story’s pieces (stage 4f, format 8): objectives that chain, short scenes', () => {
+  const STORY = `# Manifold level 8
+box 0 -0.5 0  6 0.5 6
+sensor plate  3 0.5 0  0.5 0.5 0.5  name a
+sensor plate  -3 0.5 0  0.5 0.5 0.5  name b
+signal on_a  zone a
+signal on_b  zone b
+objective second when on_b say dojo.story.b
+objective first when on_a say dojo.story.a then second
+scene hello when on_a  master:dojo.story.hello  you:dojo.story.yes
+`;
+
+  test('read and written back the same; a scene’s lines, who says which key; what is wrong says its line', () => {
+    const level = levelFromText(STORY);
+    expect(level.objectives).toEqual([
+      { name: 'second', when: 'on_b', say: 'dojo.story.b', then: null },
+      { name: 'first', when: 'on_a', say: 'dojo.story.a', then: 'second' },
+    ]);
+    expect(level.scenes[0]!.lines).toEqual([
+      { who: 'master', say: 'dojo.story.hello' },
+      { who: 'you', say: 'dojo.story.yes' },
+    ]);
+    expect(levelFromText(levelToText(level))).toEqual(level);
+    const bad = (line: string) => () => levelFromText(`${STORY}${line}\n`);
+    expect(bad('objective third when nothing say dojo.x')).toThrow(/no signal "nothing"/);
+    expect(bad('objective third when on_a say dojo.x then fourth')).toThrow(/no objective named "fourth"/);
+    expect(bad('objective third on_a say dojo.x')).toThrow(/`when <signal>`/);
+    expect(bad('scene bye when on_a master')).toThrow(/who:key/);
+    expect(bad('scene bye when on_a')).toThrow(/a line at least/);
+  });
+
+  test('built and played: the first one nothing leads to is the one to do; done on its signal, the next; a scene plays once', () => {
+    const world = new World({ seed: 1 });
+    buildLevel(world, levelFromText(STORY));
+    expect(world.named('first')!.objective!.state).toBe('active');
+    expect(world.named('second')!.objective!.state).toBe('waiting');
+    const ball = (at: [number, number, number]) =>
+      world.createEntity({
+        transform: { position: at, rotation: quat.identity() },
+        body: { type: 'dynamic', shape: { kind: 'ball', radius: 0.2 } },
+      });
+    const events: string[] = [];
+    const step = (n: number) => {
+      for (let i = 0; i < n; i++) {
+        world.step();
+        for (const e of world.stepEvents) {
+          if (e.type === 'objective') events.push(`${e.name} ${e.state}`);
+          if (e.type === 'scene') events.push(`scene ${e.name} ${e.lines.length}`);
+        }
+      }
+    };
+    step(5);
+    // Out of order: the second's plate first does nothing (it is not the one to do).
+    ball([-3, 0.3, 0]);
+    step(30);
+    expect(events).toEqual([]);
+    ball([3, 0.3, 0]);
+    step(30);
+    // The first is done and the second becomes the one to do; and it is already on: done the step after.
+    expect(events).toEqual(['first done', 'second active', 'scene hello 2', 'second done']);
+    step(60);
+    expect(events.filter((e) => e.startsWith('scene'))).toHaveLength(1);
+    world.dispose();
+  });
+});

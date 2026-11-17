@@ -69,5 +69,9 @@
  *  34  stage 4e: a character may carry a brain (`brain`: which of its game's brains thinks for it, and
  *      its route), and the Dojo's players have health (a guard can fight them; down, they are back at
  *      their checkpoint three seconds later)
+ *  35  stage 4f: moving for combat: blocking, a mode with its capability and numbers (`block`); a
+ *      lock-on that circles without drifting (`lock`); a blast that throws (`World.explode`, `thrown`);
+ *      the story's pieces, objectives that chain and short scenes (a phase, `story`); the Dojo's stick
+ *      strikes along its whole length, and its grenades
  */
-export const SIMULATION_VERSION = 34;
+export const SIMULATION_VERSION = 35;

@@ -63,6 +63,7 @@ const copyMovement = (m: Movement): Movement => ({
   climb: { ...m.climb },
   crouch: { ...m.crouch },
   roll: { ...m.roll },
+  block: { ...m.block },
   turn: m.turn,
 });
 
@@ -179,10 +180,16 @@ export const WEAPONS = Object.freeze({
   dart: { damage: 25, reach: 60, spread: 1, every: 12 },
   bolt: { damage: 35, speed: 80, radius: 0.04, life: 90, every: 20 },
   stick: { damage: 30, reach: 1.2, radius: 0.15, steps: 12, arc: 120, every: 24 },
+  /** (Stage 4f) Thrown where it aims; a second and a half later it blows: 60 at its center, less to 4 m. */
+  grenade: { damage: 60, speed: 9, fuse: 90, radius: 4, strength: 500, every: 45 },
 });
 export type WeaponKind = keyof typeof WEAPONS;
-/** A `weapon` zone's `kind`: 1, 2, 3. */
-const WEAPON_KINDS: readonly WeaponKind[] = ['dart', 'bolt', 'stick'];
+/** A `weapon` zone's `kind`: 1, 2, 3, 4. */
+const WEAPON_KINDS: readonly WeaponKind[] = ['dart', 'bolt', 'stick', 'grenade'];
+
+/** A grenade's fuse (stage 4f): the steps left, and who threw it. */
+type Fuse = { steps: number; by: number };
+const FUSE = 'dojo.fuse';
 
 /**
  * WHAT A CHARACTER CARRIES (stage 4c): its weapon ('none' until it picks one up, walking into a
@@ -258,6 +265,22 @@ function arms(world: World, events: readonly Event[]) {
         appearance: { shape: 'sphere', size: [0.12, 0.12, 0.12], color: 0xff7050 },
       });
       w.ready = world.tick + bolt.every;
+    } else if (w.kind === 'grenade') {
+      const g = WEAPONS.grenade;
+      const { above } = aimOf(c, up);
+      world.createEntity({
+        game: { [FUSE]: { steps: g.fuse, by: e.id } satisfies Fuse, [THROWN]: { by: e.id } satisfies Thrown },
+        transform: { position: vec3.add(chest, vec3.scale(ahead, 0.5)), rotation: quat.identity() },
+        body: {
+          type: 'dynamic',
+          shape: { kind: 'ball', radius: 0.12 },
+          restitution: 0.3,
+          angularDamping: 0.8,
+          linearVelocity: vec3.add(vec3.scale(ahead, g.speed), vec3.scale(above, 2.5)),
+        },
+        appearance: { shape: 'sphere', size: [0.24, 0.24, 0.24], color: 0x4a6a3a },
+      });
+      w.ready = world.tick + g.every;
     } else {
       w.strike = WEAPONS.stick.steps;
       w.struck = [];
@@ -268,9 +291,9 @@ function arms(world: World, events: readonly Event[]) {
 }
 
 /**
- * ONE STEP OF A STRIKE (stage 4c): the stick's tip goes from where it was to the next point of its
- * arc (from its right to its left, at the chest, `reach` from it), and a ball swept along that segment
- * hurts the first one it finds that it has not hit yet in this strike.
+ * ONE STEP OF A STRIKE (stage 4c): the stick turns on to the next point of its arc (from its right to its
+ * left, at the chest, `reach` long), and a ball swept along it, from the chest to its tip, hurts the first
+ * one it finds that it has not hit yet in this strike.
  */
 function strike(world: World, e: Entity, w: Weapon, chest: Vec3, up: Vec3, back: number) {
   const stick = WEAPONS.stick;
@@ -281,7 +304,9 @@ function strike(world: World, e: Entity, w: Weapon, chest: Vec3, up: Vec3, back:
     return vec3.add(chest, vec3.scale(vec3.add(vec3.scale(c.facing, co), vec3.scale(right, s)), stick.reach));
   };
   const k = stick.steps - w.strike;
-  const from = k === 0 ? chest : tip(k - 1);
+  // Along the whole stick, from the chest to its tip (stage 4f: the tip alone, 1.2 m out, missed whoever
+  // stood nearer); ten degrees a step, the lines a ball swept along overlap, and leave no gap.
+  const from = chest;
   const to = tip(k);
   const along = vec3.sub(to, from);
   const length = vec3.length(along);
@@ -297,9 +322,37 @@ function strike(world: World, e: Entity, w: Weapon, chest: Vec3, up: Vec3, back:
  * THE DOJO'S DAMAGE FILTER (stage 4c, its policy): a hit on the head takes double; one's own ball
  * takes nothing from oneself.
  */
-export function dojoDamage(_world: World, d: Damage): number {
+export function dojoDamage(world: World, d: Damage): number {
   if (d.from !== null && d.from === d.target) return 0;
-  return d.part === 'head' ? 2 * d.amount : d.amount;
+  const amount = d.part === 'head' ? 2 * d.amount : d.amount;
+  // Blocking (stage 4f), a hit from in front takes a quarter.
+  const target = world.entities.get(d.target);
+  const from = d.from === null ? undefined : world.entities.get(d.from);
+  if (target?.character?.mode === 'block' && target.transform && from?.transform) {
+    const to = vec3.sub(from.transform.position, target.transform.position);
+    if (vec3.dot(to, target.character.facing) > 0) return Math.round(amount * BLOCKED);
+  }
+  return amount;
+}
+
+/** What a blocked hit takes (stage 4f): a quarter. */
+export const BLOCKED = 0.25;
+
+/**
+ * GRENADES (stage 4f): each fuse burns down; at its end, the blast (the engine's: it pushes what is
+ * near), and each one it reached with health hurt by its share of the grenade's damage, from who threw
+ * it. The grenade is gone.
+ */
+function fuses(world: World) {
+  for (const e of [...world.entities.values()]) {
+    const f = component<Fuse>(e, FUSE);
+    if (!f || !e.transform || --f.steps > 0) continue;
+    const g = WEAPONS.grenade;
+    const at: Vec3 = [...e.transform.position];
+    world.removeEntity(e.id);
+    for (const { entity, share } of world.explode(at, g.radius, g.strength, f.by))
+      if (world.entities.get(entity)?.health) world.hurt(entity, Math.round(g.damage * share), { from: f.by, kind: 'grenade' });
+  }
 }
 
 /** The level's stars: zones of kind `star` (while nobody has taken them). */
@@ -325,7 +378,11 @@ function buildDojoLevel(world: World, level: Level) {
     guard(world, zone.transform!.position, quat.rotate(zone.transform!.rotation, [0, 0, -1]));
   for (const zone of [...world.entities.values()].filter((e) => e.sensor?.kind === 'weapon')) {
     const kind = WEAPON_KINDS[(zone.sensor!.params.kind?.[0] ?? 1) - 1] ?? 'dart';
-    zone.appearance = { shape: 'box', size: [0.12, 0.12, 0.7], color: { dart: 0x5a8ae0, bolt: 0xd85a5a, stick: 0x8a6a42 }[kind] };
+    zone.appearance = {
+      shape: 'box',
+      size: [0.12, 0.12, 0.7],
+      color: { dart: 0x5a8ae0, bolt: 0xd85a5a, stick: 0x8a6a42, grenade: 0x6a9a4a }[kind],
+    };
     zone.spin = { angularVelocity: [0, 1.5, 0] };
   }
   character(world, 1, level.spawn, level.facing, 0x93d9c9);
@@ -686,6 +743,10 @@ export function createDojo(levels: Readonly<Record<string, Level>>, brains: Read
           if (run) world.place(e, run.checkpoint);
         }
       arms(world, events);
+      fuses(world);
+      // How many guards are down (stage 4f), for a level that asks (its `down` signal, an input).
+      if (world.signals.some((g) => g.name === 'down' && g.op === 'input'))
+        world.setSignal('down', [...world.entities.values()].filter((e) => e.brain && (e.health?.down ?? -1) >= 0).length);
       // Held, the throw charges; let go, one ball leaves: from the chest, where it aims (stage 4b: with
       // its pitch), up a little from there, as fast as it was charged.
       for (const e of world.entities.values()) {
