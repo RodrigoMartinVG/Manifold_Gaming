@@ -1,7 +1,7 @@
 import { cellAt, findPath, inZone, navOf, type Step } from '@manifold/bots';
 import { vec3, type Vec3 } from '@manifold/common';
-import { CHARACTER_GAP, type Brain, type Entity, type Memory, type PlayerInput, type World } from '@manifold/core';
-import { EYE, gunnerOf, weapon } from './rules';
+import { CHARACTER_GAP, eyeHeightOf, type Brain, type Entity, type Memory, type PlayerInput, type World } from '@manifold/core';
+import { gunnerOf, weapon } from './rules';
 
 /**
  * THE GUARD'S BRAIN (stage 4e, decision 0023): it runs where the match is hosted, once, and asks for
@@ -187,7 +187,7 @@ export const guardBrain: Brain = (world, self, memory) => {
       m.aim[1] + (p[1] - m.aim[1]) * follow,
       m.aim[2] + (p[2] - m.aim[2]) * follow,
     ]);
-    const to = vec3.sub(aim, [center[0], center[1] + EYE, center[2]]);
+    const to = vec3.sub(aim, [center[0], center[1] + eyeHeightOf(c, self.body!), center[2]]);
     const along = Math.hypot(to[0], to[2]);
     if (along <= range) {
       const face = toward(center, aim);

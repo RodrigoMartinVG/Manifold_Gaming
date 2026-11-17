@@ -75,5 +75,9 @@
  *      strikes along its whole length, and its grenades
  *  36  stage 4g: the Dojo's shots leave the eyes (where a first-person camera is); its guards may carry a
  *      dart or a bolt (`gunner` zones) and are back on their feet ten seconds after they go down
+ *  37  stage 4.5b: the debts that change the simulation, in one version: against a wall, a character
+ *      keeps no velocity into it; down a slope too steep to stand on, it slides, less its floor's
+ *      friction; what is lighter than 5 kg does not move it (it pushes it); what leaves the world is
+ *      gone; our cosine has its last term; the Dojo's shots leave the head in each way of moving
  */
-export const SIMULATION_VERSION = 36;
+export const SIMULATION_VERSION = 37;

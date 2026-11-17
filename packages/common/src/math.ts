@@ -150,7 +150,10 @@ export function sinCosDegrees(degrees: number): [sin: number, cos: number] {
     r *
     (1 - (r2 / 6) * (1 - (r2 / 20) * (1 - (r2 / 42) * (1 - (r2 / 72) * (1 - (r2 / 110) * (1 - (r2 / 156) * (1 - r2 / 210)))))));
   const c =
-    1 - (r2 / 2) * (1 - (r2 / 12) * (1 - (r2 / 30) * (1 - (r2 / 56) * (1 - (r2 / 90) * (1 - (r2 / 132) * (1 - r2 / 182))))));
+    1 -
+    (r2 / 2) *
+      (1 -
+        (r2 / 12) * (1 - (r2 / 30) * (1 - (r2 / 56) * (1 - (r2 / 90) * (1 - (r2 / 132) * (1 - (r2 / 182) * (1 - r2 / 240)))))));
   // (`0 - x`, not `-x`: so that a 0 stays +0, and does not become −0, which has other bits.)
   switch (((k % 4) + 4) % 4) {
     case 0:

@@ -6,10 +6,10 @@ import { COMPONENT_NAME } from './components';
 import { EARTH, gravityAt } from './gravity';
 import { MATERIAL_NAME, MATERIALS, materialProblem, type Material } from './materials';
 import { HIT_HEARD, hitRadius } from './sound';
-import { PHYSICS, type PhysicsBackend, type PhysicsHit } from './physics';
+import { bodyMass, PHYSICS, type PhysicsBackend, type PhysicsHit } from './physics';
+
 import { VERIFIED, type Profile } from './profile';
 import type {
-  Body,
   CollisionGroups,
   Components,
   Damage,
@@ -24,6 +24,9 @@ import type {
   SignalOp,
 } from './types';
 import { SIMULATION_VERSION } from './version';
+
+/** A body's mass, from its density (the physics' own, 1, without one) and its shape's volume: what Rapier gives it. */
+export const massOf = bodyMass;
 
 /** What a query through the world hit (stage 2.5b): which entity, how far, where, and the surface's normal there. */
 export interface Hit {
@@ -51,22 +54,6 @@ export interface Query {
   groups?: CollisionGroups;
   /** Whether characters count: yes, unless false (stage 3h: the camera goes through people, not walls). */
   characters?: boolean;
-}
-
-/** A body's mass, from its density (the physics' own, 1, without one) and its shape's volume: what Rapier gives it. */
-export function massOf(body: Pick<Body, 'shape' | 'density'>): number {
-  const s = body.shape;
-  // (Products, not `**`: Math.pow may give other bits in another browser.)
-  const box = (h: Vec3) => 8 * h[0] * h[1] * h[2];
-  const volume =
-    s.kind === 'box'
-      ? box(s.halfExtents)
-      : s.kind === 'compound'
-        ? s.parts.reduce((sum, p) => sum + box(p.halfExtents), 0)
-        : s.kind === 'ball'
-          ? (4 / 3) * Math.PI * s.radius * s.radius * s.radius
-          : Math.PI * s.radius * s.radius * (2 * s.halfHeight) + (4 / 3) * Math.PI * s.radius * s.radius * s.radius;
-  return (body.density ?? 1) * volume;
 }
 
 /** How many signals each kind of signal reads (−1: one or more). */
@@ -134,6 +121,13 @@ export const ENTITY_NAME = /^[a-z][a-z0-9_]*$/;
 
 /** What a character weighs for a blast's push (stage 4f, kg): it has no mass of its own (its body moves only as its controller says). */
 export const CHARACTER_MASS = 80;
+
+/**
+ * How far from the origin what the physics moves may go before it is gone (m, stage 4.5b): farther than
+ * anything of a level. A ball that leaves a level without a void below it takes about ten seconds to
+ * fall that far.
+ */
+export const FARTHEST = 500;
 
 /** The fixed step: the simulation always advances 1/60 of a second, whatever the frame rate. */
 export const STEP = 1 / 60;
@@ -895,15 +889,23 @@ export class World {
 
   private readBack() {
     const g = this.uniformGravity();
+    const gone: EntityId[] = [];
     for (const e of this.entities.values()) {
       if (!e.body || !e.transform || e.body.type === 'fixed') continue;
       const before: Vec3 = [...e.body.linearVelocity];
       this.physics.read(e.body.handle, e.transform, e.body);
       if (e.body.type !== 'dynamic') continue;
+      // Out of the world (stage 4.5b): what the physics moves, past `FARTHEST` from the origin, is gone
+      // (a ball out of a level without a void fell for ever, and the physics went on with it). Never a
+      // character: what becomes of one is its game's.
+      if (!e.character && vec3.length(e.transform.position) > FARTHEST) {
+        gone.push(e.id);
+        continue;
+      }
       const change = vec3.sub(vec3.sub(e.body.linearVelocity, before), vec3.scale(g, STEP));
       // Its mass from its density and its shape, here (asking the physics, a call into WebAssembly for
       // every body on every step, took the stress room's step near its budget): the same number.
-      const energy = 0.5 * massOf(e.body) * vec3.dot(change, change);
+      const energy = 0.5 * bodyMass(e.body) * vec3.dot(change, change);
       if (energy < HIT_HEARD) continue;
       // On what: the first thing it touches (its material), or its own.
       const other = this.physics.touching(e.body.handle)[0];
@@ -920,6 +922,7 @@ export class World {
         against: against?.id ?? null,
       });
     }
+    for (const id of gone) this.removeEntity(id);
   }
 
   /**

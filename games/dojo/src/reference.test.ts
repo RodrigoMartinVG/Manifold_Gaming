@@ -293,9 +293,11 @@ describe('the reference replays of phase 4, growing with it', () => {
       });
     let struckAfterTap = -1;
     /** Five meters from the dummy, on its +X side, wherever it stands. */
+    // (5 m on the dummy's +Z side, facing it: since 4.5b the tapped balls pile up on its +X side, where
+    // the taps came from, and stood in the dart's way; on −Z, the pane.)
     const fiveFrom = (session: Session) => {
       const [x, , z] = hero(session, 0)!.transform!.position;
-      return [`dojo.goto ${(x + 5).toFixed(2)} 1 ${z.toFixed(2)}`];
+      return [`dojo.goto ${x.toFixed(2)} 1 ${(z + 5).toFixed(2)}`];
     };
     const { session, seen } = run('seed 9\ndojo.level moves', [
       { steps: 30 },
@@ -325,22 +327,25 @@ describe('the reference replays of phase 4, growing with it', () => {
       // The training dummy (stage 4c): from 3 m, a tap every half second until it goes down; three
       // seconds later, it is back.
       { lines: ['dojo.goto -5 1 2'], steps: 600, drive: (s) => ({ face: [-1, 0, 0], 'dojo.throw': s > 20 && s % 30 === 0 }) },
+      // (And a wait, so it is on its feet again for the weapons: since 4.5b the balls no longer take it
+      // back, they strike it as thrown, and it may go down as late as the last tap.)
+      { steps: 200 },
       // The weapons (stage 4c), each taken from its rack and used once on the dummy, back on its feet: a
       // dart from 5 m, at once; a bolt from there, that flies; the stick beside it.
       // (From the eyes, stage 4g: 5 m from the dummy, wherever the balls left it, aimed down at its middle, 7°.)
       { lines: ['dojo.goto -6.5 1 8.2'], steps: 20 },
-      { lines: fiveFrom, steps: 60, drive: (s) => ({ face: [-1, 0, 0], pitch: -0.08, 'dojo.attack': s === 40 }) },
+      { lines: fiveFrom, steps: 60, drive: (s) => ({ face: [0, 0, -1], pitch: -0.08, 'dojo.attack': s === 40 }) },
       { lines: ['dojo.goto -5 1 8.6'], steps: 20 },
-      { lines: fiveFrom, steps: 60, drive: (s) => ({ face: [-1, 0, 0], pitch: -0.08, 'dojo.attack': s === 40 }) },
+      { lines: fiveFrom, steps: 60, drive: (s) => ({ face: [0, 0, -1], pitch: -0.08, 'dojo.attack': s === 40 }) },
       { lines: ['dojo.goto -3.5 1 8.2'], steps: 20 },
-      // (The balls knocked the dummy back: beside it, a meter on its +X side, wherever it stands.)
+      // (Beside it, a meter on its +Z side, wherever it stands: away from the balls.)
       {
         lines: (s) => {
           const [x, , z] = hero(s, 0)!.transform!.position;
-          return [`dojo.goto ${(x + 1).toFixed(2)} 1 ${z.toFixed(2)}`];
+          return [`dojo.goto ${x.toFixed(2)} 1 ${(z + 1).toFixed(2)}`];
         },
         steps: 60,
-        drive: (s) => ({ face: [-1, 0, 0], 'dojo.attack': s === 40 }),
+        drive: (s) => ({ face: [0, 0, -1], 'dojo.attack': s === 40 }),
       },
       // From the far end towards the lamp: standing, then (from the dark again) crouched.
       { lines: ['dojo.goto 5 1 9.5'], steps: 150, drive: () => ({ move: [0, 0, -1] }) },

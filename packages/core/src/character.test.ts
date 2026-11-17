@@ -1368,9 +1368,9 @@ describe('standing, held by its floor (stage 3b)', () => {
       return from - y(hero);
     };
     expect(slid(18)).toBeLessThan(0.01);
-    // Slowly (14 cm in two seconds, as before this stage): one step of gravity at a time, since it keeps
-    // no speed while it touches the ground. Written down for later.
-    expect(slid(40)).toBeGreaterThan(0.1);
+    // Sliding (stage 4.5b): what it goes down at, it keeps, less its floor's friction. (14 cm in two
+    // seconds until then: it kept no speed while it touched the ground. controller.test.ts measures it.)
+    expect(slid(40)).toBeGreaterThan(1);
   });
 });
 

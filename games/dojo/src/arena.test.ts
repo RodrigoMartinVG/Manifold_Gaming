@@ -69,6 +69,32 @@ describe('the arena (stage 4g)', () => {
     session.world.dispose();
   });
 
+  test('crouched, a dart leaves the crouch’s head (stage 4.5b), as the first-person camera is: lower', () => {
+    const registry = registryFor(DojoCartridge);
+    registry.run('seed 3\ndojo.level moves', 'recipe');
+    const session = new Session(DojoCartridge, { registry });
+    const events: Event[] = [];
+    const step = (input: PlayerInput = {}) => {
+      session.setInput(1, input);
+      session.step();
+      events.push(...session.world.stepEvents);
+    };
+    for (let i = 0; i < 30; i++) step();
+    const hero = [...session.world.entities.values()].find((e) => e.character?.player === 1)!;
+    session.world.place(hero, [-6.5, 1, 8.2]);
+    for (let i = 0; i < 10; i++) step();
+    session.world.place(hero, [-3, 1, 2]);
+    const from = (input: PlayerInput) => {
+      for (let i = 0; i < 30; i++) step(input);
+      step({ ...input, 'dojo.attack': true });
+      const shot = events.filter((e) => e.type === 'shot').at(-1);
+      return shot && shot.type === 'shot' ? shot.start[1] - hero.transform!.position[1] : NaN;
+    };
+    expect(from({})).toBeCloseTo(EYE, 2);
+    expect(from({ crouch: true })).toBeCloseTo(0.12, 2);
+    session.world.dispose();
+  });
+
   test('from start to end: a dart from its rack; the three guards seen, shot, shooting back; all three down at once', () => {
     const { session, events, step, hero, guards } = arena();
     const world = () => session.world;

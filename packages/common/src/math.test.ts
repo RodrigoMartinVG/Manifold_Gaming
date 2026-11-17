@@ -110,6 +110,21 @@ describe('our own sine and cosine, in degrees (stage 2a)', () => {
     expect(worst).toBeLessThan(4e-15);
   });
 
+  test('within the rest’s ±45°, the cosine as exact as the sine: a couple of the last bits (stage 4.5b)', () => {
+    // Its series stopped one term before the sine's (the tutorial's deeper pass found it): up to 1e-15
+    // off near 45°. One more term, r¹⁶/16!, is 2.6e-14 there, divided by 240 past the last: gone.
+    let worstSin = 0;
+    let worstCos = 0;
+    for (let d = -45; d <= 45; d += 0.01) {
+      const [s, c] = sinCosDegrees(d);
+      const r = (d * Math.PI) / 180;
+      worstSin = Math.max(worstSin, Math.abs(s - Math.sin(r)));
+      worstCos = Math.max(worstCos, Math.abs(c - Math.cos(r)));
+    }
+    expect(worstSin).toBeLessThan(3e-16);
+    expect(worstCos).toBeLessThan(3e-16);
+  });
+
   test('the quarter turns come out exact, and without −0', () => {
     const exact = (d: number, sin: number, cos: number) => {
       const [s, c] = sinCosDegrees(d);

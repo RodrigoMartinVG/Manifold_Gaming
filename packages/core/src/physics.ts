@@ -1,5 +1,5 @@
 import RAPIER from '@dimforge/rapier3d-deterministic-compat';
-import { quat, vec3, type Quat, type Vec3 } from '@manifold/common';
+import { quat, sinCosDegrees, vec3, type Quat, type Vec3 } from '@manifold/common';
 import type { Profile } from './profile';
 import type { Body, BodySpec, CollisionGroups, CompoundPart, Shape, Transform } from './types';
 
@@ -155,6 +155,36 @@ export const CHARACTER_GAP = 0.02;
  */
 export const STANDS_ON = Math.sqrt(3) / 2;
 
+/** A body's mass, from its density (the physics' own, 1, without one) and its shape's volume: what Rapier gives it. */
+export function bodyMass(body: Pick<Body, 'shape' | 'density'>): number {
+  const s = body.shape;
+  // (Products, not `**`: Math.pow may give other bits in another browser.)
+  const box = (h: Vec3) => 8 * h[0] * h[1] * h[2];
+  const volume =
+    s.kind === 'box'
+      ? box(s.halfExtents)
+      : s.kind === 'compound'
+        ? s.parts.reduce((sum, p) => sum + box(p.halfExtents), 0)
+        : s.kind === 'ball'
+          ? (4 / 3) * Math.PI * s.radius * s.radius * s.radius
+          : Math.PI * s.radius * s.radius * (2 * s.halfHeight) + (4 / 3) * Math.PI * s.radius * s.radius * s.radius;
+  return (body.density ?? 1) * volume;
+}
+
+/**
+ * What a character's controller does not run into (stage 4.5b): what the physics moves lighter than
+ * `LIGHT` kg (a ball, 14 g at the default density). The character's body moves it out of its way in
+ * the physics' step, as a kick does. Before, the controller kept its gap from it too, and a character
+ * standing still went back 1 to 8 cm with each ball that touched it (4c's dummy, 1.3 m in the
+ * reference replay; balls rolling into its feet, 64 cm in ten). A crate of 45 kg still stops it, and it
+ * pushes it by its own rule (character.ts).
+ */
+export const LIGHT = 5;
+const light = (body: RAPIER.RigidBody | null | undefined) => !!body && body.isDynamic() && body.mass() < LIGHT;
+
+/** The steepest ground a character walks up, as the cosine of its slope: 50° (`CHARACTER.maxClimb`), with our own cosine. */
+const CLIMBS = sinCosDegrees(50)[1];
+
 /** The steps a character climbs without jumping (m): up to 35 cm, if there is at least 15 cm to stand on. */
 export const STEP_UP = 0.35;
 
@@ -185,7 +215,7 @@ export interface PhysicsBackend {
     desired: Vec3,
     up: Vec3,
     standingOn?: number,
-  ): { movement: Vec3; grounded: boolean; ceiling: boolean; touched: number[] };
+  ): { movement: Vec3; grounded: boolean; ceiling: boolean; touched: number[]; walls: Vec3[] };
   /** Changes the shape a character's controller moves (stage 4b: crouching), and where it is from the body's center (in its frame). */
   setCharacterPose(handle: number, shape: Shape, offset: Vec3): void;
   /**
@@ -234,6 +264,12 @@ export class RapierPhysics implements PhysicsBackend {
    * them (`moveCharacter`). Part of the state: a snapshot keeps them (Rapier's keeps its old tree).
    */
   private readonly unseen = new Set<number>();
+  /**
+   * The colliders of what the physics moves lighter than `LIGHT` (stage 4.5b): what a character's
+   * controller does not run into. Kept by their handles, since the controller's filter cannot ask Rapier
+   * about a body while it computes (it holds the world).
+   */
+  private readonly lightColliders = new Set<number>();
 
   /** A new physics world; or, with `snapshot`, the one that snapshot keeps (its bodies keep their handles). */
   constructor(gravity: Vec3, timestep: number, snapshot?: Uint8Array) {
@@ -246,6 +282,7 @@ export class RapierPhysics implements PhysicsBackend {
       // What slept when the snapshot was taken (after the bodies were read: the same) was read asleep.
       this.world.forEachRigidBody((body) => {
         if (body.isSleeping()) this.asleep.add(body.handle);
+        if (light(body)) for (let i = 0; i < body.numColliders(); i++) this.lightColliders.add(body.collider(i).handle);
       });
     } else this.world = new RAPIER.World(v(gravity));
     this.world.gravity = v(gravity);
@@ -318,7 +355,8 @@ export class RapierPhysics implements PhysicsBackend {
     collider.setRestitution(body.restitution).setFriction(body.friction);
     if (body.density !== undefined) collider.setDensity(body.density);
     if (body.groups) collider.setCollisionGroups(groupsOf(body.groups)).setSolverGroups(groupsOf(body.groups));
-    this.world.createCollider(collider, rigid);
+    const made = this.world.createCollider(collider, rigid);
+    if (body.type === 'dynamic' && bodyMass(body) < LIGHT) this.lightColliders.add(made.handle);
     body.handle = rigid.handle;
     this.unseen.add(rigid.handle);
     return body;
@@ -326,6 +364,7 @@ export class RapierPhysics implements PhysicsBackend {
 
   removeBody(handle: number) {
     const rigid = this.world.getRigidBody(handle);
+    if (rigid) for (let i = 0; i < rigid.numColliders(); i++) this.lightColliders.delete(rigid.collider(i).handle);
     if (rigid) this.world.removeRigidBody(rigid);
     this.asleep.delete(handle);
     this.unseen.delete(handle);
@@ -344,7 +383,10 @@ export class RapierPhysics implements PhysicsBackend {
    * it along walls, climbs it up steps, keeps it on slopes and on the ground, and pushes the dynamic
    * bodies in its way. Returns the movement it can do, whether it ends standing on something, and
    * whether it hit something above: a collision whose normal, on the character's side, points "up"
-   * (its head touched it). Brushing a wall while rising is not a ceiling.
+   * (its head touched it). Brushing a wall while rising is not a ceiling. And the walls it pressed
+   * (stage 4.5b): what it touched steeper than it climbs (`maxClimb`) and not above it, that nothing
+   * pushes (not what the physics moves: that it pushes), as their normals on the character's side
+   * (towards the wall).
    *
    * `standingOn` (stage 2d): the kinematic body it stands on, which, for the controller, is FIXED
    * meanwhile: the engine carries the character with it, exactly (character.ts). Two things measured
@@ -368,10 +410,10 @@ export class RapierPhysics implements PhysicsBackend {
     desired: Vec3,
     up: Vec3,
     standingOn?: number,
-  ): { movement: Vec3; grounded: boolean; ceiling: boolean; touched: number[] } {
+  ): { movement: Vec3; grounded: boolean; ceiling: boolean; touched: number[]; walls: Vec3[] } {
     const rigid = this.world.getRigidBody(handle);
     const collider = rigid?.collider(0);
-    if (!rigid || !collider) return { movement: [0, 0, 0], grounded: false, ceiling: false, touched: [] };
+    if (!rigid || !collider) return { movement: [0, 0, 0], grounded: false, ceiling: false, touched: [], walls: [] };
     const c = (this.controller ??= this.createController());
     c.setUp(v(up));
     const ground = standingOn === undefined ? null : this.world.getRigidBody(standingOn);
@@ -379,7 +421,7 @@ export class RapierPhysics implements PhysicsBackend {
     const linear = ground?.linvel();
     const angular = ground?.angvel();
     ground?.setBodyType(RAPIER.RigidBodyType.Fixed, false);
-    c.computeColliderMovement(collider, v(desired));
+    c.computeColliderMovement(collider, v(desired), undefined, undefined, (other) => !this.lightColliders.has(other.handle));
     if (ground && kind !== undefined && linear && angular) {
       ground.setBodyType(kind, false);
       ground.setLinvel(linear, false);
@@ -388,15 +430,40 @@ export class RapierPhysics implements PhysicsBackend {
     let ceiling = false;
     // What it ran into that the physics moves (stage 3g: the character pushes it, by its own rule).
     const touched: number[] = [];
+    const walls: Vec3[] = [];
     for (let i = 0; i < c.numComputedCollisions(); i++) {
       const hit = c.computedCollision(i);
       const n = hit?.normal2;
-      if (n && n.x * up[0] + n.y * up[1] + n.z * up[2] > 0.7) ceiling = true;
+      const along = n ? n.x * up[0] + n.y * up[1] + n.z * up[2] : 0;
+      if (n && along > 0.7) ceiling = true;
       const body = hit?.collider?.parent();
       if (body?.isDynamic() && !touched.includes(body.handle)) touched.push(body.handle);
+      // (The character's side points into the wall: a floor's points down, −1; a wall's, about 0.)
+      else if (n && body && along <= 0.7 && -along < CLIMBS) walls.push([n.x, n.y, n.z]);
     }
     const movement = this.stopAtUnseen(collider, handle, toVec(c.computedMovement()));
-    return { movement, grounded: c.computedGrounded(), ceiling, touched };
+    // What is light enough for the controller to go through (stage 4.5b), within a few centimeters of
+    // where it ends this step: the character pushes it by its own rule, as anything it touches.
+    const shape = collider.shape;
+    if (this.lightColliders.size > 0 && shape instanceof RAPIER.Capsule) {
+      const at = collider.translation();
+      const end = { x: at.x + movement[0], y: at.y + movement[1], z: at.z + movement[2] };
+      const near: number[] = [];
+      this.world.intersectionsWithShape(
+        end,
+        collider.rotation(),
+        new RAPIER.Capsule(shape.halfHeight, shape.radius + 0.05),
+        (other) => {
+          if (this.lightColliders.has(other.handle)) near.push(other.handle);
+          return true;
+        },
+      );
+      for (const h of near) {
+        const body = this.world.getCollider(h)?.parent();
+        if (body && !touched.includes(body.handle)) touched.push(body.handle);
+      }
+    }
+    return { movement, grounded: c.computedGrounded(), ceiling, touched, walls };
   }
 
   join(a: number, b: number, anchorA: Vec3, anchorB: Vec3) {
@@ -433,8 +500,9 @@ export class RapierPhysics implements PhysicsBackend {
     let free = length;
     for (const other of this.unseen) {
       if (other === handle) continue;
-      const hit = this.world
-        .getRigidBody(other)
+      const body = this.world.getRigidBody(other);
+      if (light(body)) continue;
+      const hit = body
         ?.collider(0)
         ?.castShape(ZERO, collider.shape, collider.translation(), collider.rotation(), direction, 0, free + CHARACTER_GAP, false);
       if (hit) free = Math.min(free, Math.max(0, hit.time_of_impact - CHARACTER_GAP));

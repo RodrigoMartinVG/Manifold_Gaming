@@ -1,7 +1,7 @@
 import { quat, sinCosDegrees, vec3, type Quat, type Vec3 } from '@manifold/common';
 import { gravityAt } from './gravity';
 import { tractionOf } from './materials';
-import { CHARACTER_GAP, STANDS_ON } from './physics';
+import { CHARACTER_GAP, STANDS_ON, STEP_UP } from './physics';
 import { STRIDE, stepRadius } from './sound';
 import { axisOf, isDown, NO_INPUT, pressed, vectorOf } from './input';
 import type {
@@ -488,6 +488,18 @@ function standingOn(
 }
 
 /**
+ * THE FACE UNDER A CHARACTER'S MIDDLE, if it is steeper than it stands on (stage 4.5b): its normal, from a
+ * ray straight down from its center. Null on flat enough ground, or on nothing (a round bottom on an
+ * edge: what holds it there is the edge, not a slope).
+ */
+function steepFace(world: World, e: Entity, up: Vec3): Vec3 | null {
+  const hit = world.castRay(e.transform!.position, vec3.scale(up, -1), 2, { skip: e.id, dynamic: false, characters: false });
+  if (!hit) return null;
+  const along = vec3.dot(hit.normal, up);
+  return along > 0.1 && along < STANDS_ON ? hit.normal : null;
+}
+
+/**
  * HOLDING (stage 3g): how far it reaches to grab (m, from its chest along where it looks), where it holds
  * (in front of it and a little up), how far the held thing may get before it lets go, how hard it can
  * pull (N: a wooden crate of 45 kg comes along; a stone block of a tonne does not leave the ground), and
@@ -719,7 +731,28 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
     world.physics.setCharacterPose(body.handle, pose.shape, pose.offset);
   }
   let mode = MODES[c.mode];
-  vH = mode.steer(c, vH, wanted, move, dt, traction);
+  // ON GROUND TOO STEEP TO STAND ON (stage 4.5b; 3b measured it: on 40° it went 14 cm in two seconds,
+  // since every step it touched the ground it kept no speed). The face under its middle, steeper than
+  // it stands on (a round bottom on an edge is not a slope). Down the slope, its feet cannot hold it:
+  // what it goes down at, it keeps (gravity adds to it through the controller, the floor's friction
+  // takes from it, step 6); it can still push up it, and across it, as it walks.
+  const steep = c.grounded && under && vec3.dot(under.normal, up) < STANDS_ON ? steepFace(world, e, up) : null;
+  // (A floor that grips more than the slope pulls, μ ≥ tan θ, holds it as flat ground does: μ cos θ ≥ sin θ,
+  // the sine from a square root, the same bits everywhere.)
+  const grip = floor?.friction ?? 0.6;
+  const cos = steep ? vec3.dot(steep, up) : 1;
+  const held = steep !== null && grip * cos >= Math.sqrt(Math.max(0, 1 - cos * cos));
+  const slope = held ? null : steep;
+  if (slope && (c.mode === 'walk' || c.mode === 'crouch' || c.mode === 'block')) {
+    const downhill = vec3.normalize(vec3.onPlane(slope, up));
+    const along = vec3.dot(vH, downhill);
+    const across = vec3.sub(vH, vec3.scale(downhill, along));
+    const wantedAlong = vec3.dot(wanted, downhill);
+    const most = c.movement.walk.acceleration * traction * dt;
+    const steered = approach(across, vec3.sub(wanted, vec3.scale(downhill, wantedAlong)), most);
+    const up_ = wantedAlong < 0 ? Math.max(wantedAlong, along - most) : along;
+    vH = vec3.add(steered, vec3.scale(downhill, up_));
+  } else vH = mode.steer(c, vH, wanted, move, dt, traction);
   // Climbing, it comes to its wall (stage 4a): as far as touching it less `WALL_GAP`, at `WALL_APPROACH`
   // at most (its body's radius from its axis, where the ray went from, and the controller's own gap).
   if (c.mode === 'climb' && body.shape.kind === 'capsule') {
@@ -801,7 +834,7 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
   // (stage 3c). Moving out of the gap, the controller does not meet the floor at once.
   let rise = 0;
   if (mode.holds) vUp = mode.holds(c, move);
-  else if (c.grounded && !leapt && vUp <= 0 && under && vec3.dot(under.normal, up) >= STANDS_ON) {
+  else if (c.grounded && !leapt && vUp <= 0 && under && (vec3.dot(under.normal, up) >= STANDS_ON || held)) {
     vUp = 0;
     rise = Math.max(0, CHARACTER_GAP - under.distance);
   } else {
@@ -815,14 +848,53 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
   // 5: what it can really do.
   const desired = vec3.add(vec3.scale(vec3.add(vec3.add(vH, vec3.scale(up, vUp)), carried), dt), vec3.scale(up, rise));
   const platform = under?.moves ? world.entities.get(under.entity)?.body?.handle : undefined;
-  const { movement, grounded, ceiling, touched } = world.physics.moveCharacter(body.handle, desired, up, platform);
+  const { movement, grounded, ceiling, touched, walls } = world.physics.moveCharacter(body.handle, desired, up, platform);
   // What it ran into that the physics moves, it pushes (stage 3g), towards where it was asked to go.
   push(world, e, touched, vec3.onPlane(wanted, up), up, dt);
 
   // 6: what it learned. (A ceiling is what the controller says hit its head: rising a little less
   // than asked is not one; that happens brushing a wall, and it used to cut jumps short.)
   if (vUp > 0 && ceiling) vUp = 0;
-  if (grounded && vUp < 0) vUp = 0;
+  // Against a wall (stage 4.5b): what the controller did not let it do into a wall, it no longer has, at
+  // most v − (v·n)n (before, the velocity it kept was the one it asked for: pushing a wall standing still,
+  // 4.5 m/s, and it left the wall at full speed). Only what was refused: up a step, the controller
+  // touches its face but takes it over, and it keeps its speed.
+  // And only a wall: what reaches above a step's height (a ray towards it there); a step it goes up.
+  const refused = vec3.sub(vec3.onPlane(desired, up), vec3.onPlane(movement, up));
+  const radius = body.shape.kind === 'capsule' ? body.shape.radius : 0.3;
+  const feetNow = vec3.sub(
+    world.physics.position(body.handle),
+    vec3.scale(up, (body.shape.kind === 'capsule' ? body.shape.halfHeight : 0.5) + radius),
+  );
+  for (const n of walls) {
+    const into = vec3.onPlane(n, up);
+    const length = vec3.length(into);
+    if (length < 1e-6) continue;
+    const m = vec3.scale(into, 1 / length);
+    const pressing = vec3.dot(vH, m);
+    const stopped = vec3.dot(refused, m) / dt;
+    if (pressing <= 0 || stopped <= 0) continue;
+    const above = vec3.add(feetNow, vec3.scale(up, STEP_UP + 0.05));
+    if (!world.castRay(above, m, radius + 0.1, { skip: e.id, dynamic: false, characters: false })) continue;
+    vH = vec3.sub(vH, vec3.scale(m, Math.min(pressing, stopped)));
+  }
+  // Sliding down a slope too steep to stand on: it goes as the controller took it, along the slope (its
+  // velocity up too), and the floor's friction slows it there, μ g cos θ, never past standing still: a
+  // grippy enough floor (μ ≥ tan θ) holds it.
+  if (slope && grounded && !leapt && c.mode !== 'roll' && c.mode !== 'climb') {
+    const got = vec3.sub(vec3.scale(movement, 1 / dt), carried);
+    const downhill = vec3.normalize(vec3.onPlane(slope, up));
+    const along = vec3.dot(vec3.onPlane(got, up), downhill);
+    if (along > 0) {
+      const friction = grip * gravity * cos * dt;
+      const keep = Math.max(0, along - friction) / along;
+      vH = vec3.add(vec3.sub(vec3.onPlane(got, up), vec3.scale(downhill, along)), vec3.scale(downhill, along * keep));
+      vUp = vec3.dot(got, up) * keep;
+    } else {
+      vH = vec3.onPlane(got, up);
+      vUp = Math.min(0, vec3.dot(got, up));
+    }
+  } else if (grounded && vUp < 0) vUp = 0;
   c.grounded = grounded;
   // (Landed: on the ground and no longer going up. Just thrown, a hair above it, it is still on its way.)
   if (grounded && vUp <= 0) c.thrown = false;

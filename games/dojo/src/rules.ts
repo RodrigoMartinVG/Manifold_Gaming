@@ -11,6 +11,7 @@ import {
   buildLevel,
   component,
   DEFAULT_MOVEMENT,
+  eyeHeightOf,
   GRID_COLOR,
   isDown,
   NO_INPUT,
@@ -130,7 +131,11 @@ export const GUARD = Object.freeze({
   back: 600,
 });
 
-/** Where a character's eyes are (stage 4g), above its center (m): its head's (the games' character's hit parts). */
+/**
+ * Where a character's eyes are standing (stage 4g), above its center (m): its head's (the games'
+ * character's hit parts). In each way of moving, the engine's `eyeHeightOf` (stage 4.5b: crouched, a
+ * shot leaves where a first-person camera is, lower).
+ */
 export const EYE = 0.62;
 
 /**
@@ -276,7 +281,7 @@ function arms(world: World, events: readonly Event[]) {
     const back = countOf(world.inputs.get(c.player) ?? NO_INPUT, 'back', MOST_BACK);
     const chest = vec3.add(e.transform.position, vec3.scale(up, 0.4));
     // Shots leave the eyes (stage 4g), where a first-person camera is: what it has at its center is hit.
-    const eye = vec3.add(e.transform.position, vec3.scale(up, EYE));
+    const eye = vec3.add(e.transform.position, vec3.scale(up, e.character && e.body ? eyeHeightOf(e.character, e.body) : EYE));
     if (w.strike > 0) strike(world, e, w, chest, up, back);
     if (!pressed(world, c.player, 'dojo.attack') || world.tick < w.ready) continue;
     if (w.kind === 'dart') {

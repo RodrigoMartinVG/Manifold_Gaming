@@ -1,4 +1,4 @@
-# Manifold replay 36
+# Manifold replay 37
 # Phase 4, what a body can do: aiming up and down, a ball thrown where it aims; crouching under a low passage; seen later crouched; rolling, into the passage too; a training dummy hurt by balls, down, and back; a dart, a bolt and a stick.
 # A reference replay (stage 2.5a): playing it must end with the hash on its last line. A refactor
 # keeps it bit for bit. Recorded by games/dojo/src/reference.test.ts; recorded again (npm run
@@ -76,27 +76,27 @@ input 1841 1 face @270
 input 1870 1 face @270 dojo.throw
 input 1871 1 face @270
 input 1900 1 face @270 dojo.throw
-change 1901 dojo.goto -6.5 1 8.2
 input 1901 1
-change 1921 dojo.goto -4.34 1 1.78
-input 1921 1 face @270 pitch -0.08
-input 1960 1 face @270 pitch -0.08 dojo.attack
-input 1961 1 face @270 pitch -0.08
-change 1981 dojo.goto -5 1 8.6
-input 1981 1
-change 2001 dojo.goto -4.34 1 1.78
-input 2001 1 face @270 pitch -0.08
-input 2040 1 face @270 pitch -0.08 dojo.attack
-input 2041 1 face @270 pitch -0.08
-change 2061 dojo.goto -3.5 1 8.2
-input 2061 1
-change 2081 dojo.goto -8.34 1 1.78
-input 2081 1 face @270
-input 2120 1 face @270 dojo.attack
-input 2121 1 face @270
-change 2141 dojo.goto 5 1 9.5
-input 2141 1 move @0
-change 2291 dojo.goto 5 1 9.5
-input 2291 1
-input 2351 1 move @0 crouch
-end 2610 f09adc8a
+change 2101 dojo.goto -6.5 1 8.2
+change 2121 dojo.goto -8 1 7
+input 2121 1 face @0 pitch -0.08
+input 2160 1 face @0 pitch -0.08 dojo.attack
+input 2161 1 face @0 pitch -0.08
+change 2181 dojo.goto -5 1 8.6
+input 2181 1
+change 2201 dojo.goto -8 1 7
+input 2201 1 face @0 pitch -0.08
+input 2240 1 face @0 pitch -0.08 dojo.attack
+input 2241 1 face @0 pitch -0.08
+change 2261 dojo.goto -3.5 1 8.2
+input 2261 1
+change 2281 dojo.goto -8 1 3
+input 2281 1 face @0
+input 2320 1 face @0 dojo.attack
+input 2321 1 face @0
+change 2341 dojo.goto 5 1 9.5
+input 2341 1 move @0
+change 2491 dojo.goto 5 1 9.5
+input 2491 1
+input 2551 1 move @0 crouch
+end 2810 691b5ddb
