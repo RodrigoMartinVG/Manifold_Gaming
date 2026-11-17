@@ -1,0 +1,9 @@
+# The metrics gym: what the character can do
+# group: character
+# Stage 5a (decision 0017): the games' levels are built by measure. Blocks to jump onto, steps to walk
+# up, gaps to jump across walking and running, ramps from 10° to 55°, corridors and ceilings to fit
+# through, and the kit's tiles to walk across: each box named by what it measures (`inspect
+# height_200`). `metrics` says the same in numbers, from your character's own: `inspect me` shows how
+# to change one (`set` with its id, `character.movement.jump.speed 4.5`), and `metrics` again.
+seed 5
+dojo.level gym

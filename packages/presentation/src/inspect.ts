@@ -1,5 +1,5 @@
 import type { CommandInfo } from '@manifold/commands';
-import type { World } from '@manifold/core';
+import { metricsOfEntity, STEP, type World } from '@manifold/core';
 import type { Bodies } from './bodies';
 import { overlay, type GamePage, type Piece } from './page';
 
@@ -19,6 +19,12 @@ export const INSPECT_COMMANDS = {
       { name: 'entity', type: { kind: 'text' }, optional: true },
       { name: 'what', type: { kind: 'rest' }, optional: true },
     ],
+  },
+  metrics: {
+    name: 'metrics',
+    description:
+      'What a character can do, in meters (stage 5a; the gym measures it: `load gym`): how high and how far it jumps, the steps and slopes it goes up, what it fits through. From its own numbers: change one (`set 12 character.movement.jump.speed 4.5`, with its id from `inspect me`) and ask again. Your character, if not said.',
+    args: [{ name: 'entity', type: { kind: 'text' }, optional: true }],
   },
 } as const satisfies Record<string, CommandInfo>;
 
@@ -109,6 +115,15 @@ export function mountInspect(
     },
   });
 
+  page.registry.declareCommand({
+    ...INSPECT_COMMANDS.metrics,
+    run: ([which], out) => {
+      const id = entityNamed(which === undefined || which === '' ? 'me' : String(which));
+      if (typeof id === 'string') return out.write(id, 'warn');
+      out.write(describeMetrics(page.session.world, id));
+    },
+  });
+
   // A click (not a drag: dragging turns the camera) on an object inspects it in the console.
   const canvas = page.stage.renderer.domElement;
   let down: { x: number; y: number } | null = null;
@@ -174,6 +189,9 @@ function inspectEntity(world: World, id: number): string {
   if (e.appearance && e.appearance.shape !== 'grid')
     changes.push(`set ${who} appearance.color ${describeValue(e.appearance.color, 'color')}`);
   if (e.lamp) changes.push(`set ${who} lamp.intensity ${describeValue(e.lamp.intensity)}`);
+  // (A character's numbers: what `metrics` turns into meters, stage 5a.)
+  if (e.character)
+    changes.push(`set ${who} character.movement.jump.speed ${describeValue(e.character.movement.jump.speed)}`, `metrics ${who}`);
   for (const [k, v] of Object.entries(e.sensor?.params ?? {})) changes.push(`set ${who} sensor.params.${k} ${describeValue(v)}`);
   if (e.source) changes.push(`clone ${who} 1 0 0`);
   if (!e.character) changes.push(`delete ${who}`);
@@ -219,4 +237,18 @@ function countEntities(world: World): string {
   const names = [...world.entities.values()].flatMap((e) => (e.name ? [e.name] : []));
   const named = names.length ? ` Named: ${names.join(', ')}.` : '';
   return `${world.entities.size} entities: ${parts}.${named} A click on an object inspects it, or \`inspect 1\`.`;
+}
+
+/** A character's metrics, as the console says them (`metrics`), or why there are none. */
+export function describeMetrics(world: World, id: number): string {
+  const e = world.entities.get(id);
+  const m = e && metricsOfEntity(world, e);
+  if (!m) return `entity ${id} has no metrics: a character in a capsule, where there is gravity`;
+  const f = (v: number) => v.toFixed(2);
+  return [
+    `jump: its feet rise ${f(m.jump.height)} m (${f(m.jump.continuous)} without steps), at the top at step ${m.jump.top}, back as high at step ${m.jump.back} (${f(m.jump.back * STEP)} s)`,
+    `across, landing as high: its middle goes ${f(m.reach.walk)} m walking, ${f(m.reach.run)} m running (its body lands on an edge a little further)`,
+    `up: steps of ${f(m.step)} m (an edge of 0.4 its round foot rides), ground of ${m.slope}° standing still, of ${m.climb}° walking up`,
+    `its body: ${f(m.width)} m wide, ${f(m.tall)} m tall, ${f(m.crouched)} m crouched, keeping ${m.gap} m from what it touches`,
+  ].join('\n');
 }

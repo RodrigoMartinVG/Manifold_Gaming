@@ -39,6 +39,8 @@ export const CONSOLE_ES: Readonly<Record<string, string>> = {
   'view.calm':
     'menos movimiento de la cámara, para quien se marea: no sigue girando después de un arrastre, y vuelve atrás del personaje más despacio',
   'view.subtitles': 'subtítulos de los sonidos: cada sonido cerca de la cámara, escrito abajo, con una flecha hacia donde vino',
+  'view.sky':
+    'la hora que muestra el cielo en esta página, de 0 a 24 (etapa 5a): `view.sky 6` un amanecer, `view.sky 20.5` la hora azul, `view.sky 0` una noche con estrellas; solo el dibujo (cuánta luz hay sigue siendo la del nivel); −1, la hora del nivel',
   'view.hud': 'lo que el juego muestra arriba a la izquierda: en el Dojo, el tiempo, las caídas y las estrellas de un nivel',
   'view.timescale': 'mostrar el mundo más lento (0.2) o más rápido (2), sin cambiar la física',
   'view.paused': 'el mundo frenado (con `step` avanza de a un paso)',
@@ -73,6 +75,8 @@ export const CONSOLE_ES: Readonly<Record<string, string>> = {
   inspect: 'de qué está hecha una entidad: por su número, su nombre, `me` o `it` (sin nada: cuántas hay, y sus nombres)',
   watch:
     'deja una entidad fija en la pantalla, con sus valores al día mientras jugás; `watch clear` las saca, y `watch` solo dice cuáles mirás',
+  metrics:
+    'lo que puede hacer un personaje, en metros (etapa 5a; el gimnasio lo mide: `load gym`): cuán alto y cuán lejos salta, qué escalones y pendientes sube, por dónde entra; sale de sus propios números, así que cambiá uno con `set` y preguntá de nuevo',
   inputs: 'qué puede pedir un jugador en este juego, y qué tecla lo aprieta',
   pause: 'frena o reanuda el mundo (lo mismo que `toggle view.paused`)',
   step: 'avanza el mundo n pasos (uno, si no se dice) y lo deja en pausa',

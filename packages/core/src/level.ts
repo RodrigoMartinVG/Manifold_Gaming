@@ -96,11 +96,17 @@ import { copyData, ENTITY_NAME, type World } from './world';
  *                                             a piece of the game's kit where it goes, turned: what it
  *                                             collides with and how it looks are the kit's
  *
+ * Format 10 (stage 5a) adds the sky:
+ *
+ *   sky 19.5                                  the hour its sky shows (0 to 24): its colors, where the sun
+ *                                             or the moon is, the stars. Only how it is drawn: how lit
+ *                                             the world is (what a watcher sees by) is `ambient`'s
+ *
  * The turns are written in degrees, as a person thinks them, and become quaternions with our own sine
  * and cosine (`quat.fromDegrees`): the browser's would give other bits in another browser, and the
  * world must be born the same everywhere.
  */
-export const LEVEL_FORMAT = 9;
+export const LEVEL_FORMAT = 10;
 const HEADER = '# Manifold level';
 
 /** A turn around one of the axes, as it is written. */
@@ -251,6 +257,8 @@ export interface Level {
   signals: LevelSignal[];
   /** How lit everything is with no lamp (format 4), if it says. */
   ambient: number | null;
+  /** The hour its sky shows (format 10), if it says: only how it is drawn. */
+  sky: number | null;
   lamps: LevelLamp[];
   watchers: LevelWatcher[];
   /** Its routes (format 8), in the order written. */
@@ -311,6 +319,7 @@ const SINCE: Record<string, number> = {
   objective: 8,
   scene: 8,
   kit: 9,
+  sky: 10,
 };
 /** How many signals or zones each kind of signal reads (−1: one or more), as the world says. */
 const READS: Record<SignalOp, number> = { input: 0, zone: 1, used: 1, seen: 1, any: -1, all: -1, not: 1, toggle: 1, latch: 2 };
@@ -328,6 +337,7 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
     sensors: [],
     signals: [],
     ambient: null,
+    sky: null,
     lamps: [],
     watchers: [],
     routes: [],
@@ -552,7 +562,7 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
       if (box.look !== 'solid' && box.model) fail(n, `a ${box.look} box is not drawn with a model`);
       return box;
     };
-    if (kind === 'title' || kind === 'spawn' || kind === 'facing' || kind === 'ambient') {
+    if (kind === 'title' || kind === 'spawn' || kind === 'facing' || kind === 'ambient' || kind === 'sky') {
       const first = once.get(kind);
       if (first !== undefined) fail(n, `"${kind}" twice in a level (the first, on line ${first + 1})`);
       once.set(kind, n);
@@ -574,6 +584,13 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
         const light = number();
         if (light < 0) fail(n, 'the ambient light is 0 or more');
         level.ambient = light;
+        break;
+      }
+      case 'sky': {
+        since(kind);
+        const hour = number();
+        if (hour < 0 || hour > 24) fail(n, "the sky's hour is from 0 to 24 (19.5: half past seven in the evening)");
+        level.sky = hour;
         break;
       }
       case 'lamp': {
@@ -862,7 +879,7 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
       default:
         fail(
           n,
-          `"${kind}" is not understood (title, spawn, facing, ambient, material, box, map, sensor, lamp, watcher, signal, route, objective, scene)`,
+          `"${kind}" is not understood (title, spawn, facing, ambient, sky, material, box, map, sensor, lamp, watcher, signal, route, objective, scene)`,
         );
     }
     if (at < words.length) fail(n, `"${words[at]}" is extra`);
@@ -926,6 +943,7 @@ export function levelToText(level: Level): string {
       `spawn ${numbersText(level.spawn)}`,
       `facing ${numbersText(level.facing)}`,
       ...(level.ambient === null ? [] : [`ambient ${level.ambient}`]),
+      ...(level.sky === null ? [] : [`sky ${level.sky}`]),
       ...Object.entries(level.materials).map(
         ([name, m]) => `material ${name}  friction ${m.friction}  bounce ${m.bounce}  density ${m.density}  drag ${m.drag}`,
       ),
@@ -1040,7 +1058,14 @@ export function mapPieces(m: LevelMap): LevelPiece[] {
  */
 export function buildLevel(world: World, level: Level) {
   for (const [name, m] of Object.entries(level.materials)) world.addMaterial(name, m);
-  world.origin = { title: level.title, spawn: [...level.spawn], facing: [...level.facing], ambient: level.ambient };
+  // (Its sky only if it has one: an origin without it is as it was, and so are the hashes of worlds before format 10.)
+  world.origin = {
+    title: level.title,
+    spawn: [...level.spawn],
+    facing: [...level.facing],
+    ambient: level.ambient,
+    ...(level.sky === null ? {} : { sky: level.sky }),
+  };
   // A map's walls and zones are pieces, each its own line; its floor, one body (stage 4a).
   const fromMaps = level.maps.flatMap((m) => {
     const parts = mapParts(m);

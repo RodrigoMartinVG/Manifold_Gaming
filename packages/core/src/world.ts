@@ -188,6 +188,8 @@ export interface Origin {
   spawn: Vec3;
   facing: Vec3;
   ambient: number | null;
+  /** The hour its sky shows (format 10), if its level says: only for the drawing. */
+  sky?: number;
 }
 
 /**

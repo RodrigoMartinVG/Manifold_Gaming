@@ -1,0 +1,143 @@
+# Manifold level 10
+# The metrics gym (stage 5a, decision 0017): what the character can do, frozen in grey boxes and
+# measured, from which the games' levels are built. Blocks to jump onto (z = 22) and steps to walk up
+# (z = 27); gaps between platforms 2 m up, 3 to 12 m (lanes at x = −28 to −1); ramps of 10° to 55° to
+# a platform a meter up (x = 4 to 22, z = 0 to 6); corridors 0.55 to 0.8 m wide (z = 24) and ceilings
+# 0.95 to 1.7 m high (z = 16), at x = 4 to 24; and two lanes of the kit's floor tiles (x = 28, 31) to
+# walk across their seams. Every box named by what it measures (`inspect height_200`). In the afternoon
+# light (stage 5a's sky), to see the boxes' shapes.
+title The metrics gym
+spawn 0 1 29
+facing 0 0 -1
+sky 15.5
+
+box 0 -0.5 0     32 0.5 32   grid  name floor
+
+# Blocks to jump onto, from the floor: 0.35 to 2.5 m.
+box -28 0.175 22   0.6 0.175 0.6   color #8a8378  name height_035
+box -25 0.25 22   0.6 0.25 0.6   color #8a8378  name height_050
+box -22 0.5 22   0.6 0.5 0.6   color #8a8378  name height_100
+box -19 0.75 22   0.6 0.75 0.6   color #8a8378  name height_150
+box -16 0.9 22   0.6 0.9 0.6   color #8a8378  name height_180
+box -13 1 22   0.6 1 0.6   color #8a8378  name height_200
+box -10 1.05 22   0.6 1.05 0.6   color #8a8378  name height_210
+box -7 1.1 22   0.6 1.1 0.6   color #8a8378  name height_220
+box -4 1.25 22   0.6 1.25 0.6   color #8a8378  name height_250
+
+# Steps to walk up: 0.2 to 0.5 m.
+box -28 0.1 27   0.6 0.1 0.6   color #8a8378  name step_020
+box -25 0.15 27   0.6 0.15 0.6   color #8a8378  name step_030
+box -22 0.175 27   0.6 0.175 0.6   color #8a8378  name step_035
+box -19 0.2 27   0.6 0.2 0.6   color #8a8378  name step_040
+box -16 0.25 27   0.6 0.25 0.6   color #8a8378  name step_050
+
+# Gaps between platforms 2 m up: a runway of 8 m (z = −2 to 6), the gap, a landing of 6 m.
+box -28 1 2        1 1 4   color #7a746a  name runway_03
+box -28 1 -8   1 1 3   color #8a8378  name landing_03
+box -25 1 2        1 1 4   color #7a746a  name runway_04
+box -25 1 -9   1 1 3   color #8a8378  name landing_04
+box -22 1 2        1 1 4   color #7a746a  name runway_05
+box -22 1 -10   1 1 3   color #8a8378  name landing_05
+box -19 1 2        1 1 4   color #7a746a  name runway_06
+box -19 1 -11   1 1 3   color #8a8378  name landing_06
+box -16 1 2        1 1 4   color #7a746a  name runway_07
+box -16 1 -12   1 1 3   color #8a8378  name landing_07
+box -13 1 2        1 1 4   color #7a746a  name runway_08
+box -13 1 -13   1 1 3   color #8a8378  name landing_08
+box -10 1 2        1 1 4   color #7a746a  name runway_09
+box -10 1 -14   1 1 3   color #8a8378  name landing_09
+box -7 1 2        1 1 4   color #7a746a  name runway_10
+box -7 1 -15   1 1 3   color #8a8378  name landing_10
+box -4 1 2        1 1 4   color #7a746a  name runway_11
+box -4 1 -16   1 1 3   color #8a8378  name landing_11
+box -1 1 2        1 1 4   color #7a746a  name runway_12
+box -1 1 -17   1 1 3   color #8a8378  name landing_12
+
+# Ramps a meter up, to a platform (its top at z = −2 to 0): 10° to 55°.
+box 4 0.4015 2.8183   1 0.1 2.8794  rotate x 10  color #8a8378  name ramp_010
+box 4 0.5 -1     1 0.5 1   color #7a746a  name top_10
+box 7 0.406 1.3395   1 0.1 1.4619  rotate x 20  color #8a8378  name ramp_020
+box 7 0.5 -1     1 0.5 1   color #7a746a  name top_20
+box 10 0.4094 1.03   1 0.1 1.1831  rotate x 25  color #8a8378  name ramp_025
+box 10 0.5 -1     1 0.5 1   color #7a746a  name top_25
+box 13 0.4134 0.816   1 0.1 1  rotate x 30  color #8a8378  name ramp_030
+box 13 0.5 -1     1 0.5 1   color #7a746a  name top_30
+box 16 0.4181 0.6567   1 0.1 0.8717  rotate x 35  color #8a8378  name ramp_035
+box 16 0.5 -1     1 0.5 1   color #7a746a  name top_35
+box 19 0.4293 0.4293   1 0.1 0.7071  rotate x 45  color #8a8378  name ramp_045
+box 19 0.5 -1     1 0.5 1   color #7a746a  name top_45
+box 22 0.4426 0.2682   1 0.1 0.6104  rotate x 55  color #8a8378  name ramp_055
+box 22 0.5 -1     1 0.5 1   color #7a746a  name top_55
+
+# Corridors between two walls, 4 m long: 0.55 to 0.8 m wide.
+box 3.475 1.25 24   0.25 1.25 2   color #5a544c
+box 4.525 1.25 24   0.25 1.25 2   color #5a544c  name corridor_055
+box 7.45 1.25 24   0.25 1.25 2   color #5a544c
+box 8.55 1.25 24   0.25 1.25 2   color #5a544c  name corridor_060
+box 11.425 1.25 24   0.25 1.25 2   color #5a544c
+box 12.575 1.25 24   0.25 1.25 2   color #5a544c  name corridor_065
+box 15.4 1.25 24   0.25 1.25 2   color #5a544c
+box 16.6 1.25 24   0.25 1.25 2   color #5a544c  name corridor_070
+box 19.35 1.25 24   0.25 1.25 2   color #5a544c
+box 20.65 1.25 24   0.25 1.25 2   color #5a544c  name corridor_080
+
+# Ceilings over the floor, 2 m deep: 0.95 to 1.7 m high.
+box 4 1.2 16   1.5 0.25 1   color #5a544c  name ceiling_095
+box 8 1.3 16   1.5 0.25 1   color #5a544c  name ceiling_105
+box 12 1.4 16   1.5 0.25 1   color #5a544c  name ceiling_115
+box 16 1.85 16   1.5 0.25 1   color #5a544c  name ceiling_160
+box 20 1.9 16   1.5 0.25 1   color #5a544c  name ceiling_165
+box 24 1.95 16   1.5 0.25 1   color #5a544c  name ceiling_170
+
+# The kit's floor tiles in two lanes, to walk across their seams: tiles of a meter, and of four.
+kit floor_1  28 0.2 20
+kit floor_1  28 0.2 19
+kit floor_1  28 0.2 18
+kit floor_1  28 0.2 17
+kit floor_1  28 0.2 16
+kit floor_1  28 0.2 15
+kit floor_1  28 0.2 14
+kit floor_1  28 0.2 13
+kit floor_1  28 0.2 12
+kit floor_1  28 0.2 11
+kit floor_1  28 0.2 10
+kit floor_1  28 0.2 9
+kit floor_1  28 0.2 8
+kit floor_1  28 0.2 7
+kit floor_1  28 0.2 6
+kit floor_1  28 0.2 5
+kit floor_1  28 0.2 4
+kit floor_1  28 0.2 3
+kit floor_1  28 0.2 2
+kit floor_1  28 0.2 1
+kit floor_1  28 0.2 0
+kit floor_1  28 0.2 -1
+kit floor_1  28 0.2 -2
+kit floor_1  28 0.2 -3
+kit floor_1  28 0.2 -4
+kit floor_1  28 0.2 -5
+kit floor_1  28 0.2 -6
+kit floor_1  28 0.2 -7
+kit floor_1  28 0.2 -8
+kit floor_1  28 0.2 -9
+kit floor_1  28 0.2 -10
+kit floor_1  28 0.2 -11
+kit floor_1  28 0.2 -12
+kit floor_1  28 0.2 -13
+kit floor_1  28 0.2 -14
+kit floor_1  28 0.2 -15
+kit floor_1  28 0.2 -16
+kit floor_1  28 0.2 -17
+kit floor_1  28 0.2 -18
+kit floor_1  28 0.2 -19
+kit floor_1  28 0.2 -20
+kit floor_4  31 0.2 18
+kit floor_4  31 0.2 14
+kit floor_4  31 0.2 10
+kit floor_4  31 0.2 6
+kit floor_4  31 0.2 2
+kit floor_4  31 0.2 -2
+kit floor_4  31 0.2 -6
+kit floor_4  31 0.2 -10
+kit floor_4  31 0.2 -14
+kit floor_4  31 0.2 -18

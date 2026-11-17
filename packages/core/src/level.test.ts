@@ -497,6 +497,36 @@ signal spotted  seen eye
   });
 });
 
+describe('format 10 (stage 5a): the sky', () => {
+  test('its hour: read, written back the same, and kept by the world for the drawing (and given back as a level)', () => {
+    const level = levelFromText('# Manifold level 10\ntitle Dusk\nambient 0.3\nsky 19.5\n');
+    expect([level.ambient, level.sky]).toEqual([0.3, 19.5]);
+    expect(levelToText(level)).toContain('\nambient 0.3\nsky 19.5\n');
+    expect(levelFromText(levelToText(level))).toEqual(level);
+    const world = new World({ seed: 1 });
+    buildLevel(world, level);
+    expect(world.origin!.sky).toBe(19.5);
+    expect(levelOfWorld(world).sky).toBe(19.5);
+    world.dispose();
+  });
+
+  test('without one, none: the world’s origin is as it was before format 10 (so are the hashes of the levels before it)', () => {
+    const world = new World({ seed: 1 });
+    buildLevel(world, levelFromText('# Manifold level 9\ntitle Day\n'));
+    expect(Object.keys(world.origin!)).toEqual(['title', 'spawn', 'facing', 'ambient']);
+    expect(levelOfWorld(world).sky).toBeNull();
+    world.dispose();
+  });
+
+  test('what it does not allow says which line, and why', () => {
+    const bad = (lines: string) => () => levelFromText(`# Manifold level 10\n${lines}\n`);
+    expect(bad('sky 25')).toThrow(/line 2: the sky's hour is from 0 to 24/);
+    expect(bad('sky -1')).toThrow(/line 2: the sky's hour is from 0 to 24/);
+    expect(bad('sky 6\nsky 7')).toThrow(/line 3: "sky" twice in a level \(the first, on line 2\)/);
+    expect(() => levelFromText('# Manifold level 9\nsky 19.5\n')).toThrow(/line 2: "sky" is format 10: this level says format 9/);
+  });
+});
+
 describe('format 8 (stage 4d, decision 0024): routes, and what things are for', () => {
   const V8 = `# Manifold level 8
 box 0 -0.5 0  6 0.5 6

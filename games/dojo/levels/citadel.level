@@ -1,4 +1,4 @@
-# Manifold level 9
+# Manifold level 10
 # The citadel (stage 4.5f): the level that pushes the engine before the games, built with the kit
 # (decision 0026) on three floors. A courtyard; a gatehouse whose door a button opens, with a stick and
 # a crate; a gate of two leaves the crate holds open from a plate; a great hall two floors high with a
@@ -7,11 +7,12 @@
 # roofs; across the well by its bridges, a guard on the hall's roof, a ramp up to a deck, and a bridge
 # to the tower's top: the goal. Every wall, floor, stair, ramp, bridge and railing is a piece of the kit;
 # what moves (the doors, the gate, the ferry, the lift) is a box the simulation moves, drawn with the
-# kit's leaves where it is a door.
+# kit's leaves where it is a door. At dusk (stage 5a, decision 0029): the sun just set, the lamps lit.
 title The citadel
 spawn -2 1 9
 facing 0 0 -1
 ambient 0.3
+sky 19.5
 
 # THE COURTYARD (x −8 to 8, z 0 to 12), under the sky, walled 6 m high (two rows of walls); the gatehouse
 # in its corner, the hall's gate at its north side, and the plate that holds the gate open.

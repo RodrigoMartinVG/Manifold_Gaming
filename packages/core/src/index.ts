@@ -91,6 +91,7 @@ export { stateHash } from './hash';
 export type { Brain, Cartridge, Memory } from './cartridge';
 export { BotHost } from './bots';
 export { CHARACTER_GAP, initPhysics, PHYSICS, RapierPhysics, STANDS_ON, STEP_UP, type PhysicsBackend } from './physics';
+export { metricsOf, metricsOfEntity, type Metrics } from './metrics';
 export { EARTH, gravityAt } from './gravity';
 export type {
   Appearance,

@@ -414,9 +414,14 @@ describe('the reference replays, as they are in their files', () => {
       expect(text.split('\n')[0]).toBe(`# Manifold replay ${SIMULATION_VERSION}`);
   });
 
-  test.each(Object.entries(REFERENCE_REPLAYS))('%s plays to the hash on its last line', (_, text) => {
-    const { session, same } = playReplay(DojoCartridge, replayFromText(text));
-    expect(same).toBe(true);
-    session.world.dispose();
-  });
+  // (The citadel's is long: 5 s alone, past the 20 s a test is given with the whole suite running beside it.)
+  test.each(Object.entries(REFERENCE_REPLAYS))(
+    '%s plays to the hash on its last line',
+    (_, text) => {
+      const { session, same } = playReplay(DojoCartridge, replayFromText(text));
+      expect(same).toBe(true);
+      session.world.dispose();
+    },
+    60_000,
+  );
 });

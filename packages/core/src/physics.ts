@@ -152,6 +152,10 @@ export interface QueryOptions {
 /** The thin gap a character keeps between its capsule and what it touches (Rapier's advice: avoid getting stuck). */
 export const CHARACTER_GAP = 0.02;
 
+/** The steepest ground a character stands on without sliding, and the steepest it walks up (degrees). */
+export const STANDS_DEGREES = 30;
+export const CLIMBS_DEGREES = 50;
+
 /**
  * The steepest ground a character stands on without sliding, as the cosine of its slope: 30°
  * (`CHARACTER.minSlide`), as √3 / 2 (a square root gives the same bits everywhere; a cosine might not).
@@ -186,7 +190,7 @@ export const LIGHT = 5;
 const light = (body: RAPIER.RigidBody | null | undefined) => !!body && body.isDynamic() && body.mass() < LIGHT;
 
 /** The steepest ground a character walks up, as the cosine of its slope: 50° (`CHARACTER.maxClimb`), with our own cosine. */
-const CLIMBS = sinCosDegrees(50)[1];
+const CLIMBS = sinCosDegrees(CLIMBS_DEGREES)[1];
 
 /** The steps a character climbs without jumping (m): up to 35 cm, if there is at least 15 cm to stand on. */
 export const STEP_UP = 0.35;
@@ -199,8 +203,8 @@ const CHARACTER = {
   /** Going down a step or a slope, it stays on the ground if it is closer than this. */
   snapToGround: 0.3,
   /** Slopes it walks up; steeper ones, it slides down. (Radians: π/180 per degree.) */
-  maxClimb: (50 * Math.PI) / 180,
-  minSlide: (30 * Math.PI) / 180, // its cosine is STANDS_ON
+  maxClimb: (CLIMBS_DEGREES * Math.PI) / 180,
+  minSlide: (STANDS_DEGREES * Math.PI) / 180, // its cosine is STANDS_ON
 };
 
 /**

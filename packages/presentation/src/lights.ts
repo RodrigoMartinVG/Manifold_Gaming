@@ -23,6 +23,14 @@ export const LIGHTS_VARIABLES = {
     type: { kind: 'boolean' },
     default: false,
   },
+  sky: {
+    name: 'view.sky',
+    description:
+      "The hour the sky shows on this page (stage 5a), from 0 to 24: `view.sky 6` a dawn, `view.sky 20.5` the blue hour, `view.sky 0` a night with stars. Only the drawing: how lit the world is stays the level's (its `ambient`). −1, the level's own hour (its `sky` line), or none.",
+    scope: 'view',
+    type: { kind: 'number', min: -1, max: 24 },
+    default: -1,
+  },
 } as const satisfies Record<string, VariableInfo>;
 
 /** How bright three.js draws a lamp of intensity 1 (decay 1: about linear, as the simulation's). */
@@ -103,6 +111,9 @@ export function mountLights(page: GamePage, bodies: Bodies): Piece {
     ...LIGHTS_VARIABLES.vision,
     onChange: (v) => (cones.visible = seenLines.visible = unseenLines.visible = v === true),
   });
+  /** The hour this page's sky shows instead of the level's (`view.sky`); less than 0, the level's. */
+  let hour = -1;
+  page.registry.declareVariable({ ...LIGHTS_VARIABLES.sky, onChange: (v) => (hour = Number(v)) });
 
   /** As many lights as `count` (adding or taking away recompiles every lit material: only when it changes). */
   const keep = (count: number) => {
@@ -138,6 +149,7 @@ export function mountLights(page: GamePage, bodies: Bodies): Piece {
     },
     frame({ world, hero }) {
       page.stage.daylight(world.ambient);
+      page.stage.sky(hour >= 0 ? hour : (world.origin?.sky ?? null));
       // What glows: a model's `glass` (stage 3e: the lamp's bulb), if it has one; if not, all of it.
       const glow = (id: EntityId, color: number) => {
         const drawn = bodies.meshes.get(id);

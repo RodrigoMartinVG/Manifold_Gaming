@@ -18,6 +18,7 @@ export function levelOfWorld(world: World): Level {
     title: origin.title,
     spawn: [...origin.spawn],
     facing: [...origin.facing],
+    sky: origin.sky ?? null,
     // The level's own materials: the world's that are not the engine's.
     materials: Object.fromEntries(
       Object.entries(world.materials)

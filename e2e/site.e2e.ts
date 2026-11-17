@@ -454,6 +454,7 @@ const VIEW_VALUES: Record<string, string> = {
   'view.crosshair': 'off',
   'view.subtitles': 'on',
   'view.hud': 'off',
+  'view.sky': '20.5',
   'view.paused': 'on',
   'controls.scheme': 'tank',
   'view.camera': 'aim',
@@ -1047,6 +1048,8 @@ test('the citadel: built with the kit, drawn within its budget everywhere in it,
     .poll(async () => Number(await page.locator('#game').getAttribute('data-meshes')), { timeout: 20_000 })
     .toBeGreaterThan(300);
   await expect(page.locator('#game')).toHaveAttribute('data-lights', '6');
+  // At dusk (stage 5a): its sky's hour, its level's.
+  await expect(page.locator('#game')).toHaveAttribute('data-sky', '19.5');
   // The budget (decision 0026, set in stage 4.5f from what it measured): at most 300 draw calls and
   // 50,000 triangles a frame, wherever you stand. Measured where it draws the most: the courtyard, the
   // hall from its gate, the library, the roofs, the tower's top.
@@ -1063,6 +1066,39 @@ test('the citadel: built with the kit, drawn within its budget everywhere in it,
   }
   expect(warnings).toEqual([]);
   expect(list).toEqual([]);
+});
+
+// ---------------------------------------------------------------- the metrics gym and the sky (stage 5a)
+
+test('the metrics gym: `metrics` says what the character can do in meters, under the afternoon sky its level says', async ({
+  page,
+}) => {
+  const list = errors(page);
+  await page.goto('jugar/dojo/gym/');
+  await expect.poll(async () => (await position(page, 'player')).length, { timeout: 15_000 }).toBe(3);
+  await expect(page.locator('#game')).toHaveAttribute('data-sky', '15.5');
+  await page.keyboard.press('Backquote');
+  await typeInConsole(page, 'metrics');
+  await expect(page.locator('.mg-console')).toContainText(
+    'jump: its feet rise 2.10 m (2.15 without steps), at the top at step 39',
+  );
+  await expect(page.locator('.mg-console')).toContainText('its middle goes 5.92 m walking, 9.88 m running');
+  await expect(page.locator('.mg-console')).toContainText('1.60 m tall, 1.10 m crouched');
+  // `inspect me` says how to change the jump, and how to ask again.
+  await typeInConsole(page, 'inspect me');
+  await expect(page.locator('.mg-console')).toContainText(/set (\d+) character\.movement\.jump\.speed 6\.5\s+metrics \1/);
+  // Another hour on this page only, and back to the level's.
+  await typeInConsole(page, 'view.sky 0');
+  await expect(page.locator('#game')).toHaveAttribute('data-sky', '0');
+  await typeInConsole(page, 'view.sky -1');
+  await expect(page.locator('#game')).toHaveAttribute('data-sky', '15.5');
+  expect(list).toEqual([]);
+});
+
+test('a level without a sky keeps the flat background of before', async ({ page }) => {
+  await page.goto('jugar/dojo/course/');
+  await expect.poll(async () => (await position(page, 'player')).length, { timeout: 15_000 }).toBe(3);
+  await expect(page.locator('#game')).toHaveAttribute('data-sky', 'none');
 });
 
 // ---------------------------------------------------------------- on a phone (decision 0028)

@@ -55,6 +55,12 @@ export interface Stage {
   readonly camera: THREE.PerspectiveCamera;
   /** How much of the day's light there is (stage 3d): the world's ambient light, from 0 to 1. */
   daylight(amount: number): void;
+  /**
+   * The hour the sky shows (stage 5a: a level's `sky`), or none: a dome painted as `skyAt` says, the
+   * lights colored and turned by it (as bright as `daylight` says). Without one, the flat background
+   * of before, darkening with the ambient.
+   */
+  sky(hour: number | null): void;
   render(): void;
   /**
    * What drawing costs the page itself (stage 4.5f): the milliseconds `render` took, averaged over the
