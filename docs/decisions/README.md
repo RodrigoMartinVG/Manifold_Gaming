@@ -28,4 +28,4 @@ Each one has: **context** (what problem there was), **decision**, **consequences
 | [0019](0019-the-games-words.md)               | The games' words: keys in the world, the player's language                 | Accepted                                                                     |
 | [0020](0020-saved-games.md)                   | Saved games: the progress, as versioned data                               | Accepted                                                                     |
 | [0021](0021-a-new-tutorial.md)                | A new tutorial: one project that grows, the math when the game asks for it | Proposed (accepted with its pilot; replaces 0013's structure)                |
-| [0022](0022-hits-and-the-history-of-poses.md) | Hits and the history of poses: a shot looks back as far as its shooter saw | Proposed                                                                     |
+| [0022](0022-hits-and-the-history-of-poses.md) | Hits and the history of poses: a shot looks back as far as its shooter saw | Accepted                                                                     |

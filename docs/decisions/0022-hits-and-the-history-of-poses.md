@@ -1,6 +1,6 @@
 # 0022. Hits and the history of poses: every copy keeps each character's last quarter of a second, and a shot looks back as far as its shooter saw
 
-- **Status:** proposed
+- **Status:** accepted
 - **Date:** 2026-11-16
 
 ## Context
