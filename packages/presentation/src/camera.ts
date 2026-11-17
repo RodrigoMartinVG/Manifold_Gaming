@@ -117,6 +117,24 @@ const CLOSEST = 0.35;
 const OUT = 3;
 /** How fast a zone's suggestion turns the camera (per second: gentler than `chase` coming back behind). */
 const SUGGESTED = 2;
+/**
+ * THE LEASH'S FRONT (stage 4.5d): walking towards the camera within this many degrees of straight at it,
+ * the leash is a rigid bar that goes back without turning (a hand on S walks straight at the lens, and
+ * the slightest sideways step turned the camera, and with it where S goes).
+ */
+const FRONT = 15;
+/**
+ * OVER THE WALLS (stage 4.5d, found in 3k: in a maze's narrow corridors the camera came in to the
+ * character's back): where a wall brings it in by more than this share of its reach, and nothing is
+ * above the head (no ceiling within `SKY` m), it rises, up to `HIGHEST` degrees above the head, to the
+ * lowest it sees the head from; quickly up, back down slowly. (A 3 m wall a meter behind asks for 63°:
+ * a corridor's camera looks down from nearly above, as games do in tight places.)
+ */
+const BLOCKED = 0.3;
+const SKY = 8;
+const HIGHEST = 80;
+/** Locked on someone (stage 4.5d): how far towards the other the camera looks (a share of the way between the two heads). */
+const FRAMED = 0.35;
 
 /** Where a zone the character is in suggests looking (stage 3h: its `view`, a direction), if one does. */
 function viewOf(world: World, id: number): THREE.Vector3 | null {
@@ -200,6 +218,10 @@ export function mountCamera(
    * the character takes nothing, read as the controls locking up).
    */
   let atEyes = false;
+  /** Where the head was at the last frame (for the leash's front), how many degrees it rose over a wall, and where a lock-on shifts the look. */
+  let lastHead: THREE.Vector3 | null = null;
+  let risen = 0;
+  const framing = new THREE.Vector3();
   /** How high its eyes are drawn above its center (eased towards its pose's: stage 4.5a), or null: none yet. */
   let eyeHeight: number | null = null;
   // THE CROSSHAIR (stage 4.5a, the author asked for one to aim by): a dot and four short ticks at the
@@ -557,23 +579,51 @@ export function mountCamera(
           const along = camera.position.clone().sub(head);
           along.addScaledVector(up, -along.dot(up));
           if (along.lengthSq() < 1e-6) along.copy(offset);
+          // THE FRONT (stage 4.5d): coming at the camera within FRONT degrees of straight at it, it goes back
+          // along the way it was, without turning.
+          if (lastHead && mode === 'follow') {
+            const was = camera.position.clone().sub(lastHead);
+            was.addScaledVector(up, -was.dot(up));
+            const came = head.clone().sub(lastHead);
+            came.addScaledVector(up, -came.dot(up));
+            if (came.length() > 1e-4 && was.length() > 1e-4 && came.angleTo(was) < THREE.MathUtils.degToRad(FRONT))
+              along.copy(was);
+          }
+          lastHead = head.clone();
           // Chasing: and it comes back behind the character, unless it was just turned by hand. A zone the
           // character is in can suggest where to look instead (stage 3h: its `view`, a direction in the
           // world, what the level's author wants seen), in `follow` and `chase` alike: the camera turns,
           // little by little, to look along it, unless it was just turned by hand.
           const untouched = pointers.size === 0 && now - turnedByHand > 600;
           const suggested = untouched ? viewOf(world, hero.id) : null;
-          const towards = suggested
-            ? suggested.negate()
-            : untouched && mode === 'chase'
-              ? new THREE.Vector3(...hero.character.facing).negate()
-              : null;
+          // Locked on someone (stage 4.5d), behind the character, on the far side from the other, both
+          // in sight; chasing, behind where it goes (not where it looks: stage 4.5d), as much as it goes:
+          // turning on the spot, or walking backwards, it stays.
+          const locked = hero.character.lock !== null ? world.entities.get(hero.character.lock)?.transform : undefined;
+          const going = new THREE.Vector3(...hero.character.velocity);
+          going.addScaledVector(up, -going.dot(up));
+          const speed = going.length();
+          const facing = new THREE.Vector3(...hero.character.facing);
+          let pace = 1;
+          let towards: THREE.Vector3 | null = null;
+          if (suggested) towards = suggested.negate();
+          else if (untouched && locked)
+            towards = new THREE.Vector3(...hero.transform.position).sub(new THREE.Vector3(...locked.position));
+          else if (untouched && mode === 'chase' && speed > 0.3 && going.dot(facing) > -0.3 * speed) {
+            towards = going.clone().negate();
+            pace = Math.min(1, speed / hero.character.movement.walk.run);
+          }
           if (towards) {
             towards.addScaledVector(up, -towards.dot(up));
             const angle = Math.atan2(new THREE.Vector3().crossVectors(along, towards).dot(up), along.dot(towards));
-            const rate = (suggested ? SUGGESTED : 4) * (settings.calm ? 0.5 : 1);
+            const rate = (suggested ? SUGGESTED : 4) * pace * (settings.calm ? 0.5 : 1);
             along.applyAxisAngle(up, angle * (1 - Math.exp(-rate * dt)));
           }
+          // (And it looks a share of the way towards the other, eased there and back.)
+          const shift = locked
+            ? new THREE.Vector3(...locked.position).addScaledVector(up, 0.6).sub(head).multiplyScalar(FRAMED)
+            : new THREE.Vector3();
+          framing.lerp(shift, 1 - Math.exp(-4 * dt));
           along.setLength(reach);
           target.copy(head);
           camera.position.copy(head).add(along).addScaledVector(up, height);
@@ -590,11 +640,35 @@ export function mountCamera(
         const wants = way.length();
         if (wants > 1e-6) {
           way.divideScalar(wants);
-          const hit = world.castShape({ kind: 'ball', radius: CLEARANCE }, head.toArray(), [0, 0, 0, 1], way.toArray(), wants, {
-            skip: hero.id,
-            dynamic: false,
-            characters: false,
-          });
+          const query = { skip: hero.id, dynamic: false, characters: false } as const;
+          const sweep = (w: THREE.Vector3) =>
+            world.castShape({ kind: 'ball', radius: CLEARANCE }, head.toArray(), [0, 0, 0, 1], w.toArray(), wants, query);
+          // OVER THE WALLS (stage 4.5d): following or chasing, brought in by a wall with the sky above the
+          // head, it rises to the lowest it sees the head from (in 10° steps), eased.
+          if (!aiming()) {
+            const blocked = sweep(way);
+            let needs = 0;
+            if (blocked && blocked.distance < wants * (1 - BLOCKED) && !world.castRay(head.toArray(), up.toArray(), SKY, query)) {
+              const side = new THREE.Vector3().crossVectors(way, up);
+              const above = THREE.MathUtils.radToDeg(Math.asin(THREE.MathUtils.clamp(way.dot(up), -1, 1)));
+              const most = HIGHEST - above;
+              for (let a = 10; most > 0 && side.lengthSq() > 1e-9; a += 10) {
+                const t = Math.min(a, most);
+                const w = way.clone().applyAxisAngle(side.clone().normalize(), THREE.MathUtils.degToRad(t));
+                const hit = sweep(w);
+                if (!hit || hit.distance >= wants * (1 - BLOCKED)) {
+                  needs = t;
+                  break;
+                }
+                if (t >= most) break;
+              }
+            }
+            risen += (needs - risen) * (1 - Math.exp(-(needs > risen ? 6 : 1.5) * dt));
+            if (risen < 0.05) risen = 0;
+            const side = new THREE.Vector3().crossVectors(way, up);
+            if (risen > 0 && side.lengthSq() > 1e-9) way.applyAxisAngle(side.normalize(), THREE.MathUtils.degToRad(risen));
+          } else risen = 0;
+          const hit = sweep(way);
           // What a wall takes now, at once; what it took before, given back slowly.
           const takes = hit ? wants - Math.max(Math.min(CLOSEST, wants), hit.distance) : 0;
           cut = Math.max(takes, cut * Math.exp(-OUT * dt));
@@ -604,7 +678,9 @@ export function mountCamera(
           camera.position.copy(at);
         }
       } else cut = 0;
-      camera.lookAt(target);
+      // (Locked on someone, it looks a share of the way towards the other: following and chasing.)
+      if (aiming() || mode === 'free') framing.set(0, 0, 0);
+      camera.lookAt(target.clone().add(framing));
       // FIRST PERSON (stage 4g): the aim's camera, but at the eyes, looking the same way (it works as the
       // aim's behind the head, and is put at the eyes after: so turning it is the same). The body is not
       // drawn (the camera would be inside its head). Down, it stays behind the head (`atEyes`).

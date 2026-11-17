@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import type { PageMatch } from './match';
 import type { GamePage, Piece } from './page';
 
@@ -23,6 +24,9 @@ export function mountProbe(page: GamePage, match: PageMatch): Piece {
       if (hero?.transform) data.player = fixed(hero.transform.position);
       if (hero?.character) data.facing = fixed(hero.character.facing);
       data.camera = fixed(page.stage.camera.position.toArray());
+      // And where it looks (stage 4.5d: a lock-on frames both, a wall it rises over).
+      const look = page.stage.camera.getWorldDirection(new THREE.Vector3());
+      data.look = fixed([look.x, look.y, look.z]);
       data.net = match.net;
       data.me = String(match.me);
       if (++frames % 10 !== 0) return;

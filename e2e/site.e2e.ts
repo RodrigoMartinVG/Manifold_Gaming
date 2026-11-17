@@ -1010,6 +1010,115 @@ test('aim: the character looks where the camera looks, and walks sideways withou
 
 // ---------------------------------------------------------------- turning and the camera (stage 1c2)
 
+// ---------------------------------------------------------------- the camera before the levels (stage 4.5d)
+
+/** A gamepad of the test's: its left stick (x, y) as `window.__stick`, nothing pressed. */
+async function withPad(page: Page) {
+  await page.addInitScript(() => {
+    const w = window as unknown as { __left: [number, number] };
+    w.__left = [0, 0];
+    const pad = () => ({
+      id: 'test pad',
+      index: 0,
+      connected: true,
+      mapping: 'standard',
+      timestamp: performance.now(),
+      axes: [w.__left[0], w.__left[1], 0, 0],
+      buttons: Array.from({ length: 17 }, () => ({ pressed: false, touched: false, value: 0 })),
+    });
+    Object.defineProperty(navigator, 'getGamepads', { value: () => [pad(), null, null, null] });
+  });
+}
+const azimuth = async (page: Page) => {
+  const [p, c] = [await position(page, 'player'), await position(page, 'camera')];
+  return (Math.atan2(c[0]! - p[0]!, c[2]! - p[2]!) * 180) / Math.PI;
+};
+const turnOf = (a: number, b: number) => Math.abs(((b - a + 540) % 360) - 180);
+
+test('follow: walking nearly straight at the camera (within 15°), it goes back without turning; further off, it turns', async ({
+  page,
+}) => {
+  await withPad(page);
+  const walk = async (x: number) => {
+    await page.goto('jugar/dojo/course/#recipe=view.camera+follow');
+    await expect.poll(async () => (await position(page, 'player')).length, { timeout: 15_000 }).toBe(3);
+    await afterSteps(page, 60);
+    const from = await azimuth(page);
+    // The stick back (towards the camera), a little to a side.
+    await page.evaluate((x) => ((window as unknown as { __left: [number, number] }).__left = [x, 1]), x);
+    await afterSteps(page, 60);
+    await page.evaluate(() => ((window as unknown as { __left: [number, number] }).__left = [0, 0]));
+    return turnOf(from, await azimuth(page));
+  };
+  // 11° off straight at it: it goes back, without turning; 31° off, it turns.
+  expect(await walk(0.2)).toBeLessThan(2);
+  expect(await walk(0.6)).toBeGreaterThan(3);
+});
+
+test('chase: turning on the spot, the camera stays; walking, it comes back behind where the character goes', async ({ page }) => {
+  await page.goto('jugar/dojo/course/#recipe=view.camera+chase;controls.scheme+tank');
+  await expect.poll(async () => (await position(page, 'player')).length, { timeout: 15_000 }).toBe(3);
+  await afterSteps(page, 60);
+  const from = await azimuth(page);
+  await page.keyboard.down('KeyA');
+  await afterSteps(page, 45);
+  await page.keyboard.up('KeyA');
+  await afterSteps(page, 30);
+  // It turned on its axis (tank: A turns it), and the camera stayed (it came back behind where it LOOKED).
+  expect(turnOf(from, await azimuth(page))).toBeLessThan(5);
+  await page.keyboard.down('KeyW');
+  // Walking where it looks now, the camera comes behind it: looking along where it goes. (Eased by the
+  // clock: on a loaded machine, it takes more of the world's steps.)
+  const along = async () => {
+    const [look, facing] = [await position(page, 'look'), await position(page, 'facing')];
+    return (look[0]! * facing[0]! + look[2]! * facing[2]!) / Math.hypot(look[0]!, look[2]!);
+  };
+  await expect.poll(along, { timeout: 30_000 }).toBeGreaterThan(Math.cos((25 * Math.PI) / 180));
+  await page.keyboard.up('KeyW');
+});
+
+test('over a wall: a wall right behind the character, with the sky above, and the camera rises to see over it', async ({
+  page,
+}) => {
+  await page.goto('jugar/dojo/course/#recipe=view.camera+follow');
+  await expect.poll(async () => (await position(page, 'player')).length, { timeout: 15_000 }).toBe(3);
+  await afterSteps(page, 60);
+  const [x, , z] = await position(page, 'player');
+  // A wall 3 m tall a meter behind it (the camera follows from +Z, behind it as it starts, looking −Z).
+  await page.keyboard.press('Backquote');
+  await typeInConsole(page, `add box ${x!.toFixed(2)} 1.5 ${(z! + 1.2).toFixed(2)}  3 1.5 0.1`);
+  await page.keyboard.press('Escape');
+  await afterSteps(page, 90);
+  const [p, c] = [await position(page, 'player'), await position(page, 'camera')];
+  // Above the wall's top (3 m), and not brought in to its back.
+  expect(c[1]!).toBeGreaterThan(3);
+  expect(Math.hypot(c[0]! - p[0]!, c[1]! - p[1]!, c[2]! - p[2]!)).toBeGreaterThan(2);
+});
+
+test('locked on someone: the camera behind the character, on the far side from the other, both in sight', async ({ page }) => {
+  await page.goto('jugar/dojo/duel/#recipe=view.camera+follow');
+  await expect.poll(async () => (await position(page, 'player')).length, { timeout: 15_000 }).toBe(3);
+  await afterSteps(page, 60);
+  await page.keyboard.press('KeyT');
+  await afterSteps(page, 120);
+  const listed = await page.evaluate(() => (document.querySelector('#game') as HTMLElement).dataset.others ?? '');
+  const [c, look, p] = [await position(page, 'camera'), await position(page, 'look'), await position(page, 'player')];
+  // The character in sight: within the field of view's half (30° top to bottom; more across).
+  const angle = (to: number[]) => {
+    const d = [to[0]! - c[0]!, to[1]! + 0.6 - c[1]!, to[2]! - c[2]!];
+    const cos = (d[0]! * look[0]! + d[1]! * look[1]! + d[2]! * look[2]!) / Math.hypot(...(d as [number, number, number]));
+    return (Math.acos(Math.min(1, cos)) * 180) / Math.PI;
+  };
+  expect(angle(p)).toBeLessThan(30);
+  // And the other: the guard, as the page lists the other characters (`data-others`: player:x y z, each).
+  const others = listed
+    .split('|')
+    .map((t) => (t.split(':')[1] ?? '').trim().split(' ').map(Number))
+    .filter((v) => v.length >= 3);
+  expect(others.length).toBeGreaterThan(0);
+  expect(Math.min(...others.map((o) => angle(o)))).toBeLessThan(30);
+});
+
 test('follow is a leash: going to a side turns the camera towards the character', async ({ page }) => {
   await page.goto('jugar/dojo/course/');
   await expect.poll(async () => (await position(page, 'player')).length, { timeout: 15_000 }).toBe(3);

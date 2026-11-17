@@ -4,7 +4,7 @@ import { expect, type Page } from '@playwright/test';
  * WHAT THE GAME IN THE PAGE SAYS, AS NUMBERS: its `data-<name>` ("1.00 2.00 3.00"), written on
  * every frame, with the step it is at (`data-step`).
  */
-export async function position(page: Page, name: 'player' | 'camera' | 'ghost' | 'facing') {
+export async function position(page: Page, name: 'player' | 'camera' | 'ghost' | 'facing' | 'look') {
   return ((await page.locator('#game').getAttribute(`data-${name}`)) ?? '').split(' ').map(Number);
 }
 
