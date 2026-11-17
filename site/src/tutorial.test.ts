@@ -137,10 +137,26 @@ describe('the patterns', () => {
       });
 });
 
+/**
+ * The site's own pages (`src/pages/`, not the docs): each `index.astro` at its folder's address, each
+ * page made from a parameter (`[room].astro`) as the pattern of its addresses (a Dojo room). A game's
+ * page (stage 3k, the adventure; 5b, the tower) is known as soon as it is there.
+ */
+function sitePages(folder = join(SITE, 'src', 'pages'), at = ''): (string | RegExp)[] {
+  const out: (string | RegExp)[] = [];
+  for (const e of readdirSync(folder, { withFileTypes: true })) {
+    if (e.isDirectory()) out.push(...sitePages(join(folder, e.name), at ? `${at}/${e.name}` : e.name));
+    else if (e.name === 'index.astro') out.push(at);
+    else if (/^\[[a-z]+\]\.astro$/.test(e.name)) out.push(new RegExp(`^${at}/[a-z0-9-]+$`));
+  }
+  return out;
+}
+const SITE_PAGES = sitePages();
+
 describe('the links between pages arrive', () => {
-  /** A page of the site at that address: a doc, a Dojo room (a page of its own), or a game's page (stage 3k). */
+  /** A page of the site at that address: a doc, or one of the site's own (a game's, a Dojo room). */
   const exists = (target: string) =>
-    target === '' || PAGES.has(target) || /^jugar\/dojo\/[a-z0-9-]+$/.test(target) || target === 'jugar/aventura';
+    target === '' || PAGES.has(target) || SITE_PAGES.some((p) => (typeof p === 'string' ? p === target : p.test(target)));
   // Every page of the site, not only the tutorial's: the Bitácora and the play pages link into it.
   for (const [id, text] of PAGES) {
     // A page is served at its id with a slash at the end: links are relative to that "folder".
