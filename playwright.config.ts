@@ -2,14 +2,6 @@ import { defineConfig, devices } from '@playwright/test';
 
 const BASE = 'http://localhost:4321/Manifold_Gaming/';
 
-/**
- * What Firefox and WebKit run: the determinism check, and the physics tests, which draw. WebKit's drawing
- * passed on Linux in continuous integration (2026-11-17, 9 of 9), so it runs them everywhere. Firefox's
- * did not (its pages never stepped, 9 of 9): headless on Linux it finds GL only through a display, and
- * continuous integration has none, so it gets one there (Xvfb, see the workflow). Until that has passed,
- * in continuous integration it runs them only in the step that checks it (`DRAWING: 1`, not blocking),
- * locally always.
- */
 /** Chromium, as every test but Firefox's and WebKit's runs in. */
 const CHROMIUM = {
   ...devices['Desktop Chrome'],
@@ -17,8 +9,12 @@ const CHROMIUM = {
   launchOptions: { args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] },
 };
 
+/**
+ * What Firefox and WebKit run, everywhere: the determinism check, and the physics tests, which draw. On
+ * Linux without a GPU both draw on the CPU (Mesa's llvmpipe), Firefox only with a display: continuous
+ * integration gives it a virtual one (Xvfb, see the workflow). Without one its pages never stepped.
+ */
 const drawing = ['determinism.e2e.ts', 'physics.e2e.ts'];
-const firefoxDrawing = process.env.CI && !process.env.DRAWING ? ['determinism.e2e.ts'] : drawing;
 
 /**
  * The tests IN A REAL BROWSER (decision 0001): the site built as it is published, every page opens
@@ -66,9 +62,9 @@ export default defineConfig({
     { name: 'chromium-quiet', grep: /@quiet/, dependencies: ['chromium'], use: CHROMIUM },
     // Determinism across JavaScript engines (decision 0012): Firefox (SpiderMonkey) and WebKit
     // (JavaScriptCore, Safari's) run the determinism check, which needs no WebGL (the reference
-    // replays played without drawing), and the physics tests, which draw (Firefox's, see above). Firefox
-    // needs no pref to draw on the CPU: with a display, it gives WebGL 2 on Mesa's llvmpipe as it is.
-    { name: 'firefox', testMatch: firefoxDrawing, use: { ...devices['Desktop Firefox'] } },
+    // replays played without drawing), and the physics tests, which draw (see `drawing`). Firefox needs
+    // no pref to draw on the CPU: with a display, it gives WebGL 2 on Mesa's llvmpipe as it is.
+    { name: 'firefox', testMatch: drawing, use: { ...devices['Desktop Firefox'] } },
     { name: 'webkit', testMatch: drawing, use: { ...devices['Desktop Safari'] } },
   ],
   webServer: {

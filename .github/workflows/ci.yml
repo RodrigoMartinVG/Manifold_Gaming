@@ -44,22 +44,15 @@ jobs:
         run: npm run perf
       - name: Browsers for the tests
         run: npx playwright install --with-deps chromium firefox webkit
-      # Every test in Chromium; in WebKit, the determinism check and the physics tests, which draw (its
-      # WebGL passed on Linux); in Firefox, the determinism check (its drawing, in the next step).
+      # Every test in Chromium; in Firefox and WebKit, the determinism check and the physics tests, which
+      # draw. Under a virtual display (Xvfb): headless Firefox on Linux finds GL only through a display,
+      # and this machine has none. Without one, no WebGL at all ("Exhausted GL driver options", even with
+      # WebGL forced): three can't make its renderer and the pages never step (0 of 9 on 2026-11-17).
+      # With one, still headless, it draws on the CPU (Mesa's llvmpipe): 9 of 9, twice, in the step that
+      # checked it here before it was required. (Chromium and WebKit pass with it as without: the physics
+      # and determinism tests, 33 of 33 in the three browsers, under Xvfb in Playwright's Ubuntu 24.04 image.)
       - name: Browser tests (builds the site)
-        run: npm run e2e
-      # Firefox's physics tests, which draw (stage 4.5's close): its WebGL on Linux, checked here before
-      # it is required. Headless Firefox on Linux finds GL only through a display, and this machine has
-      # none: without one, no WebGL at all ("Exhausted GL driver options", even with WebGL forced), three
-      # can't make its renderer and the pages never step (0 of 9 on 2026-11-17). Under a virtual display
-      # (Xvfb), still headless, it draws on the CPU (Mesa's llvmpipe): 9 of 9 in Playwright's Ubuntu 24.04
-      # image. Not blocking yet: once it has passed here, this step goes and Firefox runs them with the
-      # rest (that step under `xvfb-run` too).
-      - name: Firefox drawing (checking its WebGL on Linux)
-        continue-on-error: true
-        env:
-          DRAWING: '1'
-        run: xvfb-run -a npx playwright test e2e/physics.e2e.ts --project=firefox
+        run: xvfb-run -a npm run e2e
       - name: Keep the built site
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@v5
