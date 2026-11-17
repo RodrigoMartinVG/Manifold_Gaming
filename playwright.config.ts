@@ -5,8 +5,10 @@ const BASE = 'http://localhost:4321/Manifold_Gaming/';
 /**
  * What Firefox and WebKit run: the determinism check, and the physics tests, which draw. WebKit's drawing
  * passed on Linux in continuous integration (2026-11-17, 9 of 9), so it runs them everywhere. Firefox's
- * did not (its pages never stepped, 9 of 9: its WebGL on a machine without a GPU); in continuous
- * integration it runs them only in the step that checks it (`DRAWING: 1`, not blocking), locally always.
+ * did not (its pages never stepped, 9 of 9): headless on Linux it finds GL only through a display, and
+ * continuous integration has none, so it gets one there (Xvfb, see the workflow). Until that has passed,
+ * in continuous integration it runs them only in the step that checks it (`DRAWING: 1`, not blocking),
+ * locally always.
  */
 /** Chromium, as every test but Firefox's and WebKit's runs in. */
 const CHROMIUM = {
@@ -64,13 +66,9 @@ export default defineConfig({
     { name: 'chromium-quiet', grep: /@quiet/, dependencies: ['chromium'], use: CHROMIUM },
     // Determinism across JavaScript engines (decision 0012): Firefox (SpiderMonkey) and WebKit
     // (JavaScriptCore, Safari's) run the determinism check, which needs no WebGL (the reference
-    // replays played without drawing), and the physics tests, which draw (Firefox's, see above).
-    // Firefox turns WebGL off on a renderer in software unless told: told (its pref), to try it on Linux.
-    {
-      name: 'firefox',
-      testMatch: firefoxDrawing,
-      use: { ...devices['Desktop Firefox'], launchOptions: { firefoxUserPrefs: { 'webgl.force-enabled': true } } },
-    },
+    // replays played without drawing), and the physics tests, which draw (Firefox's, see above). Firefox
+    // needs no pref to draw on the CPU: with a display, it gives WebGL 2 on Mesa's llvmpipe as it is.
+    { name: 'firefox', testMatch: firefoxDrawing, use: { ...devices['Desktop Firefox'] } },
     { name: 'webkit', testMatch: drawing, use: { ...devices['Desktop Safari'] } },
   ],
   webServer: {
