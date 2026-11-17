@@ -926,7 +926,8 @@ export class World {
     const gone: EntityId[] = [];
     for (const e of this.entities.values()) {
       if (!e.body || !e.transform || e.body.type === 'fixed') continue;
-      const before: Vec3 = [...e.body.linearVelocity];
+      // (Not copied: reading gives the body a new velocity, and no one changes one in place.)
+      const before = e.body.linearVelocity;
       this.physics.read(e.body.handle, e.transform, e.body);
       if (e.body.type !== 'dynamic') continue;
       // Out of the world (stage 4.5b): what the physics moves, past `FARTHEST` from the origin, is gone
@@ -936,6 +937,11 @@ export class World {
         gone.push(e.id);
         continue;
       }
+      // Only as a contact begins (stage 4.5's close): what it was pressed against, or slides along, it does
+      // not strike again on every step. (Asked first: most bodies begin no contact in a step, and the rest
+      // of this is then not worked out. The order of the two questions changes nothing of what is heard.)
+      const struck = this.physics.struck(e.body.handle);
+      if (struck.length === 0) continue;
       // What its contacts did to its velocity, beyond holding it up against gravity (stage 4.5's close: a
       // crate at rest takes back a step of gravity on every step, 0.6 J for its 45 kg, and was heard on
       // every one; the author heard it).
@@ -947,10 +953,7 @@ export class World {
       // every body on every step, took the stress room's step near its budget): the same number.
       const energy = 0.5 * bodyMass(e.body) * vec3.dot(change, change);
       if (energy < HIT_HEARD) continue;
-      // Only as a contact begins (stage 4.5's close): what it was pressed against, or slides along, it does
-      // not strike again on every step. On what: the first thing it began to touch (its material), or its own.
-      const struck = this.physics.struck(e.body.handle);
-      if (struck.length === 0) continue;
+      // On what: the first thing it began to touch (its material), or its own.
       const other = this.byHandle.get(struck[0]!);
       const against = other === undefined ? undefined : this.entities.get(other);
       this.emit({
