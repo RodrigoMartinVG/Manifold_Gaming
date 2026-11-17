@@ -35,3 +35,4 @@ Each one has: **context** (what problem there was), **decision**, **consequences
 | [0026](0026-a-levels-look.md)                 | A level's look: kit pieces that bring their own collision, and a budget for what is drawn | Accepted                                                                     |
 | [0027](0027-music.md)                         | Music: made in the browser like the sounds, sparse, its own volume                        | Accepted                                                                     |
 | [0028](0028-touch-controls.md)                | Touch controls: keyboard, mouse and gamepad until phase 6; a phone is told so             | Accepted                                                                     |
+| [0029](0029-the-three-games.md)               | The three games: one world, one night, three corners                                      | Accepted                                                                     |
