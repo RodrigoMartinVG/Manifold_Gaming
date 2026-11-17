@@ -40,6 +40,8 @@ export interface ModelInstance {
   readonly inertia: Inertia;
   /** How many gestures it has seen start (the gait's count): one more, and the pose changes by inertia. */
   gestures: number;
+  /** A hit, drawn (stage 4c): the spine's spring, its axis in the body's frame, its angle and its speed. */
+  readonly flinch: { axis: THREE.Vector3; angle: number; speed: number };
   /** Its aim as drawn (stage 4b): the pitch it shows (degrees), and the bones it is spread over. */
   readonly aim: { pitch: number; readonly spine: THREE.Object3D | null; readonly head: THREE.Object3D | null };
   /** The animation that weighs most now (null: none yet). */
@@ -136,6 +138,7 @@ export function modelInstance(model: { scene: THREE.Object3D; clips: readonly TH
     bones: bonesOf(object),
     inertia: newInertia(),
     gestures: 0,
+    flinch: { axis: new THREE.Vector3(1, 0, 0), angle: 0, speed: 0 },
     aim: { pitch: 0, spine: object.getObjectByName('spine') ?? null, head: object.getObjectByName('head') ?? null },
     playing: null,
   };
@@ -175,6 +178,44 @@ export function turnBody(drawn: THREE.Quaternion, target: THREE.Quaternion, up: 
   upAxis.set(...up);
   const sin = new THREE.Vector3().crossVectors(before, ahead).dot(upAxis);
   return THREE.MathUtils.radToDeg(Math.atan2(sin, before.dot(ahead))) / dt;
+}
+
+/** The spine's spring (stage 4c): how fast it swings back (2.5 times a second), how damped, and the kick of a hit that takes `FLINCH_FULL` points or more (rad/s). */
+const FLINCH_RATE = 2 * Math.PI * 2.5;
+const FLINCH_DAMPING = 0.35;
+const FLINCH_KICK = 4;
+const FLINCH_FULL = 20;
+const kickAxis = new THREE.Vector3();
+const bodyTurn = new THREE.Quaternion();
+
+/**
+ * A HIT, DRAWN (stage 4c): the spine is kicked away from where the hit came from (`travel`, the way it
+ * went, in the world), as hard as the points it took (all of the kick at `FLINCH_FULL`), and swings
+ * back on a damped spring. Only the view: the world keeps the capsule.
+ */
+export function flinch(model: ModelInstance, travel: THREE.Vector3, up: THREE.Vector3, points: number) {
+  // About the axis across the hit and up: the chest goes the way the hit went.
+  kickAxis.crossVectors(up, travel);
+  if (kickAxis.lengthSq() < 1e-9) return;
+  kickAxis.normalize().applyQuaternion(model.object.getWorldQuaternion(bodyTurn).invert());
+  const f = model.flinch;
+  // A hit while it still swings: the new kick, on what is left of the last one, along the new axis.
+  f.speed = f.speed * kickAxis.dot(f.axis) + FLINCH_KICK * Math.min(1, points / FLINCH_FULL);
+  f.angle *= kickAxis.dot(f.axis);
+  f.axis.copy(kickAxis);
+}
+
+/** The spine's spring, a step of `dt` on (semi-implicit), and drawn. */
+function springSpine(model: ModelInstance, dt: number) {
+  const f = model.flinch;
+  if (dt > 0) {
+    f.speed += (-FLINCH_RATE * FLINCH_RATE * f.angle - 2 * FLINCH_DAMPING * FLINCH_RATE * f.speed) * dt;
+    f.angle += f.speed * dt;
+    if (Math.abs(f.angle) < 1e-4 && Math.abs(f.speed) < 1e-3) f.angle = f.speed = 0;
+  }
+  if (f.angle === 0 || !model.aim.spine?.parent) return;
+  kickAxis.copy(f.axis).applyQuaternion(model.object.getWorldQuaternion(bodyTurn));
+  rotateInWorld(model.aim.spine, kickAxis, f.angle);
 }
 
 /**
@@ -275,6 +316,8 @@ export function animate(
   plant(model.object, model.legs, model.paths, model.actions, model.feet, where, up, dt);
   // Its aim, over the spine and the head (the arms go with the chest); rolling, none.
   aimBody(model, c.mode === 'roll' ? 0 : c.pitch, dt);
+  // A hit's spring in the spine (stage 4c).
+  springSpine(model, dt);
   // And the hands on what they hold: a wall, a ledge, what is carried (hands.ts).
   grip(model.object, model.arms, model.hands, c, around, model.gait.climbPhase, moved, up, dt);
   model.playing = dominant(weights);

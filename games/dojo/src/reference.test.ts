@@ -39,6 +39,8 @@ interface Seen {
   heights: Map<number, number>;
   /** Where player 1 was (its z) each time a watcher saw it. */
   seenAt: number[];
+  /** How many events of each kind there were. */
+  kinds: Record<string, number>;
   /** Player 1's mode at each step, and where it was (its z). */
   trail: { z: number; mode: string }[];
 }
@@ -51,7 +53,16 @@ function run(recipe: string, acts: Act[]): { session: Session; seen: Seen } {
   const errors = registry.run(recipe, 'recipe').filter((m) => m.level === 'error');
   expect(errors).toEqual([]);
   const session = new Session(DojoCartridge, { registry });
-  const seen: Seen = { notices: [], modes: new Set(), carried: 0, balls: 0, heights: new Map(), seenAt: [], trail: [] };
+  const seen: Seen = {
+    notices: [],
+    modes: new Set(),
+    carried: 0,
+    balls: 0,
+    heights: new Map(),
+    seenAt: [],
+    trail: [],
+    kinds: {},
+  };
   for (const act of acts) {
     const lines = typeof act.lines === 'function' ? act.lines(session) : (act.lines ?? []);
     for (const line of lines) expect(session.registry.run(line, 'console').filter((m) => m.level === 'error')).toEqual([]);
@@ -60,6 +71,7 @@ function run(recipe: string, acts: Act[]): { session: Session; seen: Seen } {
       if (session.world.players.has(2)) session.setInput(2, act.second?.(step) ?? NO_INPUT);
       session.step();
       const h = hero(session);
+      for (const ev of session.world.stepEvents) seen.kinds[ev.type] = (seen.kinds[ev.type] ?? 0) + 1;
       for (const ev of session.world.stepEvents)
         if (ev.type === 'notice') {
           seen.notices.push([ev.say, ...(ev.values ?? [])].join(' '));
@@ -261,7 +273,7 @@ describe('the reference replays (stage 2.5a), recorded from their scripts', () =
 });
 
 describe('the reference replays of phase 4, growing with it', () => {
-  test('phase 4, what a body can do (from 4b): aiming up and down, a ball thrown where it aims; crouching under a low passage; seen later crouched; rolling', async () => {
+  test('phase 4, what a body can do (from 4b): aiming up and down, a ball thrown where it aims; crouching under a low passage; seen later crouched; rolling; a training dummy hurt, down and back', async () => {
     // The room `moves`, written here. On its open floor, looking at −Z: up, a little down, and almost
     // straight up, each throw where it aims (its pitch, a quarter turn per unit); the last one looking
     // at +X.
@@ -299,6 +311,9 @@ describe('the reference replays of phase 4, growing with it', () => {
         steps: 180,
         drive: (s) => ({ face: [0, 0, -1], pitch: 0.11, 'dojo.throw': s >= 10 && s < 75 }),
       },
+      // The training dummy (stage 4c): from 3 m, a tap every half second until it goes down; three
+      // seconds later, it is back.
+      { lines: ['dojo.goto -5 1 2'], steps: 600, drive: (s) => ({ face: [-1, 0, 0], 'dojo.throw': s > 20 && s % 30 === 0 }) },
       // From the far end towards the lamp: standing, then (from the dark again) crouched.
       { lines: ['dojo.goto 5 1 9.5'], steps: 150, drive: () => ({ move: [0, 0, -1] }) },
       { lines: ['dojo.goto 5 1 9.5'], steps: 60 },
@@ -309,7 +324,7 @@ describe('the reference replays of phase 4, growing with it', () => {
     // Thrown from the chest (1.2 m up): up at 36°, it rises about 2.7 m; at −13.5°, hardly at all; at
     // 72°, about 4.4 m.
     const [up, low, high] = [...seen.heights.values()];
-    expect(seen.heights.size).toBe(5);
+    expect(seen.heights.size).toBeGreaterThan(8);
     expect(up! - 1.2).toBeGreaterThan(2.4);
     expect(low! - 1.2).toBeLessThan(0.1);
     expect(high! - 1.2).toBeGreaterThan(4);
@@ -321,6 +336,10 @@ describe('the reference replays of phase 4, growing with it', () => {
     // Two rolls, each its 36 steps.
     expect(seen.trail.filter((t) => t.mode === 'roll')).toHaveLength(72);
     expect(seen.trail.some((t) => t.z < -4.5 && t.mode === 'walk')).toBe(true);
+    // The dummy went down once, and came back.
+    expect(seen.kinds.hurt).toBeGreaterThan(3);
+    expect(seen.kinds.down).toBe(1);
+    expect(seen.kinds.revived).toBe(1);
     // The tap fell short of the target; the throw held a second reached it.
     expect(struckAfterTap).toBe(0);
     expect(session.world.signal('struck')).toBe(1);
@@ -332,7 +351,7 @@ describe('the reference replays of phase 4, growing with it', () => {
     await expect(
       referenceText(
         session,
-        'Phase 4, what a body can do: aiming up and down, a ball thrown where it aims; crouching under a low passage; seen later crouched; rolling, into the passage too.',
+        'Phase 4, what a body can do: aiming up and down, a ball thrown where it aims; crouching under a low passage; seen later crouched; rolling, into the passage too; a training dummy hurt by balls, down, and back.',
       ),
     ).toMatchFileSnapshot('../replays/phase-4.replay');
     session.world.dispose();

@@ -183,6 +183,7 @@ export class Session {
         .map((v) => `${v.decl.name} ${formatValue(v.value)}`),
     ].join('\n');
     this.current = new World({ seed: o.seed ?? Number(this.registry.value('seed')), profile: cartridge.profile ?? VERIFIED });
+    this.current.filterDamage = cartridge.filterDamage?.bind(cartridge) ?? null;
     cartridge.onStart(this.world, this.registry);
     // World values that already came changed (from a recipe) are part of how it is born: step 0.
     this.registry.applyToWorld(this.world);
@@ -310,6 +311,7 @@ export class Session {
       );
     const old = this.current;
     this.current = World.restore(save.world);
+    this.current.filterDamage = this.cartridge.filterDamage?.bind(this.cartridge) ?? null;
     old.dispose();
     this.history.splice(0, this.history.length, ...save.history);
     this.inputs.splice(0, this.inputs.length, ...save.inputs);

@@ -61,5 +61,7 @@
  *  30  stage 4b: the Dojo's throw charges while held and goes when let go (`dojo.charge`), near or far
  *  31  stage 4c (decision 0022): every character keeps the history of its last 16 poses, and its hit
  *      parts by mode (`history`, `hits`)
+ *  32  stage 4c: health (`health`), what hits take through each game's filter, down and back; a hit
+ *      sound says what it struck; the Dojo's training dummies, hurt by its balls
  */
-export const SIMULATION_VERSION = 31;
+export const SIMULATION_VERSION = 32;

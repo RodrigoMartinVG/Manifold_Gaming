@@ -1,4 +1,4 @@
-# Manifold replay 31
+# Manifold replay 32
 # Phase 3, the light and the phase's demonstration: seen in the light, lost in the dark, behind a pillar and in a fog; a lamp switched on, and one broken by a ball.
 # A reference replay (stage 2.5a): playing it must end with the hash on its last line. A refactor
 # keeps it bit for bit. Recorded by games/dojo/src/reference.test.ts; recorded again (npm run
@@ -25,4 +25,4 @@ input 440 1 move @0:0.2
 input 441 1
 input 455 1 dojo.throw
 input 456 1
-end 510 4992bfa8
+end 510 3a91e366

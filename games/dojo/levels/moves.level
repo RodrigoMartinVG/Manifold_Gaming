@@ -32,3 +32,7 @@ lamp -5 3.4 -9.2    4 1           signal struck  name target_lamp
 signal hit      zone target
 signal never
 signal struck   latch hit never
+
+# A training dummy (stage 4c), at the side of the start, looking into the room: thrown at, it is hurt
+# (twice on the head), goes down when its points run out, and is back on its feet three seconds later.
+sensor dummy  -8 1 2   0.3 0.8 0.3  rotate y -90  name dummy_spot

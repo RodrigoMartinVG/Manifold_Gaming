@@ -541,12 +541,14 @@ const GROUND_REACH = 0.35;
 export function moveCharacter(world: World, e: Entity, dt: number) {
   const c = e.character!;
   const body = e.body!;
-  const input = world.inputs.get(c.player) ?? NO_INPUT;
+  // Down (stage 4c: its points ran out), it asks for nothing until it comes back.
+  const down = (e.health?.down ?? -1) >= 0;
+  const input = down ? NO_INPUT : (world.inputs.get(c.player) ?? NO_INPUT);
   const gravity = vec3.length(gravityAt(world.gravity, e.transform!.position));
   const up = upAt(world, e.transform!.position);
 
-  // 0: what it holds (stage 3g): grabbed or let go, and pulled towards in front of it.
-  hold(world, e, c, up, dt);
+  // 0: what it holds (stage 3g): grabbed or let go, and pulled towards in front of it (down, nothing).
+  if (!down) hold(world, e, c, up, dt);
 
   // 1: turning on its own axis (where it looks may be told instead: that comes first).
   const face = vec3.onPlane(vectorOf(input, 'face'), up);
@@ -589,7 +591,13 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
   // A roll (stage 4b): pressed on the ground (walking or crouched), it starts, the way it is asked to go
   // (or where it looks), for its time; off the ground, it is over.
   if (!c.grounded) c.rolling = 0;
-  else if (c.rolling === 0 && c.can.roll && (before === 'walk' || before === 'crouch') && pressed(world, c.player, 'roll')) {
+  else if (
+    !down &&
+    c.rolling === 0 &&
+    c.can.roll &&
+    (before === 'walk' || before === 'crouch') &&
+    pressed(world, c.player, 'roll')
+  ) {
     c.rolling = Math.max(1, Math.round(c.movement.roll.time / dt));
     c.rollDirection = vec3.length(move) > 0.1 ? vec3.normalize(move) : vec3.normalize(vec3.onPlane(c.facing, up));
   }

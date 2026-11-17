@@ -3,7 +3,7 @@ import type { Quat, Vec3 } from '@manifold/common';
 import { upAt, type Appearance, type Entity, type EntityId, type Shape, type World } from '@manifold/core';
 import type { VariableInfo } from '@manifold/commands';
 import { surroundingsOf } from './hands';
-import { animate, motion, turnBody, type ModelInstance, type Models } from './models';
+import { animate, flinch, motion, turnBody, type ModelInstance, type Models } from './models';
 import { own, ownMaterial, release } from './owned';
 import type { GamePage, Piece } from './page';
 
@@ -316,6 +316,22 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
         if (e) create(e);
       }
       if (ev.type === 'entityRemoved') remove(ev.id);
+      // A hit taken (stage 4c): the spine of whoever took it is kicked the way the hit went (from who
+      // hit it, or, from nobody, from in front of it).
+      if (ev.type === 'hurt') {
+        const model = instances.get(ev.target);
+        const target = world.entities.get(ev.target);
+        if (!model || !target?.transform || !target.character) return;
+        const at = new THREE.Vector3(...target.transform.position);
+        const by = ev.from === null ? undefined : world.entities.get(ev.from)?.transform;
+        const travel = by
+          ? at.clone().sub(new THREE.Vector3(...by.position))
+          : new THREE.Vector3(...target.character.facing).negate();
+        const up = new THREE.Vector3(...upAt(world, target.transform.position));
+        travel.addScaledVector(up, -travel.dot(up));
+        if (travel.lengthSq() < 1e-9) travel.set(...target.character.facing).negate();
+        flinch(model, travel.normalize(), up, ev.amount);
+      }
     },
     frame({ world, alpha, dt, hero }) {
       // (How much time passed for the world: paused, none; at half speed, half.)

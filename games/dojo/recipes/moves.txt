@@ -1,10 +1,11 @@
-# What a body can do: aiming, a charged throw, crouching, rolling
+# What a body can do: aiming, a charged throw, crouching, rolling, a training dummy
 # group: character
 # Stage 4b, growing with it. Aim with `view.camera aim` (a click takes the mouse): the character aims
 # up and down with the camera, its chest and head show it, and the ball (F) leaves that way: held, it
 # charges (the HUD shows how much), and a second held throws far enough for the target ahead. Crouch (C)
 # under the low passage, where standing does not fit; or roll into it (V), and crouch out. And walk
 # from the far end towards the lamp the eye watches: standing, it sees you soon; crouched, only much
-# closer.
+# closer. The straw mannequin by the start is a training dummy: throw at it (`inspect` it to see its
+# health), and when its points run out it goes down, and is back three seconds later.
 seed 13
 dojo.level moves

@@ -31,6 +31,7 @@ export interface Entity {
   lamp?: Lamp;
   watcher?: Watcher;
   breakable?: Breakable;
+  health?: Health;
   /**
    * The level's line that built it (stage 3j), as data: what `level.export` writes back. Set when a
    * level builds it, or the console adds it; kept up to date by `set`. Characters, balls, fragments,
@@ -72,6 +73,29 @@ export interface Lamp {
  * in between). No decisions: phase 4's guard takes its eyes. `sees`: who it sees now, in the order it
  * saw them; a change is an event (`seen`, `lost`).
  */
+/**
+ * HEALTH (stage 4c): what hits take, and whether it is down. Its points, its most, and the step it
+ * went down at (−1: standing). Plain data, in the hash. The engine takes the points (`World.hurt`,
+ * through the game's filter) and says when it goes down; when and where it comes back is the game's
+ * (`World.revive`): mechanism in the engine, policy in each game (decision 0000).
+ */
+export interface Health {
+  points: number;
+  most: number;
+  down: number;
+}
+
+/** A hit to be taken (stage 4c), as the game's filter sees it: on whom, by whom, where, of what kind, how much. */
+export interface Damage {
+  target: EntityId;
+  from: EntityId | null;
+  /** The hit part (`head`, `body`…: decision 0022), if it was a hit on one. */
+  part: string | null;
+  /** What did it: `impact`, `shot`, `strike`… (the game's words). */
+  kind: string;
+  amount: number;
+}
+
 export interface Watcher {
   range: number;
   cone: number;
@@ -520,7 +544,12 @@ export interface Appearance {
 }
 
 /** The components an entity is created with (everything but the id, which the world gives; a body and a character as they are asked for). */
-export type Components = Omit<Entity, 'id' | 'body' | 'character' | 'sensor' | 'mechanism' | 'lamp' | 'watcher' | 'breakable'> & {
+export type Components = Omit<
+  Entity,
+  'id' | 'body' | 'character' | 'sensor' | 'mechanism' | 'lamp' | 'watcher' | 'breakable' | 'health'
+> & {
+  /** Health (stage 4c): its most points (it starts with all of them, standing). */
+  health?: Pick<Health, 'most'>;
   /** What breaks it: the energy of a hit, in joules (it starts whole). */
   breakable?: Pick<Breakable, 'threshold'>;
   /** A lamp: how far it reaches, how bright, and the signal it follows (on: from its first step). */
@@ -580,4 +609,12 @@ export type Event =
       speed: number;
       energy: number;
       radius: number;
-    };
+      /** A hit's: what it struck, if it was an entity (stage 4c: what a thrown ball hurts). */
+      against?: EntityId | null;
+    }
+  /** A hit taken (stage 4c): on whom, by whom, where, of what kind, how much the game's filter left. */
+  | ({ type: 'hurt' } & Damage)
+  /** It went down (stage 4c): its points ran out. */
+  | { type: 'down'; target: EntityId; from: EntityId | null }
+  /** It came back (stage 4c), with all its points. */
+  | { type: 'revived'; target: EntityId };

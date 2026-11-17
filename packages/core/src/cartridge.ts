@@ -3,7 +3,7 @@ import type { InputAction } from './input';
 import type { Profile } from './profile';
 import type { ZoneKinds } from './level';
 import type { Progress } from './saved';
-import type { Event } from './types';
+import type { Damage, Event } from './types';
 import type { World } from './world';
 
 /**
@@ -68,4 +68,10 @@ export interface Cartridge {
   beforeStep?(world: World): void;
   /** On every step, AFTER the engine's phases: the game's rules, with that step's events. */
   onStep?(world: World, events: readonly Event[]): void;
+  /**
+   * How much of a hit is taken (stage 4c, decision 0000's hook): every hit goes through it before it
+   * takes points (`World.hurt`). Armor, a head that takes double, friendly fire: each game's policy.
+   * Without it, all of it. (Only arithmetic of the game's own: it runs on every copy.)
+   */
+  filterDamage?(world: World, damage: Damage): number;
 }

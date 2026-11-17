@@ -11,6 +11,7 @@ import type {
   Body,
   CollisionGroups,
   Components,
+  Damage,
   Entity,
   Event,
   EntityId,
@@ -479,7 +480,7 @@ export class World {
   }
 
   createEntity(components: Components): Entity {
-    const { body, character, sensor, mover, mechanism, lamp, watcher, breakable, ...rest } = components;
+    const { body, character, sensor, mover, mechanism, lamp, watcher, breakable, health, ...rest } = components;
     for (const name of Object.keys(rest.game ?? {}))
       if (!COMPONENT_NAME.test(name))
         throw new Error(
@@ -496,6 +497,10 @@ export class World {
     if (body?.material !== undefined && !material)
       throw new Error(`no material "${body.material}" in this world (${Object.keys(this.table).join(', ')})`);
     const entity: Entity = { id: ++this.lastId, ...rest };
+    if (health) {
+      if (!(health.most > 0)) throw new Error('Health has some points: its most must be more than 0');
+      entity.health = { points: health.most, most: health.most, down: -1 };
+    }
     if (mover) entity.mover = { from: [...mover.from], to: [...mover.to], seconds: mover.seconds };
     if (breakable) {
       if (!(breakable.threshold >= 0)) throw new Error('What breaks it is an energy, 0 or more');
@@ -613,6 +618,47 @@ export class World {
     for (const e of this.entities.values())
       if (e.body?.handle === hit.handle) return { entity: e.id, distance: hit.distance, point: hit.point, normal: hit.normal };
     return null;
+  }
+
+  /**
+   * The game's damage filter (stage 4c: `Cartridge.filterDamage`), which the session puts: how much of
+   * a hit is taken. Without one, all of it.
+   */
+  filterDamage: ((world: World, damage: Damage) => number) | null = null;
+
+  /**
+   * A HIT TAKEN (stage 4c): through the game's filter, it takes points from what has health and is
+   * standing, and says so (`hurt`); out of points, it goes down (`down`): a character down asks for
+   * nothing. Returns what it took (0: nothing had to). Mechanism in the engine; how much a weapon
+   * takes, and the filter, are each game's.
+   */
+  hurt(target: EntityId, amount: number, o: { from?: EntityId | null; part?: string | null; kind?: string } = {}): number {
+    const e = this.entities.get(target);
+    const h = e?.health;
+    if (!h || h.down >= 0 || !(amount > 0)) return 0;
+    const damage: Damage = { target, from: o.from ?? null, part: o.part ?? null, kind: o.kind ?? 'hit', amount };
+    const filtered = this.filterDamage ? this.filterDamage(this, damage) : amount;
+    const taken = Math.min(h.points, Math.max(0, Number.isFinite(filtered) ? filtered : 0));
+    if (taken <= 0) return 0;
+    h.points -= taken;
+    this.emit({ type: 'hurt', ...damage, amount: taken });
+    if (h.points <= 0) {
+      h.points = 0;
+      h.down = this.tick;
+      if (e.character) e.character.holding = 0;
+      this.emit({ type: 'down', target, from: damage.from });
+    }
+    return taken;
+  }
+
+  /** IT COMES BACK (stage 4c): with all its points, standing; where, if the game says (`at`), or where it is. */
+  revive(target: EntityId, at?: Vec3) {
+    const e = this.entities.get(target);
+    if (!e?.health) return;
+    e.health.points = e.health.most;
+    e.health.down = -1;
+    if (at) this.place(e, at);
+    this.emit({ type: 'revived', target });
   }
 
   /**
@@ -743,6 +789,7 @@ export class World {
         speed: vec3.length(before),
         energy,
         radius: hitRadius(energy),
+        against: against?.id ?? null,
       });
     }
   }

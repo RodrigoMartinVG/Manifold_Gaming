@@ -93,6 +93,8 @@ export type {
   Character,
   CharacterSpec,
   CollisionPose,
+  Damage,
+  Health,
   HitPart,
   Pose,
   CompoundPart,

@@ -65,7 +65,7 @@ describe("the Dojo's interface (stage 3i)", () => {
     registry.run('dojo.level moves', 'recipe');
     const session = new Session(DojoCartridge, { registry });
     for (let i = 0; i < 30; i++) session.step();
-    const hero = [...session.world.entities.values()].find((e) => e.character)!;
+    const hero = [...session.world.entities.values()].find((e) => e.character?.player === 1)!;
     const say = sayer([DOJO_WORDS, ENGINE_WORDS], 'es');
     expect(dojoHud({ world: session.world, hero, say, language: 'es' })).toEqual([]);
     // Held half a second (30 steps: 29 of the 59 that fill it), half full; a second, full.

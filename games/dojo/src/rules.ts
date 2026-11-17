@@ -14,6 +14,7 @@ import {
   type Capabilities,
   type Cartridge,
   type Character,
+  type Damage,
   type Entity,
   type Event,
   type Level,
@@ -98,6 +99,43 @@ function character(world: World, player: number, at: Vec3, facing: Vec3, color: 
   });
 }
 
+/**
+ * A TRAINING DUMMY (stage 4c): a character nobody drives (player 0: no one sends its inputs), the
+ * mannequin in straw, with health, standing where a `dummy` zone is and looking where the zone looks.
+ */
+export const DUMMY = Object.freeze({ health: 100, color: 0xc9a86a, back: 180 });
+function dummy(world: World, zone: Entity) {
+  const facing = quat.rotate(zone.transform!.rotation, [0, 0, -1]);
+  const parts = characterParts({ player: 0, facing, color: DUMMY.color });
+  world.createEntity({
+    transform: { position: [...zone.transform!.position], rotation: zone.transform!.rotation },
+    body: parts.body,
+    character: parts.character,
+    appearance: parts.appearance,
+    health: { most: DUMMY.health },
+  });
+}
+
+/** Who threw a ball (stage 4c). */
+type Thrown = { by: number };
+const THROWN = 'dojo.thrown';
+
+/**
+ * WHAT A THROWN BALL TAKES (stage 4c): four points for each joule of a hit (measured: a tap's ball
+ * strikes a dummy at 1 to 3 J, a charged one at more, and its bounces after a fraction of that), at
+ * most 50, from whoever threw it.
+ */
+export const impactDamage = (energy: number) => Math.min(50, Math.round(4 * energy));
+
+/**
+ * THE DOJO'S DAMAGE FILTER (stage 4c, its policy): a hit on the head takes double; one's own ball
+ * takes nothing from oneself.
+ */
+export function dojoDamage(_world: World, d: Damage): number {
+  if (d.from !== null && d.from === d.target) return 0;
+  return d.part === 'head' ? 2 * d.amount : d.amount;
+}
+
 /** The level's stars: zones of kind `star` (while nobody has taken them). */
 const stars = (world: World) => [...world.entities.values()].filter((e) => e.sensor?.kind === 'star');
 
@@ -113,6 +151,8 @@ function buildDojoLevel(world: World, level: Level) {
     star.appearance = { shape: 'box', size: [0.4, 0.4, 0.4], color: 0xf0c040 };
     star.spin = { angularVelocity: [0.4, 2, 0.3] };
   }
+  // Its training dummies (stage 4c), where its `dummy` zones are.
+  for (const zone of [...world.entities.values()].filter((e) => e.sensor?.kind === 'dummy')) dummy(world, zone);
   character(world, 1, level.spawn, level.facing, 0x93d9c9);
 }
 
@@ -136,6 +176,8 @@ export const DOJO_ZONES: ZoneKinds = {
   fog: { opacity: 1 },
   /** Where the camera should look while a character is in it (stage 3h): its `view`, a direction (x y z). */
   camera: { view: 3 },
+  /** Where a training dummy stands (stage 4c), looking where the zone looks. */
+  dummy: {},
 };
 
 /**
@@ -234,9 +276,11 @@ function levelLoop(world: World, events: readonly Event[]) {
 }
 
 /** A ball at a place, with its size and color from the world's randomness: it falls from there. */
-function ball(world: World, position: Vec3, velocity: Vec3 = [0, 0, 0]) {
+function ball(world: World, position: Vec3, velocity: Vec3 = [0, 0, 0], by?: Entity) {
   const diameter = world.random.between(0.3, 0.7);
   world.createEntity({
+    // Who threw it (stage 4c): what it hurts, it hurts from them.
+    ...(by ? { game: { [THROWN]: { by: by.id } satisfies Thrown } } : {}),
     transform: { position: [...position], rotation: quat.identity() },
     // A little angular damping: Rapier has no rolling resistance, and without it the ball would roll
     // until it fell off the floor's edge.
@@ -276,7 +320,11 @@ function joinedPlayers(world: World) {
         // It moves like the first one, and can do what it can (whatever `dojo.air`, `dojo.climb`… made of it).
         first.character!,
       );
-  for (const e of characters) if (e.character!.player !== 1 && !world.players.has(e.character!.player)) world.removeEntity(e.id);
+  // (Player 0 drives nothing: a training dummy, stage 4c, stays.)
+  for (const e of characters) {
+    const p = e.character!.player;
+    if (p !== 1 && p !== 0 && !world.players.has(p)) world.removeEntity(e.id);
+  }
 }
 
 /**
@@ -415,9 +463,21 @@ export function createDojo(levels: Readonly<Record<string, Level>>): Cartridge {
       currents(world);
     },
 
+    filterDamage: dojoDamage,
+
     onStep(world, events) {
       joinedPlayers(world);
       levelLoop(world, events);
+      // What a thrown ball strikes, if it has health, it hurts (stage 4c); a dummy down is back on its
+      // feet after three seconds.
+      for (const ev of events)
+        if (ev.type === 'sound' && ev.sound === 'hit' && ev.against != null && world.entities.get(ev.against)?.health) {
+          const source = world.entities.get(ev.source);
+          const thrown = source && component<Thrown>(source, THROWN);
+          world.hurt(ev.against, impactDamage(ev.energy), { from: thrown?.by ?? null, kind: 'impact' });
+        }
+      for (const e of world.entities.values())
+        if (e.health && e.health.down >= 0 && world.tick - e.health.down >= DUMMY.back) world.revive(e.id);
       // Held, the throw charges; let go, one ball leaves: from the chest, where it aims (stage 4b: with
       // its pitch), up a little from there, as fast as it was charged.
       for (const e of world.entities.values()) {
@@ -431,7 +491,7 @@ export function createDojo(levels: Readonly<Record<string, Level>>): Cartridge {
         const up = upAt(world, e.transform.position);
         const { ahead, above } = aimOf(e.character, up);
         const from = vec3.add(e.transform.position, vec3.add(vec3.scale(ahead, 0.75), vec3.scale(up, 0.4)));
-        ball(world, from, vec3.add(vec3.scale(ahead, speed), vec3.scale(above, 2.5)));
+        ball(world, from, vec3.add(vec3.scale(ahead, speed), vec3.scale(above, 2.5)), e);
       }
     },
 
