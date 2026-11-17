@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // No "DOM" and no Node types: a brain and its navigation run where the match is hosted, a page or a server (decision 0023).
+    "lib": ["ES2023"],
+    "types": []
+  },
+  "include": ["src"]
+}

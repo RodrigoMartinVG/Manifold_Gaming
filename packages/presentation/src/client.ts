@@ -5,6 +5,7 @@ import { mountCamera } from './camera';
 import { mountConsole, type ConsoleOptions, type GameConsole } from './console';
 import { mountDrive } from './drive';
 import { mountInspect } from './inspect';
+import { mountNav } from './nav';
 import { loadModels } from './models';
 import { createMatch } from './match';
 import { mountNotices } from './notices';
@@ -227,6 +228,7 @@ export function mount(cartridge: Cartridge, container: HTMLElement, o: MountOpti
   pieces.push(
     bodies,
     mountViews(page, bodies),
+    mountNav(page),
     mountSignals(page, bodies),
     mountLights(page, bodies),
     mountDebris(page, { timeScale: () => (match.paused ? 0 : match.timescale) }),

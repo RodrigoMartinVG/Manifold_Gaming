@@ -1,5 +1,6 @@
 import { beforeAll, describe, expect, test } from 'vitest';
 import { approx, quat } from '@manifold/common';
+import { levelOfWorld } from './building';
 import { buildLevel, levelFromText, levelToText } from './level';
 import { initPhysics } from './physics';
 import { World } from './world';
@@ -286,7 +287,7 @@ sensor fog  0 2 -20  4 2 4  rotate y 30  opacity 0.2  color 0.8 0.8 0.9
     expect(v1('box 0 0 0  1 1 1  grid')).toThrow(/line 3: "grid" is format 2/);
     expect(v1('material oil friction 0 bounce 0 density 1 drag 0')).toThrow(/line 3: "material" is format 2/);
     expect(v1('sensor current 0 0 0  1 1 1  flow 1 0 0')).toThrow(/line 3: "flow": a zone carries what it says from format 2 on/);
-    expect(() => levelFromText('# Manifold level 8\n')).toThrow(/line 1: a level of format 8: this engine reads formats 1 to 7/);
+    expect(() => levelFromText('# Manifold level 9\n')).toThrow(/line 1: a level of format 9: this engine reads formats 1 to 8/);
   });
 
   test('what format 2 does not allow says which line, and why', () => {
@@ -471,7 +472,7 @@ signal spotted  seen eye
     expect(bad('lamp 0 3 0  0 1')).toThrow(/line 2: a lamp's radius must be more than 0/);
     expect(bad('lamp 0 3 0  6 1  signal nothing')).toThrow(/line 2: no signal "nothing" in the level/);
     expect(bad('lamp 0 3 0  6 1  rotate y 90')).toThrow(
-      /line 2: "rotate" is not understood here \(signal, name, breaks, model\)/,
+      /line 2: "rotate" is not understood here \(signal, name, breaks, model, affords\)/,
     );
     expect(bad('watcher 0 2 0  10 400 0.3')).toThrow(/line 2: a watcher's field of view is more than 0 degrees, and 360 at most/);
     expect(bad('signal spotted seen nobody')).toThrow(/line 2: no watcher named "nobody" in the level/);
@@ -490,5 +491,81 @@ signal spotted  seen eye
     expect(eye.watcher!.cone).toBeCloseTo(Math.SQRT1_2, 15);
     expect(eye.watcher!.sees).toEqual([]);
     world.dispose();
+  });
+});
+
+describe('format 8 (stage 4d, decision 0024): routes, and what things are for', () => {
+  const V8 = `# Manifold level 8
+box 0 -0.5 0  6 0.5 6
+box 2 0.5 0  1 0.5 0.2  affords cover  name wall
+box 1 0.2 3  0.2 0.2 0.2  dynamic  affords throw kick
+sensor goal  0 1 -4  1 1 1  affords weak
+lamp 0 3 0  5 1  affords weak
+watcher 0 2 4  8 60 0.4  affords cover
+route rounds loop  -4 0 4  4 0 4  4 0 -4
+route there  0 0 0  0 0 -3
+`;
+
+  test('read: a route’s name, round or not, its points; what each thing is for; and written back the same', () => {
+    const level = levelFromText(V8);
+    expect(level.routes).toEqual([
+      {
+        name: 'rounds',
+        loop: true,
+        points: [
+          [-4, 0, 4],
+          [4, 0, 4],
+          [4, 0, -4],
+        ],
+      },
+      {
+        name: 'there',
+        loop: false,
+        points: [
+          [0, 0, 0],
+          [0, 0, -3],
+        ],
+      },
+    ]);
+    expect(level.boxes.map((b) => b.affords)).toEqual([undefined, ['cover'], ['throw', 'kick']]);
+    expect(level.sensors[0]!.affords).toEqual(['weak']);
+    expect(level.lamps[0]!.affords).toEqual(['weak']);
+    expect(level.watchers[0]!.affords).toEqual(['cover']);
+    expect(levelFromText(levelToText(level))).toEqual(level);
+  });
+
+  test('built: a route is an entity with its name and its points; what a thing is for, on its entity; written back from the world', () => {
+    const world = new World({ seed: 1 });
+    const level = levelFromText(V8);
+    buildLevel(world, level);
+    expect(world.named('rounds')!.route).toEqual({
+      points: [
+        [-4, 0, 4],
+        [4, 0, 4],
+        [4, 0, -4],
+      ],
+      loop: true,
+    });
+    expect(world.named('wall')!.affords).toEqual(['cover']);
+    // Nothing said, nothing there.
+    expect([...world.entities.values()].filter((e) => e.affords).length).toBe(5);
+    const back = levelOfWorld(world);
+    expect(back.routes).toEqual(level.routes);
+    expect(levelFromText(levelToText(back)).boxes.map((b) => b.affords)).toEqual(level.boxes.map((b) => b.affords));
+    world.dispose();
+  });
+
+  test('what it does not allow says which line, and why; a route, or what a thing is for, in a level of format 7', () => {
+    const bad = (line: string) => () => levelFromText(`# Manifold level 8\nbox 0 -0.5 0  6 0.5 6\n${line}\n`);
+    expect(bad('route a  0 0 0')).toThrow(/line 3: a route needs two points or more/);
+    expect(bad('route a  0 0 0  1 1')).toThrow(/line 3: a route's points are three numbers each/);
+    expect(bad('route a loop')).toThrow(/line 3: a route needs two points/);
+    expect(bad('route A  0 0 0  1 0 0')).toThrow(/line 3: "A" is not a name/);
+    expect(bad('box 0 0 0  1 1 1  affords')).toThrow(/line 3: "affords" needs what it is for \(cover, throw, kick, weak\)/);
+    expect(bad('box 0 0 0  1 1 1  affords cover cover')).toThrow(/line 3: "cover" twice/);
+    expect(bad('box 0 0 0  1 1 1  affords fly')).toThrow(/"affords" needs what it is for/);
+    const v7 = (line: string) => () => levelFromText(`# Manifold level 7\n${line}\n`);
+    expect(v7('route a  0 0 0  1 0 0')).toThrow(/line 2: "route" is format 8/);
+    expect(v7('box 0 0 0  1 1 1  affords cover')).toThrow(/line 2: "affords" is format 8/);
   });
 });

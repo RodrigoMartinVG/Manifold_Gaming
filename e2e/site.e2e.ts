@@ -427,6 +427,7 @@ const VIEW_VALUES: Record<string, string> = {
   'show.sensors': 'on',
   'show.gravity': 'on',
   'show.ik': 'on',
+  'show.nav': 'on',
   'show.signals': 'on',
   'show.light': 'on',
   'show.vision': 'on',
@@ -1237,6 +1238,26 @@ test('the weapons (stage 4c): a dart taken from its rack, held in both hands; fo
     await afterSteps(page, 15);
   }
   expect(await falls()).toBe('1');
+  expect(list).toEqual([]);
+});
+
+test('the keep’s navigation (stage 4d): show.nav draws its cells; nav.path from the start to the last plate presses the button, rides the lift', async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  const list = errors(page);
+  await page.goto('jugar/dojo/keep/#recipe=view.camera+free;show.nav+on');
+  await expect.poll(async () => (await position(page, 'player')).length, { timeout: 15_000 }).toBe(3);
+  await expect.poll(async () => Number(await page.locator('#game').getAttribute('data-nav'))).toBeGreaterThan(500);
+  await page.keyboard.press('Backquote');
+  await typeInConsole(page, 'nav.path last_plate');
+  await expect(page.locator('.mg-console-log')).toContainText('press use in button');
+  await expect(page.locator('.mg-console-log')).toContainText('ride');
+  const kinds = (await page.locator('#game').getAttribute('data-path'))!.split(' ');
+  expect(kinds[0]).toBe('start');
+  expect(kinds.indexOf('use')).toBeLessThan(kinds.indexOf('ride'));
+  await typeInConsole(page, 'nav.path');
+  await expect.poll(() => page.locator('#game').getAttribute('data-path')).toBeNull();
   expect(list).toEqual([]);
 });
 

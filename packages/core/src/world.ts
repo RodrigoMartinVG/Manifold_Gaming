@@ -42,6 +42,11 @@ export interface Query {
   besides?: EntityId;
   /** Whether the bodies the physics moves (dynamic) count: yes, unless false. */
   dynamic?: boolean;
+  /**
+   * Whether the bodies a program moves count (kinematic: moving platforms, doors, lifts, and the
+   * characters): yes, unless false (stage 4d: the navigation samples what never moves).
+   */
+  moving?: boolean;
   /** Only the bodies these groups meet. */
   groups?: CollisionGroups;
   /** Whether characters count: yes, unless false (stage 3h: the camera goes through people, not walls). */
@@ -615,6 +620,7 @@ export class World {
       ...(skip === undefined ? {} : { skip }),
       ...(besides === undefined ? {} : { besides }),
       ...(o.dynamic === undefined ? {} : { dynamic: o.dynamic }),
+      ...(o.moving === undefined ? {} : { kinematic: o.moving }),
       ...(o.groups ? { groups: o.groups } : {}),
       ...(o.characters === false
         ? { leave: [...this.entities.values()].flatMap((e) => (e.character && e.body ? [e.body.handle] : [])) }

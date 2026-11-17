@@ -138,6 +138,8 @@ export interface QueryOptions {
   besides?: number;
   /** Whether the bodies the physics moves (dynamic) count: yes, unless false. */
   dynamic?: boolean;
+  /** Whether the bodies a program moves (kinematic: platforms, doors, lifts, characters) count: yes, unless false (stage 4d). */
+  kinematic?: boolean;
   /** Only the bodies these groups meet (like a body's). */
   groups?: CollisionGroups;
   /** More bodies left out, by handle (stage 3h: the characters, for the camera). */
@@ -153,11 +155,13 @@ export const CHARACTER_GAP = 0.02;
  */
 export const STANDS_ON = Math.sqrt(3) / 2;
 
+/** The steps a character climbs without jumping (m): up to 35 cm, if there is at least 15 cm to stand on. */
+export const STEP_UP = 0.35;
+
 /** How characters move (stage 1b): what they climb, what they snap to, what they push. */
 const CHARACTER = {
   offset: CHARACTER_GAP,
-  /** Steps it climbs without jumping: up to 35 cm, if there is at least 15 cm to stand on. */
-  stepHeight: 0.35,
+  stepHeight: STEP_UP,
   stepWidth: 0.15,
   /** Going down a step or a slope, it stays on the ground if it is closer than this. */
   snapToGround: 0.3,
@@ -484,7 +488,7 @@ export class RapierPhysics implements PhysicsBackend {
       if (left.has(handle)) continue;
       const body = this.world.getRigidBody(handle);
       const collider = body?.collider(0);
-      if (!body || !collider || (o.dynamic === false && body.isDynamic())) continue;
+      if (!body || !collider || (o.dynamic === false && body.isDynamic()) || (o.kinematic === false && body.isKinematic())) continue;
       if (groups !== undefined && !meets(groups, collider.collisionGroups())) continue;
       out.push(collider);
     }
@@ -550,8 +554,11 @@ export class RapierPhysics implements PhysicsBackend {
   private filter(o: QueryOptions) {
     const skip = o.skip === undefined ? undefined : this.world.getRigidBody(o.skip);
     const left = [...(o.besides === undefined ? [] : [o.besides]), ...(o.leave ?? [])];
+    const flags =
+      (o.dynamic === false ? RAPIER.QueryFilterFlags.EXCLUDE_DYNAMIC : 0) |
+      (o.kinematic === false ? RAPIER.QueryFilterFlags.EXCLUDE_KINEMATIC : 0);
     return [
-      o.dynamic === false ? RAPIER.QueryFilterFlags.EXCLUDE_DYNAMIC : undefined,
+      flags === 0 ? undefined : flags,
       o.groups ? groupsOf(o.groups) : undefined,
       undefined,
       skip,

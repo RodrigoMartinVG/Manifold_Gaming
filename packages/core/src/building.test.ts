@@ -96,6 +96,41 @@ describe('building from the console (stage 3j)', () => {
     return { session, type, step, world: () => session.world };
   }
 
+  test('a route (stage 4d), added and cloned: its points moved, the copy named the next free name after it', () => {
+    const { type, step, world } = room();
+    expect(type('add route rounds loop  0 0 4  4 0 4')).toEqual([]);
+    step();
+    type('clone rounds 0 0 -1');
+    type('clone rounds 0 0 -2');
+    step();
+    expect(levelOfWorld(world()).routes).toEqual([
+      {
+        name: 'rounds',
+        loop: true,
+        points: [
+          [0, 0, 4],
+          [4, 0, 4],
+        ],
+      },
+      {
+        name: 'rounds_2',
+        loop: true,
+        points: [
+          [0, 0, 3],
+          [4, 0, 3],
+        ],
+      },
+      {
+        name: 'rounds_3',
+        loop: true,
+        points: [
+          [0, 0, 2],
+          [4, 0, 2],
+        ],
+      },
+    ]);
+  });
+
   test('add, clone, set, delete: world changes at a step; the level written back says what was done', () => {
     const { session, type, step, world } = room();
     expect(type('add box 0 2 -2  0.2 0.2 0.2  dynamic  material wood  color #b08850  name crate')).toEqual([]);

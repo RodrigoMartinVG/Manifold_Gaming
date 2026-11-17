@@ -20,6 +20,8 @@ export const CONSOLE_ES: Readonly<Record<string, string>> = {
   'show.gravity': 'el campo de gravedad, como flechas',
   'show.ik':
     'hasta dónde llega cada miembro de cada personaje: una línea desde cada cadera y cada hombro hasta su objetivo, más brillante cuanto más pesa la cinemática inversa; y los contactos que persisten, como puntos (un pie apoyado en verde, una mano en una pared en naranja, en un borde en amarillo, buscando lo que sostiene en celeste, en lo que lleva en las manos en violeta)',
+  'show.nav':
+    'por dónde puede ir un cuerpo (etapa 4d, decisión 0024): las celdas de la navegación, un punto cada medio metro donde cabe el personaje de los juegos (ámbar, sobre un ascensor: está solo mientras el ascensor está ahí); las aristas que no son caminar: saltos y caídas (azul), trepadas (violeta), por encima de un hueco (celeste), el viaje de un ascensor (ámbar), por una puerta (rojo); y los recorridos del nivel (blanco)',
   'show.light': 'el alcance de las lámparas: amarillo mientras están prendidas, gris mientras están apagadas',
   'show.vision':
     'lo que mira cada observador: el borde de su campo de visión, y una línea a cada personaje en él, verde si lo ve',
@@ -44,8 +46,8 @@ export const CONSOLE_ES: Readonly<Record<string, string>> = {
     'un jugador entra a la partida. Lo dice el servidor, en un paso: el juego decide qué significa (en el recorrido del Dojo, un personaje para cada uno)',
   'players.leave': 'un jugador deja la partida (en el recorrido del Dojo, su personaje se va)',
   signal: 'pone una señal del nivel que es una entrada, en un paso (las que se calculan dicen de qué)',
-  add: 'agrega lo que dice una línea de un nivel (`add box 0 1 -3  1 1 1  material wood  name caja`): una caja, una zona, una lámpara o un vigía; entra en el paso siguiente',
-  clone: 'una copia de lo que hizo una línea de nivel, corrida `x y z` (`clone caja 1 0 0`); la copia no tiene nombre',
+  add: 'agrega lo que dice una línea de un nivel (`add box 0 1 -3  1 1 1  material wood  name caja`): una caja, una zona, una lámpara, un vigía o un recorrido (`route`); entra en el paso siguiente',
+  clone: 'una copia de lo que hizo una línea de nivel, corrida `x y z` (`clone caja 1 0 0`); la copia no tiene nombre (un recorrido, el siguiente libre después del suyo)',
   delete: 'saca una entidad, por su número o su nombre (`delete caja`); un personaje no: se va con su jugador',
   set: 'cambia un valor de una entidad: `set caja transform.position 0 2 0`, `set lampara lamp.intensity 2`; también relativo, `+0 +1 +0` o `*2`',
   'level.export':
@@ -61,6 +63,8 @@ export const CONSOLE_ES: Readonly<Record<string, string>> = {
   changed: 'solo las variables que no están en su valor de siempre',
   toggle: 'da vuelta una variable de prendido y apagado',
   reset: 'vuelve una variable a su valor de siempre (sin nombre, todas); las de arranque hacen empezar de nuevo el mundo',
+  'nav.path':
+    'el camino desde tu personaje hasta un punto (`nav.path 0 5 -16`) o una entidad (`nav.path last_plate`), como lo planearía un guardia con lo que tu personaje puede hacer (etapa 4d): dibujado, y dicho paso a paso; si una puerta o un ascensor no están como hace falta, primero el botón que aprieta o la placa donde se para. Sin nada, lo saca',
   inspect: 'de qué está hecha una entidad: por su número, su nombre, `me` o `it` (sin nada: cuántas hay, y sus nombres)',
   watch:
     'deja una entidad fija en la pantalla, con sus valores al día mientras jugás; `watch clear` las saca, y `watch` solo dice cuáles mirás',

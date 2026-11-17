@@ -15,6 +15,7 @@
     "./tools": "./src/tools.ts"
   },
   "dependencies": {
+    "@manifold/bots": "0.0.0",
     "@manifold/commands": "0.0.0",
     "@manifold/common": "0.0.0",
     "@manifold/core": "0.0.0",

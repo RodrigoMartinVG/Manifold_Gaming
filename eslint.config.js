@@ -145,6 +145,12 @@ export default defineConfig(
     rules: { 'no-restricted-imports': ['error', { patterns: [drawing, models, presentation, games, network] }] },
   },
   {
+    // What bots plan with (stage 4d, decision 0023): it runs where the match is hosted, a page or a
+    // server, without a screen; it uses the simulation, which does not know it.
+    files: ['packages/bots/src/**'],
+    rules: { 'no-restricted-imports': ['error', { patterns: [drawing, models, presentation, games, network] }] },
+  },
+  {
     // The simulation, the network and a game's rules give the same bits in every browser (stage 1f).
     // (And the math they all use, `common`, except approx.ts: stage 2.5b.)
     files: [
@@ -196,6 +202,7 @@ export default defineConfig(
                 '!@manifold/presentation',
                 '!@manifold/character',
                 '!@manifold/character/*',
+                '!@manifold/bots',
               ],
               message: 'A game imports the engine, never another game (decision 0003).',
             },

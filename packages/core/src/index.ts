@@ -84,7 +84,7 @@ export { playReplay, replayFromText, replayOf, ReplayPlayer, replayToText, sessi
 export { Clock } from './clock';
 export { stateHash } from './hash';
 export type { Cartridge } from './cartridge';
-export { initPhysics, PHYSICS, RapierPhysics, type PhysicsBackend } from './physics';
+export { CHARACTER_GAP, initPhysics, PHYSICS, RapierPhysics, STANDS_ON, STEP_UP, type PhysicsBackend } from './physics';
 export { EARTH, gravityAt } from './gravity';
 export type {
   Appearance,

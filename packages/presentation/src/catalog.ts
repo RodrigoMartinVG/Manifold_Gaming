@@ -9,6 +9,7 @@ import { DRIVE_COMMANDS, DRIVE_VARIABLES } from './drive';
 import { INSPECT_COMMANDS } from './inspect';
 import { LIGHTS_VARIABLES } from './lights';
 import { MATCH_COMMANDS, MATCH_VARIABLES } from './match';
+import { NAV_COMMANDS, NAV_VARIABLES } from './nav';
 import { REPLAY_COMMANDS } from './replays';
 import { SIGNALS_COMMANDS, SIGNALS_VARIABLES } from './signals';
 import { STATS_VARIABLES } from './stats';
@@ -24,6 +25,7 @@ export const PRESENTATION_VARIABLES: readonly VariableInfo[] = [
   ...Object.values(STATS_VARIABLES),
   ...Object.values(BODIES_VARIABLES),
   ...Object.values(VIEWS_VARIABLES),
+  ...Object.values(NAV_VARIABLES),
   ...Object.values(SIGNALS_VARIABLES),
   ...Object.values(LIGHTS_VARIABLES),
   ...Object.values(AUDIO_VARIABLES),
@@ -36,6 +38,7 @@ export const PRESENTATION_VARIABLES: readonly VariableInfo[] = [
 
 export const PRESENTATION_COMMANDS: readonly CommandInfo[] = [
   ...Object.values(INSPECT_COMMANDS),
+  ...Object.values(NAV_COMMANDS),
   ...Object.values(SIGNALS_COMMANDS),
   ...Object.values(DRIVE_COMMANDS),
   ...Object.values(MATCH_COMMANDS),

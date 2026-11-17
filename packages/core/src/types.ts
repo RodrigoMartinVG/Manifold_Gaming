@@ -33,6 +33,10 @@ export interface Entity {
   breakable?: Breakable;
   health?: Health;
   projectile?: Projectile;
+  /** A route (stage 4d, level format 8): points a guard patrols, there and back or round. Nothing else in it. */
+  route?: Route;
+  /** What it is for, as its level says (stage 4d, decision 0024: cover, something to throw…): data the brains read. */
+  affords?: Affordance[];
   /**
    * The level's line that built it (stage 3j), as data: what `level.export` writes back. Set when a
    * level builds it, or the console adds it; kept up to date by `set`. Characters, balls, fragments,
@@ -162,6 +166,19 @@ export interface Mechanism {
   since: number;
   from: number;
 }
+
+/**
+ * A ROUTE (stage 4d, decision 0024): points, in the order a guard goes through them; round (`loop`),
+ * back to the first from the last, or there and back. The engine does nothing with it: brains read it.
+ */
+export interface Route {
+  points: Vec3[];
+  loop: boolean;
+}
+
+/** What a level says a thing is for (stage 4d, decision 0024): to hide behind, to throw, to kick, a weak point. */
+export const AFFORDANCES = ['cover', 'throw', 'kick', 'weak'] as const;
+export type Affordance = (typeof AFFORDANCES)[number];
 
 /**
  * A BODY THAT GOES BACK AND FORTH (stage 2d): a moving platform. Its place is a function of the time

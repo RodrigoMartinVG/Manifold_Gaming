@@ -32,6 +32,7 @@ export function levelOfWorld(world: World): Level {
     ambient: world.ambient === (origin.ambient ?? DEFAULT_AMBIENT) ? origin.ambient : world.ambient,
     lamps: [],
     watchers: [],
+    routes: [],
   };
   for (const e of [...world.entities.values()].sort((a, b) => a.id - b.id)) {
     const s = e.source;
@@ -40,6 +41,7 @@ export function levelOfWorld(world: World): Level {
     else if ('map' in s) level.maps.push(copyData(s.map));
     else if ('sensor' in s) level.sensors.push(copyData(s.sensor));
     else if ('lamp' in s) level.lamps.push(copyData(s.lamp));
+    else if ('route' in s) level.routes.push(copyData(s.route));
     else level.watchers.push(copyData(s.watcher));
   }
   return level;
@@ -62,14 +64,14 @@ export function levelDiff(from: Level, to: Level): string[] {
 
 /**
  * One line of a level, read in the world's context (its named zones, its signals, its materials: a
- * door that follows `open` needs `open` to be there), as the piece it is: a box, a zone, a lamp or a
- * watcher. A line that is not understood throws, with why.
+ * door that follows `open` needs `open` to be there), as the piece it is: a box, a zone, a lamp, a
+ * watcher or a route (stage 4d). A line that is not understood throws, with why.
  */
 export function pieceFromLine(world: World, line: string, zones?: ZoneKinds): LevelPiece {
   const words = line.trim().split(/\s+/);
   const kind = words[0];
-  if (kind !== 'box' && kind !== 'sensor' && kind !== 'lamp' && kind !== 'watcher')
-    throw new Error(`"${kind ?? ''}": what is added is a box, a sensor, a lamp or a watcher`);
+  if (kind !== 'box' && kind !== 'sensor' && kind !== 'lamp' && kind !== 'watcher' && kind !== 'route')
+    throw new Error(`"${kind ?? ''}": what is added is a box, a sensor, a lamp, a watcher or a route`);
   // The world as a level, and the new line at its end: read as one, so names and signals are checked.
   const before = levelOfWorld(world);
   const text = levelToText(before) + line + '\n';
@@ -89,6 +91,7 @@ export function pieceFromLine(world: World, line: string, zones?: ZoneKinds): Le
   if (kind === 'box') return { box: level.boxes.at(-1)! };
   if (kind === 'sensor') return { sensor: level.sensors.at(-1)! };
   if (kind === 'lamp') return { lamp: level.lamps.at(-1)! };
+  if (kind === 'route') return { route: level.routes.at(-1)! };
   return { watcher: level.watchers.at(-1)! };
 }
 
@@ -103,6 +106,11 @@ function moved(piece: LevelPiece, by: Vec3): LevelPiece {
   // (A map's floor, stage 4a: its map moves, and it has no name.)
   if ('map' in p) {
     p.map.origin = [p.map.origin[0] + by[0], p.map.origin[1] + by[1], p.map.origin[2] + by[2]];
+    return p;
+  }
+  // (A route, stage 4d: its points move; it needs a name, so the copy's is the first free one after it.)
+  if ('route' in p) {
+    p.route.points = p.route.points.map((q) => [q[0] + by[0], q[1] + by[1], q[2] + by[2]]);
     return p;
   }
   const item = 'box' in p ? p.box : 'sensor' in p ? p.sensor : 'lamp' in p ? p.lamp : p.watcher;
@@ -123,7 +131,7 @@ export function declareBuilding(registry: Registry<World>, cartridge?: Cartridge
   registry.declareCommand({
     name: 'add',
     description:
-      'Adds what a line of a level says, in the world as it is (stage 3j): `add box 0 1 -3  1 1 1  material wood  name crate`, a `sensor`, a `lamp` or a `watcher`. Its names and signals are checked against the world. Like every world change it enters at the next step: in a recipe, `wait 1` before using it.',
+      'Adds what a line of a level says, in the world as it is (stage 3j): `add box 0 1 -3  1 1 1  material wood  name crate`, a `sensor`, a `lamp`, a `watcher` or a `route` (stage 4d). Its names and signals are checked against the world. Like every world change it enters at the next step: in a recipe, `wait 1` before using it.',
     args: [{ name: 'line', type: { kind: 'rest' } }],
     inRecipes: true,
     check: (world, [line], out) => {
@@ -140,7 +148,7 @@ export function declareBuilding(registry: Registry<World>, cartridge?: Cartridge
   registry.declareCommand({
     name: 'clone',
     description:
-      'A copy of what a level line built (a box, a zone, a lamp, a watcher), moved by x y z (stage 3j): `clone crate 1 0 0`. The copy has no name.',
+      'A copy of what a level line built (a box, a zone, a lamp, a watcher, a route), moved by x y z (stage 3j): `clone crate 1 0 0`. The copy has no name (a route, the next free one after its own).',
     args: [
       { name: 'entity', type: { kind: 'text' } },
       { name: 'by', type: { kind: 'vector' }, optional: true },
@@ -154,7 +162,14 @@ export function declareBuilding(registry: Registry<World>, cartridge?: Cartridge
     },
     onWorld: (world, [which, by]) => {
       const e = entityNamed(world, String(which));
-      if (e?.source) buildPiece(world, moved(e.source, (by as Vec3 | undefined) ?? [0, 0, 0]));
+      if (!e?.source) return;
+      const copy = moved(e.source, (by as Vec3 | undefined) ?? [0, 0, 0]);
+      if ('route' in copy) {
+        let k = 2;
+        while (world.named(`${copy.route.name}_${k}`)) k++;
+        copy.route.name = `${copy.route.name}_${k}`;
+      }
+      buildPiece(world, copy);
     },
   });
   registry.declareCommand({
@@ -293,8 +308,8 @@ export function setField(world: World, which: string, field: string, words: stri
 /** The level item an entity was built from, if any. */
 function itemOf(e: Entity) {
   const s = e.source;
-  // (A map's floor, stage 4a, has no item of its own to change: it is written back as its map.)
-  if (!s || 'map' in s) return null;
+  // (A map's floor, stage 4a, has no item of its own to change: it is written back as its map; nor a route, stage 4d.)
+  if (!s || 'map' in s || 'route' in s) return null;
   return 'box' in s ? s.box : 'sensor' in s ? s.sensor : 'lamp' in s ? s.lamp : s.watcher;
 }
 

@@ -1,7 +1,7 @@
 import { quat, sinCosDegrees, vec3, type Quat, type Vec3 } from '@manifold/common';
 import { MATERIAL_NAME, MATERIALS, materialProblem, type Material } from './materials';
 import { FLOOR_THICKNESS, mapParts, type LevelMap } from './map';
-import type { CollisionGroups, Components, SignalOp } from './types';
+import { AFFORDANCES, type Affordance, type CollisionGroups, type Components, type SignalOp } from './types';
 import { copyData, ENTITY_NAME, type World } from './world';
 
 /**
@@ -74,11 +74,18 @@ import { copyData, ENTITY_NAME, type World } from './world';
  *   box 1 0.2 5  0.2 0.2 0.2  dynamic  material wood    a crate of 45 kg (wood's density, its size):
  *                                             it falls, it is pushed, it can be grabbed
  *
+ * Format 8 (stage 4d, decision 0024) adds routes, and what things are for:
+ *
+ *   route rounds loop  0 0 4  4 0 4  4 0 -4     a route: its name, round or not (`loop`: there and back
+ *                                             without it), its points (x y z), two or more
+ *   box 2 0.5 0  1 0.5 0.2  affords cover     what a thing is for, on any line: cover, throw, kick,
+ *                                             weak (a weak point): words the brains read
+ *
  * The turns are written in degrees, as a person thinks them, and become quaternions with our own sine
  * and cosine (`quat.fromDegrees`): the browser's would give other bits in another browser, and the
  * world must be born the same everywhere.
  */
-export const LEVEL_FORMAT = 7;
+export const LEVEL_FORMAT = 8;
 const HEADER = '# Manifold level';
 
 /** A turn around one of the axes, as it is written. */
@@ -117,6 +124,8 @@ export interface LevelBox {
   door: { hinge: Vec3; turn: Turn; seconds: number; signal: string } | null;
   /** A lift (format 3): its way, how long, and its signal. */
   lift: { by: Vec3; seconds: number; signal: string } | null;
+  /** What it is for (format 8): cover, throw, kick, weak; only if it says (so a line without it is what it was). */
+  affords?: Affordance[];
 }
 
 /** A lamp (format 4): where, how far it reaches, how bright at its center, the signal it follows. */
@@ -129,6 +138,8 @@ export interface LevelLamp {
   /** The energy of a hit that breaks it (format 5), if it breaks; and a model it is drawn with. */
   breaks: number | null;
   model: string | null;
+  /** What it is for (format 8), if it says. */
+  affords?: Affordance[];
 }
 
 /** A watcher (format 4): where, turned how, how far it sees, its field of view, how lit things must look. */
@@ -139,6 +150,15 @@ export interface LevelWatcher {
   range: number;
   degrees: number;
   threshold: number;
+  /** What it is for (format 8), if it says. */
+  affords?: Affordance[];
+}
+
+/** A route (format 8): its name, its points, and whether it goes round. */
+export interface LevelRoute {
+  name: string;
+  loop: boolean;
+  points: Vec3[];
 }
 
 /** A signal (format 3): its name, what it is, and what it reads. */
@@ -157,6 +177,8 @@ export interface LevelSensor {
   turn: Turn | null;
   /** What it carries besides its kind (format 2), in the order written: each word with its numbers. */
   params: Record<string, number[]>;
+  /** What it is for (format 8), if it says. */
+  affords?: Affordance[];
 }
 
 export interface Level {
@@ -175,6 +197,8 @@ export interface Level {
   ambient: number | null;
   lamps: LevelLamp[];
   watchers: LevelWatcher[];
+  /** Its routes (format 8), in the order written. */
+  routes: LevelRoute[];
 }
 
 /**
@@ -221,6 +245,8 @@ const SINCE: Record<string, number> = {
   breaks: 5,
   dynamic: 6,
   map: 7,
+  route: 8,
+  affords: 8,
 };
 /** How many signals or zones each kind of signal reads (−1: one or more), as the world says. */
 const READS: Record<SignalOp, number> = { input: 0, zone: 1, used: 1, seen: 1, any: -1, all: -1, not: 1, toggle: 1, latch: 2 };
@@ -239,6 +265,7 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
     ambient: null,
     lamps: [],
     watchers: [],
+    routes: [],
   };
   const rows = text.split(/\r?\n/);
   /** A map being read (format 7): its rows come as they are written, until `end`. */
@@ -346,6 +373,17 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
       names.set(name, n);
       return name;
     };
+    /** What a thing is for (format 8): the words that come next, as many as are what things are for (one at least). */
+    const affordances = (): Affordance[] => {
+      const out: Affordance[] = [];
+      while (at < words.length && (AFFORDANCES as readonly string[]).includes(words[at]!)) {
+        const a = words[at++] as Affordance;
+        if (out.includes(a)) fail(n, `"${a}" twice in what it affords`);
+        out.push(a);
+      }
+      if (out.length === 0) fail(n, `"affords" needs what it is for (${AFFORDANCES.join(', ')})`);
+      return out;
+    };
     /** Collision groups, as their numbers (1 to 16), as bits. */
     const groupBits = (word: string): number => {
       const list = numbers();
@@ -375,6 +413,7 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
         model: null as string | null,
         breaks: null as number | null,
         dynamic: false,
+        affords: null as Affordance[] | null,
       };
       /** How long a mechanism takes, more than 0, and the signal it follows. */
       const timeAndSignal = () => {
@@ -424,6 +463,8 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
           box.breaks = energy();
         } else if (word === 'dynamic') {
           box.dynamic = true;
+        } else if (word === 'affords') {
+          box.affords = affordances();
         } else fail(n, `"${word}" is not understood here`);
       }
       // What the program moves, one way at a time: a platform that comes and goes, one that turns, or a
@@ -471,6 +512,7 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
         let name: string | null = null;
         let breaks: number | null = null;
         let model: string | null = null;
+        let affords: Affordance[] | null = null;
         const seen = new Set<string>();
         while (at < words.length) {
           const word = words[at++]!;
@@ -483,9 +525,10 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
           } else if (word === 'name') name = aName();
           else if (word === 'breaks') breaks = energy();
           else if (word === 'model') model = modelName();
-          else fail(n, `"${word}" is not understood here (signal, name, breaks, model)`);
+          else if (word === 'affords') affords = affordances();
+          else fail(n, `"${word}" is not understood here (signal, name, breaks, model, affords)`);
         }
-        level.lamps.push({ name, center, radius, intensity, signal, breaks, model });
+        level.lamps.push({ name, center, radius, intensity, signal, breaks, model, ...(affords ? { affords } : {}) });
         break;
       }
       case 'watcher': {
@@ -499,16 +542,19 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
         if (threshold < 0) fail(n, "a watcher's threshold is 0 or more");
         let turn: Turn | null = null;
         let name: string | null = null;
+        let affords: Affordance[] | null = null;
         const seen = new Set<string>();
         while (at < words.length) {
           const word = words[at++]!;
           if (seen.has(word)) fail(n, `"${word}" twice on one line`);
           seen.add(word);
+          since(word);
           if (word === 'rotate') turn = axisAndDegrees();
           else if (word === 'name') name = aName();
-          else fail(n, `"${word}" is not understood here (rotate, name)`);
+          else if (word === 'affords') affords = affordances();
+          else fail(n, `"${word}" is not understood here (rotate, name, affords)`);
         }
-        level.watchers.push({ name, center, turn, range, degrees, threshold });
+        level.watchers.push({ name, center, turn, range, degrees, threshold, ...(affords ? { affords } : {}) });
         break;
       }
       case 'material': {
@@ -556,6 +602,7 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
           spin: b.spin,
           door: b.door,
           lift: b.lift,
+          ...(b.affords ? { affords: b.affords } : {}),
         });
         break;
       }
@@ -599,6 +646,7 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
         const half = halves();
         let turn: Turn | null = null;
         let name: string | null = null;
+        let affords: Affordance[] | null = null;
         const params: Record<string, number[]> = {};
         const seen = new Set<string>();
         while (at < words.length) {
@@ -609,6 +657,9 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
           else if (word === 'name') {
             since(word);
             name = aName();
+          } else if (word === 'affords') {
+            since(word);
+            affords = affordances();
           } else {
             // Anything else is what the zone carries: a word and its numbers (format 2).
             if (!PARAMETER.test(word)) fail(n, `"${word}" is not understood here`);
@@ -633,7 +684,7 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
           for (const [param, count] of Object.entries(takes!))
             if (!params[param]) fail(n, `a ${what} needs its ${param} (${count === 1 ? '1 number' : `${count} numbers`})`);
         }
-        level.sensors.push({ name, kind: what!, center, half, turn, params });
+        level.sensors.push({ name, kind: what!, center, half, turn, params, ...(affords ? { affords } : {}) });
         break;
       }
       case 'map': {
@@ -657,8 +708,24 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
         drawing = { map: { origin, cell, height, legend, rows: [] }, line: n };
         break;
       }
+      case 'route': {
+        since(kind);
+        const name = aName();
+        const loop = words[at] === 'loop';
+        if (loop) at++;
+        const values = numbers();
+        if (values.length % 3 !== 0) fail(n, "a route's points are three numbers each (x y z)");
+        const points: Vec3[] = [];
+        for (let k = 0; k < values.length; k += 3) points.push([values[k]!, values[k + 1]!, values[k + 2]!]);
+        if (points.length < 2) fail(n, 'a route needs two points or more');
+        level.routes.push({ name, loop, points });
+        break;
+      }
       default:
-        fail(n, `"${kind}" is not understood (title, spawn, facing, ambient, material, box, map, sensor, lamp, watcher, signal)`);
+        fail(
+          n,
+          `"${kind}" is not understood (title, spawn, facing, ambient, material, box, map, sensor, lamp, watcher, signal, route)`,
+        );
     }
     if (at < words.length) fail(n, `"${words[at]}" is extra`);
   });
@@ -676,6 +743,7 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
 }
 
 const numbersText = (v: readonly number[]) => v.join(' ');
+const affordsText = (affords: readonly Affordance[] | undefined) => (affords?.length ? `  affords ${affords.join(' ')}` : '');
 const turnText = (turn: Turn | null) => (turn ? `  rotate ${turn.axis} ${turn.degrees}` : '');
 /** Bits as the groups' numbers (1 to 16). */
 const groupList = (bits: number) =>
@@ -700,12 +768,14 @@ export function levelToText(level: Level): string {
     (b.model ? `  model ${b.model}` : '') +
     (b.breaks !== null ? `  breaks ${b.breaks}` : '') +
     (b.dynamic ? '  dynamic' : '') +
+    affordsText(b.affords) +
     (b.name ? `  name ${b.name}` : '');
   const sensorText = (s: LevelSensor) =>
     `sensor ${s.kind}  ${numbersText(s.center)}  ${numbersText(s.half)}${turnText(s.turn)}` +
     Object.entries(s.params)
       .map(([k, v]) => `  ${k} ${numbersText(v)}`)
       .join('') +
+    affordsText(s.affords) +
     (s.name ? `  name ${s.name}` : '');
   return (
     [
@@ -733,14 +803,17 @@ export function levelToText(level: Level): string {
           (l.signal ? `  signal ${l.signal}` : '') +
           (l.breaks !== null ? `  breaks ${l.breaks}` : '') +
           (l.model ? `  model ${l.model}` : '') +
+          affordsText(l.affords) +
           (l.name ? `  name ${l.name}` : ''),
       ),
       ...level.watchers.map(
         (w) =>
           `watcher ${numbersText(w.center)}  ${w.range} ${w.degrees} ${w.threshold}${turnText(w.turn)}` +
+          affordsText(w.affords) +
           (w.name ? `  name ${w.name}` : ''),
       ),
       ...level.signals.map((g) => ['signal', g.name, ...(g.op === 'input' ? [] : [g.op, ...g.reads])].join(' ')),
+      ...level.routes.map((r) => `route ${r.name}${r.loop ? ' loop' : ''}  ${r.points.map(numbersText).join('  ')}`),
     ].join('\n') + '\n'
   );
 }
@@ -756,7 +829,9 @@ export type LevelPiece =
   | { lamp: LevelLamp }
   | { watcher: LevelWatcher }
   /** A map's floor (stage 4a), one body: written back as a map of floor alone (its walls and zones are their own lines). */
-  | { map: LevelMap };
+  | { map: LevelMap }
+  /** A route (stage 4d): an entity with its name and its points, and nothing else. */
+  | { route: LevelRoute };
 
 /** A map's color for its walls and its floor. */
 const MAP_WALL = 0x6f6a62;
@@ -824,11 +899,18 @@ export function buildLevel(world: World, level: Level) {
   for (const lamp of level.lamps) buildPiece(world, { lamp });
   for (const watcher of level.watchers) buildPiece(world, { watcher });
   for (const g of level.signals) world.addSignal(g.name, g.op, g.reads);
+  for (const route of level.routes) buildPiece(world, { route });
 }
 
 /** One piece of a level, in a world: the entity it makes, which keeps it (`source`). */
 export function buildPiece(world: World, piece: LevelPiece) {
   const source = copyPiece(piece);
+  if ('route' in piece) {
+    const r = piece.route;
+    return world.createEntity({ name: r.name, route: { points: r.points.map((p) => [...p] as Vec3), loop: r.loop }, source });
+  }
+  /** What the line says the thing is for (format 8), if it says. */
+  const affords = (list: readonly Affordance[] | undefined) => (list?.length ? { affords: [...list] } : {});
   if ('box' in piece) {
     const b = piece.box;
     const moves = b.move !== null || b.spin !== null || b.door !== null || b.lift !== null;
@@ -864,6 +946,7 @@ export function buildPiece(world: World, piece: LevelPiece) {
         : {}),
       ...(b.lift ? { mechanism: { signal: b.lift.signal, seconds: b.lift.seconds, lift: { by: [...b.lift.by] } } } : {}),
       ...(b.breaks !== null ? { breakable: { threshold: b.breaks } } : {}),
+      ...affords(b.affords),
       source,
     });
   }
@@ -886,6 +969,7 @@ export function buildPiece(world: World, piece: LevelPiece) {
             },
           }
         : {}),
+      ...affords(s.affords),
       source,
     });
   }
@@ -922,6 +1006,7 @@ export function buildPiece(world: World, piece: LevelPiece) {
       ...(l.breaks !== null
         ? { body: { type: 'fixed' as const, shape: { kind: 'ball' as const, radius: 0.15 } }, breakable: { threshold: l.breaks } }
         : {}),
+      ...affords(l.affords),
       source,
     });
   }
@@ -932,6 +1017,7 @@ export function buildPiece(world: World, piece: LevelPiece) {
     // Half its field of view's cosine, with our own (the same bits everywhere).
     watcher: { range: w.range, cone: sinCosDegrees(w.degrees / 2)[1], threshold: w.threshold },
     appearance: { shape: 'capsule', size: [0.5, 0.8, 0.5], color: WATCHER_COLOR },
+    ...affords(w.affords),
     source,
   });
 }
