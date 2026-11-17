@@ -35,33 +35,20 @@ const SURFACES: Record<string, { noise: number; q: number; ring?: [frequencies: 
  * key or a click: until then nothing is made. (For the browser tests: how many it made, and the last.)
  */
 export function mountAudio(page: GamePage): Piece {
+  // The page's mixer (stage 5b): its context, made on the first key or click, and the sounds' channel.
   let context: AudioContext | null = null;
   let master: GainNode | null = null;
   let noise: AudioBuffer | null = null;
-  let volume = Number(AUDIO_VARIABLES.volume.default);
   let made = 0;
-  page.registry.declareVariable({
-    ...AUDIO_VARIABLES.volume,
-    onChange: (v) => {
-      volume = Number(v);
-      if (master) master.gain.value = volume;
-    },
-  });
-  /** On the first key or click: the context (the browser lets it run only after one). */
-  const start = () => {
-    if (context) return void context.resume();
-    const Context = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!Context) return;
-    context = new Context();
-    master = context.createGain();
-    master.gain.value = volume;
-    master.connect(context.destination);
-    noise = context.createBuffer(1, context.sampleRate, context.sampleRate);
+  page.mixer.volume('sounds', Number(AUDIO_VARIABLES.volume.default));
+  page.registry.declareVariable({ ...AUDIO_VARIABLES.volume, onChange: (v) => page.mixer.volume('sounds', Number(v)) });
+  page.mixer.onStart((c) => {
+    context = c;
+    master = page.mixer.channel('sounds');
+    noise = c.createBuffer(1, c.sampleRate, c.sampleRate);
     const data = noise.getChannelData(0);
     for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
-  };
-  window.addEventListener('keydown', start);
-  window.addEventListener('pointerdown', start);
+  });
 
   /** A burst of noise through a band, with a quick envelope. */
   const burst = (out: AudioNode, at: number, frequency: number, q: number, gain: number, seconds: number) => {
@@ -152,7 +139,7 @@ export function mountAudio(page: GamePage): Piece {
 
   return {
     event(ev) {
-      if (ev.type !== 'sound' || !context || !master || context.state !== 'running' || volume === 0) return;
+      if (ev.type !== 'sound' || !context || !master || context.state !== 'running' || master.gain.value === 0) return;
       // Heard from the camera: what the player sees is what it hears.
       const camera = page.stage.camera;
       const listener = camera.position;
@@ -172,11 +159,6 @@ export function mountAudio(page: GamePage): Piece {
       };
       const pan = d > 1e-6 ? Math.max(-1, Math.min(1, (dx * right.x + dy * right.y + dz * right.z) / d)) : 0;
       make(ev, loudness, pan * 0.8);
-    },
-    stop() {
-      window.removeEventListener('keydown', start);
-      window.removeEventListener('pointerdown', start);
-      void context?.close();
     },
   };
 }

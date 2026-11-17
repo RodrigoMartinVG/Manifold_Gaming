@@ -18,6 +18,8 @@ export interface Setting {
  */
 export const SETTINGS: readonly Setting[] = [
   { name: 'view.volume', say: 'settings.volume', control: { kind: 'range', min: 0, max: 1, step: 0.05 } },
+  // (Stage 5b: shown where a game plays music.)
+  { name: 'view.music', say: 'settings.music', control: { kind: 'range', min: 0, max: 1, step: 0.05 } },
   { name: 'view.mouse', say: 'settings.mouse', control: { kind: 'range', min: 0.2, max: 3, step: 0.1 } },
   { name: 'view.stick', say: 'settings.stick', control: { kind: 'range', min: 0.2, max: 3, step: 0.1 } },
   { name: 'view.invert', say: 'settings.invert', control: { kind: 'toggle' } },

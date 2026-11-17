@@ -1,0 +1,55 @@
+# Manifold level 10
+# The tower's first floor (stage 5b): a floor to prove the games' shell, not one of the tower's own (5d
+# builds those by the gym's measures). Up a stair onto platforms a meter up, across a gap of 5 m (the
+# far side 6 m deep), up two stairs to the goal 3 m up; a star on two platforms stacked 2 m high in the
+# gap's side. Later in the evening, a lamp lit over the goal.
+title The first floor
+spawn 0 1 6
+facing 0 0 -1
+ambient 0.7
+sky 19.25
+
+kit floor_4  -4 0 6
+kit floor_4  0 0 6
+kit floor_4  4 0 6
+kit floor_4  -4 0 2
+kit floor_4  0 0 2
+kit floor_4  4 0 2
+kit floor_4  -4 0 -2
+kit floor_4  0 0 -2
+kit floor_4  4 0 -2
+kit floor_4  -4 0 -6
+kit floor_4  0 0 -6
+kit floor_4  4 0 -6
+kit floor_4  -4 0 -10
+kit floor_4  0 0 -10
+kit floor_4  4 0 -10
+kit floor_4  -4 0 -14
+kit floor_4  0 0 -14
+kit floor_4  4 0 -14
+kit floor_4  -4 0 -18
+kit floor_4  0 0 -18
+kit floor_4  4 0 -18
+kit floor_4  -4 0 -22
+kit floor_4  0 0 -22
+kit floor_4  4 0 -22
+
+kit stairs_1    0 0 0
+kit platform_2  0 0 -2
+kit platform_2  0 0 -4
+kit platform_2  0 0 -11
+kit platform_2  0 0 -13
+kit platform_2  0 0 -15
+kit stairs_1    0 1 -17
+kit platform_2  0 1 -19
+kit stairs_1    0 2 -21
+kit platform_2  0 2 -23
+kit platform_2  4 0 -8
+kit platform_2  4 1 -8
+
+lamp 0 5.5 -23  7 1
+
+sensor checkpoint  0 1.8 -13    1 0.8 3
+sensor goal        0 3.8 -23    1 0.8 1
+sensor star        4 2.8 -8     0.6 0.8 0.6
+sensor fall        0 -6 0       60 3 60

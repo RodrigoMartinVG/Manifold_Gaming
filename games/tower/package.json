@@ -1,0 +1,22 @@
+{
+  "name": "@manifold/tower",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The tower (decision 0029): the platformer, climbed at dusk before night falls. Stage 5b starts it on the games' shell, with rules of its own for now (a goal, checkpoints, stars, falls) and two floors to prove the shell; 5c gives it its controller and 5d its floors.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./game": "./src/game.ts"
+  },
+  "dependencies": {
+    "@manifold/character": "0.0.0",
+    "@manifold/common": "0.0.0",
+    "@manifold/core": "0.0.0",
+    "@manifold/kit": "0.0.0",
+    "@manifold/presentation": "0.0.0",
+    "@manifold/shell": "0.0.0"
+  },
+  "scripts": {
+    "check": "tsc -p tsconfig.json"
+  }
+}

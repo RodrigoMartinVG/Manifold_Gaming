@@ -1,0 +1,51 @@
+# Manifold level 10
+# The tower's entrance (stage 5b): a floor to prove the games' shell, not one of the tower's own (5d
+# builds those by the gym's measures). Up a stair onto platforms a meter up, across a gap of 3 m (a
+# walking jump carries 5.9 m: the far side is 6 m deep), up a stair to the goal 2 m up; a star on two
+# blocks 2 m high beside the gap, jumped onto from the ground (2.2 m at most: the gym).
+title The entrance
+spawn 0 1 6
+facing 0 0 -1
+sky 18.75
+
+kit floor_4  -4 0 6
+kit floor_4  0 0 6
+kit floor_4  4 0 6
+kit floor_4  -4 0 2
+kit floor_4  0 0 2
+kit floor_4  4 0 2
+kit floor_4  -4 0 -2
+kit floor_4  0 0 -2
+kit floor_4  4 0 -2
+kit floor_4  -4 0 -6
+kit floor_4  0 0 -6
+kit floor_4  4 0 -6
+kit floor_4  -4 0 -10
+kit floor_4  0 0 -10
+kit floor_4  4 0 -10
+kit floor_4  -4 0 -14
+kit floor_4  0 0 -14
+kit floor_4  4 0 -14
+kit floor_4  -4 0 -18
+kit floor_4  0 0 -18
+kit floor_4  4 0 -18
+kit floor_4  -4 0 -22
+kit floor_4  0 0 -22
+kit floor_4  4 0 -22
+
+kit stairs_1    0 0 0
+kit platform_2  0 0 -2
+kit platform_2  0 0 -4
+kit platform_2  0 0 -10
+kit platform_2  0 0 -12
+kit platform_2  0 0 -14
+kit stairs_1    0 1 -16
+kit platform_2  0 1 -18
+kit platform_2  0 1 -20
+kit block_1     3 0 -7
+kit block_1     3 1 -7
+
+sensor checkpoint  0 1.8 -3     1 0.8 2
+sensor goal        0 2.8 -19.5  1 0.8 1
+sensor star        3 2.8 -7     0.5 0.8 0.5
+sensor fall        0 -6 0       60 3 60

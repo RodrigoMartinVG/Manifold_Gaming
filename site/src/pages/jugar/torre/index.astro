@@ -1,0 +1,25 @@
+---
+/**
+ * THE TOWER'S PAGE (stage 5b: its start, on the games' shell): the title, two floors to prove the
+ * shell, what each one took kept in this browser, the thread's lines and the credits. 5c gives it its
+ * controller and 5d its floors. (The texts are the site's, in Spanish.)
+ */
+import GameFrame from '../../../components/GameFrame.astro';
+
+const play = `${import.meta.env.BASE_URL.replace(/\/?$/, '/')}jugar/`;
+---
+
+<GameFrame title="La torre · Manifold Gaming" back={{ href: play, label: '← Salir de la torre' }} hintKey="mg-tower-hint-seen">
+  <span slot="hint">
+    <kbd>W</kbd>
+    <kbd>A</kbd>
+    <kbd>S</kbd>
+    <kbd>D</kbd> o las flechas para caminar, <kbd>Espacio</kbd> para saltar, <kbd>Shift</kbd> para correr. Subí hasta la meta de cada piso. <kbd>Esc</kbd> o <kbd>P</kbd>: pausa y ajustes.
+  </span>
+  <script>
+    import { startTower } from '@manifold/tower';
+    await startTower(document.getElementById('game')!);
+    window.dispatchEvent(new Event('mg-game-ready'));
+    window.addEventListener('hashchange', () => location.reload());
+  </script>
+</GameFrame>

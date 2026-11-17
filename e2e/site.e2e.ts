@@ -1101,6 +1101,66 @@ test('a level without a sky keeps the flat background of before', async ({ page 
   await expect(page.locator('#game')).toHaveAttribute('data-sky', 'none');
 });
 
+// ---------------------------------------------------------------- the games' shell (stage 5b)
+
+/** A floor of the tower (5b's), played with the keys: on forward, a jump at the gap's edge, on to the goal and its panel. */
+async function climbFloor(page: Page) {
+  const z = async () => (await position(page, 'player'))[2] ?? 99;
+  await page.keyboard.down('KeyW');
+  // (Bounds on how long to wait for the world, not measures: drawing on the CPU with a sky, it may go at a
+  // tenth of its speed.)
+  await expect.poll(z, { timeout: 90_000, intervals: [20] }).toBeLessThan(-4.6);
+  await page.keyboard.press('Space');
+  await expect(page.locator('#game')).toHaveAttribute('data-dialog', /: listo$/, { timeout: 90_000 });
+  await page.keyboard.up('KeyW');
+}
+
+test('the tower on the games’ shell: its title, its lines, a floor done and kept; the page again, on from there to the end and its credits', async ({
+  page,
+}) => {
+  test.setTimeout(300_000);
+  const list = errors(page);
+  const game = page.locator('#game');
+  await page.goto('jugar/torre/');
+  await expect(game).toHaveAttribute('data-dialog', 'La torre', { timeout: 20_000 });
+  await expect(game).toHaveAttribute('data-sky', '18.75');
+  // Its credits, from the asset lists of what it draws, and the engine's.
+  await page.getByRole('button', { name: 'Créditos' }).click();
+  await expect(page.locator('.mg-panel')).toContainText('kit.glb: lo hace un guion de este proyecto, art/kit.py');
+  await expect(page.locator('.mg-panel')).toContainText('La física: Rapier (licencia Apache-2.0)');
+  await page.getByRole('button', { name: 'Volver' }).click();
+  // From the beginning: the thread's two lines, and the first floor.
+  await page.getByRole('button', { name: 'Jugar', exact: true }).click();
+  await expect(game).toHaveAttribute('data-dialog', 'La guardiana');
+  await page.getByRole('button', { name: 'Seguir' }).click();
+  await page.getByRole('button', { name: 'Seguir' }).click();
+  await expect(game).toHaveAttribute('data-level', 'floor-1');
+  await expect.poll(async () => (await position(page, 'player'))[2]).toBe(6);
+  await climbFloor(page);
+  await expect(page.locator('.mg-panel')).toContainText('Caídas: 0');
+  const kept = JSON.parse((await game.getAttribute('data-progress'))!);
+  expect(kept).toMatchObject({ version: 1, started: true, reached: 1, best: { 'floor-1': { falls: 0 } } });
+  // The page again: on from where it was.
+  await page.reload();
+  await expect(game).toHaveAttribute('data-dialog', 'La torre', { timeout: 20_000 });
+  await page.getByRole('button', { name: 'Seguir: El primer piso' }).click();
+  await expect(game).toHaveAttribute('data-level', 'floor-2');
+  await expect(game).toHaveAttribute('data-sky', '19.25');
+  await expect.poll(async () => (await position(page, 'player'))[2]).toBe(6);
+  await climbFloor(page);
+  // The last: the thread's last lines, the credits, and the title again, all of it done.
+  await page.getByRole('button', { name: 'Seguir' }).click();
+  await expect(game).toHaveAttribute('data-dialog', 'La guardiana');
+  await page.getByRole('button', { name: 'Seguir' }).click();
+  await page.getByRole('button', { name: 'Seguir' }).click();
+  await expect(game).toHaveAttribute('data-dialog', 'Créditos');
+  await page.getByRole('button', { name: 'Volver' }).click();
+  await expect(game).toHaveAttribute('data-dialog', 'La torre');
+  await expect(page.getByRole('button', { name: 'Jugar', exact: true })).toBeVisible();
+  expect(JSON.parse((await game.getAttribute('data-progress'))!).reached).toBe(2);
+  expect(list).toEqual([]);
+});
+
 // ---------------------------------------------------------------- on a phone (decision 0028)
 
 test.describe('on a phone', () => {

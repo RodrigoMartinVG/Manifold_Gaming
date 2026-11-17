@@ -9,17 +9,16 @@ const DOME = 150;
  * THE SKY'S DOME (stage 5a): a sphere round the camera, painted from inside by `skyAt`'s look. Up, from
  * the horizon's color to the zenith's (quickly near the horizon, as a real sky); down, the ground's; the
  * sun's glow round it and its disc, the moon's, and the stars, each a cell of a grid of directions that
- * a hash lights or not (they stay where they are as the camera turns). Drawn first, and nothing is
- * hidden behind it.
+ * a hash lights or not (they stay where they are as the camera turns).
+ *
+ * As cheap as it can be (stage 5b: on the CPU's WebGL, the browser tests', the first one, worked out
+ * pixel by pixel and drawn under everything, about halved the frames a second). What changes slowly
+ * across the sky is worked out at the dome's corners (64 × 48) and blended between them; a pixel does
+ * only what is sharp, and only where it can be: near the sun, near the moon, the stars at night. And
+ * it is drawn after everything solid, at the far plane: the depth test leaves out every pixel
+ * something already covers.
  */
 const SKY_VERTEX = /* glsl */ `
-  varying vec3 vDirection;
-  void main() {
-    vDirection = position;
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-  }
-`;
-const SKY_FRAGMENT = /* glsl */ `
   uniform vec3 zenith;
   uniform vec3 horizon;
   uniform vec3 ground;
@@ -27,9 +26,41 @@ const SKY_FRAGMENT = /* glsl */ `
   uniform vec3 sun;
   uniform vec3 moon;
   uniform float sunGlow;
+  varying vec3 vDirection;
+  varying vec3 vColor;
+  varying float vSun;
+  varying float vMoon;
+  void main() {
+    vec3 d = normalize(position);
+    vDirection = position;
+    // What changes slowly across the sky, worked out at the dome's corners: from the horizon's color to
+    // the zenith's (quickly near the horizon), the ground's under it with a soft edge, and the sun's
+    // wide glow. And how near each corner is to the sun and the moon, for the pixels to know whether
+    // there is more to do.
+    float up = d.y;
+    vec3 color = mix(horizon, zenith, sqrt(clamp(up, 0.0, 1.0)));
+    float s = max(dot(d, sun), 0.0);
+    float s2 = s * s;
+    color += sunColor * 0.3 * s2 * s2 * s2 * sunGlow;
+    vColor = mix(color, ground, smoothstep(0.0, -0.06, up));
+    vSun = dot(d, sun);
+    vMoon = dot(d, moon);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    // At the far plane: behind whatever is drawn.
+    gl_Position.z = gl_Position.w;
+  }
+`;
+const SKY_FRAGMENT = /* glsl */ `
+  uniform vec3 sunColor;
+  uniform vec3 sun;
+  uniform vec3 moon;
+  uniform float sunGlow;
   uniform float moonGlow;
   uniform float stars;
   varying vec3 vDirection;
+  varying vec3 vColor;
+  varying float vSun;
+  varying float vMoon;
   // A hash of a point (Dave Hoskins's "hash13", without a sine: the same on every GPU's precision).
   float hash(vec3 p) {
     p = fract(p * vec3(0.1031, 0.1030, 0.0973));
@@ -37,30 +68,39 @@ const SKY_FRAGMENT = /* glsl */ `
     return fract((p.x + p.y) * p.z);
   }
   void main() {
-    vec3 d = normalize(vDirection);
-    float up = d.y;
-    vec3 color = mix(horizon, zenith, sqrt(clamp(up, 0.0, 1.0)));
-    // The sun's glow, wide and then tight round it; its disc, 2.4° across (the real one is half a degree: larger, to be seen).
-    float s = max(dot(d, sun), 0.0);
-    color += sunColor * (0.3 * pow(s, 6.0) + 0.6 * pow(s, 90.0)) * sunGlow;
-    color = mix(color, sunColor * 1.5 + 0.2, smoothstep(0.99974, 0.99982, s) * sunGlow);
-    // The moon: a pale disc 2° across and a faint halo, as it clears the horizon.
-    float m = max(dot(d, moon), 0.0);
-    color += vec3(0.6, 0.66, 0.8) * 0.12 * pow(m, 60.0) * moonGlow;
-    color = mix(color, vec3(0.86, 0.88, 0.94), smoothstep(0.99981, 0.99988, m) * moonGlow);
-    // The stars: a few cells of a grid of directions, each its own brightness, fainter near the horizon.
-    if (stars > 0.0 && up > 0.0) {
+    vec3 color = vColor;
+    // Near the sun: its tight glow and its disc, 2.4° across (the real one is half a degree: larger, to
+    // be seen). Powers as products: a power is a logarithm and an exponential.
+    if (sunGlow > 0.0 && vSun > 0.92) {
+      float s = max(dot(normalize(vDirection), sun), 0.0);
+      float s2 = s * s;
+      float s6 = s2 * s2 * s2;
+      float s12 = s6 * s6;
+      float s24 = s12 * s12;
+      color += sunColor * 0.6 * s24 * s24 * s24 * s12 * s6 * sunGlow;
+      color = mix(color, sunColor * 1.5 + 0.2, smoothstep(0.99974, 0.99982, s) * sunGlow);
+    }
+    // Near the moon: a pale disc 2° across and a faint halo, as it clears the horizon.
+    if (moonGlow > 0.0 && vMoon > 0.92) {
+      float m = dot(normalize(vDirection), moon);
+      float m2 = m * m;
+      float m6 = m2 * m2 * m2;
+      float m12 = m6 * m6;
+      color += vec3(0.6, 0.66, 0.8) * 0.12 * m12 * m12 * m12 * m12 * m12 * moonGlow;
+      color = mix(color, vec3(0.86, 0.88, 0.94), smoothstep(0.99981, 0.99988, m) * moonGlow);
+    }
+    // At night, the stars: a few cells of a grid of directions, each its own brightness, fainter near the horizon.
+    if (stars > 0.0 && vDirection.y > 0.0) {
+      vec3 d = normalize(vDirection);
       vec3 p = d * 170.0;
       vec3 cell = floor(p);
       float h = hash(cell);
       if (h > 0.986) {
         vec3 at = cell + 0.5 + (vec3(hash(cell + 1.7), hash(cell + 3.1), hash(cell + 5.3)) - 0.5) * 0.6;
         float b = smoothstep(0.4, 0.0, length(p - at)) * (0.35 + 0.65 * (h - 0.986) / 0.014);
-        color += vec3(0.9, 0.92, 1.0) * b * stars * smoothstep(0.0, 0.2, up);
+        color += vec3(0.9, 0.92, 1.0) * b * stars * smoothstep(0.0, 0.2, d.y);
       }
     }
-    // Under the horizon, the ground's color, with a soft edge.
-    color = mix(color, ground, smoothstep(0.0, -0.06, up));
     // A dither of half a step: an 8-bit gradient this smooth would show bands.
     color += (hash(vec3(gl_FragCoord.xy, 7.0)) - 0.5) / 255.0;
     gl_FragColor = vec4(color, 1.0);
@@ -106,19 +146,19 @@ export function createStage(container: HTMLElement): Stage {
     stars: { value: 0 },
   };
   const dome = new THREE.Mesh(
-    new THREE.SphereGeometry(DOME, 48, 24),
+    new THREE.SphereGeometry(DOME, 64, 48),
     new THREE.ShaderMaterial({
       uniforms,
       vertexShader: SKY_VERTEX,
       fragmentShader: SKY_FRAGMENT,
       side: THREE.BackSide,
       depthWrite: false,
-      depthTest: false,
     }),
   );
   dome.name = 'sky';
   dome.frustumCulled = false;
-  dome.renderOrder = -1;
+  // After everything solid (before what is see-through, which shows the sky behind it).
+  dome.renderOrder = 1000;
   dome.visible = false;
   scene.add(dome);
 

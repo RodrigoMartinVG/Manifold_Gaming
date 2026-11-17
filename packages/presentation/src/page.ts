@@ -3,6 +3,7 @@ import type { Registry } from '@manifold/commands';
 import type { Cartridge, Entity, Event, Session, World } from '@manifold/core';
 import type { Match } from '@manifold/net';
 import type { GameConsole } from './console';
+import type { Mixer } from './mixer';
 import type { Language, Say } from './words';
 
 /**
@@ -16,6 +17,8 @@ export interface GamePage {
   /** The element it is mounted in (positioned: the overlays are drawn on top, inside it). */
   readonly container: HTMLElement;
   readonly stage: Stage;
+  /** What is heard goes through it (stage 5b): the sounds' channel and the music's. */
+  readonly mixer: Mixer;
   /** The console, if the game mounts one. */
   readonly console: GameConsole | null;
   /** The session being drawn (it changes on restart, a snapshot load, a replay, a join). */

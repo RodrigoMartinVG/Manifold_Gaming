@@ -18,6 +18,7 @@ import { mountReplays } from './replays';
 import { createStage } from './stage';
 import { mountStats } from './stats';
 import { mountAudio } from './audio';
+import { createMixer } from './mixer';
 import { mountDebris } from './debris';
 import { mountLights } from './lights';
 import { mountSignals } from './signals';
@@ -123,6 +124,7 @@ export interface Mount {
 export function mount(cartridge: Cartridge, container: HTMLElement, o: MountOptions = {}): Mount {
   const registry = registryFor(cartridge);
   const stage = createStage(container);
+  const mixer = createMixer();
   const pieces: Piece[] = [];
   let gameConsole: GameConsole | null = null;
   const say = (text: string, level: 'info' | 'warn' | 'error' = 'info') =>
@@ -167,6 +169,7 @@ export function mount(cartridge: Cartridge, container: HTMLElement, o: MountOpti
     registry,
     container,
     stage,
+    mixer,
     get console() {
       return gameConsole;
     },
@@ -321,6 +324,7 @@ export function mount(cartridge: Cartridge, container: HTMLElement, o: MountOpti
       gameConsole?.stop();
       playerControls.stop();
       for (const p of pieces) p.stop?.();
+      mixer.stop();
       match.stop();
       stage.stop();
     },

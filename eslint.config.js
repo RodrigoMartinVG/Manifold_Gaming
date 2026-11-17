@@ -217,6 +217,8 @@ export default defineConfig(
                 '!@manifold/kit',
                 '!@manifold/kit/*',
                 '!@manifold/bots',
+                // (The games' shell, stage 5b: what they share is the engine's.)
+                '!@manifold/shell',
               ],
               message: 'A game imports the engine, never another game (decision 0003).',
             },

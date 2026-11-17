@@ -1,0 +1,25 @@
+{
+  "name": "@manifold/shell",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The games' shell (stage 5b): what the three games share, so that each one is its rules, its levels and its words. A title, the way through its levels with what each one took kept in the browser, the thread's lines, the credits from where every file comes from, and its music.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./credits": "./src/credits.ts",
+    "./progress": "./src/progress.ts"
+  },
+  "dependencies": {
+    "@manifold/commands": "0.0.0",
+    "@manifold/common": "0.0.0",
+    "@manifold/core": "0.0.0",
+    "@manifold/presentation": "0.0.0"
+  },
+  "scripts": {
+    "check": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@manifold/character": "0.0.0",
+    "@manifold/kit": "0.0.0"
+  }
+}
