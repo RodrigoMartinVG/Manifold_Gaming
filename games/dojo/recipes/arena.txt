@@ -1,0 +1,10 @@
+# The arena: in first person, with bots
+# group: demos
+# Stage 4g, the second half of phase 4's demonstration. A square walled round, cover, a dart and a bolt
+# on their racks where you come in, and three guards with darts at the far end: bring all three down
+# (a guard down is back on its feet ten seconds later). In first person: a click takes the mouse, it
+# aims, the click shoots; the weapon is drawn with a field of view of its own, so it neither goes into
+# the walls nor stretches, and what is at the screen's center is what a shot hits.
+seed 33
+dojo.level arena
+view.camera first

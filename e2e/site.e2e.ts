@@ -1317,6 +1317,24 @@ test('the duel (stage 4f): a scene as you come in, the objective to do at the to
   expect(list).toEqual([]);
 });
 
+test('the arena (stage 4g): in first person, three guards with darts, the objective; a dart from its rack', async ({ page }) => {
+  test.setTimeout(120_000);
+  const list = errors(page);
+  await page.goto('jugar/dojo/arena/');
+  await expect.poll(async () => (await position(page, 'player')).length, { timeout: 15_000 }).toBe(3);
+  await expect(page.locator('.mg-objective')).toHaveText('Objetivo: derribá a los tres guardias');
+  await page.keyboard.press('Backquote');
+  await typeInConsole(page, 'view.camera');
+  const log = page.locator('.mg-console-log');
+  await expect(log).toContainText('first');
+  await typeInConsole(page, 'bots');
+  await expect(log).toContainText('guard_3 (entity');
+  await typeInConsole(page, 'dojo.goto -2 1 8.5');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.mg-hud')).toContainText('dardo');
+  expect(list).toEqual([]);
+});
+
 test('its hands on the tower (stage 4a): on its wall while it climbs, on its top before it gets over; show.ik draws them', async ({
   page,
 }) => {

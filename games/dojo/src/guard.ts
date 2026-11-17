@@ -1,7 +1,7 @@
 import { cellAt, findPath, inZone, navOf, type Step } from '@manifold/bots';
 import { vec3, type Vec3 } from '@manifold/common';
 import { CHARACTER_GAP, type Brain, type Entity, type Memory, type PlayerInput, type World } from '@manifold/core';
-import { weapon } from './rules';
+import { EYE, weapon } from './rules';
 
 /**
  * THE GUARD'S BRAIN (stage 4e, decision 0023): it runs where the match is hosted, once, and asks for
@@ -45,6 +45,9 @@ export interface GuardMemory extends Memory {
   /** When it last pressed `use`, and its stick's press (pressed one step, let go the next). */
   used: number;
   swing: boolean;
+  /** (Stage 4g) Since when it sees whoever it shoots at, and when it last shot. */
+  sighted: number;
+  shot: number;
 }
 
 /** How near a point it must be to have reached it (m, along the ground); within its stick's reach (m, to the other's center). */
@@ -52,6 +55,14 @@ const NEAR = 0.35;
 const REACH = 1.5;
 /** How long it listens, turned to a sound, before it goes to look (steps). */
 const LISTEN = 45;
+/**
+ * With a dart or a bolt (stage 4g): how far it shoots from (m; nearer than `CLOSE` it steps back), how
+ * long it takes to shoot once it sees someone (steps), and how often it shoots then (steps).
+ */
+const SHOOTS = 18;
+const CLOSE = 4;
+const REACT = 30;
+const SHOT_EVERY = 60;
 /** How long it chases whoever it no longer sees (steps), looks around where it went to look, and keeps a plan before planning again. */
 const LOSE = 180;
 const LOOK = 120;
@@ -95,6 +106,8 @@ export const guardBrain: Brain = (world, self, memory) => {
       arrived: -1,
       used: -1000,
       swing: false,
+      sighted: -1,
+      shot: -1000,
     } satisfies GuardMemory);
   const c = self.character!;
   if ((self.health?.down ?? -1) >= 0) {
@@ -120,11 +133,16 @@ export const guardBrain: Brain = (world, self, memory) => {
     if (mechanism && (working || vec3.length(vec3.sub(ev.at, center)) < 3)) continue;
     if (vec3.length(vec3.sub(ev.at, center)) <= ev.radius) m.heard = { at: ground(ev.at), tick: world.tick };
   }
+  // Hit (stage 4g): it knows where from, as if it had seen who did it.
+  for (const ev of world.stepEvents) {
+    const by = ev.type === 'hurt' && ev.target === self.id && ev.from !== null ? world.entities.get(ev.from) : undefined;
+    if (isPlayer(by)) m.seen = { id: by.id, at: [...feetOf(by)], tick: world.tick };
+  }
 
   // What it does about it.
   const route = self.brain?.route ? world.named(self.brain.route)?.route : undefined;
   const lost = m.seen === null || world.tick - m.seen.tick > LOSE;
-  if (target) m.mode = 'chase';
+  if (target || (m.seen && m.seen.tick === world.tick)) m.mode = 'chase';
   else if (m.mode === 'chase' && lost) m.mode = 'search';
   if (m.mode !== 'chase' && m.heard && m.heard.tick === world.tick) {
     m.mode = 'look';
@@ -135,6 +153,22 @@ export const guardBrain: Brain = (world, self, memory) => {
   else if (m.mode === 'search') m.goal = m.seen?.at ?? null;
   else m.goal = route ? route.points[m.waypoint % route.points.length]! : null;
 
+  // With a dart or a bolt (stage 4g), whoever it sees and is near enough it shoots at, standing (after a
+  // moment to see them), from its eyes, aiming at their middle; too near, it steps back as it shoots.
+  const kind = weapon(self)?.kind;
+  if (target && (kind === 'dart' || kind === 'bolt')) {
+    if (m.sighted < 0) m.sighted = world.tick;
+    const to = vec3.sub(target.transform!.position, [center[0], center[1] + EYE, center[2]]);
+    const along = Math.hypot(to[0], to[2]);
+    if (along <= SHOOTS) {
+      const face = toward(center, target.transform!.position);
+      const pitch = (Math.atan2(to[1], along) * 180) / Math.PI / 90;
+      const fire = world.tick - m.sighted >= REACT && world.tick - m.shot >= SHOT_EVERY;
+      if (fire) m.shot = world.tick;
+      const back: Vec3 = along < CLOSE ? [-face[0], 0, -face[2]] : [0, 0, 0];
+      return { face, pitch, move: back, ...(fire ? { 'dojo.attack': true } : {}) };
+    }
+  } else m.sighted = -1;
   // A sound just heard: it turns to it and listens a moment before it goes.
   if (m.mode === 'look' && m.heard && world.tick - m.heard.tick < LISTEN) return { face: toward(center, m.heard.at) };
   // Within reach of whoever it chases: it faces them and strikes (a press, then a release); while they

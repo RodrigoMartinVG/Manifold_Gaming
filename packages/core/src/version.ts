@@ -73,5 +73,7 @@
  *      lock-on that circles without drifting (`lock`); a blast that throws (`World.explode`, `thrown`);
  *      the story's pieces, objectives that chain and short scenes (a phase, `story`); the Dojo's stick
  *      strikes along its whole length, and its grenades
+ *  36  stage 4g: the Dojo's shots leave the eyes (where a first-person camera is); its guards may carry a
+ *      dart or a bolt (`gunner` zones) and are back on their feet ten seconds after they go down
  */
-export const SIMULATION_VERSION = 35;
+export const SIMULATION_VERSION = 36;

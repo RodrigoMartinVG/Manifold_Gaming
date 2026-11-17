@@ -292,6 +292,11 @@ describe('the reference replays of phase 4, growing with it', () => {
         'dojo.throw': s === 5,
       });
     let struckAfterTap = -1;
+    /** Five meters from the dummy, on its +X side, wherever it stands. */
+    const fiveFrom = (session: Session) => {
+      const [x, , z] = hero(session, 0)!.transform!.position;
+      return [`dojo.goto ${(x + 5).toFixed(2)} 1 ${z.toFixed(2)}`];
+    };
     const { session, seen } = run('seed 9\ndojo.level moves', [
       { steps: 30 },
       { steps: 90, drive: aimed(0.4) },
@@ -322,10 +327,11 @@ describe('the reference replays of phase 4, growing with it', () => {
       { lines: ['dojo.goto -5 1 2'], steps: 600, drive: (s) => ({ face: [-1, 0, 0], 'dojo.throw': s > 20 && s % 30 === 0 }) },
       // The weapons (stage 4c), each taken from its rack and used once on the dummy, back on its feet: a
       // dart from 5 m, at once; a bolt from there, that flies; the stick beside it.
+      // (From the eyes, stage 4g: 5 m from the dummy, wherever the balls left it, aimed down at its middle, 7°.)
       { lines: ['dojo.goto -6.5 1 8.2'], steps: 20 },
-      { lines: ['dojo.goto -3 1 2'], steps: 60, drive: (s) => ({ face: [-1, 0, 0], 'dojo.attack': s === 40 }) },
+      { lines: fiveFrom, steps: 60, drive: (s) => ({ face: [-1, 0, 0], pitch: -0.08, 'dojo.attack': s === 40 }) },
       { lines: ['dojo.goto -5 1 8.6'], steps: 20 },
-      { lines: ['dojo.goto -3 1 2'], steps: 60, drive: (s) => ({ face: [-1, 0, 0], 'dojo.attack': s === 40 }) },
+      { lines: fiveFrom, steps: 60, drive: (s) => ({ face: [-1, 0, 0], pitch: -0.08, 'dojo.attack': s === 40 }) },
       { lines: ['dojo.goto -3.5 1 8.2'], steps: 20 },
       // (The balls knocked the dummy back: beside it, a meter on its +X side, wherever it stands.)
       {

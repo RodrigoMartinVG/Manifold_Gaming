@@ -6,7 +6,14 @@ import type { Bodies } from './bodies';
 import type { PageMatch } from './match';
 import type { GamePage, Piece } from './page';
 
-export type CameraMode = 'follow' | 'chase' | 'aim' | 'free';
+export type CameraMode = 'follow' | 'chase' | 'aim' | 'first' | 'free';
+
+/** Where a character's eyes are above its center (stage 4g: its head's hit part, where a game's shots may leave). */
+export const EYES = 0.62;
+/** The field of view what it holds is drawn with, in first person (degrees), and where its right hand is, in the view (m). */
+const VIEW_FOV = 50;
+const VIEW_HOLD = new THREE.Vector3(0.17, -0.15, -0.42);
+const VIEW_BLOCK = new THREE.Vector3(0.16, -0.1, -0.42);
 
 export interface Rig extends Piece {
   /** How it goes with the character (`view.camera`). */
@@ -24,9 +31,9 @@ export const CAMERA_VARIABLES = {
   camera: {
     name: 'view.camera',
     description:
-      "With a character to drive: `follow` follows it as if on a leash: it keeps its distance, and turns little by little when the character goes to a side (dragging turns it around); `chase` goes back behind the character by itself (dragging looks around, and it comes back when you let go: for `controls.scheme tank`); `aim` takes the mouse with a click, the mouse turns the camera and the character looks where the camera looks, walking sideways without turning (a shooter's way; Esc lets the mouse go); `free` leaves the camera where it is. A gamepad's right stick turns it too.",
+      "With a character to drive: `follow` follows it as if on a leash: it keeps its distance, and turns little by little when the character goes to a side (dragging turns it around); `chase` goes back behind the character by itself (dragging looks around, and it comes back when you let go: for `controls.scheme tank`); `aim` takes the mouse with a click, the mouse turns the camera and the character looks where the camera looks, walking sideways without turning (a shooter's way; Esc lets the mouse go); `first` is `aim` from the character's own eyes (stage 4g): its body is not drawn, and what it holds is drawn with a field of view of its own; `free` leaves the camera where it is. A gamepad's right stick turns it too.",
     scope: 'view',
-    type: { kind: 'option', options: ['follow', 'chase', 'aim', 'free'] },
+    type: { kind: 'option', options: ['follow', 'chase', 'aim', 'first', 'free'] },
     default: 'follow',
   },
   // The player's settings (stage 3i): the menu shows them, and they are kept in the browser.
@@ -162,6 +169,22 @@ export function mountCamera(
    */
   const pulled = new THREE.Vector3();
   let cut = 0;
+  /** First person (stage 4g): how far the camera was put from the aim's place, to the eyes; and the body not drawn. */
+  const firstAway = new THREE.Vector3();
+  let shown: THREE.Object3D | undefined;
+  /** Whether the mouse turns it, taken with a click: aiming, from behind or from the eyes. */
+  const aiming = () => mode === 'aim' || mode === 'first';
+  // WHAT IT HOLDS, IN FIRST PERSON (stage 4g): a scene and a camera of its own, drawn over the world
+  // after it (the depth cleared): a field of view of its own, so it neither goes into a wall nor
+  // stretches when the world's is wide. Held low to the right, pointing where the camera looks.
+  const viewScene = new THREE.Scene();
+  viewScene.add(new THREE.AmbientLight(0xffffff, 0.8));
+  const viewLight = new THREE.DirectionalLight(0xffffff, 1.3);
+  viewLight.position.set(0.4, 1, 0.7);
+  viewScene.add(viewLight);
+  const viewCamera = new THREE.PerspectiveCamera(VIEW_FOV, 1, 0.01, 10);
+  const viewTool = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshLambertMaterial({ color: 0xffffff }));
+  viewScene.add(viewTool);
   /** Back where it wants to be: what moves it (a drag, the wheel, the leash) moves that, never the pull. */
   const unpull = () => {
     camera.position.sub(pulled);
@@ -233,7 +256,7 @@ export function mountCamera(
       if (after.apart > 0) dolly(before.apart / after.apart);
       pan(after.x - before.x, after.y - before.y);
     } else if (was.buttons & 2 || e.shiftKey) pan(dx, dy);
-    else if (mode !== 'aim') {
+    else if (!aiming()) {
       // Aiming, the mouse turns it, not a drag.
       orbit(dx * perPixel(), dy * perPixel());
       // What it keeps turning with when let go: how fast it was turning (smoothed over the last moves).
@@ -254,7 +277,7 @@ export function mountCamera(
   };
   const noMenu = (e: Event) => e.preventDefault();
   // Aiming, a click takes the mouse (instead of inspecting): from then on, it turns the camera.
-  const takesClick = () => mode === 'aim' && orbiting && page.player() !== undefined;
+  const takesClick = () => aiming() && orbiting && page.player() !== undefined;
   let down: { x: number; y: number } | null = null;
   const onClickDown = (e: PointerEvent) => (down = e.button === 0 ? { x: e.clientX, y: e.clientY } : null);
   const onClickUp = (e: PointerEvent) => {
@@ -278,7 +301,7 @@ export function mountCamera(
   // a button held or not (in a shooter, one aims while firing).
   function onAimMove(e: MouseEvent) {
     const turn = 0.0025 * settings.mouse;
-    if (mode === 'aim' && document.pointerLockElement === canvas)
+    if (aiming() && document.pointerLockElement === canvas)
       orbit(e.movementX * turn, e.movementY * turn * (settings.invert ? -1 : 1));
   }
 
@@ -314,7 +337,7 @@ export function mountCamera(
         cameraTurn = null;
         lookHeight = null;
         drift.x = drift.y = 0;
-        if (mode !== 'aim' && document.pointerLockElement === canvas) document.exitPointerLock();
+        if (!aiming() && document.pointerLockElement === canvas) document.exitPointerLock();
       },
     });
     page.registry.declareVariable({ ...CAMERA_VARIABLES.mouse, onChange: (v) => (settings.mouse = Number(v)) });
@@ -342,6 +365,41 @@ export function mountCamera(
       return [v.x, v.y, v.z];
     },
     turn: () => (cameraTurn ? [cameraTurn.x, cameraTurn.y, cameraTurn.z, cameraTurn.w] : null),
+    afterRender({ hero }) {
+      if (mode !== 'first' || !hero?.character) return;
+      const model = bodies.models.get(hero.id);
+      const pose = model?.holding.pose;
+      if (!model || !pose) {
+        if (model) model.holding.viewMuzzle = null;
+        return;
+      }
+      // Where it points in the view: ahead, raised by its lift, turned by a strike's sweep; blocking, across.
+      const blocking = hero.character.mode === 'block';
+      const deg = THREE.MathUtils.degToRad;
+      const way = blocking
+        ? new THREE.Vector3(-1, 0, 0)
+        : new THREE.Vector3(0, 0, -1)
+            .applyAxisAngle(new THREE.Vector3(1, 0, 0), deg(model.holding.lift))
+            .applyAxisAngle(new THREE.Vector3(0, 1, 0), -deg(model.holding.sweep));
+      const back = (blocking ? VIEW_BLOCK : VIEW_HOLD).clone().addScaledVector(way, -(pose.size[2] * 0.15));
+      viewTool.scale.set(...pose.size);
+      (viewTool.material as THREE.MeshLambertMaterial).color.setHex(pose.color);
+      viewTool.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), way);
+      viewTool.position.copy(back).addScaledVector(way, pose.size[2] / 2);
+      const size = renderer.getSize(new THREE.Vector2());
+      viewCamera.aspect = size.x / Math.max(1, size.y);
+      viewCamera.updateProjectionMatrix();
+      const auto = renderer.autoClear;
+      renderer.autoClear = false;
+      renderer.clearDepth();
+      renderer.render(viewScene, viewCamera);
+      renderer.autoClear = auto;
+      // Its tip, where it is drawn on the screen, as far from the eyes, in the world: a tracer starts there.
+      const tip = back.clone().addScaledVector(way, pose.size[2]);
+      const ndc = tip.clone().project(viewCamera);
+      const ray = new THREE.Vector3(ndc.x, ndc.y, 0.5).unproject(camera).sub(camera.position).normalize();
+      model.holding.viewMuzzle = camera.position.clone().addScaledVector(ray, tip.length());
+    },
     takesClick,
     welcome(_, m) {
       cameraTurn = null;
@@ -350,6 +408,8 @@ export function mountCamera(
     },
     frame({ now, dt, alpha, world, hero }) {
       if (!orbiting) return;
+      // (First person, stage 4g: back where the aim's camera was, behind the head, before it moves on.)
+      camera.position.sub(firstAway);
       // Where it wants to be, not where a wall brought it (stage 3h): the leash works from there.
       unpull();
       // A gamepad's right stick turns the camera (2.5 radians per second, pushed all the way).
@@ -375,7 +435,7 @@ export function mountCamera(
       if (mode !== 'free' && heroMesh && hero?.transform && hero.character) {
         const up = new THREE.Vector3(...upAt(world, hero.transform.position));
         const head = heroMesh.position.clone().addScaledVector(up, 0.6);
-        if (mode === 'aim') {
+        if (aiming()) {
           // Aiming, it moves as much as the head moved (the mouse turns it).
           const moved = head.sub(target);
           target.add(moved);
@@ -487,6 +547,23 @@ export function mountCamera(
         }
       } else cut = 0;
       camera.lookAt(target);
+      // FIRST PERSON (stage 4g): the aim's camera, but at the eyes, looking the same way (it works as the
+      // aim's behind the head, and is put at the eyes after: so turning it is the same). The body is not
+      // drawn (the camera would be inside its head).
+      const heroDrawn = hero ? bodies.meshes.get(hero.id) : undefined;
+      if (shown && shown !== heroDrawn) shown.visible = true;
+      shown = heroDrawn;
+      if (heroDrawn) heroDrawn.visible = mode !== 'first';
+      const heroModel = hero ? bodies.models.get(hero.id) : undefined;
+      if (heroModel) heroModel.holding.inView = mode === 'first';
+      if (mode === 'first' && heroDrawn && hero?.transform) {
+        const up = new THREE.Vector3(...upAt(world, hero.transform.position));
+        const eyes = heroDrawn.position.clone().addScaledVector(up, EYES);
+        const way = target.clone().sub(camera.position).normalize();
+        firstAway.copy(eyes).sub(camera.position);
+        camera.position.copy(eyes);
+        camera.lookAt(eyes.clone().add(way));
+      } else firstAway.set(0, 0, 0);
     },
     stop() {
       canvas.removeEventListener('pointerdown', onDown);

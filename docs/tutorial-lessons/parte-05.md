@@ -219,7 +219,7 @@ two parameters; the perturbations "15 fps", "frame spike of 250 ms" and "_h_ = 1
   keeps jumps from bouncing the view.
 - **Exercises:** (1) Chase's half-life at strength 4 (0,17 s). (2) The ω at which Euler explodes at 30 fps (60 rad/s).
   (3) Drop the character's exclusion and predict the cut (all of it).
-- **Our angle:** Manifold's camera lives in the presentation (follow, chase, aim, free), with a 25 cm sweep, 35 cm
+- **Our angle:** Manifold's camera lives in the presentation (follow, chase, aim, first, free), with a 25 cm sweep, 35 cm
   closest, and `pulled`/`unpull` so no leash or wheel learns a wall (a bug found by continuous integration). It asks
   the world, not Rapier, so a sweep will cross a glued seam in one place (10.7).
 - **From the archive (1-03, 3-07):** kept: rigid, leash, chase with the minimap, the 10 fps per-frame trap, the signed
@@ -379,8 +379,9 @@ two parameters; the perturbations "15 fps", "frame spike of 250 ms" and "_h_ = 1
 - **Exercises:** (1) Degrees of freedom of 5 planks hinged and pinned at both ends (set up the count). (2) The
   revolute joint's two extra rows. (3) A door motor that closes in 1 s without overshoot (_c_ = 2√(_kI_)).
 - **Our angle:** MF says no general engine uses reduced coordinates; Rapier has both, and the figure measures them.
-  Manifold todavía no lo tiene (its doors and lifts are kinematic, decision 0018); a ragdoll is 5.12's skeleton with
-  these joints.
+  Its doors and lifts are kinematic (decision 0018). En Manifold, a ragdoll is 5.12's skeleton with these joints: when
+  a character goes down, the view drops it as a capsule a bone joined by ball joints (`presentation/src/ragdoll.ts`, stage
+  4c), in a physics of the view's own.
 - **From the archive:** nothing; new.
 - **Sources:** MF §17.2.1, §20.2; G2 §14.4.8; [Rapier's guide](https://rapier.rs/docs/) (joints);
   [Catto](https://box2d.org/publications/).
@@ -502,7 +503,8 @@ two parameters; the perturbations "15 fps", "frame spike of 250 ms" and "_h_ = 1
   solver's answer. (3) Prove FABRIK keeps lengths.
 - **Our angle:** IK is view, so `acos` is allowed and the hash is untouched. Manifold has it since the tutorial's
   engine fixes: `feet.ts` places each foot where the mixed cycles put it, turning the leg by two-bone IK, only in the
-  view; phase 4 generalizes it (the roadmap's "Its procedural layers").
+  view; phase 4 generalizes it: one solver for feet and hands with soft reach and joint limits (`presentation/src/ik.ts`,
+  stage 4a), the hands on a wall or on what is held (`hands.ts`, `tools.ts`).
 - **Más a fondo, from the author's procedural animation drafts (2026-11-16, in the idea bank):** (1) why the knee
   snaps at full reach: from cos κ = (_L_₁² + _L_₂² − _d_²)/(2_L_₁_L_₂), dκ/d*d* = _d_/(_L_₁_L_₂ sin κ), which grows
   without bound as the leg straightens (κ → 180°); a **soft stretch** eases _d_ towards _L_₁ + _L_₂ beyond a fraction of

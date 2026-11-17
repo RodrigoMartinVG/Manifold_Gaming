@@ -112,8 +112,10 @@ preference for a variable step is a disagreement, said once in 7.13.
 - **Exercises:** (1) the open-list trace above; hint: write the table. (2) A negative-edge counterexample: S→A 2, S→B 3,
   B→A −2; Dijkstra fixes A at 2, the truth is 1. (3) Prove popped values never decrease.
 - **Our angle:** a priority queue with fixed ties (§6.1). Dijkstra returns twice: hearing through rooms (7.10) and the
-  search flood (7.11). In a perfect maze there is one path, which is why 3.17 adds loops: chases need choices. Manifold
-  todavía no lo tiene (phase 4's navigation is 🔒).
+  search flood (7.11). In a perfect maze there is one path, which is why 3.17 adds loops: chases need choices. En
+  Manifold (stage 4d): A\* over a grid of cells, its heuristic the distance along the ground at the walking speed, with
+  the height left out because a fall of more than 4 m is quicker than walking it (`bots/src/path.ts`); its binary heap
+  is this lesson's queue.
 - **Sources:** MA §4.1–4.2; [Red Blob Games, _Introduction to A\*_](https://www.redblobgames.com/pathfinding/a-star/introduction.html).
 - **Open:** whether 3.17's grid uses 4- or 8-connectivity (it fixes 7.3's heuristic menu).
 
@@ -178,7 +180,10 @@ preference for a variable step is a disagreement, said once in 7.13.
 - **Exercises:** (1) MA ex. 4.13: the edges-as-nodes graph of the example. (2) Prove the ORIENT2D criterion. (3) Why the
   doorway closes; hint: Minkowski.
 - **Our angle:** "se reduce a…" a point in an eroded floor (3.11). The mesh is data built at load from 6.3's format, in a
-  fixed order, so every copy agrees. Manifold todavía no lo tiene; its phase 4 has "which graph" as 🔒.
+  fixed order, so every copy agrees. "Dónde Manifold eligió otra cosa" (decision 0024): a grid sampled every half meter
+  from the world's own queries instead of a mesh (`bots/src/navigation.ts`): turned boxes, maps and boxes on boxes come
+  out right with no case for each; the path is pulled straight to hide the zigzag. Doors and lifts are edges that need a
+  signal, and the planner reads the signal's definition to find the button.
 - **Sources:** MA §4.4, §12.1; E §5.4.1, §12.2, §12.5; [Recast & Detour](https://github.com/recastnavigation/recastnavigation);
   [recast-navigation-js](https://github.com/isaac-mason/recast-navigation-js).
 - **Open:** that 6.3's format gives walkable floors and obstacles as boxes; arbitrary meshes need ear cutting in the main
@@ -268,8 +273,10 @@ preference for a variable step is a disagreement, said once in 7.13.
   plan's cost in the frame bar (3.13) against the step budget.
 - **Our angle:** the guard is a player without a keyboard: 2.15's ghost and 2.14's replays carry it unchanged. En los
   motores: where a bot's brain runs, in the simulation (small replays, but a changed brain breaks old ones) or as a player
-  whose commands are recorded (robust, larger). "Dónde Manifold eligió otra cosa": Manifold has not chosen; ROADMAP
-  phase 4.0 lists it as 🔒. The tutorial runs it in the simulation and says why (7.13).
+  whose commands are recorded (robust, larger). "Dónde Manifold eligió otra cosa" (decision 0023): a bot is a player, its
+  brain runs once where the match is hosted and its inputs enter the session (`core/src/bots.ts`, the server hosts it);
+  the tutorial runs it in the simulation and says why (7.13). The Dojo's guard patrols its route there and back
+  (`games/dojo/src/guard.ts`).
 - **Sources:** MA §14.1, §14.2.1; GPP ch. 2, ch. 14.
 - **Open:** the command record's name and fields as parts 2 and 5 fix them (problem 6).
 - **Para quien ya sabe** (curriculum §4.3): a mind emits a quantized direction, not a whole-degree heading, so it needs no `atan2`: README decision 3.
@@ -370,8 +377,9 @@ preference for a variable step is a disagreement, said once in 7.13.
   farther one hears it) and the same with our 1/_d_. (2) The example's numbers with the door shut at factor 0.5. (3) MA ex.
   11.2: draw a level for a given sense graph.
 - **Our angle:** "se reduce a" the shortest path (§6.6); deliveries ordered by (step, source id). "Dónde Manifold eligió
-  otra cosa": Manifold's sounds carry a straight hearing radius (`core/src/sound.ts`, for phase 4's bots); its bots will
-  meet this lesson's flaw.
+  otra cosa": Manifold's sounds carry a straight hearing radius (`core/src/sound.ts`), and its guard hears what is within
+  it (stage 4e: the lift's hum through the keep's shut door), which is this lesson's flaw, met: through a wall as through
+  air.
 - **Sources:** MA §11.4.5; G2 §15.4.3–5; GPP ch. 15, ch. 20.
 - **Open:** that 6.9 and 6.16 compute hearing in linear gain in the simulation (problem 8).
 
@@ -424,7 +432,8 @@ preference for a variable step is a disagreement, said once in 7.13.
 - **Exercises:** (1) Add a "calls the others" state that emits a narrowcast event (6.5). (2) Make crouching (lower body
   samples) count. (3) Tune the bands so a lit player at 10 m is noticed within 2 s and a dark one never.
 - **Our angle:** the mind is a pure function of the state and its own data; the guard is already in every replay. En
-  Manifold: phase 4's "a small brain (patrol, look into a light or a sound, chase…)" is this lesson, not yet built.
+  Manifold (stage 4e): the Dojo's guard patrols, stops and listens, walks to look, runs after whoever it sees by the
+  light (a watcher on its body, 3d) and strikes; its memory is plain data its host keeps (`games/dojo/src/guard.ts`).
 - **Sources:** MA §14.2.2–3, §2.1.3.
 - **Open:** `show.senses` is added here, before 7.14's `show.mind` (problem 5).
 
@@ -454,8 +463,9 @@ preference for a variable step is a disagreement, said once in 7.13.
 - **Exercises:** (1) MA ex. 10.1: choose phases so three behaviours never clash. (2) Prove the two scheduling claims.
   (3) Find the frames where MA's test fires for _p_ = 6. (4) Make a sliced A\* deterministic; hint: what is its state.
 - **Our angle:** the thread's mind stop (§6.1: priority queues with fixed ties, minds by step, with streams, emitting
-  actions). MA prefers a variable step (§3.1.3): a disagreement for determinism, said here. Manifold: its own trig
-  (`sinCosDegrees`), its replays, and the 🔒 of where a brain runs.
+  actions). MA prefers a variable step (§3.1.3): a disagreement for determinism, said here. "Dónde Manifold eligió otra
+  cosa" (decision 0023): its brains run once, on the host, out of the hash, so they may use any arithmetic; what they
+  decide travels as inputs, and a replay recorded with today's guard plays the same after its brain changes.
 - **Sources:** MA §10.1–10.2; G ch. 8; GPP ch. 10; [Fiedler, _Floating Point Determinism_](https://gafferongames.com/post/floating_point_determinism/).
 - **Open:** none.
 

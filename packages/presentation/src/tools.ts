@@ -43,8 +43,14 @@ export interface Holding {
   pose: ToolPose | null;
   sweep: number;
   lift: number;
+  /**
+   * First person (stage 4g): the tool is not drawn in the world (the camera draws it, with a field of view
+   * of its own), and a tracer starts where the camera draws its tip.
+   */
+  inView: boolean;
+  viewMuzzle: THREE.Vector3 | null;
 }
-export const newHolding = (): Holding => ({ pose: null, sweep: 0, lift: 0 });
+export const newHolding = (): Holding => ({ pose: null, sweep: 0, lift: 0, inView: false, viewMuzzle: null });
 
 /**
  * Where the right hand holds a tool, from the middle between the shoulders, in the body's frame turned

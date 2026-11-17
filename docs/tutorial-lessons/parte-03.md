@@ -245,6 +245,9 @@ Two rules run through the whole part (curriculum, part 3): **every test is shown
 - **Traps:** test overlap at _t_ = 0 (a small sphere inside a big one never "comes into contact", E); interval halving can recurse without end when moving parallel just outside the threshold (E); rotation during the step is ignored (piecewise-linear motion, E, G2). **Correction:** a box-corner helper in E's printed code for these tests has a typo (check the errata for its location); test the routine against fine sampling.
 - **Exercises:** (1) the thinnest wall the ball's dash cannot cross (hint: _w_ > _vh_ − 2*r*). (2) The coins' time of impact by hand. (3) Write interval halving with a depth limit and compare its time of impact with the exact one.
 - **Our angle:** se reduce a: a ray against a grown sphere. Continuous detection returns in 4.12 (Rapier's per-body switch), shape casts in 5.1 and the camera's sphere cast in 5.5; relative motion again in 5.8 (platforms). Rapier's `castShape` answers this query (2-05). The time of impact uses + − × ÷ √ only, the same in every browser.
+  En Manifold (stage 4c): a projectile is stepped as a segment of ray each step, its radius swept (`World.fly`,
+  `castHit` in `core/src/hits.ts`): a bolt at 80 m/s, 1.3 m a step, stops at a pane 2 cm thin, and at 120 m/s, 2 m a
+  step, at a wall as thin.
 - **Sources:** E §5.5, §2.4.3; G2 §14.3.5.7. Free: Catto, [_Continuous Collision_](https://box2d.org/files/ErinCatto_ContinuousCollision_GDC2013.pdf) (GDC 2013); [Rapier's CCD page](https://rapier.rs/docs/user_guides/javascript/rigid_body_ccd).
 - **Reuses:** 2-05's swept ball (the ray stops at 5 m, the ball at 4,75); 1-01's Sutileza on tunnelling.
 - **Open:** locate the corner-helper typo in E's errata before quoting it.

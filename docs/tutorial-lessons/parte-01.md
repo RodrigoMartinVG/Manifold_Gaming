@@ -185,6 +185,8 @@ takes the seventeen lessons and _la torreta_.
   58,7°; a point behind the eye lands at about (−32,2; 484,3)).
 - **Our angle:** "Dónde Manifold eligió otra cosa": the camera lives in the presentation, never in the simulation; the
   world does not know anyone is looking (`stage.ts`, `camera.ts`, which uses the half height to pan under the pointer).
+  In first person (stage 4g) what the character holds is drawn in a second pass with a projection of its own (50°,
+  near plane 1 cm), over the world with the depth cleared: it neither goes into a wall nor stretches.
 - **Sources:** L2 §6.1; RTR 4.7.2, 2.3; G2 §11.2.2.3; Scratchapixel, "Computing the pixel coordinates of a 3D point".
 - **Reuses:** pilot 02 (text, `projection/` example with `projection.ts`, `overlay.ts`). Archived 0-00 §3.
 - **Open:** the pilot is marked unfinished: what remains is the paragraph naming _g_, the kit migration, the browser

@@ -74,7 +74,7 @@ export function mountDrive(
       if (!hero?.transform || o.replaying()) return;
       const look = rig.look();
       // (Aiming, the mouse turns it: the keys go by the camera, whatever the scheme.)
-      const aiming = rig.mode === 'aim';
+      const aiming = rig.mode === 'aim' || rig.mode === 'first';
       const up = upAt(world, hero.transform.position);
       const asked = o.controls.read(look, up, aiming ? 'camera' : scheme);
       // Aiming, the character looks where the camera looks (the core keeps only its horizontal part),

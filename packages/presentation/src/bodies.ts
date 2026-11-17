@@ -120,7 +120,8 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
   };
   const drawTool = (id: EntityId, model: ModelInstance) => {
     const pose = model.holding.pose;
-    if (!pose) return dropTool(id);
+    // (In first person, stage 4g, the camera draws it.)
+    if (!pose || model.holding.inView) return dropTool(id);
     const look = `${pose.size.join(' ')} ${pose.color}`;
     let tool = tools.get(id);
     if (tool?.look !== look) {
@@ -439,7 +440,8 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
       // A shot (stage 4c): its tracer, from the end of what fired it as drawn (or where the world fired
       // it from) to where it struck or ended, fading.
       if (ev.type === 'shot') {
-        const from = instances.get(ev.from)?.holding.pose?.muzzle.clone() ?? new THREE.Vector3(...ev.start);
+        const holding = instances.get(ev.from)?.holding;
+        const from = (holding?.inView ? holding.viewMuzzle : holding?.pose?.muzzle)?.clone() ?? new THREE.Vector3(...ev.start);
         const to = new THREE.Vector3(...ev.end);
         const material = new THREE.MeshBasicMaterial({
           color: 0xfff0b0,

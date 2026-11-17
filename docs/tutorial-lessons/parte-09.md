@@ -312,8 +312,10 @@ controls, the seed box.
   query, never the simulation.
 - **Exercises:** (1) the largest RTT the cap covers with _D_ = 50 ms (400 ms). (2) Why poses by step, not by time? (3)
   Two players stun each other in one step: what does the order say?
-- **Our angle:** 0016's third point (hits judged as the shooter saw them, capped at 200–250 ms); the roadmap's phase 4
-  builds the pose history first. The race's stun is judged so.
+- **Our angle:** 0016's third point (hits judged as the shooter saw them, capped at 200–250 ms). En Manifold (decision
+  0022, stage 4c): every character keeps its last 16 poses, and a shot carries `back`, the steps its shooter saw behind,
+  against the targets' parts then and the world now (`core/src/hits.ts`); 0 until phase 6's server measures it. The
+  race's stun is judged so.
 - **Sources:** [Gambetta III](https://www.gabrielgambetta.com/entity-interpolation.html),
   [IV](https://www.gabrielgambetta.com/lag-compensation.html);
   [Bernier](https://developer.valvesoftware.com/wiki/Latency_Compensating_Methods_in_Client/Server_In-game_Protocol_Design_and_Optimization);

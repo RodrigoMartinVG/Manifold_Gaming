@@ -119,8 +119,21 @@ export const HERO = Object.freeze({ health: 100 });
  * body, looking where it looks: it sees by the light, 3d) and a brain, `dojo.guard` (guard.ts), that
  * keeps to a route: the one named, or the level's nearest to where it stands.
  */
-export const GUARD = Object.freeze({ health: 100, color: 0x8a3a3a, firstPlayer: 100, range: 12, degrees: 100, threshold: 0.3 });
-export function guard(world: World, at: Vec3, facing: Vec3, route: string | null = null): Entity {
+export const GUARD = Object.freeze({
+  health: 100,
+  color: 0x8a3a3a,
+  firstPlayer: 100,
+  range: 12,
+  degrees: 100,
+  threshold: 0.3,
+  /** Down, it is back on its feet ten seconds later (stage 4g: a dummy, three). */
+  back: 600,
+});
+
+/** Where a character's eyes are (stage 4g), above its center (m): its head's (the games' character's hit parts). */
+export const EYE = 0.62;
+
+export function guard(world: World, at: Vec3, facing: Vec3, route: string | null = null, kind: WeaponKind = 'stick'): Entity {
   const guards = [...world.entities.values()].filter((e) => e.brain?.name === 'dojo.guard');
   const player = GUARD.firstPlayer + Math.max(-1, ...guards.map((e) => e.character!.player - GUARD.firstPlayer)) + 1;
   const parts = characterParts({ player, facing, color: GUARD.color });
@@ -148,7 +161,7 @@ export function guard(world: World, at: Vec3, facing: Vec3, route: string | null
     health: { most: GUARD.health },
     watcher: { range: GUARD.range, cone: sinCosDegrees(GUARD.degrees / 2)[1], threshold: GUARD.threshold },
     brain: { name: 'dojo.guard', route: route ?? nearest() },
-    game: { [WEAPON]: { kind: 'stick', ready: 0, strike: 0, struck: [] } satisfies Weapon },
+    game: { [WEAPON]: { kind, ready: 0, strike: 0, struck: [] } satisfies Weapon },
   });
 }
 
@@ -232,19 +245,21 @@ function arms(world: World, events: readonly Event[]) {
     const { ahead } = aimOf(c, up);
     const back = countOf(world.inputs.get(c.player) ?? NO_INPUT, 'back', MOST_BACK);
     const chest = vec3.add(e.transform.position, vec3.scale(up, 0.4));
+    // Shots leave the eyes (stage 4g), where a first-person camera is: what it has at its center is hit.
+    const eye = vec3.add(e.transform.position, vec3.scale(up, EYE));
     if (w.strike > 0) strike(world, e, w, chest, up, back);
     if (!pressed(world, c.player, 'dojo.attack') || world.tick < w.ready) continue;
     if (w.kind === 'dart') {
       const dart = WEAPONS.dart;
       const direction = spread(ahead, up, dart.spread, shotDice(world, c.player));
-      const hit = castHit(world, chest, direction, dart.reach, { back, skip: e.id });
+      const hit = castHit(world, eye, direction, dart.reach, { back, skip: e.id });
       if (hit && world.entities.get(hit.entity)?.health)
         world.hurt(hit.entity, dart.damage, { from: e.id, part: hit.kind === 'character' ? hit.part : null, kind: 'dart' });
       world.emit({
         type: 'shot',
         from: e.id,
-        start: chest,
-        end: hit ? hit.point : vec3.add(chest, vec3.scale(direction, dart.reach)),
+        start: eye,
+        end: hit ? hit.point : vec3.add(eye, vec3.scale(direction, dart.reach)),
         hit: hit?.entity ?? null,
         kind: 'dart',
       });
@@ -252,7 +267,7 @@ function arms(world: World, events: readonly Event[]) {
     } else if (w.kind === 'bolt') {
       const bolt = WEAPONS.bolt;
       world.createEntity({
-        transform: { position: vec3.add(chest, vec3.scale(ahead, 0.4)), rotation: quat.identity() },
+        transform: { position: vec3.add(eye, vec3.scale(ahead, 0.4)), rotation: quat.identity() },
         projectile: {
           from: e.id,
           velocity: vec3.scale(ahead, bolt.speed),
@@ -376,6 +391,15 @@ function buildDojoLevel(world: World, level: Level) {
   // Its guards (stage 4e), where its `guard` zones are, looking where the zone looks.
   for (const zone of [...world.entities.values()].filter((e) => e.sensor?.kind === 'guard'))
     guard(world, zone.transform!.position, quat.rotate(zone.transform!.rotation, [0, 0, -1]));
+  // (Stage 4g) Guards with a weapon of their own, where `gunner` zones are: its kind as a rack's.
+  for (const zone of [...world.entities.values()].filter((e) => e.sensor?.kind === 'gunner'))
+    guard(
+      world,
+      zone.transform!.position,
+      quat.rotate(zone.transform!.rotation, [0, 0, -1]),
+      null,
+      WEAPON_KINDS[(zone.sensor!.params.kind?.[0] ?? 1) - 1] ?? 'dart',
+    );
   for (const zone of [...world.entities.values()].filter((e) => e.sensor?.kind === 'weapon')) {
     const kind = WEAPON_KINDS[(zone.sensor!.params.kind?.[0] ?? 1) - 1] ?? 'dart';
     zone.appearance = {
@@ -412,6 +436,8 @@ export const DOJO_ZONES: ZoneKinds = {
   dummy: {},
   /** Where a guard stands at the start (stage 4e), looking where the zone looks. */
   guard: {},
+  /** A guard with a weapon of its own (stage 4g): its `kind` as a rack's (1 a dart, 2 a bolt). */
+  gunner: { kind: 1 },
   /** A weapon to pick up (stage 4c), walking into it: its `kind`, 1 a dart, 2 a bolt, 3 a stick. */
   weapon: { kind: 1 },
 };
@@ -464,7 +490,8 @@ function levelLoop(world: World, events: readonly Event[]) {
     world.emit({ type: 'notice', say, player, ...(values ? { values } : {}) });
   for (const ev of events) {
     // A watcher (stage 3d): the character it began to see, or lost, is told.
-    if (ev.type === 'seen' || ev.type === 'lost') {
+    // (A level's watcher: a guard's eyes, stage 4e, are its own business.)
+    if ((ev.type === 'seen' || ev.type === 'lost') && !world.entities.get(ev.watcher)?.character) {
       const player = world.entities.get(ev.entity)?.character?.player;
       if (player !== undefined) notice(player, ev.type === 'seen' ? 'dojo.seen' : 'dojo.lost');
       continue;
@@ -735,18 +762,22 @@ export function createDojo(levels: Readonly<Record<string, Level>>, brains: Read
           const thrown = source && component<Thrown>(source, THROWN);
           world.hurt(ev.against, impactDamage(ev.energy), { from: thrown?.by ?? null, kind: 'impact' });
         }
-      // Down three seconds, it is back on its feet (a dummy, a guard); a player's, at its checkpoint.
+      // Down three seconds, it is back on its feet (a dummy; a guard, ten); a player's, at its checkpoint.
       for (const e of world.entities.values())
-        if (e.health && e.health.down >= 0 && world.tick - e.health.down >= DUMMY.back) {
+        if (e.health && e.health.down >= 0 && world.tick - e.health.down >= (e.brain ? GUARD.back : DUMMY.back)) {
           world.revive(e.id);
           const run = runner(e);
           if (run) world.place(e, run.checkpoint);
         }
       arms(world, events);
       fuses(world);
-      // How many guards are down (stage 4f), for a level that asks (its `down` signal, an input).
-      if (world.signals.some((g) => g.name === 'down' && g.op === 'input'))
-        world.setSignal('down', [...world.entities.values()].filter((e) => e.brain && (e.health?.down ?? -1) >= 0).length);
+      // How many guards are down (stage 4f), and whether all of them are (stage 4g), for a level that asks
+      // (its `down` and `cleared` signals, inputs).
+      const guards = [...world.entities.values()].filter((e) => e.brain);
+      const downs = guards.filter((e) => (e.health?.down ?? -1) >= 0).length;
+      if (world.signals.some((g) => g.name === 'down' && g.op === 'input')) world.setSignal('down', downs);
+      if (world.signals.some((g) => g.name === 'cleared' && g.op === 'input'))
+        world.setSignal('cleared', guards.length > 0 && downs === guards.length ? 1 : 0);
       // Held, the throw charges; let go, one ball leaves: from the chest, where it aims (stage 4b: with
       // its pitch), up a little from there, as fast as it was charged.
       for (const e of world.entities.values()) {
