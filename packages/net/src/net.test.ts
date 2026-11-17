@@ -234,4 +234,66 @@ describe('the networking skeleton (stage 1e)', () => {
     expect(stateHash(client.session!.world)).toBe(at100);
     server.dispose();
   });
+
+  test('driving a bot (stage 4e): the keys go over at once, as they are, both ways', () => {
+    // A bot whose brain always walks it along +x, beside where the player comes in.
+    const Walker: Cartridge = {
+      ...Arena,
+      brains: { walker: () => ({ move: [1, 0, 0] as Vec3 }) },
+      onStart(world, registry) {
+        Arena.onStart(world, registry);
+        world.createEntity({
+          name: 'walker',
+          transform: { position: [-6, 1, -4], rotation: quat.identity() },
+          body: { type: 'character', shape: { kind: 'capsule', halfHeight: 0.5, radius: 0.3 } },
+          character: { player: 100 },
+          brain: { name: 'walker', route: null },
+        });
+      },
+    };
+    const server = new Server(Walker);
+    const { client, heard, desyncs } = join(server, Walker);
+    /** Where a character is on the floor (x, z): the bot, or player 1's own. */
+    const at = (bot: boolean) => {
+      const [x, , z] = [...server.world.entities.values()].find((e) => (bot ? e.brain : e.character?.player === 1))!.transform!
+        .position;
+      return { x, z };
+    };
+    const apart = (a: { x: number; z: number }, b: { x: number; z: number }) => Math.hypot(a.x - b.x, a.z - b.z);
+    const run = (steps: number, input: PlayerInput) => {
+      for (let i = 0; i < steps; i++) {
+        // (As a page does, on every frame: the client sends it only when it changes.)
+        client.sendInput(input);
+        server.step();
+        client.drain();
+      }
+    };
+    run(60, NO_INPUT);
+    expect(at(true).x).toBeGreaterThan(-5);
+    // Taken over with no key down, it stands: its brain waits, and so does what it asked for last
+    // (before, it walked on until a key changed: the guard in the keep's browser test, now and then).
+    client.request({ type: 'possess', bot: 100 });
+    expect(heard.at(-1)).toMatch(/^you drive walker/);
+    run(20, NO_INPUT);
+    const still = at(true);
+    run(30, NO_INPUT);
+    expect(apart(at(true), still)).toBeLessThan(0.01);
+    // W walks it; its own character stands.
+    const mine = at(false);
+    run(40, { move: [0, 0, -1] });
+    expect(still.z - at(true).z).toBeGreaterThan(1);
+    expect(apart(at(false), mine)).toBeLessThan(0.01);
+    // Let go with W still held (sent once, not again): its own character walks with it at once,
+    // and the bot's brain walks it along +x again.
+    const left = at(true);
+    const back = at(false);
+    client.request({ type: 'possess', bot: null });
+    expect(heard.at(-1)).toBe('you drive your own character again');
+    run(40, { move: [0, 0, -1] });
+    expect(back.z - at(false).z).toBeGreaterThan(1);
+    expect(at(true).x - left.x).toBeGreaterThan(1);
+    expect(stateHash(client.session!.world)).toBe(stateHash(server.world));
+    expect(desyncs).toEqual([]);
+    server.dispose();
+  });
 });

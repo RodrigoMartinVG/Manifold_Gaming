@@ -293,15 +293,38 @@ export class Server {
     this.replace(session, new ReplayPlayer(replay), { step: replay.end.step, hash: replay.end.hash });
   }
 
-  /** A player drives a bot (stage 4e): its brain waits, and the player's keys go to it; null lets it go. */
+  /**
+   * A player drives a bot (stage 4e): its brain waits, and the player's keys go to it; null lets it go.
+   * The keys go over AT ONCE, as they are: a page sends its input only when it changes, so until then
+   * a bot taken over would go on with what its brain asked for last (the guard walked on, 4 m a second,
+   * with no key down), and a character given back would ignore a key already held.
+   */
   private possess(c: Connection, player: number, bot: number | null) {
-    for (const [b, by] of this.bots.possessed) if (by === player) this.bots.possessed.delete(b);
-    if (bot === null) return this.say(c, 'you drive your own character again');
+    // What the player asks for now: where its keys went, the bot it drove, or else its own character.
+    let keys = this.session.inputOf(player);
+    for (const [b, by] of this.bots.possessed)
+      if (by === player) {
+        keys = this.session.inputOf(b);
+        this.bots.possessed.delete(b);
+      }
+    // Driving nothing, the keys are its own character's again (its brain asks for the bot it let go).
+    const own = () => this.session.setInput(player, keys);
+    if (bot === null) {
+      own();
+      return this.say(c, 'you drive your own character again');
+    }
     const e = [...this.session.world.entities.values()].find((x) => x.character?.player === bot && x.brain);
-    if (!e) return this.say(c, `no bot is player ${bot}`, 'warn');
+    if (!e) {
+      own();
+      return this.say(c, `no bot is player ${bot}`, 'warn');
+    }
     const by = this.bots.possessed.get(bot);
-    if (by !== undefined) return this.say(c, `player ${by} drives it already`, 'warn');
+    if (by !== undefined) {
+      own();
+      return this.say(c, `player ${by} drives it already`, 'warn');
+    }
     this.bots.possessed.set(bot, player);
+    this.session.setInput(bot, keys);
     this.session.setInput(player, NO_INPUT);
     this.say(c, `you drive ${e.name ?? `entity ${e.id}`} (player ${bot}): its brain waits until \`possess\` with nothing`);
   }

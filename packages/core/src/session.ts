@@ -203,6 +203,11 @@ export class Session {
     return this.scheduled.length;
   }
 
+  /** What a player asks for from now on: the last of its inputs still waiting, or else the one that entered. */
+  inputOf(player: number): PlayerInput {
+    return this.pendingInputs.get(player)?.at(-1) ?? this.world.inputs.get(player) ?? NO_INPUT;
+  }
+
   /**
    * What a player asks for, from now on: it enters at the start of the next step (like a world
    * change), and stays until it changes. Asking for the same again changes nothing, and is not kept.

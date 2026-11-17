@@ -1615,14 +1615,20 @@ test('a guard in the keep (stage 4e): `bots` says what it does; `possess guard` 
   await expect(log).toContainText('dojo.guard on yard');
   // It heard the lift take you up: it is looking.
   await expect(log).toContainText(/look|chase|search/);
-  // Its body, with the keys: the camera goes with it, and W walks it.
+  // Its body, with the keys: the camera goes with it, and S walks it.
   await typeInConsole(page, 'possess guard');
   await expect(log).toContainText('you drive guard');
   await page.keyboard.press('Escape');
-  const [x0, , z0] = await position(page, 'player');
-  await page.keyboard.down('KeyW');
+  // Where it stands, once it stands: taken over with no key down, it stands (it used to walk on with
+  // what its brain asked for last, until a key changed: the server). And read from a frame drawn since:
+  // until the next one, `data-player` is still your own character, up on the lift. (With either, W's
+  // walk was measured from the wrong place, and passed; or not: 0.43 m, in continuous integration on
+  // 2026-11-17.)
+  const [x0, , z0] = await settled(page, 'player');
+  // S, back into the yard (+Z): it stands at the door's button, by the wall, which W walks it into (0.3 m).
+  await page.keyboard.down('KeyS');
   await afterSteps(page, 40);
-  await page.keyboard.up('KeyW');
+  await page.keyboard.up('KeyS');
   const [x1, , z1] = await position(page, 'player');
   expect(Math.hypot(x1! - x0!, z1! - z0!)).toBeGreaterThan(0.5);
   await page.keyboard.press('Backquote');
