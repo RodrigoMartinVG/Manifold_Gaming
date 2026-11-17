@@ -2,6 +2,7 @@ import { quat, vec3, type Quat, type Vec3 } from '@manifold/common';
 import {
   CHARACTER_GAP,
   DEFAULT_MOVEMENT,
+  mechanismAt,
   STANDS_ON,
   STEP_UP,
   type Capabilities,
@@ -229,6 +230,8 @@ export function buildNav(world: World, body: NavBody = NAV_BODY): Nav {
   const tops: Top[] = [];
   const doors: { name: string; center: Vec3; rotation: Quat; half: Vec3; when: Condition }[] = [];
   const lifts: { name: string; down: Top[]; up: Top[]; signal: string; seconds: number }[] = [];
+  /** The space each lift sweeps (from where it waits to where it goes, along the axes): no body stands under it, only on it. */
+  const swept: { low: Vec3; high: Vec3 }[] = [];
   for (const e of world.entities.values()) {
     const b = e.body;
     const t = e.transform;
@@ -236,13 +239,19 @@ export function buildNav(world: World, body: NavBody = NAV_BODY): Nav {
     const name = e.name ?? String(e.id);
     const m = e.mechanism;
     if (m?.door && b.shape.kind === 'box') {
-      doors.push({
-        name,
-        center: m.closed.position,
-        rotation: m.closed.rotation,
-        half: b.shape.halfExtents,
-        when: { signal: m.signal, value: 1 },
-      });
+      // Closed, it is in the way through it (it must be open); open, its leaf is in the way where it
+      // swung to (it must be closed to go there).
+      const open = mechanismAt(m, 1);
+      doors.push(
+        {
+          name,
+          center: m.closed.position,
+          rotation: m.closed.rotation,
+          half: b.shape.halfExtents,
+          when: { signal: m.signal, value: 1 },
+        },
+        { name, center: open.position, rotation: open.rotation, half: b.shape.halfExtents, when: { signal: m.signal, value: 0 } },
+      );
       continue;
     }
     if (m?.lift) {
@@ -254,6 +263,24 @@ export function buildNav(world: World, body: NavBody = NAV_BODY): Nav {
         });
       const down = at([0, 0, 0], 0);
       const up = at(m.lift.by, 1);
+      const corners = boxesOf(b.shape).flatMap((part) =>
+        [m.closed.position, vec3.add(m.closed.position, m.lift!.by)].flatMap((p) =>
+          [-1, 1].flatMap((sx) =>
+            [-1, 1].flatMap((sy) =>
+              [-1, 1].map((sz) =>
+                vec3.add(
+                  vec3.add(p, quat.rotate(m.closed.rotation, part.offset)),
+                  quat.rotate(m.closed.rotation, [sx * part.half[0], sy * part.half[1], sz * part.half[2]]),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      swept.push({
+        low: [0, 1, 2].map((k) => Math.min(...corners.map((c) => c[k]!))) as Vec3,
+        high: [0, 1, 2].map((k) => Math.max(...corners.map((c) => c[k]!))) as Vec3,
+      });
       tops.push(...down, ...up);
       lifts.push({ name, down, up, signal: m.signal, seconds: m.seconds });
       continue;
@@ -295,10 +322,30 @@ export function buildNav(world: World, body: NavBody = NAV_BODY): Nav {
       const ids: number[] = [];
       for (const { y, top } of found) {
         const at: Vec3 = [x, y, z];
+        // Not under a lift (where it comes down): a body stands on it, or beside it.
+        if (
+          !top.when &&
+          swept.some((w) => x > w.low[0] && x < w.high[0] && z > w.low[2] && z < w.high[2] && y < w.high[1] - 0.01)
+        )
+          continue;
         // (A surface under another's thickness is not a floor: what the body would stand in is in the way.)
         if (!fits(world, body, at)) continue;
+        // Where a door's leaf is when closed, the body is there only while it is open; where it is when
+        // open, only while it is closed.
+        const feet: Vec3 = [x, y + body.stepUp, z];
+        const head: Vec3 = [x, y + 2 * (body.halfHeight + body.radius), z];
+        const leaf = doors.find((d) =>
+          crosses(feet, head, d.center, d.rotation, [d.half[0] + body.radius, d.half[1], d.half[2] + body.radius]),
+        );
         const id = nav.cells.length;
-        nav.cells.push({ id, i, j, at, on: top.on, when: top.when });
+        nav.cells.push({
+          id,
+          i,
+          j,
+          at,
+          on: top.on,
+          when: top.when ?? (leaf ? { ...leaf.when } : null),
+        });
         nav.out.push([]);
         ids.push(id);
       }
@@ -414,4 +461,30 @@ export function cellAt(nav: Nav, p: Vec3): Cell | null {
         }
       }
   return best;
+}
+
+/** Each world's navigation, and what it was sampled from (its bodies that never move, by number), looked at again every half second. */
+const navs = new WeakMap<World, { nav: Nav; signature: string; checked: number }>();
+const signatureOf = (world: World) =>
+  [...world.entities.values()]
+    .filter((e) => e.body && !e.character && e.body.type !== 'dynamic')
+    .map((e) => e.id)
+    .join(' ');
+
+/**
+ * A world's navigation for the games' character, built the first time a brain asks, and again when
+ * what it is sampled from changed (a new level, the console's `add`, `delete`): every brain of a
+ * world shares one.
+ */
+export function navOf(world: World): Nav {
+  const known = navs.get(world);
+  if (known && world.tick - known.checked < 30 && world.tick >= known.checked) return known.nav;
+  const signature = signatureOf(world);
+  if (known && known.signature === signature) {
+    known.checked = world.tick;
+    return known.nav;
+  }
+  const nav = buildNav(world);
+  navs.set(world, { nav, signature, checked: world.tick });
+  return nav;
 }

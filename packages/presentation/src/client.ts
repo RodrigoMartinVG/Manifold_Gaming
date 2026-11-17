@@ -173,7 +173,8 @@ export function mount(cartridge: Cartridge, container: HTMLElement, o: MountOpti
     get me() {
       return match.me;
     },
-    player: () => [...match.session.world.entities.values()].find((e) => e.character?.player === match.me),
+    // (Driving a bot, stage 4e: that one, and the camera goes with it.)
+    player: () => [...match.session.world.entities.values()].find((e) => e.character?.player === (match.driving ?? match.me)),
     say,
     language,
     words,

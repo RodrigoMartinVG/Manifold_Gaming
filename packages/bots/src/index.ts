@@ -9,6 +9,7 @@ export {
   chest,
   inZone,
   NAV_BODY,
+  navOf,
   type Cell,
   type Condition,
   type Edge,

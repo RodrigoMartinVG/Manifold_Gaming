@@ -3,7 +3,7 @@ import type { InputAction } from './input';
 import type { Profile } from './profile';
 import type { ZoneKinds } from './level';
 import type { Progress } from './saved';
-import type { Damage, Event } from './types';
+import type { Damage, Entity, Event, PlayerInput } from './types';
 import type { World } from './world';
 
 /**
@@ -74,4 +74,18 @@ export interface Cartridge {
    * Without it, all of it. (Only arithmetic of the game's own: it runs on every copy.)
    */
   filterDamage?(world: World, damage: Damage): number;
+  /**
+   * Its brains (stage 4e, decision 0023), by name: what a bot asks for at the next step, from the world
+   * as it is after this one (read only) and its own memory, which it may change. A character with a
+   * `brain` component names one. Run once, where the match is hosted (the page alone, the server,
+   * a test's harness: `BotHost`), never by the copies or by a replay, which get its inputs: so a brain
+   * may use any arithmetic, and changing one breaks no replay.
+   */
+  readonly brains?: Readonly<Record<string, Brain>>;
 }
+
+/** What a bot remembers between its thoughts (decision 0023): plain data, kept by the host, out of the hash. */
+export type Memory = Record<string, unknown>;
+
+/** A brain: the world after a step, the bot it thinks for (its character's entity), and its memory; what it asks for next. */
+export type Brain = (world: World, self: Entity, memory: Memory) => PlayerInput;

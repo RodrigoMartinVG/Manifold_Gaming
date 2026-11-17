@@ -38,6 +38,12 @@ export interface Entity {
   /** What it is for, as its level says (stage 4d, decision 0024: cover, something to throw…): data the brains read. */
   affords?: Affordance[];
   /**
+   * A bot's brain (stage 4e, decision 0023): which of its game's brains thinks for this character, and
+   * the route it keeps to, if any. World data, so any host knows which brains to run; the brain itself
+   * runs on the host, out of the hash.
+   */
+  brain?: BrainOf;
+  /**
    * The level's line that built it (stage 3j), as data: what `level.export` writes back. Set when a
    * level builds it, or the console adds it; kept up to date by `set`. Characters, balls, fragments,
    * what a game makes on its own, have none: they are not the level's.
@@ -174,6 +180,12 @@ export interface Mechanism {
 export interface Route {
   points: Vec3[];
   loop: boolean;
+}
+
+/** Which brain thinks for a character (stage 4e), and the route it keeps to (a route's name), if any. */
+export interface BrainOf {
+  name: string;
+  route: string | null;
 }
 
 /** What a level says a thing is for (stage 4d, decision 0024): to hide behind, to throw, to kick, a weak point. */

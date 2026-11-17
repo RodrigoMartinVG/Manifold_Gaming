@@ -1,0 +1,15 @@
+# A guard in the keep: it hears you, calls the lift and comes after you
+# group: demos
+# Stage 4e, the first half of phase 4's demonstration. You start on the keep's lift, past the shut door,
+# and it takes you up. A guard walks the yard behind the door: it hears the lift, presses the door's
+# button, goes through, and if the lift is up, calls it down from the plate at its foot, rides it up
+# after you, and fights you with its stick. In the dark it does not see you: in the lamp's light it does,
+# and crouched, later. Balls (F) bring it down; three seconds later it is back on its
+# feet. `bots` says what it is doing; `show.vision on`, what it sees; `show.nav on`, where it can go;
+# `possess guard` gives you its body; `back 3` takes the match three seconds back.
+seed 12
+dojo.level keep
+wait 1
+add route yard loop  -3 0 6  -3 0 2  3 0 2  3 0 6
+dojo.guard -3 1 6 yard
+dojo.goto 0 1.2 -4

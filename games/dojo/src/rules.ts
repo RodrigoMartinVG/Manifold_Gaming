@@ -17,6 +17,7 @@ import {
   released,
   STEP,
   upAt,
+  type Brain,
   type Capabilities,
   type Cartridge,
   type Character,
@@ -98,11 +99,55 @@ function character(world: World, player: number, at: Vec3, facing: Vec3, color: 
     // (Like another one, if given: a copy of the numbers it moves with and of what it can do.)
     character: { ...parts.character, ...(like ? { movement: copyMovement(like.movement), can: { ...like.can } } : {}) },
     appearance: parts.appearance,
+    // (Stage 4e: a guard can fight it; down, it is back at its checkpoint three seconds later.)
+    health: { most: HERO.health },
     game: {
       [RUNNER]: { spawn: [...at], checkpoint: [...at], start: world.tick, finish: -1, falls: 0, stars: 0 } satisfies Runner,
       [CHARGE_COMPONENT]: { steps: 0 } satisfies Charge,
       [WEAPON]: { kind: 'none', ready: 0, strike: 0, struck: [] } satisfies Weapon,
     },
+  });
+}
+
+/** A player's character (stage 4e): its health. */
+export const HERO = Object.freeze({ health: 100 });
+
+/**
+ * A GUARD (stage 4e, decision 0023): a bot, a character of a player of its own (100, 101…: the session
+ * takes its inputs as anyone's), the mannequin in dark red, with health, a stick, eyes (a watcher on its
+ * body, looking where it looks: it sees by the light, 3d) and a brain, `dojo.guard` (guard.ts), that
+ * keeps to a route: the one named, or the level's nearest to where it stands.
+ */
+export const GUARD = Object.freeze({ health: 100, color: 0x8a3a3a, firstPlayer: 100, range: 12, degrees: 100, threshold: 0.3 });
+export function guard(world: World, at: Vec3, facing: Vec3, route: string | null = null): Entity {
+  const guards = [...world.entities.values()].filter((e) => e.brain?.name === 'dojo.guard');
+  const player = GUARD.firstPlayer + Math.max(-1, ...guards.map((e) => e.character!.player - GUARD.firstPlayer)) + 1;
+  const parts = characterParts({ player, facing, color: GUARD.color });
+  const nearest = (): string | null => {
+    let best: string | null = null;
+    let distance = Infinity;
+    for (const e of world.entities.values())
+      if (e.route && e.name) {
+        const d = vec3.length(vec3.sub(e.route.points[0]!, at));
+        if (d < distance) {
+          distance = d;
+          best = e.name;
+        }
+      }
+    return best;
+  };
+  let name = 'guard';
+  for (let k = 2; world.named(name); k++) name = `guard_${k}`;
+  return world.createEntity({
+    name,
+    transform: { position: [...at], rotation: quat.identity() },
+    body: parts.body,
+    character: parts.character,
+    appearance: parts.appearance,
+    health: { most: GUARD.health },
+    watcher: { range: GUARD.range, cone: sinCosDegrees(GUARD.degrees / 2)[1], threshold: GUARD.threshold },
+    brain: { name: 'dojo.guard', route: route ?? nearest() },
+    game: { [WEAPON]: { kind: 'stick', ready: 0, strike: 0, struck: [] } satisfies Weapon },
   });
 }
 
@@ -275,6 +320,9 @@ function buildDojoLevel(world: World, level: Level) {
   // Its training dummies (stage 4c), where its `dummy` zones are; its weapons to pick up, a small bar
   // that turns, in its `weapon` zones (a dart blue, a bolt red, a stick brown).
   for (const zone of [...world.entities.values()].filter((e) => e.sensor?.kind === 'dummy')) dummy(world, zone);
+  // Its guards (stage 4e), where its `guard` zones are, looking where the zone looks.
+  for (const zone of [...world.entities.values()].filter((e) => e.sensor?.kind === 'guard'))
+    guard(world, zone.transform!.position, quat.rotate(zone.transform!.rotation, [0, 0, -1]));
   for (const zone of [...world.entities.values()].filter((e) => e.sensor?.kind === 'weapon')) {
     const kind = WEAPON_KINDS[(zone.sensor!.params.kind?.[0] ?? 1) - 1] ?? 'dart';
     zone.appearance = { shape: 'box', size: [0.12, 0.12, 0.7], color: { dart: 0x5a8ae0, bolt: 0xd85a5a, stick: 0x8a6a42 }[kind] };
@@ -305,6 +353,8 @@ export const DOJO_ZONES: ZoneKinds = {
   camera: { view: 3 },
   /** Where a training dummy stands (stage 4c), looking where the zone looks. */
   dummy: {},
+  /** Where a guard stands at the start (stage 4e), looking where the zone looks. */
+  guard: {},
   /** A weapon to pick up (stage 4c), walking into it: its `kind`, 1 a dart, 2 a bolt, 3 a stick. */
   weapon: { kind: 1 },
 };
@@ -449,10 +499,10 @@ function joinedPlayers(world: World) {
         // It moves like the first one, and can do what it can (whatever `dojo.air`, `dojo.climb`… made of it).
         first.character!,
       );
-  // (Player 0 drives nothing: a training dummy, stage 4c, stays.)
+  // (Player 0 drives nothing: a training dummy, stage 4c, stays; a bot's brain drives it, stage 4e.)
   for (const e of characters) {
     const p = e.character!.player;
-    if (p !== 1 && p !== 0 && !world.players.has(p)) world.removeEntity(e.id);
+    if (p !== 1 && p !== 0 && !e.brain && !world.players.has(p)) world.removeEntity(e.id);
   }
 }
 
@@ -474,10 +524,13 @@ function joinedPlayers(world: World) {
  * The Dojo's rules do not touch the screen (this file runs the same in tests): what is seen is
  * decided by `index.ts`.
  */
-export function createDojo(levels: Readonly<Record<string, Level>>): Cartridge {
+export function createDojo(levels: Readonly<Record<string, Level>>, brains: Readonly<Record<string, Brain>> = {}): Cartridge {
   return {
     id: 'dojo',
     title: 'Dojo',
+    // Its guards' brains (stage 4e): given here by whoever hosts its matches (the page, a test); a
+    // replay, which only plays the inputs they gave, does not need them.
+    brains,
     inputs: [
       {
         name: 'dojo.throw',
@@ -578,9 +631,24 @@ export function createDojo(levels: Readonly<Record<string, Level>>): Cartridge {
         description:
           "Puts player 1's character at (x, y, z), stopped: to explore a level (stage 2c). A world action: it enters at a step, and the replay has it.",
         args: [{ name: 'x y z', type: { kind: 'vector' } }],
+        // (A room may start you somewhere: stage 4e's guard room starts you on the lift.)
+        inRecipes: true,
         onWorld(world, [place]) {
           const hero = [...world.entities.values()].find((e) => e.character?.player === 1);
           if (hero) world.place(hero, place as Vec3);
+        },
+      });
+      registry.declareCommand({
+        name: 'dojo.guard',
+        description:
+          'Puts a guard at (x, y, z) (stage 4e): a bot with health, a stick and eyes, that keeps to a route (the one named, or the nearest), hears and sees you, comes after you and fights. A world action.',
+        args: [
+          { name: 'x y z', type: { kind: 'vector' } },
+          { name: 'route', type: { kind: 'text' }, optional: true },
+        ],
+        inRecipes: true,
+        onWorld(world, [place, route]) {
+          guard(world, place as Vec3, [0, 0, -1], route ? String(route) : null);
         },
       });
       registry.declareCommand({
@@ -610,8 +678,13 @@ export function createDojo(levels: Readonly<Record<string, Level>>): Cartridge {
           const thrown = source && component<Thrown>(source, THROWN);
           world.hurt(ev.against, impactDamage(ev.energy), { from: thrown?.by ?? null, kind: 'impact' });
         }
+      // Down three seconds, it is back on its feet (a dummy, a guard); a player's, at its checkpoint.
       for (const e of world.entities.values())
-        if (e.health && e.health.down >= 0 && world.tick - e.health.down >= DUMMY.back) world.revive(e.id);
+        if (e.health && e.health.down >= 0 && world.tick - e.health.down >= DUMMY.back) {
+          world.revive(e.id);
+          const run = runner(e);
+          if (run) world.place(e, run.checkpoint);
+        }
       arms(world, events);
       // Held, the throw charges; let go, one ball leaves: from the chest, where it aims (stage 4b: with
       // its pitch), up a little from there, as fast as it was charged.

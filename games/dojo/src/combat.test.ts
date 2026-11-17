@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, test } from 'vitest';
 import { initPhysics, registryFor, Session, type Event, type PlayerInput } from '@manifold/core';
 import { DojoCartridge } from './cartridge';
-import { DUMMY, impactDamage, weapon } from './rules';
+import { DUMMY, HERO, impactDamage, weapon } from './rules';
 
 beforeAll(initPhysics);
 
@@ -24,12 +24,12 @@ function moves() {
 }
 
 describe('the training dummy (stage 4c)', () => {
-  test('where its zone is, looking where it looks, with 100 points; the hero has none', () => {
+  test('where its zone is, looking where it looks, with 100 points; the hero, 100 too (stage 4e: a guard can fight it)', () => {
     const { dummy, hero, session } = moves();
     expect(dummy.health).toEqual({ points: DUMMY.health, most: DUMMY.health, down: -1 });
     expect(dummy.transform!.position[0]).toBeCloseTo(-8, 3);
     expect(dummy.character!.facing[0]).toBeCloseTo(1, 6);
-    expect(hero.health).toBeUndefined();
+    expect(hero.health).toEqual({ points: HERO.health, most: HERO.health, down: -1 });
     session.world.dispose();
   });
 

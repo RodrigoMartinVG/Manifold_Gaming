@@ -75,6 +75,9 @@ export const CONSOLE_ES: Readonly<Record<string, string>> = {
   restart: 'el mundo empieza de nuevo, con los valores de ahora',
   snapshot: 'guardar este momento (`snapshot`), y volver a él (`snapshot load`)',
   net: 'la partida, y dónde vive',
+  possess: 'manejar un bot con tus teclas (`possess guard`): su cerebro espera, tu personaje se queda quieto y la cámara va con él; sin nada, volvés al tuyo',
+  back: 'la partida vuelve esa cantidad de segundos (1 si no se dice, 10 a lo sumo), con lo que recuerdan sus bots',
+  bots: 'qué hace cada bot: su modo (patrulla, mira, persigue, busca), adónde va, qué oyó y qué vio y hace cuánto, los pasos de su camino',
   'camera.reset': 'la cámara a donde empezó, o detrás del personaje',
   export: 'un enlace con la receta de lo que cambiaste',
   load: 'carga una sala guardada (sin nombre: la lista)',
@@ -98,5 +101,6 @@ export const CONSOLE_ES: Readonly<Record<string, string>> = {
   'dojo.air': 'cuánto se puede corregir un salto en el aire, en m/s²',
   'dojo.spin': 'cómo gira el cubo grande (en el Dojo sin nivel): radianes por segundo alrededor de cada eje (x y z)',
   'dojo.goto': 'pone quieto en ese punto al personaje del jugador 1: para explorar un nivel',
+  'dojo.guard': 'pone un guardia en ese punto (etapa 4e): un bot con vida, un palo y ojos, que sigue un recorrido (el que se nombra, o el más cercano), te oye y te ve, va a buscarte y pelea',
   'dojo.spawn': 'deja caer una pelota desde ese punto, con un tamaño y un color que salen del azar del mundo',
 };

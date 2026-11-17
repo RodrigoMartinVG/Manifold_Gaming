@@ -17,6 +17,15 @@ describe('recipes that check themselves (stage 3j)', () => {
       session.world.dispose();
     });
 
+  // And every room plays without an error (stage 4e found one whose world lines never ran in the page).
+  // (Without a page, what only a page declares, its views, is not there: `show.stats`, `view.timescale`.)
+  for (const [name, room] of Object.entries(ROOMS))
+    test(`the room "${name}" plays without an error`, () => {
+      const { session, failed } = playRecipe(DojoCartridge, room.text);
+      expect(failed.filter((f) => !/^no such name "(show|view)\./.test(f))).toEqual([]);
+      session.world.dispose();
+    });
+
   test('the workshop, built from the console and exported, loads back as the same level', () => {
     const { session } = playRecipe(DojoCartridge, ROOMS.workshop!.text);
     const built = levelOfWorld(session.world);

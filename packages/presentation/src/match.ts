@@ -16,6 +16,8 @@ export type NetMode = 'alone' | 'open' | 'joined';
 export interface PageMatch {
   readonly session: Session;
   readonly me: number;
+  /** The bot this page drives (stage 4e: `possess`), by its player, if any: the camera goes with it. */
+  readonly driving: number | null;
   readonly net: NetMode;
   /** Whether the match lives in this page (alone or open), and so its clock. */
   readonly hosting: boolean;
@@ -82,6 +84,23 @@ export const MATCH_COMMANDS = {
       'Saves this moment (`snapshot`), and goes back to it (`snapshot load`), like an emulator\'s "save state": the whole world, its physics included. From there, the same inputs give the same hash, and its replay still holds. In a match with others, everybody goes back.',
     args: [{ name: 'action', type: { kind: 'option', options: ['save', 'load'] }, optional: true }],
   },
+  possess: {
+    name: 'possess',
+    description:
+      'Drives a bot with your keys (stage 4e): `possess guard`, by its name or its id. Its brain waits, your character stands still, and the camera goes with it; you see what it sees. With nothing, you drive your own again.',
+    args: [{ name: 'bot', type: { kind: 'text' }, optional: true }],
+  },
+  back: {
+    name: 'back',
+    description:
+      'The match goes back this many seconds (1, if not said; 10 at most): its server keeps a snapshot every half second, with what its bots remember. Everybody in the match goes back.',
+    args: [{ name: 'seconds', type: { kind: 'number', min: 0, max: 10 }, optional: true }],
+  },
+  bots: {
+    name: 'bots',
+    description:
+      "What each bot is doing (stage 4e): its brain, its mode (patrol, look, chase, search), where it is going, what it heard and saw and how long ago, its path's steps. From the page that hosts the match: its bots think there.",
+  },
   net: {
     name: 'net',
     description:
@@ -118,6 +137,7 @@ export function createMatch(o: {
   /** This page's place in the match. */
   let link: Client | null = null;
   let me = 1;
+  let driving: number | null = null;
   let net: NetMode = 'alone';
   let tabs: { close(): void } | null = null;
   /** Whether the next welcome is the one of a match just joined (its number comes with it). */
@@ -149,6 +169,8 @@ export function createMatch(o: {
       welcome(next, match) {
         session = next;
         me = client.player;
+        // (Another session: no bot driven.)
+        driving = null;
         if (joining) {
           joining = false;
           o.say(`you joined the match: you are player ${me}`);
@@ -231,6 +253,50 @@ export function createMatch(o: {
     ...MATCH_COMMANDS.snapshot,
     run: ([action]) => link!.request({ type: 'snapshot', action: action === 'load' ? 'load' : 'save' }),
   });
+  // The bots (stage 4e): driving one, going back, what each one thinks.
+  registry.declareCommand({
+    ...MATCH_COMMANDS.possess,
+    run: ([which], out) => {
+      if (which === undefined || which === '') {
+        driving = null;
+        return link!.request({ type: 'possess', bot: null });
+      }
+      const world = session.world;
+      const e = /^\d+$/.test(String(which)) ? world.entities.get(Number(which)) : world.named(String(which));
+      if (!e?.character || !e.brain) return out.write(`possess: "${String(which)}" is not a bot (\`bots\` lists them)`, 'warn');
+      driving = e.character.player;
+      link!.request({ type: 'possess', bot: e.character.player });
+    },
+  });
+  registry.declareCommand({
+    ...MATCH_COMMANDS.back,
+    run: ([seconds]) => link!.request({ type: 'back', seconds: Number(seconds ?? 1) }),
+  });
+  registry.declareCommand({
+    ...MATCH_COMMANDS.bots,
+    run: (_args, out) => {
+      if (!server) return out.write('this page does not host the match: its bots think in the tab that opened it', 'warn');
+      const world = server.world;
+      const bots = [...world.entities.values()].filter((e) => e.brain && e.character);
+      if (bots.length === 0) return out.write('no bots in this world (`dojo.guard x y z` puts a guard, in the Dojo)');
+      const ago = (tick: unknown) => (typeof tick === 'number' ? `${((world.tick - tick) / 60).toFixed(1)} s ago` : '');
+      const at = (p: unknown) => (Array.isArray(p) ? p.map((n: number) => n.toFixed(1)).join(' ') : '-');
+      const lines = bots.map((e) => {
+        const m = (server!.bots.memoryOf(e.id) ?? {}) as Record<string, unknown>;
+        const heard = m.heard as { at: unknown; tick: unknown } | null | undefined;
+        const seen = m.seen as { at: unknown; tick: unknown } | null | undefined;
+        const plan = m.plan as { steps: { kind: string }[]; next: number } | null | undefined;
+        const down = (e.health?.down ?? -1) >= 0 ? ' · down' : '';
+        return [
+          `${e.name ?? e.id} (entity ${e.id}, player ${e.character!.player}) · ${e.brain!.name}${e.brain!.route ? ` on ${e.brain!.route}` : ''}${down}`,
+          `  ${String(m.mode ?? '-')}, going to ${at(m.goal)}${driving === e.character!.player ? ' · you drive it' : ''}`,
+          `  heard ${heard ? `${ago(heard.tick)} at ${at(heard.at)}` : 'nothing'} · saw ${seen ? `${ago(seen.tick)} at ${at(seen.at)}` : 'nobody'}`,
+          `  path: ${plan ? plan.steps.slice(plan.next).map((s) => s.kind).join(', ') || '(there)' : '-'}`,
+        ].join('\n');
+      });
+      out.write(lines.join('\n'));
+    },
+  });
   // The match with other tabs (stage 1e).
   registry.declareCommand({
     ...MATCH_COMMANDS.net,
@@ -280,6 +346,9 @@ export function createMatch(o: {
     },
     get me() {
       return me;
+    },
+    get driving() {
+      return driving;
     },
     get net() {
       return net;

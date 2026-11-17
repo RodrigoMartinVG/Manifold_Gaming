@@ -66,5 +66,8 @@
  *  33  stage 4c: weapons: the world's seed is part of its state, for each shot's own dice; shots look
  *      back (`back`); projectiles fly in their own phase and strike what they meet (`projectile`,
  *      `shot`, `impact`); the Dojo's dart, bolt and stick, taken from their racks
+ *  34  stage 4e: a character may carry a brain (`brain`: which of its game's brains thinks for it, and
+ *      its route), and the Dojo's players have health (a guard can fight them; down, they are back at
+ *      their checkpoint three seconds later)
  */
-export const SIMULATION_VERSION = 33;
+export const SIMULATION_VERSION = 34;

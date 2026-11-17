@@ -26,7 +26,11 @@ export type ToServer =
   /** Play this replay (its text): the match starts over like it, and its inputs are the players'. */
   | { type: 'play'; replay: string }
   /** Stop the replay: the players drive again. */
-  | { type: 'stop' };
+  | { type: 'stop' }
+  /** Drive this bot (its player) with my keys, its brain waiting (stage 4e); null: let it go. */
+  | { type: 'possess'; bot: number | null }
+  /** Go back this many seconds (stage 4e: the server keeps a few seconds of its own snapshots). */
+  | { type: 'back'; seconds: number };
 
 /** A step, as the server tells it: what entered at it, and maybe its hash. */
 export interface Tick {

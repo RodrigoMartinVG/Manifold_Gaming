@@ -1,6 +1,8 @@
 import type { Level } from '@manifold/commands';
 import {
+  BotHost,
   Clock,
+  NO_INPUT,
   registryFor,
   replayFromText,
   ReplayPlayer,
@@ -30,6 +32,10 @@ interface Connection {
 
 const hex = (n: number) => n.toString(16).padStart(8, '0');
 
+/** Every how many steps the server keeps a snapshot to go back to (stage 4e), and how many: half a second, ten seconds. */
+const BACK_EVERY = 30;
+const BACK_KEPT = 20;
+
 /**
  * THE SERVER (stage 1e): it keeps THE match, the one that counts. It has no screen and no transport of
  * its own: it lives in the page that plays alone, in the tab that opens a match to others, and (phase
@@ -44,14 +50,23 @@ const hex = (n: number) => n.toString(16).padStart(8, '0');
  *   the hash, to check that their copies are the same world.
  * - Restarting, going back to a snapshot or playing a replay make a new session: everybody gets a
  *   new `welcome` with it.
+ * - It HOSTS THE BOTS (stage 4e, decision 0023): before each step, the game's brains think for the
+ *   characters that have one, and what they ask for enters like anyone's input (not while a replay
+ *   plays: its inputs are the recorded ones). A player can drive a bot (`possess`), and the match can
+ *   go back a few seconds (`back`: it keeps a snapshot every half second, with the bots' memories).
  */
 export class Server {
   private session: Session;
   private readonly connections = new Set<Connection>();
   private playback: ReplayPlayer | null = null;
   private saved: SessionSave | null = null;
+  private savedBots: ReturnType<BotHost['save']> = [];
   private readonly clock = new Clock();
   private readonly now: () => number;
+  /** The bots it thinks for (stage 4e). */
+  readonly bots = new BotHost();
+  /** Its last few seconds, a snapshot every `BACK_EVERY` steps (with the bots' memories), the newest last. */
+  private behind: { save: SessionSave; bots: ReturnType<BotHost['save']> }[] = [];
 
   constructor(
     readonly cartridge: Cartridge,
@@ -101,7 +116,8 @@ export class Server {
 
   /** One step of the match, and its tick to everybody. */
   step() {
-    this.playback?.feed(this.session);
+    if (this.playback) this.playback.feed(this.session);
+    else this.bots.think(this.session);
     this.session.step();
     const step = this.session.world.tick;
     const tick: Tick = { type: 'tick', step, inputs: [], changes: [] };
@@ -115,6 +131,10 @@ export class Server {
     if (this.playback?.finished(this.session)) {
       this.playback = null;
       this.syncPlayers();
+    }
+    if (step % BACK_EVERY === 0 && !this.playback) {
+      this.behind.push({ save: this.session.save(), bots: this.bots.save() });
+      if (this.behind.length > BACK_KEPT) this.behind.shift();
     }
   }
 
@@ -134,9 +154,22 @@ export class Server {
     const may = this.cartridge.mayChange ? this.cartridge.mayChange(player) : player === 1;
     const refuse = () => this.say(c, 'in this match, only its host changes the world', 'warn');
     switch (m.type) {
-      case 'input':
-        if (!this.playback) this.session.setInput(player, m.input);
+      case 'input': {
+        if (this.playback) return;
+        // Driving a bot: the keys go to it, and its own character stands still.
+        const bot = [...this.bots.possessed].find(([, by]) => by === player)?.[0];
+        if (bot === undefined) this.session.setInput(player, m.input);
+        else {
+          this.session.setInput(bot, m.input);
+          this.session.setInput(player, NO_INPUT);
+        }
         return;
+      }
+      case 'possess':
+        return this.possess(c, player, m.bot);
+      case 'back':
+        if (!may) return refuse();
+        return this.back(c, m.seconds);
       case 'change': {
         if (!may) return refuse();
         if (!this.session.registry.isWorldChange(m.line))
@@ -192,6 +225,10 @@ export class Server {
     this.session.world.dispose();
     this.session = session;
     this.saved = null;
+    this.savedBots = [];
+    this.behind = [];
+    this.bots.load();
+    this.bots.possessed.clear();
     // (Before welcoming and syncing the players: a replay's world must not get any `players.join`.)
     this.playback = playback;
     for (const c of this.connections) if (c.player !== null) this.welcome(c, replay);
@@ -222,6 +259,7 @@ export class Server {
     if (action === 'save') {
       const start = this.now();
       this.saved = this.session.save();
+      this.savedBots = this.bots.save();
       const ms = this.now() - start;
       const kb = (bytes: number) => (bytes / 1024).toFixed(1);
       const entities = JSON.stringify(this.saved.world.entities).length;
@@ -235,6 +273,8 @@ export class Server {
     if (this.playback) return this.say(c, 'a replay is playing: `replay stop` first', 'warn');
     const start = this.now();
     this.session.load(this.saved);
+    this.bots.load(this.savedBots);
+    this.behind = this.behind.filter((b) => b.save.world.tick <= this.session.world.tick);
     const ms = this.now() - start;
     for (const other of this.connections) if (other.player !== null) this.welcome(other);
     this.syncPlayers();
@@ -251,6 +291,37 @@ export class Server {
       return this.say(c, `the replay: ${(e as Error).message}`, 'warn');
     }
     this.replace(session, new ReplayPlayer(replay), { step: replay.end.step, hash: replay.end.hash });
+  }
+
+  /** A player drives a bot (stage 4e): its brain waits, and the player's keys go to it; null lets it go. */
+  private possess(c: Connection, player: number, bot: number | null) {
+    for (const [b, by] of this.bots.possessed) if (by === player) this.bots.possessed.delete(b);
+    if (bot === null) return this.say(c, 'you drive your own character again');
+    const e = [...this.session.world.entities.values()].find((x) => x.character?.player === bot && x.brain);
+    if (!e) return this.say(c, `no bot is player ${bot}`, 'warn');
+    const by = this.bots.possessed.get(bot);
+    if (by !== undefined) return this.say(c, `player ${by} drives it already`, 'warn');
+    this.bots.possessed.set(bot, player);
+    this.session.setInput(player, NO_INPUT);
+    this.say(c, `you drive ${e.name ?? `entity ${e.id}`} (player ${bot}): its brain waits until \`possess\` with nothing`);
+  }
+
+  /** Back `seconds` (stage 4e): to the newest snapshot it kept that far back, everybody with it. */
+  private back(c: Connection, seconds: number) {
+    if (this.playback) return this.say(c, 'a replay is playing: `replay stop` first', 'warn');
+    const to = this.session.world.tick - Math.round(seconds * 60);
+    const kept = [...this.behind].reverse().find((b) => b.save.world.tick <= to);
+    if (!kept) {
+      const oldest = this.behind[0];
+      const most = oldest ? ((this.session.world.tick - oldest.save.world.tick) / 60).toFixed(1) : '0';
+      return this.say(c, `it keeps only the last ${most} s: \`back ${most}\` at most`, 'warn');
+    }
+    this.session.load(kept.save);
+    this.bots.load(kept.bots);
+    this.behind = this.behind.filter((b) => b.save.world.tick <= kept.save.world.tick);
+    for (const other of this.connections) if (other.player !== null) this.welcome(other);
+    this.syncPlayers();
+    this.say(c, `back at step ${this.session.world.tick}, ${((to + Math.round(seconds * 60) - this.session.world.tick) / 60).toFixed(1)} s ago`);
   }
 
   private say(c: Connection, text: string, level: Level = 'info') {

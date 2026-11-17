@@ -1261,6 +1261,39 @@ test('the keep’s navigation (stage 4d): show.nav draws its cells; nav.path fro
   expect(list).toEqual([]);
 });
 
+test('a guard in the keep (stage 4e): `bots` says what it does; `possess guard` drives it with the keys; `back` goes back', async ({
+  page,
+}) => {
+  test.setTimeout(150_000);
+  const list = errors(page);
+  await page.goto('jugar/dojo/guard/#recipe=view.camera+free');
+  await expect.poll(async () => (await position(page, 'player')).length, { timeout: 15_000 }).toBe(3);
+  await afterSteps(page, 120);
+  await page.keyboard.press('Backquote');
+  await typeInConsole(page, 'bots');
+  const log = page.locator('.mg-console-log');
+  await expect(log).toContainText('guard (entity');
+  await expect(log).toContainText('dojo.guard on yard');
+  // It heard the lift take you up: it is looking.
+  await expect(log).toContainText(/look|chase|search/);
+  // Its body, with the keys: the camera goes with it, and W walks it.
+  await typeInConsole(page, 'possess guard');
+  await expect(log).toContainText('you drive guard');
+  await page.keyboard.press('Escape');
+  const [x0, , z0] = await position(page, 'player');
+  await page.keyboard.down('KeyW');
+  await afterSteps(page, 40);
+  await page.keyboard.up('KeyW');
+  const [x1, , z1] = await position(page, 'player');
+  expect(Math.hypot(x1! - x0!, z1! - z0!)).toBeGreaterThan(0.5);
+  await page.keyboard.press('Backquote');
+  await typeInConsole(page, 'possess');
+  await expect(log).toContainText('you drive your own character again');
+  await typeInConsole(page, 'back 1');
+  await expect(log).toContainText('back at step');
+  expect(list).toEqual([]);
+});
+
 test('its hands on the tower (stage 4a): on its wall while it climbs, on its top before it gets over; show.ik draws them', async ({
   page,
 }) => {

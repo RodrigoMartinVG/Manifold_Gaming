@@ -83,7 +83,8 @@ export {
 export { playReplay, replayFromText, replayOf, ReplayPlayer, replayToText, sessionFor, type Replay } from './replay';
 export { Clock } from './clock';
 export { stateHash } from './hash';
-export type { Cartridge } from './cartridge';
+export type { Brain, Cartridge, Memory } from './cartridge';
+export { BotHost } from './bots';
 export { CHARACTER_GAP, initPhysics, PHYSICS, RapierPhysics, STANDS_ON, STEP_UP, type PhysicsBackend } from './physics';
 export { EARTH, gravityAt } from './gravity';
 export type {
@@ -123,7 +124,11 @@ export type {
   Spin,
   Transform,
   CollisionGroups,
+  Route,
+  Affordance,
+  BrainOf,
 } from './types';
+export { AFFORDANCES } from './types';
 export { component, COMPONENT_NAME } from './components';
 export { VERIFIED, profileFromText, profileText, type Profile } from './profile';
 export { entityNamed, levelDiff, levelOfWorld, pieceFromLine, setField, declareBuilding } from './building';
