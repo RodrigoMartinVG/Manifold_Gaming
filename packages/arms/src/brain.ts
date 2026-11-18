@@ -14,7 +14,8 @@ import { SHOUT_INPUT, STEALTH, wary } from './stealth';
  *   - patrol: along its route, there and back (or round), from point to point;
  *   - look: a sound it heard, it stops and turns to it for a moment (listening), then walks to where it
  *     came from, and looks around for two seconds;
- *   - chase: someone it sees, it goes after; within reach of its stick, it strikes;
+ *   - chase: someone it sees, it goes after; within reach of its stick, it strikes; with a dart, a bolt or
+ *     (stage 5h) a shotgun, it stands and shoots, within its range;
  *   - search: whoever it lost, it goes to where it saw them last, and looks around.
  *
  * Its way is the navigation's (4d): when a door or the lift is not as its path needs, the path goes to
@@ -81,6 +82,8 @@ const LISTEN = 45;
  * nearer than `CLOSE` (m) it steps back as it shoots.
  */
 const CLOSE = 4;
+/** (Stage 5h) How near a guard with a shotgun shoots (m): beyond it, it comes nearer. */
+const SHOTGUN_RANGE = 8;
 /** How long out of sight it still counts as seeing them, for its time to shoot and its aim (steps). */
 const GLIMPSE = 30;
 /** How long it chases whoever it no longer sees (steps), looks around where it went to look, and keeps a plan before planning again. */
@@ -257,8 +260,11 @@ const guardBrain4e: Brain = (world, self, memory) => {
   // With a dart or a bolt (stage 4g), whoever it sees and is near enough it shoots at, standing (after a
   // moment to see them), from its eyes, aiming at their middle; too near, it steps back as it shoots.
   const kind = weapon(self)?.kind;
-  if (target && (kind === 'dart' || kind === 'bolt')) {
-    const { see, every, aim: follow, range } = gunnerOf(self);
+  if (target && (kind === 'dart' || kind === 'bolt' || kind === 'shotgun')) {
+    const gunner = gunnerOf(self);
+    const { see, every, aim: follow } = gunner;
+    // (Stage 5h) With a shotgun, only near: its pellets spread (at ten meters one or two strike).
+    const range = kind === 'shotgun' ? Math.min(gunner.range, SHOTGUN_RANGE) : gunner.range;
     const p = target.transform!.position;
     if (m.sighted < 0 || !m.aim) {
       m.sighted = world.tick;

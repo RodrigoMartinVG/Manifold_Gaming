@@ -1,0 +1,23 @@
+{
+  "name": "@manifold/wall",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The wall (decision 0029): the shooter, the fortress's wall held before dawn against waves of bots, in first person, with the games' weapons. On the games' shell (stage 5h).",
+  "exports": {
+    ".": "./src/index.ts",
+    "./game": "./src/game.ts"
+  },
+  "dependencies": {
+    "@manifold/arms": "0.0.0",
+    "@manifold/character": "0.0.0",
+    "@manifold/common": "0.0.0",
+    "@manifold/core": "0.0.0",
+    "@manifold/kit": "0.0.0",
+    "@manifold/presentation": "0.0.0",
+    "@manifold/shell": "0.0.0"
+  },
+  "scripts": {
+    "check": "tsc -p tsconfig.json"
+  }
+}

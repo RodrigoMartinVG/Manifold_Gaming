@@ -237,4 +237,20 @@ describe('a guard, and its wariness (stage 5e)', () => {
     expect(g().character!.facing[2]).toBeLessThan(-0.95);
     expect((bots.memoryOf(g().id) as { mode?: string }).mode).toBe('patrol');
   });
+
+  test('a guard with a shotgun (stage 5h) shoots only near: at 6 m it stands and fires; at 11 m (it sees to 12) it runs in to 8 m first', () => {
+    const fires = (distance: number) => {
+      const { world, step } = play(cartridge((w) => guard(w, [0, 0.82, -distance], [0, 0, 1], null, 'shotgun'), 1));
+      const g = () => [...world().entities.values()].find((e) => e.brain)!;
+      for (let i = 0; i < 240; i++) {
+        step();
+        if (world().stepEvents.some((e) => e.type === 'fired' && e.from === g().id)) return Math.abs(g().transform!.position[2]!);
+      }
+      return null;
+    };
+    expect(fires(6)).toBeGreaterThan(5.5);
+    const far = fires(11);
+    expect(far).not.toBeNull();
+    expect(far!).toBeLessThanOrEqual(8.2);
+  });
 });

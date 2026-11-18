@@ -1259,6 +1259,40 @@ test('the fortress’s end: the flame carried out of the keep, the thread’s la
   expect(list).toEqual([]);
 });
 
+/**
+ * The wall's link recipe (stage 5h): every attacker down at once, a little after each of the first level's
+ * three waves comes in (the first 3 s in; each next 4 s after the last is down).
+ */
+const allDown = 'recipe=wait+200;wall.down;wait+260;wall.down;wait+260;wall.down';
+
+test('the wall: its title, in first person, a level held (its waves, its gold time) and kept, at dawn’s edge', async ({
+  page,
+}) => {
+  // (Twelve seconds of play, its waves' own pauses: a page without a screen takes a minute or more.)
+  test.setTimeout(240_000);
+  const list = errors(page);
+  const game = page.locator('#game');
+  await page.goto(`jugar/muralla/#${allDown}`);
+  await expect(game).toHaveAttribute('data-dialog', 'La muralla', { timeout: 20_000 });
+  await expect(game).toHaveAttribute('data-sky', '4.5');
+  await page.getByRole('button', { name: 'Créditos' }).click();
+  await expect(page.locator('.mg-panel')).toContainText('weapons.glb: lo hace un guion de este proyecto, art/weapons.py');
+  await page.getByRole('button', { name: 'Volver' }).click();
+  await page.getByRole('button', { name: 'Jugar', exact: true }).click();
+  await expect(game).toHaveAttribute('data-dialog', 'La guardiana');
+  await page.getByRole('button', { name: 'Seguir' }).click();
+  await page.getByRole('button', { name: 'Seguir' }).click();
+  await expect(game).toHaveAttribute('data-level', 'yard');
+  await expect(page.locator('.mg-crosshair')).toBeVisible();
+  await expect(game).toHaveAttribute('data-dialog', 'El patio: listo', { timeout: 200_000 });
+  await expect(page.locator('.mg-panel')).toContainText('Tiempo de oro: 0:28,0');
+  await expect(page.locator('.mg-panel')).toContainText('Sin caer');
+  expect(JSON.parse((await game.getAttribute('data-progress'))!)).toMatchObject({ version: 1, started: true, reached: 1 });
+  await page.getByRole('button', { name: 'Seguir', exact: true }).click();
+  await expect(game).toHaveAttribute('data-level', 'gates');
+  expect(list).toEqual([]);
+});
+
 // ---------------------------------------------------------------- on a phone (decision 0028)
 
 test.describe('on a phone', () => {

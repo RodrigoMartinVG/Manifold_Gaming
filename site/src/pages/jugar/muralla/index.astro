@@ -1,0 +1,25 @@
+---
+/**
+ * THE WALL'S PAGE (stage 5h, on the games' shell): the shooter, before dawn, in first person. The title,
+ * its three levels, what each one took kept in this browser, the thread's lines and the credits. (The
+ * texts are the site's, in Spanish.)
+ */
+import GameFrame from '../../../components/GameFrame.astro';
+
+const play = `${import.meta.env.BASE_URL.replace(/\/?$/, '/')}jugar/`;
+---
+
+<GameFrame title="La muralla · Manifold Gaming" back={{ href: play, label: '← Salir de la muralla' }} hintKey="mg-wall-hint-seen">
+  <span slot="hint">
+    En primera persona: un clic toma el mouse y apunta. <kbd>W</kbd>
+    <kbd>A</kbd>
+    <kbd>S</kbd>
+    <kbd>D</kbd> para moverte, <kbd>Shift</kbd> para correr, <kbd>C</kbd> para agacharte detrás de algo, el clic o <kbd>X</kbd> para disparar. Pasá por un soporte para tomar su arma: la saeta, la escopeta, el lanzador (a tus pies, te sube). Aguantá cada oleada hasta la última. <kbd>Esc</kbd> o <kbd>P</kbd>: pausa y ajustes.
+  </span>
+  <script>
+    import { startWall } from '@manifold/wall';
+    await startWall(document.getElementById('game')!);
+    window.dispatchEvent(new Event('mg-game-ready'));
+    window.addEventListener('hashchange', () => location.reload());
+  </script>
+</GameFrame>

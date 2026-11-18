@@ -1,0 +1,195 @@
+# Manifold level 10
+# The wall's two gates (stage 5h): the second level, at a quarter past five. A wider yard; the attackers
+# come in by two gates at once, west and east, four waves; crates and low walls to hold behind; a bolt,
+# a shotgun and a launcher on their racks. An ambient of 0.5.
+title The two gates
+spawn 0 1 8
+facing 0 0 -1
+ambient 0.5
+sky 5.25
+
+kit floor_4  -10 0 -28
+kit floor_4  -6 0 -28
+kit floor_4  -2 0 -28
+kit floor_4  2 0 -28
+kit floor_4  6 0 -28
+kit floor_4  10 0 -28
+kit floor_4  -10 0 -24
+kit floor_4  -6 0 -24
+kit floor_4  -2 0 -24
+kit floor_4  2 0 -24
+kit floor_4  6 0 -24
+kit floor_4  10 0 -24
+kit floor_4  -10 0 -20
+kit floor_4  -6 0 -20
+kit floor_4  -2 0 -20
+kit floor_4  2 0 -20
+kit floor_4  6 0 -20
+kit floor_4  10 0 -20
+kit floor_4  -10 0 -16
+kit floor_4  -6 0 -16
+kit floor_4  -2 0 -16
+kit floor_4  2 0 -16
+kit floor_4  6 0 -16
+kit floor_4  10 0 -16
+kit floor_4  -10 0 -12
+kit floor_4  -6 0 -12
+kit floor_4  -2 0 -12
+kit floor_4  2 0 -12
+kit floor_4  6 0 -12
+kit floor_4  10 0 -12
+kit floor_4  -10 0 -8
+kit floor_4  -6 0 -8
+kit floor_4  -2 0 -8
+kit floor_4  2 0 -8
+kit floor_4  6 0 -8
+kit floor_4  10 0 -8
+kit floor_4  -10 0 -4
+kit floor_4  -6 0 -4
+kit floor_4  -2 0 -4
+kit floor_4  2 0 -4
+kit floor_4  6 0 -4
+kit floor_4  10 0 -4
+kit floor_4  -10 0 0
+kit floor_4  -6 0 0
+kit floor_4  -2 0 0
+kit floor_4  2 0 0
+kit floor_4  6 0 0
+kit floor_4  10 0 0
+kit floor_4  -10 0 4
+kit floor_4  -6 0 4
+kit floor_4  -2 0 4
+kit floor_4  2 0 4
+kit floor_4  6 0 4
+kit floor_4  10 0 4
+kit floor_4  -10 0 8
+kit floor_4  -6 0 8
+kit floor_4  -2 0 8
+kit floor_4  2 0 8
+kit floor_4  6 0 8
+kit floor_4  10 0 8
+kit floor_2  -11 0 11
+kit floor_2  -9 0 11
+kit floor_2  -7 0 11
+kit floor_2  -5 0 11
+kit floor_2  -3 0 11
+kit floor_2  -1 0 11
+kit floor_2  1 0 11
+kit floor_2  3 0 11
+kit floor_2  5 0 11
+kit floor_2  7 0 11
+kit floor_2  9 0 11
+kit floor_2  11 0 11
+kit wall_4  -11.85 0 -28  rotate y 90
+kit wall_4  -11.85 0 -24  rotate y 90
+kit wall_4  -11.85 0 -20  rotate y 90
+kit wall_4  -11.85 0 -16  rotate y 90
+kit wall_4  -11.85 0 -12  rotate y 90
+kit wall_4  -11.85 0 -8  rotate y 90
+kit wall_4  -11.85 0 -4  rotate y 90
+kit wall_4  -11.85 0 0  rotate y 90
+kit wall_4  -11.85 0 4  rotate y 90
+kit wall_4  -11.85 0 8  rotate y 90
+kit wall_2  -11.85 0 11  rotate y 90
+kit wall_4  -11.85 3 -28  rotate y 90
+kit wall_4  -11.85 3 -24  rotate y 90
+kit wall_4  -11.85 3 -20  rotate y 90
+kit wall_4  -11.85 3 -16  rotate y 90
+kit wall_4  -11.85 3 -12  rotate y 90
+kit wall_4  -11.85 3 -8  rotate y 90
+kit wall_4  -11.85 3 -4  rotate y 90
+kit wall_4  -11.85 3 0  rotate y 90
+kit wall_4  -11.85 3 4  rotate y 90
+kit wall_4  -11.85 3 8  rotate y 90
+kit wall_2  -11.85 3 11  rotate y 90
+kit wall_4  11.85 0 -28  rotate y 90
+kit wall_4  11.85 0 -24  rotate y 90
+kit wall_4  11.85 0 -20  rotate y 90
+kit wall_4  11.85 0 -16  rotate y 90
+kit wall_4  11.85 0 -12  rotate y 90
+kit wall_4  11.85 0 -8  rotate y 90
+kit wall_4  11.85 0 -4  rotate y 90
+kit wall_4  11.85 0 0  rotate y 90
+kit wall_4  11.85 0 4  rotate y 90
+kit wall_4  11.85 0 8  rotate y 90
+kit wall_2  11.85 0 11  rotate y 90
+kit wall_4  11.85 3 -28  rotate y 90
+kit wall_4  11.85 3 -24  rotate y 90
+kit wall_4  11.85 3 -20  rotate y 90
+kit wall_4  11.85 3 -16  rotate y 90
+kit wall_4  11.85 3 -12  rotate y 90
+kit wall_4  11.85 3 -8  rotate y 90
+kit wall_4  11.85 3 -4  rotate y 90
+kit wall_4  11.85 3 0  rotate y 90
+kit wall_4  11.85 3 4  rotate y 90
+kit wall_4  11.85 3 8  rotate y 90
+kit wall_2  11.85 3 11  rotate y 90
+kit wall_4  -10 0 11.85
+kit wall_4  -6 0 11.85
+kit wall_4  -2 0 11.85
+kit wall_4  2 0 11.85
+kit wall_4  6 0 11.85
+kit wall_4  10 0 11.85
+kit wall_4  -10 3 11.85
+kit wall_4  -6 3 11.85
+kit wall_4  -2 3 11.85
+kit wall_4  2 3 11.85
+kit wall_4  6 3 11.85
+kit wall_4  10 3 11.85
+kit wall_2  -11 0 -24.15
+kit wall_2  -11 3 -24.15
+kit wall_4  -4 0 -24.15
+kit wall_4  0 0 -24.15
+kit wall_4  4 0 -24.15
+kit wall_4  -4 3 -24.15
+kit wall_4  0 3 -24.15
+kit wall_4  4 3 -24.15
+kit wall_2  11 0 -24.15
+kit wall_2  11 3 -24.15
+kit wall_2  -9 3 -24.15
+kit wall_2  -7 3 -24.15
+kit wall_2  7 3 -24.15
+kit wall_2  9 3 -24.15
+kit block_1  -3 0 3
+kit block_1  -2 0 3
+kit block_1  2 0 3
+kit block_1  3 0 3
+kit block_1  -8 0 -2
+kit block_1  -7 0 -2
+kit block_1  7 0 -2
+kit block_1  8 0 -2
+kit block_1  0 0 -8
+kit block_1  -4 0 -14
+kit block_1  4 0 -14
+kit wall_2  -5 0 0
+kit wall_2  5 0 0
+
+lamp -8 2.4 -23.2  6 0.6  name torch_west
+lamp 8 2.4 -23.2   6 0.6  name torch_east
+
+route in_west   -8 0 -28  -8 0 -18  -3 0 -4
+route in_east   8 0 -28   8 0 -18  3 0 -4
+route in_wwest  -9.5 0 -27  -10 0 -12  -9 0 2
+route in_eeast  9.5 0 -27   10 0 -12  9 0 2
+
+sensor weapon  -4 0.5 10.5  0.4 0.5 0.4  kind 2
+sensor weapon  0 0.5 10.5   0.4 0.5 0.4  kind 5
+sensor weapon  4 0.5 10.5   0.4 0.5 0.4  kind 6
+
+# The waves: two and two; three and two; three and three, a bolt among them; four and four.
+sensor attackers  -8 1 -28.2   0.3 0.8 0.3  wave 1  count 1  kind 1
+sensor attackers  8 1 -28.2    0.3 0.8 0.3  wave 1  count 1  kind 1
+sensor attackers  -9.5 1 -27.2  0.3 0.8 0.3  wave 2  count 1  kind 1
+sensor attackers  -8 1 -28.2   0.3 0.8 0.3  wave 2  count 1  kind 1
+sensor attackers  8 1 -28.2    0.3 0.8 0.3  wave 2  count 1  kind 1
+sensor attackers  -8 1 -28.2   0.3 0.8 0.3  wave 3  count 1  kind 2
+sensor attackers  -9.5 1 -27.2  0.3 0.8 0.3  wave 3  count 1  kind 1
+sensor attackers  8 1 -28.2    0.3 0.8 0.3  wave 3  count 1  kind 1
+sensor attackers  9.5 1 -27.2   0.3 0.8 0.3  wave 3  count 1  kind 1
+sensor attackers  -8 1 -28.2   0.3 0.8 0.3  wave 4  count 1  kind 1
+sensor attackers  -9.5 1 -27.2  0.3 0.8 0.3  wave 4  count 1  kind 2
+sensor attackers  8 1 -28.2    0.3 0.8 0.3  wave 4  count 1  kind 1
+sensor attackers  9.5 1 -27.2   0.3 0.8 0.3  wave 4  count 1  kind 2
+
+sensor checkpoint  0 1 8   1.5 0.8 1.5
+sensor fall        0 -10 0  80 2 80
