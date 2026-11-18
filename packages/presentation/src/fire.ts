@@ -17,11 +17,18 @@ import { addInterfaceStyles } from './ui';
  *   - where it struck: sparks off what does not live, a pale burst off whoever it hurt;
  *   - a blast, seen: a ball of light that grows to most of its radius and fades;
  *   - a marker when it strikes: four short strokes round the crosshair when the page's own shot hurts
- *     someone, red on the head, larger when it brings them down.
+ *     someone, red on the head, larger when it brings them down;
+ *   - (stage 5i, decision 0031) the flash lights what is round it for an instant (one light, kept and
+ *     lit only then, so the scene's lights never change in number and nothing is compiled again);
+ *   - (5i) a weapon raised to take aim (the world's `ready` sound) glints at its end: the warning before
+ *     a fair gunner's shot, seen as well as heard;
+ *   - (5i) a hit taken, or a blast near, shakes the view: a "trauma" that decays, the shake its square,
+ *     smooth (turned off by `view.shake`, a comfort setting).
  *
  * Mounted right after the camera (its kick turns the camera as that piece placed it for the frame). Its
  * sound is the audio's (audio.ts: `fired`). For the browser tests: `data-hits` and `data-downs`
- * (the markers shown), `data-flashes`, `data-kick` (the view's kick now, in degrees).
+ * (the markers shown), `data-flashes`, `data-kick` (the view's kick now, in degrees), `data-readies`
+ * (the glints shown) and `data-trauma` (the shake's trauma now).
  */
 
 /** Each kind's flash (m across; none for what is thrown or swung) and kick (degrees up). */
@@ -44,6 +51,26 @@ const MARKER = 0.18;
 const KICK_BACK = 0.09;
 /** At most this kick at once (degrees): shots in a row do not throw the view over. */
 const MOST_KICK = 10;
+/** A raised weapon's glint (s); the flash's light, how long and how bright for the loudest flash. */
+const GLINT = 0.45;
+const LIGHT = 0.08;
+const LIGHT_MOST = 12;
+/** The shake: at full trauma, this many degrees; how fast the trauma goes (per second). */
+const SHAKE = 2.5;
+const SETTLE = 1.4;
+
+/** Whether a hit shakes the view (stage 5i): a comfort setting, on as it comes. */
+export const SHAKE_VARIABLE = {
+  name: 'view.shake',
+  description:
+    'A hit taken, or a blast near, shakes the view (stage 5i): briefly, more the harder it was. Off, the view stays still; for whoever gets dizzy, with `view.calm`.',
+  scope: 'view',
+  type: { kind: 'boolean' },
+  default: true,
+} as const;
+
+/** Smooth noise for the shake: two waves of unrelated frequencies, from −1 to 1. */
+const wobble = (t: number, k: number) => 0.6 * Math.sin(13.1 * t + 1.7 * k) + 0.4 * Math.sin(7.3 * t + 4.1 * k);
 
 interface Glow {
   mesh: THREE.Mesh;
@@ -69,6 +96,17 @@ export function mountFire(page: GamePage, bodies: Bodies): Piece {
   let hits = 0;
   let downs = 0;
   let flashes = 0;
+  let readies = 0;
+  // The flash's light: one, kept in the scene and lit only for an instant.
+  const light = new THREE.PointLight(0xffd08a, 0, 9, 2);
+  scene.add(light);
+  let lightLeft = 0;
+  let lightMost = 0;
+  // The shake.
+  let trauma = 0;
+  let shakeOn = true;
+  let shakeTime = 0;
+  page.registry.declareVariable({ ...SHAKE_VARIABLE, onChange: (v) => (shakeOn = v === true) });
 
   const glow = (
     at: THREE.Vector3,
@@ -120,6 +158,9 @@ export function mountFire(page: GamePage, bodies: Bodies): Piece {
   return {
     welcome() {
       kick = 0;
+      trauma = 0;
+      lightLeft = 0;
+      light.intensity = 0;
       marker.hidden = true;
       for (const g of glows.splice(0)) {
         g.mesh.removeFromParent();
@@ -132,8 +173,12 @@ export function mountFire(page: GamePage, bodies: Bodies): Piece {
         const feel = FEEL[ev.kind];
         if (!feel) return;
         if (feel.flash > 0) {
-          glow(muzzleOf(ev.from, ev.at), feel.flash, 0xffd890, FLASH);
+          const at = muzzleOf(ev.from, ev.at);
+          glow(at, feel.flash, 0xffd890, FLASH);
           page.container.dataset.flashes = String(++flashes);
+          light.position.copy(at);
+          lightMost = LIGHT_MOST * (feel.flash / FEEL.shotgun!.flash);
+          lightLeft = LIGHT;
         }
         if (hero && ev.from === hero.id) {
           kick = Math.min(MOST_KICK, kick + feel.kick);
@@ -151,7 +196,20 @@ export function mountFire(page: GamePage, bodies: Bodies): Piece {
       } else if (ev.type === 'blast') {
         // From a third of a meter to most of its radius, fading.
         glow(new THREE.Vector3(...ev.at), 0.6, 0xffa850, BLAST, { grow: (1.6 * ev.radius) / 0.6 });
+        // Near the page's character, it shakes the view: more the nearer, up to half again its radius.
+        if (hero?.transform) {
+          const d = new THREE.Vector3(...hero.transform.position).distanceTo(new THREE.Vector3(...ev.at));
+          const reach = 1.5 * ev.radius;
+          if (d < reach) trauma = Math.min(1, trauma + 0.6 * (1 - d / reach));
+        }
+      } else if (ev.type === 'sound' && ev.sound === 'ready') {
+        // A weapon raised: a cold glint at its end, growing a little and fading.
+        glow(muzzleOf(ev.source, ev.at), 0.16, 0xd8ecff, GLINT, { grow: 1.6 });
+        page.container.dataset.readies = String(++readies);
       } else if (ev.type === 'hurt') {
+        // The page's character hurt: the view shakes, more the more it took.
+        if (hero && ev.target === hero.id && ev.amount > 0)
+          trauma = Math.min(1, trauma + 0.25 + ev.amount / (hero.health?.most ?? 100));
         if (!hero || ev.from !== hero.id || ev.target === hero.id) return;
         showMarker(ev.part === 'head', false);
         page.container.dataset.hits = String(++hits);
@@ -183,6 +241,24 @@ export function mountFire(page: GamePage, bodies: Bodies): Piece {
         markerLeft -= dt;
         if (markerLeft <= 0) marker.hidden = true;
       }
+      // The flash's light, out in an instant.
+      if (lightLeft > 0) {
+        lightLeft -= dt;
+        light.intensity = lightLeft > 0 ? lightMost * (lightLeft / LIGHT) : 0;
+      }
+      // The shake, on the camera as the camera piece placed it for this frame: its square, smooth, and the
+      // trauma going down.
+      if (trauma > 0) {
+        shakeTime += dt;
+        if (shakeOn) {
+          const a = THREE.MathUtils.degToRad(SHAKE * trauma * trauma);
+          camera.rotateZ(a * wobble(shakeTime, 1));
+          camera.rotateX(0.6 * a * wobble(shakeTime, 2));
+          camera.rotateY(0.6 * a * wobble(shakeTime, 3));
+        }
+        trauma = Math.max(0, trauma - SETTLE * dt);
+        page.container.dataset.trauma = trauma.toFixed(2);
+      }
       // The kick, put on the camera as the camera piece placed it for this frame (it places it anew every
       // frame: mounted after it, this turns it up by what is left of the kick), and eased back.
       if (kick > 1e-3) {
@@ -194,6 +270,8 @@ export function mountFire(page: GamePage, bodies: Bodies): Piece {
     },
     stop() {
       marker.remove();
+      light.removeFromParent();
+      light.dispose();
       for (const g of glows.splice(0)) {
         g.mesh.removeFromParent();
         release(g.mesh);

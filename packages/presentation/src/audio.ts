@@ -144,6 +144,11 @@ export function mountAudio(page: GamePage): Piece {
         ring(out, at + 0.24, 210, 0.12, 0.3, 'sawtooth', 170);
         burst(out, at, 1400, 1.5, 0.08, 0.4);
         break;
+      case 'ready':
+        // (Stage 5i) A weapon raised to take aim: a metal click and a short rising whine, the warning.
+        burst(out, at, 2600, 6, 0.3, 0.03);
+        ring(out, at + 0.02, 520, 0.16, 0.32, 'triangle', 980);
+        break;
     }
     made++;
     page.container.dataset.sounds = String(made);
@@ -211,8 +216,28 @@ export function mountAudio(page: GamePage): Piece {
     return { loudness: (1 - d / reach) ** 2, pan: pan * 0.8 };
   };
 
+  /**
+   * (Stage 5i) The page's own hits, heard: a short tick for a hit, a deeper thud for bringing someone
+   * down; not placed (they are about the shot, not where it struck), as the marker on the crosshair.
+   */
+  const struck = (down: boolean) => {
+    const at = context!.currentTime + 0.01;
+    const out = context!.createGain();
+    out.gain.value = 0.5;
+    out.connect(master!);
+    if (down) {
+      ring(out, at, 320, 0.35, 0.22, 'triangle', 120);
+      burst(out, at, 700, 1.2, 0.25, 0.12);
+    } else ring(out, at, 1900, 0.22, 0.05, 'square', 1500);
+  };
+
   return {
     event(ev) {
+      if ((ev.type === 'hurt' || ev.type === 'down') && context?.state === 'running' && master && master.gain.value > 0) {
+        const hero = page.player();
+        if (hero && ev.from === hero.id && ev.target !== hero.id) struck(ev.type === 'down');
+        return;
+      }
       if (
         (ev.type !== 'sound' && ev.type !== 'fired') ||
         !context ||

@@ -1352,6 +1352,27 @@ test('the wall: its title, in first person, a level held (its waves, its gold ti
   expect(list).toEqual([]);
 });
 
+test('the wall’s attackers are fair: each raises its weapon, seen and heard, before it shoots; a hit shakes the view', async ({
+  page,
+}) => {
+  test.setTimeout(240_000);
+  const list = errors(page);
+  const game = page.locator('#game');
+  await page.goto('jugar/muralla/');
+  await expect(game).toHaveAttribute('data-dialog', 'La muralla', { timeout: 20_000 });
+  await page.getByRole('button', { name: 'Jugar', exact: true }).click();
+  await page.getByRole('button', { name: 'Seguir' }).click();
+  await page.getByRole('button', { name: 'Seguir' }).click();
+  await expect(game).toHaveAttribute('data-level', 'yard');
+  // Standing where it was born, the defender only watches: the attackers come through the gate, and each
+  // raises its weapon (a glint, `data-readies`; and its sound, heard and in subtitles) before the first hit.
+  await expect.poll(() => game.getAttribute('data-hurt').then(Number), { timeout: 150_000 }).toBeGreaterThan(0);
+  expect(Number(await game.getAttribute('data-readies')), 'warned before the first hit').toBeGreaterThan(0);
+  // The hit shook the view (a trauma that decays in under a second: it was there).
+  expect(await game.getAttribute('data-trauma')).not.toBeNull();
+  expect(list).toEqual([]);
+});
+
 // ---------------------------------------------------------------- on a phone (decision 0028)
 
 test.describe('on a phone', () => {

@@ -40,7 +40,20 @@ export const GUARD = Object.freeze({
  * not. Measured in the arena's open over 30 s, before and after: standing still, down 6 times (half
  * the time down) and then once, at 4.8 s; going side to side, 17 darts of 18 struck and then 4 of 19.
  */
-export type Gunner = { see: number; every: number; aim: number; range: number };
+export type Gunner = { see: number; every: number; aim: number; range: number; fair?: Fair };
+
+/**
+ * A FAIR GUNNER (stage 5i, decision 0031: "los bots son muy perfectos"): how a guard that shoots gives
+ * whoever it aims at a chance, with the numbers the classics ship (Doom's and Quake's released code,
+ * Half-Life 2's): its aim goes where the target was `lag` steps before (Quake's grunt aims 0.2 s
+ * behind), with an error of `spread` degrees that starts three times wider when it first sees them and
+ * narrows over 0.6 s (Half-Life 2); before each shot it raises its weapon for `windup` steps, seen and
+ * heard (Doom's 0.3 to 0.5 s); at most `tokens` of them raised at once against the same one (Doom 2016's
+ * attack tokens, Half-Life 2's two slots); the first shot after it sees them passes `miss` meters to a
+ * side (a warning you hear go by); hit, it flinches: its weapon down, its aim wide again, for `flinch`
+ * steps. Only a gunner that has it: the Dojo's 4g gunners fight as they did (their replays keep their hashes).
+ */
+export type Fair = { windup: number; spread: number; lag: number; tokens: number; miss: number; flinch: number };
 export const GUNNER: Readonly<Gunner> = Object.freeze({ see: 60, every: 90, aim: 0.15, range: 18 });
 export const GUNNER_KEY = 'arms.gunner';
 export const gunnerOf = (e: Entity): Readonly<Gunner> => component<Gunner>(e, GUNNER_KEY) ?? GUNNER;

@@ -513,7 +513,8 @@ export function createDojo(levels: Readonly<Record<string, Level>>, brains: Read
         },
       });
       // How the guards with a dart or a bolt fight (stage 4.5a): each room's, from its recipe.
-      const gunners = (name: keyof Gunner, description: string, scale: number, min: number, max: number) => {
+      // (Its numbers, not its `fair` (stage 5i): the Dojo's guards fight as 4g's.)
+      const gunners = (name: Exclude<keyof Gunner, 'fair'>, description: string, scale: number, min: number, max: number) => {
         // (Seconds become whole steps; the aim, a share, keeps three decimals.)
         const told = (v: number) => (scale === 1 ? Math.round(v * 1000) / 1000 : Math.round(v * scale));
         registry.declareVariable({

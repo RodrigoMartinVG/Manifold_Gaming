@@ -28,6 +28,8 @@ export const SETTINGS: readonly Setting[] = [
   // (Stage 4.5a.)
   { name: 'view.fov', say: 'settings.fov', control: { kind: 'range', min: 40, max: 90, step: 1 } },
   { name: 'view.crosshair', say: 'settings.crosshair', control: { kind: 'toggle' } },
+  // (Stage 5i, decision 0031: comfort.)
+  { name: 'view.shake', say: 'settings.shake', control: { kind: 'toggle' } },
 ];
 
 /**

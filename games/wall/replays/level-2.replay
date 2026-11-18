@@ -1,4 +1,4 @@
-# Manifold replay 42
+# Manifold replay 43
 # The wall's two gates, held: four waves through two gates.
 # A reference replay (stage 5h, as the tower’s since 5d): playing it must end with the hash on its
 # last line. Recorded by games/wall/src/levels.test.ts; recorded again (npm run references) only
@@ -182,7 +182,7 @@ input 348 1 face @6.3 pitch -0.016 arms.attack
 input 349 1 face @6.1 pitch -0.016
 input 350 1 face @5.9 pitch -0.016 arms.attack
 input 351 1 face @5.7 pitch -0.017
-input 352 101 face @185.4 pitch -0.022 arms.attack
+input 352 101 face @185.4 pitch -0.022
 input 352 1 face @5.4 pitch -0.017 arms.attack
 input 353 101 face @185.2 pitch -0.022
 input 353 1 face @5.2 pitch -0.017
@@ -413,10 +413,9 @@ input 793 1 face @8.3 pitch -0.016 arms.attack
 input 794 101 move @183 run
 input 794 1 face @8.3 pitch -0.017
 input 795 101 move @185 run
-input 795 102 face @188.2 pitch -0.022 arms.attack
+input 795 102 face @188.2 pitch -0.022
 input 795 1 face @8.3 pitch -0.017 arms.attack
 input 796 101 move @187 run
-input 796 102 face @188.2 pitch -0.022
 input 796 1 face @8.2 pitch -0.017 arms.attack
 input 797 101 move @188 run
 input 797 1 face @8.2 pitch -0.017
@@ -440,27 +439,26 @@ input 810 1 face @8.2 pitch -0.017 arms.attack
 input 812 1 face @8.2 pitch -0.017
 input 813 1 face @8.2 pitch -0.017 arms.attack
 input 814 1 face @8.2 pitch -0.017
-input 815 101 face @171.7 pitch -0.022
+input 815 101 face @171.7 pitch -0.022 arms.ready
 input 815 1 face @8.2 pitch -0.017 arms.attack
 input 816 1 face @8.2 pitch -0.017
 input 817 1 face @8.2 pitch -0.017 arms.attack
 input 818 1 face @8.2 pitch -0.017
-input 819 101 face @171.7 pitch -0.023
+input 819 101 face @171.7 pitch -0.023 arms.ready
 input 819 1 face @8.2 pitch -0.017 arms.attack
 input 820 1 face @8.2 pitch -0.017
 input 821 1 face @351.7 pitch -0.017 arms.attack
 input 822 1 face @351.7 pitch -0.017
 input 823 1 face @351.7 pitch -0.017 arms.attack
 input 824 1 face @351.7 pitch -0.017
-input 825 101 face @171.7 pitch -0.023 arms.attack
 input 825 1 face @351.7 pitch -0.017 arms.attack
-input 826 101 face @171.7 pitch -0.023
 input 827 1 face @351.7 pitch -0.017
 input 828 1 face @351.7 pitch -0.017 arms.attack
 input 829 1 face @351.7 pitch -0.017
 input 830 1 face @351.7 pitch -0.017 arms.attack
 input 831 1 face @351.7 pitch -0.017
 input 832 1 face @351.7 pitch -0.017 arms.attack
+input 833 101 face @171.7 pitch -0.023
 input 833 1 face @351.7 pitch -0.017
 input 834 1 face @351.7 pitch -0.017 arms.attack
 input 835 1 face @351.7 pitch -0.017
@@ -471,6 +469,7 @@ input 839 1 face @351.7 pitch -0.017
 input 840 1 face @351.7 pitch -0.017 arms.attack
 input 842 1 face @351.7 pitch -0.017
 input 843 1 face @351.7 pitch -0.017 arms.attack
+input 844 102 face @188.2 pitch -0.023 arms.ready
 input 844 1 face @351.7 pitch -0.017
 input 845 1 face @351.7 pitch -0.017 arms.attack
 input 846 1 face @351.7 pitch -0.017
@@ -487,15 +486,15 @@ input 857 1 face @351.7 pitch -0.017
 input 858 1 face @351.7 pitch -0.017 arms.attack
 input 859 1 face @351.7 pitch -0.017
 input 860 1 face @351.7 pitch -0.017 arms.attack
-input 861 102 face @188.2 pitch -0.023 arms.attack
 input 861 1 face @351.7 pitch -0.017
-input 862 102 face @188.2 pitch -0.023
 input 862 1 face @351.7 pitch -0.017 arms.attack
 input 863 1 face @351.7 pitch -0.017
 input 864 1 face @351.7 pitch -0.017 arms.attack
 input 865 1 face @351.7 pitch -0.017
 input 866 1 face @351.7 pitch -0.017 arms.attack
+input 867 102 face @183.8 pitch -0.024 arms.attack
 input 867 1 face @351.7 pitch -0.017
+input 868 102 face @188.2 pitch -0.023
 input 868 1 face @351.7 pitch -0.017 arms.attack
 input 869 1 face @351.7 pitch -0.017
 input 870 1 face @351.7 pitch -0.017 arms.attack
@@ -707,9 +706,8 @@ input 1295 1 face @8.2 pitch -0.016 arms.attack
 input 1296 1 face @8.2 pitch -0.016
 input 1297 1 face @8.2 pitch -0.016 arms.attack
 input 1298 1 face @8.2 pitch -0.017
-input 1299 102 face @188.2 pitch -0.022 arms.attack
+input 1299 102 face @188.2 pitch -0.022
 input 1299 1 face @8.2 pitch -0.017 arms.attack
-input 1300 102 face @188.2 pitch -0.022
 input 1300 1 face @8.2 pitch -0.017
 input 1301 1 face @8.2 pitch -0.017 arms.attack
 input 1302 1 face @8.2 pitch -0.017
@@ -962,9 +960,8 @@ input 1780 1 face @8.2 pitch -0.016
 input 1781 1 face @8.2 pitch -0.016 arms.attack
 input 1782 1 face @8.2 pitch -0.016
 input 1783 1 face @8.2 pitch -0.017 arms.attack
-input 1784 103 face @188.1 pitch -0.022 arms.attack
+input 1784 103 face @188.1 pitch -0.022
 input 1784 1 face @8.2 pitch -0.017
-input 1785 103 face @188.1 pitch -0.022
 input 1785 1 face @8.1 pitch -0.017 arms.attack
 input 1787 1 face @8.1 pitch -0.017
 input 1788 1 face @8.1 pitch -0.017 arms.attack
@@ -997,7 +994,7 @@ input 1812 102 face @189.1 pitch -0.022
 input 1812 1 face @9.1 pitch -0.017
 input 1813 102 face @189.2 pitch -0.022
 input 1813 1 face @9.2 pitch -0.017 arms.attack
-input 1814 102 face @189.4 pitch -0.022 arms.attack
+input 1814 102 face @189.4 pitch -0.022
 input 1814 1 face @9.4 pitch -0.017
 input 1815 102 face @189.5 pitch -0.022
 input 1815 1 face @9.5 pitch -0.017 arms.attack
@@ -1025,8 +1022,10 @@ input 1834 1 face @9.8 pitch -0.017
 input 1835 1 face @9.8 pitch -0.017 arms.attack
 input 1836 1 face @9.8 pitch -0.017
 input 1837 1 face @9.8 pitch -0.017 arms.attack
+input 1838 102 face @189.8 pitch -0.022 arms.ready
 input 1838 1 face @9.8 pitch -0.017
 input 1839 1 face @9.8 pitch -0.017 arms.attack
+input 1840 102 face @189.8 pitch -0.022
 input 1840 1 face @9.8 pitch -0.017
 input 1841 1 face @9.8 pitch -0.017 arms.attack
 input 1842 1 face @9.8 pitch -0.017
@@ -1049,13 +1048,13 @@ input 1859 1 face @9.8 pitch -0.017
 input 1860 1 face @9.8 pitch -0.017 arms.attack
 input 1862 1 face @9.8 pitch -0.017
 input 1863 1 face @9.8 pitch -0.017 arms.attack
+input 1864 102 face @189.8 pitch -0.022 arms.ready
 input 1864 1 face @9.8 pitch -0.017
 input 1865 1 face @9.8 pitch -0.017 arms.attack
+input 1866 102 face @189.8 pitch -0.022
 input 1866 1 face @9.8 pitch -0.017
 input 1867 1 face @9.8 pitch -0.017 arms.attack
-input 1868 102 face @189.8 pitch -0.022 arms.attack
 input 1868 1 face @9.8 pitch -0.017
-input 1869 102 face @189.8 pitch -0.022
 input 1869 1 face @9.8 pitch -0.017 arms.attack
 input 1870 1 face @9.8 pitch -0.017
 input 1871 1 face @9.8 pitch -0.017 arms.attack
@@ -1065,4 +1064,4 @@ input 1874 1 face @9.8 pitch -0.017
 input 1875 1 face @9.8 pitch -0.017 arms.attack
 input 1877 1 face @9.8 pitch -0.017
 input 1878 1 face @9.8 pitch -0.017 arms.attack
-end 1878 5bb3b64f
+end 1878 c1a73893

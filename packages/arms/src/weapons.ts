@@ -5,6 +5,7 @@ import {
   component,
   countOf,
   eyeHeightOf,
+  isDown,
   MOST_BACK,
   NO_INPUT,
   pressed,
@@ -20,6 +21,12 @@ import {
 
 /** What attacks: the input a character presses to use the weapon it carries (stage 4c's `dojo.attack`, the games' since 5e). */
 export const ATTACK = 'arms.attack';
+/**
+ * (Stage 5i, decision 0031) A weapon RAISED, held while its bearer takes aim before a shot: seen (it is
+ * the world's: `arms.raised`) and heard (a sound, `ready`). A fair bot raises it for a moment before each
+ * shot, so whoever it aims at has a warning (a player fires at once and never needs it).
+ */
+export const READY = 'arms.ready';
 
 /** The inputs a game that fights declares (its cartridge's `inputs`). */
 export const ARMS_INPUTS: readonly InputAction[] = [
@@ -28,7 +35,22 @@ export const ARMS_INPUTS: readonly InputAction[] = [
     kind: 'button',
     description: 'the character uses the weapon it carries: a dart, a bolt, a stick, a grenade (stage 4c)',
   },
+  {
+    name: READY,
+    kind: 'button',
+    description: 'the character raises its weapon, taking aim: seen and heard before it fires (stage 5i)',
+  },
 ];
+
+/**
+ * A RAISED WEAPON (stage 5i): since when it is raised. Only there while it is (a component of its own, so
+ * what never raised one, every replay before 5i, keeps its state as it was).
+ */
+export type Raised = { since: number };
+export const RAISED = 'arms.raised';
+export const raised = (e: Entity) => component<Raised>(e, RAISED);
+/** How far a raised weapon is heard (m): across a yard, so a fight's warning reaches whoever it aims at. */
+export const READY_HEARD = 14;
 
 /**
  * Where a character's eyes are standing (stage 4g), above its center (m): its head's (the games'
@@ -125,6 +147,21 @@ export function arms(world: World, events: readonly Event[]) {
     // Shots leave the eyes (stage 4g), where a first-person camera is: what it has at its center is hit.
     const eye = vec3.add(e.transform.position, vec3.scale(up, e.character && e.body ? eyeHeightOf(e.character, e.body) : EYE));
     if (w.strike > 0) strike(world, e, w, chest, up, back);
+    // (Stage 5i) Raised while `arms.ready` is held: the moment it goes up, it is heard.
+    const lifting = isDown(world.inputs.get(c.player) ?? NO_INPUT, READY);
+    if (lifting && !raised(e)) {
+      (e.game ??= {})[RAISED] = { since: world.tick } satisfies Raised;
+      world.emit({
+        type: 'sound',
+        sound: 'ready',
+        source: e.id,
+        at: [...eye],
+        surface: null,
+        speed: 0,
+        energy: 0,
+        radius: READY_HEARD,
+      });
+    } else if (!lifting && raised(e)) delete e.game![RAISED];
     if (!pressed(world, c.player, ATTACK) || world.tick < w.ready) continue;
     // (Stage 5g) For the eyes and the ears: the weapon used, from where, which way.
     const thrown = w.kind === 'grenade' || w.kind === 'stick';

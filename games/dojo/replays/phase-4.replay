@@ -1,4 +1,4 @@
-# Manifold replay 42
+# Manifold replay 43
 # Phase 4, what a body can do: aiming up and down, a ball thrown where it aims; crouching under a low passage; seen later crouched; rolling, into the passage too; a training dummy hurt by balls, down, and back; a dart, a bolt and a stick.
 # A reference replay (stage 2.5a): playing it must end with the hash on its last line. A refactor
 # keeps it bit for bit. Recorded by games/dojo/src/reference.test.ts; recorded again (npm run

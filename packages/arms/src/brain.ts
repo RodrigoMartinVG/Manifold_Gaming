@@ -1,8 +1,17 @@
 import { cellAt, findPath, inZone, navOf, type Step } from '@manifold/bots';
 import { vec3, type Vec3 } from '@manifold/common';
-import { CHARACTER_GAP, eyeHeightOf, type Brain, type Entity, type Memory, type PlayerInput, type World } from '@manifold/core';
-import { gunnerOf, GUARD_BRAIN } from './guard';
-import { ATTACK, weapon } from './weapons';
+import {
+  CHARACTER_GAP,
+  eyeHeightOf,
+  shotDice,
+  type Brain,
+  type Entity,
+  type Memory,
+  type PlayerInput,
+  type World,
+} from '@manifold/core';
+import { gunnerOf, GUARD_BRAIN, type Fair, type Gunner } from './guard';
+import { ATTACK, raised, READY, weapon } from './weapons';
 import { SHOUT_INPUT, STEALTH, wary } from './stealth';
 
 /**
@@ -69,6 +78,9 @@ export interface GuardMemory extends Memory {
    * route stays where it ended: the Dojo's recorded games keep their hashes).
    */
   post?: { at: Vec3; facing: Vec3 } | null;
+  /** (Stage 5i, a fair gunner) When it last flinched from a hit, and how many shots since it last saw them. */
+  flinch?: number;
+  shots?: number;
 }
 
 /** How near a point it must be to have reached it (m, along the ground); within its stick's reach (m, to the other's center). */
@@ -178,6 +190,95 @@ export const guardBrain: Brain = (world, self, memory) => {
   return w.shout && m.mode === 'chase' && before !== 'chase' ? { ...input, [SHOUT_INPUT]: true } : input;
 };
 
+/**
+ * A FAIR SHOT (stage 5i; `Fair`, guard.ts, says why each number): within `range`, the gunner aims where its
+ * target was `lag` steps before, its aim following at its pace; once it has seen them long enough, its
+ * weapon is ready, it did not just flinch and a token is free, it raises its weapon (`arms.ready`, seen
+ * and heard); held `windup` steps, it shoots, with an error from the shot's own dice (wide when it first
+ * saw them, narrowing over 36 steps), the first shot after a sighting passing `miss` meters to a side.
+ * Beyond its range, nothing (`null`): it goes after them as before.
+ */
+function fairShot(
+  world: World,
+  self: Entity,
+  m: GuardMemory,
+  target: Entity,
+  gunner: Readonly<Gunner>,
+  fair: Fair,
+  range: number,
+): PlayerInput | null {
+  const c = self.character!;
+  const center = self.transform!.position;
+  const p = target.transform!.position;
+  const v = target.character?.velocity ?? [0, 0, 0];
+  const behind: Vec3 = [p[0] - (v[0] * fair.lag) / 60, p[1] - (v[1] * fair.lag) / 60, p[2] - (v[2] * fair.lag) / 60];
+  if (m.sighted < 0 || !m.aim) {
+    m.sighted = world.tick;
+    m.aim = [...behind];
+    m.shots = 0;
+  }
+  const aim = (m.aim = [
+    m.aim[0] + (behind[0] - m.aim[0]) * gunner.aim,
+    m.aim[1] + (behind[1] - m.aim[1]) * gunner.aim,
+    m.aim[2] + (behind[2] - m.aim[2]) * gunner.aim,
+  ]);
+  const to = vec3.sub(aim, [center[0], center[1] + eyeHeightOf(c, self.body!), center[2]]);
+  const along = Math.hypot(to[0], to[2]);
+  if (along > range) return null;
+  const face = toward(center, aim);
+  const pitch = (Math.atan2(to[1], along) * 180) / Math.PI / 90;
+  const flinched = world.tick - (m.flinch ?? -Infinity) < fair.flinch;
+  const up = raised(self);
+  if (!up) {
+    const w = weapon(self)!;
+    const start =
+      world.tick - m.sighted >= gunner.see &&
+      !flinched &&
+      world.tick >= w.ready &&
+      world.tick - m.shot >= gunner.every &&
+      tokenFree(world, self, target, fair.tokens);
+    const back: Vec3 = along < CLOSE ? [-face[0], 0, -face[2]] : [0, 0, 0];
+    return { face, pitch, move: back, ...(start ? { [READY]: true } : {}) };
+  }
+  // Hit while raised, it lowers it (and raises it again once it has its aim back).
+  if (flinched) return { face, pitch, move: [0, 0, 0] };
+  if (world.tick - up.since < fair.windup) return { face, pitch, move: [0, 0, 0], [READY]: true };
+  // The shot. Its error: degrees across and up, from its own dice (another number than the weapon's own).
+  const dice = shotDice(world, c.player, 0x5f1);
+  const widen = 1 + 2 * Math.max(0, 1 - (world.tick - m.sighted) / 36);
+  let across = (2 * dice.next() - 1) * fair.spread * widen;
+  const lift = (2 * dice.next() - 1) * fair.spread * widen * 0.5;
+  if ((m.shots ?? 0) === 0) across += (dice.next() < 0.5 ? -1 : 1) * ((Math.atan2(fair.miss, along) * 180) / Math.PI);
+  m.shots = (m.shots ?? 0) + 1;
+  m.shot = world.tick;
+  const turn = (across * Math.PI) / 180;
+  const [s, k] = [Math.sin(turn), Math.cos(turn)];
+  return {
+    face: [face[0] * k - face[2] * s, 0, face[0] * s + face[2] * k],
+    pitch: pitch + lift / 90,
+    move: [0, 0, 0],
+    [ATTACK]: true,
+  };
+}
+
+/**
+ * WHETHER A TOKEN IS FREE (stage 5i): at most `tokens` fair gunners raised at once against the same target.
+ * Of those that see them and could raise theirs, the lowest ids go first: every brain counts the same
+ * world (who sees whom, whose weapon is raised or ready), so two never take the last token at one step.
+ */
+function tokenFree(world: World, self: Entity, target: Entity, tokens: number): boolean {
+  let up = 0;
+  const wanting: number[] = [];
+  for (const e of world.entities.values()) {
+    if (!e.brain || !e.character || (e.health?.down ?? -1) >= 0 || !e.watcher?.sees.includes(target.id)) continue;
+    if (raised(e)) up++;
+    else if (gunnerOf(e).fair && world.tick >= (weapon(e)?.ready ?? Infinity)) wanting.push(e.id);
+  }
+  wanting.sort((a, b) => a - b);
+  const rank = wanting.indexOf(self.id);
+  return rank >= 0 && rank < tokens - up;
+}
+
 /** The guard's brain, as stage 4e made it. */
 const guardBrain4e: Brain = (world, self, memory) => {
   const m = memory as GuardMemory;
@@ -229,6 +330,11 @@ const guardBrain4e: Brain = (world, self, memory) => {
     if (isPlayer(by)) {
       m.seen = { id: by.id, at: [...feetOf(by)], tick: world.tick };
       m.alert = world.tick;
+      // (Stage 5i) A fair gunner flinches: its weapon down, and its aim as wide as when it first saw them.
+      if (gunnerOf(self).fair) {
+        m.flinch = world.tick;
+        m.sighted = world.tick;
+      }
     }
   }
   // Whoever it was after is down: it lets them go, back to its rounds. (It went to stand where they
@@ -265,6 +371,11 @@ const guardBrain4e: Brain = (world, self, memory) => {
     const { see, every, aim: follow } = gunner;
     // (Stage 5h) With a shotgun, only near: its pellets spread (at ten meters one or two strike).
     const range = kind === 'shotgun' ? Math.min(gunner.range, SHOTGUN_RANGE) : gunner.range;
+    // (Stage 5i) A fair gunner: within its range, it raises its weapon and shoots as `fairShot` says.
+    if (gunner.fair) {
+      const shot = fairShot(world, self, m, target, gunner, gunner.fair, range);
+      if (shot) return shot;
+    }
     const p = target.transform!.position;
     if (m.sighted < 0 || !m.aim) {
       m.sighted = world.tick;
@@ -292,6 +403,7 @@ const guardBrain4e: Brain = (world, self, memory) => {
     // behind cover's edge started its time over: a first version shot only those it saw unbroken.)
     m.sighted = -1;
     m.aim = null;
+    m.shots = 0;
   }
   // A sound just heard: it turns to it and listens a moment before it goes.
   if (m.mode === 'look' && m.heard && world.tick - m.heard.tick < LISTEN) return { face: toward(center, m.heard.at) };

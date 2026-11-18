@@ -1,7 +1,8 @@
 # 0031. The three games, played as games
 
-- **Status:** proposed (2026-11-18), for the author's reading; nothing in it is built until the author says which
-  parts and in what order. The tower's camera, the one concrete bug, is already fixed (commit `e6af334`).
+- **Status:** accepted (2026-11-18): "hagamos todo y sigamos tus recomendaciones". The stages 5i to 5n in the
+  proposed order, with the recommended answer to each question (below). The tower's camera, the one concrete bug, was
+  fixed first (commit `e6af334`).
 - **Date:** 2026-11-18
 
 ## Context
@@ -145,17 +146,18 @@ by section (the wall walk, the gatehouse, the towers) to close the gate before t
 Each stage keeps the project's rules: deterministic simulation, reference replays recorded again where the
 simulation changes (with `SIMULATION_VERSION` raised, today 42), its tests, its report.
 
-## Questions for the author
+## The author's answers
 
-1. **The order:** start with the wall's bots and weapon feel (the fastest felt change), or with the shared atmosphere
-   (it improves the three at once)?
-2. **The shooter's thread:** keep the dawn, as taking the wall back section by section to close the gate, or another
-   frame?
-3. **Being seen in the fortress:** today, caught means back to the checkpoint. With awareness that fills, a chase you
-   can escape and hide from is the genre's norm; is a fight when cornered wanted, or only fleeing?
-4. **Length:** levels of 2 to 5 minutes, and how many per game (the tower 6 floors, the fortress 4 levels, the wall 4
-   levels)?
-5. **Settings for comfort** (shake, head bob, field of view): in the games' menu, as the research recommends?
+The author took every recommendation (2026-11-18):
+
+1. **The order:** the wall's bots and weapon feel first (5i), then the shared atmosphere (5j), the fortress's
+   readability (5k) and levels (5l), the wall's levels (5m), the tower (5n).
+2. **The shooter's thread:** the dawn stays, as progression: the attackers broke in, and the defender takes the wall
+   back section by section to close the gate before the sun rises.
+3. **Seen in the fortress:** a chase one escapes and hides from, the genre's norm; the takedown from behind stays, and
+   no fight is asked for (caught is still back to the checkpoint).
+4. **Length:** levels of 2 to 5 minutes: the tower six floors, the fortress four levels, the wall four levels.
+5. **Comfort:** camera shake, head bob and the field of view in the games' settings.
 
 ## Sources
 

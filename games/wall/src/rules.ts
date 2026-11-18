@@ -84,18 +84,28 @@ export const WALL = Object.freeze({
 
 /**
  * A RISING PACE (stage 5h): how the attackers of a wave fight, by how far into the night it is (`pace`:
- * the level's place times three, plus the wave's, from 0). From the arena's gunners (4g: a second to see
- * you, a shot a second and a half, an aim that goes 15% of the way each step) towards quicker ones: each
- * step of the pace a tenth of a second less to see and to shoot again, and two hundredths more of aim;
- * at most twice as quick, and an aim of 0.3 (at 0.3 a walking target is trailed by v·Δt·(1 − k)/k ≈ 0.18
- * m: most shots strike).
+ * the level's place times three, plus the wave's, from 0). Fair since stage 5i (decision 0031: "los bots
+ * son muy perfectos"; `Fair`, @manifold/arms): before, an aim that went 15 to 30% of the way each step
+ * trailed a walking target by 0.42 to 0.18 m, and at the night's end most shots struck. Now each attacker
+ * takes a moment to see you (0.6 s, down to 0.3), raises its weapon where you see and hear it (0.5 s, down
+ * to 0.3), aims where you were 0.2 s before, with an error of 3.5 degrees (down to 1.5) that starts three
+ * times wider, its first shot going by a meter's ear from you; at most two raise theirs at once; hit, it
+ * flinches for 0.4 s. It shoots as often as before (a shot a second and a half, down to three quarters).
  */
 export function paceOf(pace: number): Gunner {
   return {
-    see: Math.max(30, GUNNER.see - 6 * pace),
+    see: Math.max(18, 36 - 3 * pace),
     every: Math.max(45, GUNNER.every - 6 * pace),
     aim: Math.min(0.3, GUNNER.aim + 0.02 * pace),
     range: GUNNER.range,
+    fair: {
+      windup: Math.max(18, 30 - 2 * pace),
+      spread: Math.max(1.5, 3.5 - 0.25 * pace),
+      lag: 12,
+      tokens: 2,
+      miss: 0.8,
+      flinch: 24,
+    },
   };
 }
 

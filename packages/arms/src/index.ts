@@ -11,17 +11,22 @@ export {
   EYE,
   fuses,
   impactDamage,
+  RAISED,
+  raised,
+  READY,
+  READY_HEARD,
   THROWN,
   WEAPON,
   WEAPON_KINDS,
   weapon,
   WEAPONS,
+  type Raised,
   type Thrown,
   type Weapon,
   type WeaponKind,
 } from './weapons';
 export { armsTool, WEAPON_LOOKS, weaponModel, type WeaponLook } from './looks';
-export { GUARD, GUARD_BRAIN, guard, guardsOf, GUNNER, GUNNER_KEY, gunnerOf, type Gunner } from './guard';
+export { GUARD, GUARD_BRAIN, guard, guardsOf, GUNNER, GUNNER_KEY, gunnerOf, type Fair, type Gunner } from './guard';
 export { ARMS_BRAINS, type GuardMemory } from './brain';
 export {
   FLARE_INPUT,

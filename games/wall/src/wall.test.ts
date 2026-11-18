@@ -1,5 +1,4 @@
 import { beforeAll, describe, expect, test } from 'vitest';
-import { GUNNER } from '@manifold/arms';
 import { initPhysics, type Event } from '@manifold/core';
 import { missingKeys, notesBetween } from '@manifold/presentation';
 import { WALL, WALL_THEME, WALL_WORDS } from './game';
@@ -56,15 +55,17 @@ describe('the wall, on the games’ shell (stage 5h)', () => {
     f.session.world.dispose();
   });
 
-  test('a rising pace: from the arena’s gunners, quicker each wave, to at most twice as quick and an aim of 0.3', () => {
-    expect(paceOf(0)).toEqual(GUNNER);
+  test('a rising pace, fair: quicker each wave, a warning before every shot, two at once at most', () => {
     for (let p = 1; p < 12; p++) {
       const [a, b] = [paceOf(p - 1), paceOf(p)];
       expect(b.see).toBeLessThanOrEqual(a.see);
       expect(b.every).toBeLessThanOrEqual(a.every);
-      expect(b.aim).toBeGreaterThanOrEqual(a.aim);
+      expect(b.fair!.windup).toBeLessThanOrEqual(a.fair!.windup);
+      expect(b.fair!.spread).toBeLessThanOrEqual(a.fair!.spread);
     }
-    expect(paceOf(20)).toMatchObject({ see: 30, every: 45, aim: 0.3 });
+    // From 0.6 s to see and 0.5 s raised (3.5 degrees), to 0.3 and 0.3 (1.5 degrees); never two at once more.
+    expect(paceOf(0)).toMatchObject({ see: 36, every: 90, fair: { windup: 30, spread: 3.5, lag: 12, tokens: 2 } });
+    expect(paceOf(20)).toMatchObject({ see: 18, every: 45, aim: 0.3, fair: { windup: 18, spread: 1.5, tokens: 2 } });
   });
 
   test('its words: the same keys in Spanish and English, and every key the game names among them', () => {

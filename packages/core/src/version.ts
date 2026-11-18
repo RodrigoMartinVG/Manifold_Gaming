@@ -97,5 +97,9 @@
  *      along the way asked rises to the speed asked, never past it; until 41 it grew for as long as it
  *      was asked); the shooter's weapons: a shotgun (its pellets on the shot's dice) and a launcher (a
  *      rocket that blows where it strikes)
+ *  43  stage 5i: fair gunners (decision 0031): a weapon raised (`arms.raised`, held by `arms.ready`, heard
+ *      as `ready`) before a fair gunner's shot; its aim where the target was, its error on the shot's own
+ *      dice, at most two raised at once, the first shot a miss, a flinch when hit (`arms.gunner`'s
+ *      `fair`). A gunner without `fair` fights as in 42 to the bit (the Dojo's replays keep their hashes)
  */
-export const SIMULATION_VERSION = 42;
+export const SIMULATION_VERSION = 43;

@@ -1,4 +1,4 @@
-# Manifold replay 42
+# Manifold replay 43
 # The wall's yard, held: three waves through the gate.
 # A reference replay (stage 5h, as the tower’s since 5d): playing it must end with the hash on its
 # last line. Recorded by games/wall/src/levels.test.ts; recorded again (npm run references) only
@@ -330,9 +330,8 @@ input 735 1 face @355.7 pitch -0.016
 input 736 1 face @355.7 pitch -0.016 arms.attack
 input 737 1 face @355.7 pitch -0.016
 input 738 1 face @355.7 pitch -0.017 arms.attack
-input 739 101 face @175.7 pitch -0.022 arms.attack
+input 739 101 face @175.7 pitch -0.022
 input 739 1 face @355.7 pitch -0.017
-input 740 101 face @175.7 pitch -0.022
 input 740 1 face @355.7 pitch -0.017 arms.attack
 input 741 1 face @355.7 pitch -0.017
 input 742 1 face @355.7 pitch -0.017 arms.attack
@@ -538,8 +537,7 @@ input 1180 1 face @355.7 pitch -0.016
 input 1181 1 face @355.7 pitch -0.016 arms.attack
 input 1182 1 face @355.7 pitch -0.016
 input 1183 1 face @355.7 pitch -0.017 arms.attack
-input 1184 101 face @175.7 pitch -0.022 arms.attack
-input 1185 101 face @175.7 pitch -0.022
+input 1184 101 face @175.7 pitch -0.022
 input 1185 1 face @355.7 pitch -0.017
 input 1186 1 face @355.7 pitch -0.017 arms.attack
 input 1187 1 face @355.7 pitch -0.017
@@ -622,4 +620,4 @@ input 1262 1 face @340.2 pitch -0.02
 input 1263 1 face @340 pitch -0.02 arms.attack
 input 1264 1 face @340 pitch -0.021
 input 1265 1 face @339.8 pitch -0.021 arms.attack
-end 1265 258f55cc
+end 1265 cee4f7af

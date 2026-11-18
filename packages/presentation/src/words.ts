@@ -60,6 +60,7 @@ export const ENGINE_WORDS = {
     'settings.subtitles': 'Subtítulos de los sonidos',
     'settings.calm': 'Menos movimiento de la cámara',
     'settings.fov': 'Campo de visión (grados, de arriba abajo)',
+    'settings.shake': 'Sacudir la vista con los golpes',
     'settings.crosshair': 'Mira al apuntar',
     'settings.saved': 'Se guardan en este navegador.',
     'touch.needs':
@@ -79,6 +80,7 @@ export const ENGINE_WORDS = {
     'sound.fired.shotgun': 'Un escopetazo',
     'sound.fired.launcher': 'Un cohete',
     'sound.shout': 'Un guardia grita: da la alarma',
+    'sound.ready': 'Alguien levanta su arma: te apunta',
     'story.objective': 'Objetivo: {0}',
     'sound.step.stone': 'Pasos en piedra',
     'sound.step.wood': 'Pasos en madera',
@@ -118,6 +120,7 @@ export const ENGINE_WORDS = {
     'settings.subtitles': 'Subtitles for sounds',
     'settings.calm': 'Less camera motion',
     'settings.fov': 'Field of view (degrees, top to bottom)',
+    'settings.shake': 'Shake the view when hit',
     'settings.crosshair': 'Crosshair while aiming',
     'settings.saved': 'They are kept in this browser.',
     'touch.needs':
@@ -137,6 +140,7 @@ export const ENGINE_WORDS = {
     'sound.fired.shotgun': 'A shotgun blast',
     'sound.fired.launcher': 'A rocket',
     'sound.shout': 'A guard shouts: the alarm',
+    'sound.ready': 'Someone raises a weapon: taking aim at you',
     'story.objective': 'Objective: {0}',
     'sound.step.stone': 'Steps on stone',
     'sound.step.wood': 'Steps on wood',

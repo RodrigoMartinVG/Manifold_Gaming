@@ -726,7 +726,7 @@ export type Event =
    */
   | {
       type: 'sound';
-      sound: 'step' | 'land' | 'hit' | 'door' | 'lift' | 'break' | 'blast' | 'shout';
+      sound: 'step' | 'land' | 'hit' | 'door' | 'lift' | 'break' | 'blast' | 'shout' | 'ready';
       source: EntityId;
       at: Vec3;
       surface: string | null;
