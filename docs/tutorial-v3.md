@@ -155,6 +155,12 @@ Tests check what matters to a reader, not the page's shape:
 - the project compiles and its unit tests pass at every chapter;
 - each exercise's answer is the one its figure or the project gives.
 
+Before the author's, **a student's reading:** the project's agent `student-reader` (`.claude/agents/student-reader.md`)
+reads each chapter as a reader who programs a little, does every exercise before opening its answer, follows the
+consigna, and reports where it got lost, why, and what would have helped (the author's idea, 2026-11-18: "como test
+siempre haya un agente que lea el tutorial como si fuera un alumno"). Its findings are checked and fixed before the
+chapter reaches the author.
+
 And one check no test does: **a reading.** Each chapter is read start to end, aloud or as if, by the author before
 it is published, noting where the reading stumbled, where a question came before its answer, and where a figure was
 needed and missing. A chapter is done when that reading flows.

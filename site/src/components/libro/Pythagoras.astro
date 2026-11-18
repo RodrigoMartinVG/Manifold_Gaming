@@ -1,0 +1,30 @@
+---
+/**
+ * PYTHAGORAS, chapter 1: a square of side a + b holding four right triangles and a tilted square of side c; its area counted two ways gives a² + b² = c².
+ *
+ * A drawing of the book lives in a component, not in its page: the page is markdown, and a label on a line of its own
+ * inside an SVG would become a paragraph, which the browser moves out of the drawing (site/src/tutorial.test.ts).
+ */
+---
+
+<figure style="margin: 1.5rem 0; text-align: center">
+  <svg
+    viewBox="0 0 220 220"
+    width="220"
+    height="220"
+    role="img"
+    aria-label="Un cuadrado de lado a más b con cuatro triángulos rectángulos en las esquinas y un cuadrado inclinado de lado c en el medio"
+  >
+    <rect x="10" y="10" width="200" height="200" fill="none" stroke="currentColor" stroke-width="2" />
+    <polygon points="10,10 70,10 10,150" fill="rgba(97,175,239,0.35)" stroke="currentColor" />
+    <polygon points="70,10 210,10 210,70" fill="rgba(97,175,239,0.35)" stroke="currentColor" />
+    <polygon points="210,70 210,210 150,210" fill="rgba(97,175,239,0.35)" stroke="currentColor" />
+    <polygon points="150,210 10,210 10,150" fill="rgba(97,175,239,0.35)" stroke="currentColor" />
+    <polygon points="70,10 210,70 150,210 10,150" fill="rgba(229,192,123,0.3)" stroke="currentColor" stroke-width="2" />
+    <text x="40" y="8" font-size="13" fill="currentColor" text-anchor="middle">a</text>
+    <text x="140" y="8" font-size="13" fill="currentColor" text-anchor="middle">b</text>
+    <text x="110" y="115" font-size="15" fill="currentColor" text-anchor="middle">c²</text>
+    <text x="118" y="44" font-size="13" fill="currentColor">c</text>
+  </svg>
+  <figcaption style="font-size: 0.85em; opacity: 0.8">El cuadrado grande, de lado a + b: cuatro triángulos y un cuadrado de lado c.</figcaption>
+</figure>

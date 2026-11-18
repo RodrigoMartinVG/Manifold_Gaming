@@ -1,0 +1,42 @@
+---
+/**
+ * THE TOP-LEFT RULE, chapter 3: two triangles that share an edge, their corners in the order whose area is positive (clockwise on the screen), an arrow along each edge with the inside to its right; the top and left edges in orange. The shared edge has two arrows, opposite: it is a left edge for one of them only.
+ *
+ * A drawing of the book lives in a component, not in its page: the page is markdown, and a label on a line of its own
+ * inside an SVG would become a paragraph, which the browser moves out of the drawing (site/src/tutorial.test.ts).
+ */
+---
+
+<figure style="margin: 1.5rem 0; text-align: center">
+  <svg
+    viewBox="0 0 360 200"
+    width="360"
+    height="200"
+    role="img"
+    aria-label="Dos triángulos que comparten un lado, con flechas en sus lados en el sentido del reloj; el lado compartido tiene dos flechas opuestas, una de cada triángulo"
+  >
+    <defs>
+      <marker id="tl-on" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+        <path d="M0,0 L10,5 L0,10 z" fill="#c8862e" />
+      </marker>
+      <marker id="tl-off" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+        <path d="M0,0 L10,5 L0,10 z" fill="currentColor" />
+      </marker>
+    </defs>
+    <g transform="translate(60, 0)">
+      <polygon points="40,30 220,30 100,170" fill="rgba(97,175,239,0.22)" stroke="currentColor" />
+      <polygon points="220,30 260,170 100,170" fill="rgba(152,195,121,0.22)" stroke="currentColor" />
+      <line x1="114" y1="41" x2="146" y2="41" stroke="#c8862e" stroke-width="2.5" marker-end="url(#tl-on)" />
+      <line x1="162.1" y1="80.7" x2="141.2" y2="105" stroke="currentColor" stroke-width="1.5" marker-end="url(#tl-off)" />
+      <line x1="86.4" y1="110.4" x2="73.8" y2="81" stroke="#c8862e" stroke-width="2.5" marker-end="url(#tl-on)" />
+      <line x1="225" y1="87.6" x2="233.8" y2="118.4" stroke="currentColor" stroke-width="1.5" marker-end="url(#tl-off)" />
+      <line x1="196" y1="159" x2="164" y2="159" stroke="currentColor" stroke-width="1.5" marker-end="url(#tl-off)" />
+      <line x1="157.9" y1="119.3" x2="178.8" y2="95" stroke="#c8862e" stroke-width="2.5" marker-end="url(#tl-on)" />
+      <text x="118" y="80" font-size="15" fill="currentColor" text-anchor="middle">1</text>
+      <text x="205" y="138" font-size="15" fill="currentColor" text-anchor="middle">2</text>
+      <text x="130" y="21" font-size="12" fill="currentColor" text-anchor="middle">de arriba</text>
+      <text x="58" y="108" font-size="12" fill="currentColor" text-anchor="end">de la izquierda</text>
+    </g>
+  </svg>
+  <figcaption style="font-size: 0.85em; opacity: 0.8">Dos triángulos con las esquinas en el orden del área positiva: cada flecha tiene el adentro a su derecha. En naranja, los lados de arriba y de la izquierda. El lado que comparten, el 1 lo recorre bajando y el 2 subiendo: es de la izquierda para el 2, y sus píxeles son del 2.</figcaption>
+</figure>

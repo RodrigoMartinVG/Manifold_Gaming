@@ -8,6 +8,8 @@ sidebar:
 import LiveCode from '../../../../components/LiveCode.astro';
 import Margen from '../../../../components/Margen.astro';
 import Consigna from '../../../../components/Consigna.astro';
+import Parallelogram from '../../../../components/libro/Parallelogram.astro';
+import TopLeft from '../../../../components/libro/TopLeft.astro';
 
 El cielo ya tiene puntos, líneas y una luna redonda. Le faltan cosas sólidas de lados rectos: unas colinas detrás de la torre, un vitral en su pared. El canvas tiene `fill`, que rellena cualquier camino cerrado. Pero ¿cómo sabe qué píxeles van adentro?
 
@@ -35,46 +37,11 @@ Da positivo de un lado, negativo del otro y cero justo sobre la recta.
   caption="Arrastrá P de un lado al otro de la recta: el número cambia de signo justo al cruzarla."
 />
 
-¿Por qué funciona? Porque ese número es un **área**. Los dos caminos, puestos uno a continuación del otro, arman un paralelogramo, y la cuenta da su área, con un signo que dice hacia qué lado gira el segundo camino respecto del primero.
+¿Por qué funciona? Porque ese número es un **área**. Los dos caminos, saliendo los dos de $A$, son dos lados de un paralelogramo, y la cuenta da su área, con un signo que dice hacia qué lado gira el segundo camino respecto del primero.
 
 Miremos el dibujo, hecho con $y$ hacia arriba como en la escuela (el área no depende de para dónde crece $y$). Llamemos $(a, b)$ al primer camino y $(c, d)$ al segundo. El paralelogramo entra en un rectángulo de $(a + c) \times (b + d)$, y lo que sobra alrededor son seis piezas: dos triángulos de catetos $a$ y $b$, dos de catetos $c$ y $d$, y dos rectángulos de $b \times c$.
 
-<figure style="margin: 1.5rem 0; text-align: center">
-  <svg
-    viewBox="0 0 280 245"
-    width="280"
-    height="245"
-    role="img"
-    aria-label="Un paralelogramo dentro de un rectángulo, con las seis piezas que sobran alrededor: cuatro triángulos y dos rectángulos"
-  >
-    <rect x="10" y="10" width="240" height="210" fill="none" stroke="currentColor" stroke-width="1.5" />
-    <polygon points="10,220 190,220 190,160" fill="rgba(97,175,239,0.25)" stroke="currentColor" />
-    <polygon points="190,220 250,220 250,160 190,160" fill="rgba(224,108,117,0.25)" stroke="currentColor" />
-    <polygon points="190,160 250,160 250,10" fill="rgba(152,195,121,0.25)" stroke="currentColor" />
-    <polygon points="70,70 70,10 250,10" fill="rgba(97,175,239,0.25)" stroke="currentColor" />
-    <polygon points="10,70 70,70 70,10 10,10" fill="rgba(224,108,117,0.25)" stroke="currentColor" />
-    <polygon points="10,220 70,70 10,70" fill="rgba(152,195,121,0.25)" stroke="currentColor" />
-    <polygon points="10,220 190,160 250,10 70,70" fill="rgba(229,192,123,0.35)" stroke="currentColor" stroke-width="2" />
-    <text x="100" y="236" font-size="13" fill="currentColor" text-anchor="middle">
-      a
-    </text>
-    <text x="220" y="236" font-size="13" fill="currentColor" text-anchor="middle">
-      c
-    </text>
-    <text x="264" y="194" font-size="13" fill="currentColor">
-      b
-    </text>
-    <text x="264" y="90" font-size="13" fill="currentColor">
-      d
-    </text>
-    <text x="132" y="120" font-size="14" fill="currentColor" text-anchor="middle">
-      ad − bc
-    </text>
-  </svg>
-  <figcaption style="font-size: 0.85em; opacity: 0.8">
-    El rectángulo grande, menos sus seis piezas, es el paralelogramo.
-  </figcaption>
-</figure>
+<Parallelogram />
 
 El rectángulo tiene área $(a + c)(b + d) = ab + ad + bc + cd$. Las piezas suman $2 \cdot \tfrac12 ab + 2 \cdot \tfrac12 cd + 2bc = ab + cd + 2bc$. Lo que queda, el paralelogramo, es
 
@@ -83,6 +50,8 @@ $$
 $$
 
 que es nuestra cuenta, $dx_1 \cdot dy_2 - dy_1 \cdot dx_2$. Y el triángulo $ABP$ es la mitad del paralelogramo: su área es la mitad del número, sin el signo.
+
+El dibujo es un caso, con el segundo camino girado hacia la izquierda del primero. Con los papeles cambiados, el mismo dibujo da $bc - ad$: el mismo tamaño, con el signo opuesto. ¿Y por qué todo un lado de la recta da el mismo signo? Con $A$ y $B$ fijos, la cuenta es de la forma $u \cdot P_x + v \cdot P_y + w$, con $u$, $v$ y $w$ fijos. En el punto que viaja de $P$ a $Q$, $(1 - s)\,P + s\,Q$, una cuenta así da la misma mezcla de lo que da en $P$ y en $Q$: $(1 - s) \cdot \text{edge}(P) + s \cdot \text{edge}(Q)$ (la $w$ queda entera porque los pesos suman uno). Si en $P$ diera positivo y en $Q$ negativo, la mezcla pasaría por cero en algún $s$ entre $0$ y $1$, y ese punto del segmento estaría sobre la recta. Así que dos puntos que se pueden unir sin cruzar la recta dan el mismo signo; y si el segmento la cruza, en el cruce da cero, y de un lado da positivo y del otro negativo.
 
 Con $A = (2, 6)$, $B = (10, 2)$ y $P = (7, 7)$, los caminos son $(8, -4)$ y $(5, 1)$, y la cuenta da $8 \cdot 1 - (-4) \cdot 5 = 28$: el triángulo $ABP$ tiene área $14$, y $P$ está del lado positivo. En la pantalla, donde $y$ crece hacia abajo, positivo quiere decir **a la derecha** de quien camina de $A$ hacia $B$. En el plano de la escuela, con $y$ hacia arriba, sería a la izquierda: dar vuelta la $y$ da vuelta el signo.
 
@@ -103,7 +72,7 @@ Con $P = (7, 2)$ el segundo camino es $(5, -4)$, y la cuenta da $8 \cdot (-4) - 
 
 ## Adentro de un triángulo
 
-Un triángulo son tres lados, y su adentro es lo que queda del mismo lado de los tres. Un píxel va adentro, entonces, si su centro da **el mismo signo** con los tres lados: los tres positivos, o los tres negativos, según el orden en que demos las esquinas.
+Un triángulo son tres lados, y su adentro es lo que queda, de cada lado, del lado donde está la tercera esquina: del lado de $AB$ donde está $C$, del de $BC$ donde está $A$, y del de $CA$ donde está $B$. Y la tercera esquina da la misma cuenta con los tres: $\text{edge}(A, B, C)$, $\text{edge}(B, C, A)$ y $\text{edge}(C, A, B)$ son los tres el doble del área del mismo triángulo, recorrido en el mismo sentido. Un píxel va adentro, entonces, si su centro da **el mismo signo** con los tres lados: los tres positivos, o los tres negativos, según el orden en que demos las esquinas.
 
 ```ts
 const p = { x: x + 0.5, y: y + 0.5 }; // el centro del píxel, como siempre
@@ -121,8 +90,6 @@ Y no hace falta preguntarle a toda la pantalla: el triángulo entra en la caja q
 
 Con las esquinas en $(3, 2)$, $(20, 5)$ y $(8, 14)$, se pintan $95$ píxeles, y el área del triángulo es $94{,}5$: otra vez, contar píxeles por su centro aproxima el área. La caja tiene $204$ píxeles, de los $384$ de la pantalla: casi la mitad del trabajo, ahorrado.
 
-Pero mirá el píxel $(11, 3)$. Su centro, $(11{,}5;\ 3{,}5)$, está **justo sobre el lado** de $A$ a $B$: sus signos son $0$, $+$, $+$. Lo contamos porque el $\ge$ deja pasar el cero. Si al lado hubiera otro triángulo que comparte ese lado, también lo contaría. ¿De quién es?
-
 **Antes de destildarlo:** sin _only the box round it_, ¿cuántos píxeles va a preguntar la figura? ¿Y cuántos va a pintar?
 
 <details>
@@ -131,6 +98,8 @@ Pero mirá el píxel $(11, 3)$. Su centro, $(11{,}5;\ 3{,}5)$, está **justo sob
 Pregunta los $384$ píxeles de la pantalla y pinta los mismos $95$: afuera de la caja todos dan algún signo distinto. La caja no cambia el dibujo, solo el trabajo.
 
 </details>
+
+Pero mirá el píxel $(11, 3)$. Su centro, $(11{,}5;\ 3{,}5)$, está **justo sobre el lado** de $A$ a $B$: sus signos son $0$, $+$, $+$. Lo contamos porque el $\ge$ deja pasar el cero. Si al lado hubiera otro triángulo que comparte ese lado, también lo contaría. ¿De quién es?
 
 ## Dos vecinos
 
@@ -143,33 +112,49 @@ Las figuras de verdad están hechas de muchos triángulos que comparten lados, y
   caption="Arriba el nuestro, con colores translúcidos; abajo el del canvas. Probá las tres reglas."
 />
 
-El cuadrado de la figura está cortado por su diagonal, y la diagonal pasa justo por $12$ centros de píxel. Con $\ge 0$ se pintan dos veces; con $> 0$, ninguna. La solución que usan todas las placas de video es una regla para el empate, la **regla de arriba a la izquierda**: un píxel cuyo centro cae justo sobre un lado es del triángulo solo si ese lado es **de arriba** o **de la izquierda**.
+El cuadrado de la figura está cortado por su diagonal, y la diagonal pasa justo por $12$ centros de píxel. Con $\ge 0$ se pintan dos veces; con $> 0$, ninguna. La solución que fija Direct3D, la biblioteca de Windows para la placa de video (el margen cuenta qué hace OpenGL), es una regla para el empate, la **regla de arriba a la izquierda**: un píxel cuyo centro cae justo sobre un lado es del triángulo solo si ese lado es **de arriba** o **de la izquierda**.
 
-Para que "de arriba" y "de la izquierda" tengan sentido, primero ordenamos las esquinas de cada triángulo para que su área dé positiva (si da negativa, intercambiamos dos). Con ese orden, en la pantalla las esquinas giran en el sentido de las agujas del reloj, y:
+Para que "de arriba" y "de la izquierda" tengan sentido, primero ordenamos las esquinas de cada triángulo para que su área dé positiva (si da negativa, intercambiamos dos). Con ese orden, en la pantalla las esquinas giran en el sentido de las agujas del reloj. Y como en la pantalla positivo quiere decir a la derecha de quien camina, el adentro queda **a la derecha de cada lado**, recorrido en ese orden. Eso dice hacia dónde va cada lado:
 
-- un lado **de arriba** es horizontal y va hacia la derecha;
-- un lado **de la izquierda** va hacia arriba.
+- un lado **de arriba** es horizontal y tiene el adentro abajo; para que abajo quede a su derecha, va hacia la derecha;
+- un lado **de la izquierda** tiene el adentro a su derecha, hacia las $x$ que crecen; para eso, va hacia arriba, inclinado o no.
 
-Dos triángulos que comparten un lado, cada uno con su orden, lo recorren en sentidos opuestos: si para uno sube, para el otro baja, y si es horizontal, para uno va a la derecha y para el otro a la izquierda. Así que **exactamente uno** de los dos lo tiene de arriba o de la izquierda, y cada píxel del lado compartido se pinta una vez, ni dos ni ninguna.
+Un lado que baja, en cambio, no es ni una cosa ni la otra, aunque se vea arriba de todo: la regla no mira dónde está el lado, sino hacia dónde va.
 
-El canvas no tiene este problema de la misma manera, pero tiene otro: pinta cada triángulo en la medida en que cubre el píxel, y un píxel partido al medio por la diagonal queda cubierto la mitad por cada uno. Pintado uno encima del otro, queda cubierto $1 - \tfrac12 \cdot \tfrac12 = \tfrac34$: sobre el fondo oscuro se ve una línea tenue, aunque los dos triángulos tengan el mismo color.
+<TopLeft />
+
+Dos triángulos que comparten un lado lo tienen entre los dos: cada uno, con su adentro a la derecha del lado, y los dos adentros de lados opuestos. Así que lo recorren en sentidos opuestos: si para uno sube, para el otro baja, y si es horizontal, para uno va a la derecha y para el otro a la izquierda. Por eso **exactamente uno** de los dos lo tiene de arriba o de la izquierda, y cada píxel del lado compartido se pinta una vez, ni dos ni ninguna.
+
+**Volvamos al píxel $(11, 3)$**, sobre el lado de $A = (3, 2)$ a $B = (20, 5)$, con $C = (8, 14)$. ¿El área da positiva? ¿El lado $AB$ es de arriba, de la izquierda, o ninguno? Entonces, ¿de quién es el píxel?
+
+<details>
+<summary>La respuesta</summary>
+
+$\text{edge}(A, B, C) = 17 \cdot 12 - 3 \cdot 5 = 189$: positiva, el orden ya es el bueno. $AB$ va de $(3, 2)$ a $(20, 5)$: baja hacia la derecha, así que no es horizontal ni sube. No es de arriba ni de la izquierda, aunque sea el lado que se ve más arriba, y el píxel $(11, 3)$ es del triángulo vecino, el que comparte ese lado del otro lado. Para ese, el lado va de $B$ a $A$, sube, y es de la izquierda.
+
+</details>
+
+El canvas no tiene este problema de la misma manera, pero tiene otro: pinta cada triángulo en la medida en que cubre el píxel, y un píxel partido al medio por la diagonal queda cubierto la mitad por cada uno. Pintado uno encima del otro, con la mezcla del capítulo 1: el primero deja la mitad del fondo, y el segundo tapa la mitad de lo que quedaba. Del fondo queda $\tfrac12 \cdot \tfrac12 = \tfrac14$, y el píxel queda cubierto $1 - \tfrac14 = \tfrac34$: sobre el fondo oscuro se ve una línea tenue, aunque los dos triángulos tengan el mismo color.
 
 <Margen kind="motores" title="La misma regla en la placa">
   Direct3D fija la regla de arriba a la izquierda tal cual la contamos. OpenGL, y con él WebGL, exige el resultado (cada píxel de
   un lado compartido, de un solo triángulo) y deja que cada placa elija su regla de empate. La costura del canvas tiene nombre en
-  las bibliotecas de dibujo 2D: aparece en cualquier figura suavizada que se arme con piezas que se tocan, y por eso los mapas y
-  los gráficos dibujados con piezas suelen mostrar líneas finas entre ellas.
+  las bibliotecas de dibujo 2D, _conflation artifact_ (nace de tratar la parte cubierta de un píxel como si fuera transparencia):
+  aparece en cualquier figura suavizada que se arme con piezas que se tocan, y por eso los mapas y los gráficos dibujados con
+  piezas suelen mostrar líneas finas entre ellas.
 </Margen>
 
 ## Tres esquinas
 
-Un punto $P$ adentro del triángulo lo corta en tres triángulos más chicos: $PBC$, el que está enfrente de $A$; $PCA$, enfrente de $B$; y $PAB$, enfrente de $C$. Las partes del área total que ocupa cada uno son los **pesos** de $P$:
+Un punto $P$ adentro del triángulo lo corta en tres triángulos más chicos: $PBC$, el que está enfrente de $A$; $PCA$, enfrente de $B$; y $PAB$, enfrente de $C$. Las partes del área total que ocupa cada uno son los **pesos** de $P$. Con la cuenta de la primera sección, que da el doble del área con su signo, se escriben
 
 $$
-\alpha = \frac{\text{área}(PBC)}{\text{área}(ABC)}, \qquad \beta = \frac{\text{área}(PCA)}{\text{área}(ABC)}, \qquad \gamma = \frac{\text{área}(PAB)}{\text{área}(ABC)}.
+\alpha = \frac{\text{edge}(B, C, P)}{\text{edge}(A, B, C)}, \qquad \beta = \frac{\text{edge}(C, A, P)}{\text{edge}(A, B, C)}, \qquad \gamma = \frac{\text{edge}(A, B, P)}{\text{edge}(A, B, C)}.
 $$
 
-Los tres suman uno, porque los tres triángulos chicos llenan el grande. Cuanto más cerca de $A$ está $P$, más grande es el triángulo enfrente de $A$, y más pesa $A$: en $A$ mismo, $\alpha = 1$ y los otros dos valen cero. Se llaman **coordenadas baricéntricas**, y cada una sale de la cuenta de la primera sección: $\text{edge}(B, C, P)$ es dos veces el área de $PBC$, con signo.
+Adentro, las cuatro cuentas tienen el mismo signo, y en cada cociente el doble y el signo se cancelan: queda la parte del área. Los tres suman uno, porque los tres triángulos chicos llenan el grande. Cuanto más lejos está $P$ del lado $BC$, más alto es el triángulo enfrente de $A$, y más pesa $A$: en $A$ mismo, $\alpha = 1$ y los otros dos valen cero; sobre el lado $BC$, $\alpha = 0$. No es la cercanía a $A$: si $P$ se mueve paralelo a $BC$, el triángulo $PBC$ conserva su base y su altura, y $\alpha$ no cambia, aunque $P$ se acerque a $A$ o se aleje. Se llaman **coordenadas baricéntricas**.
+
+Con el signo, los pesos valen también afuera del triángulo. Si $P$ pasa al otro lado de $BC$, el que no tiene a $A$, $\text{edge}(B, C, P)$ cambia de signo y $\alpha$ da negativo. Y los tres siguen sumando uno, para cualquier $P$: $\text{edge}(B, C, P) + \text{edge}(C, A, P) + \text{edge}(A, B, P) = \text{edge}(A, B, C)$ (el margen de abajo lo prueba).
 
 Con esos pesos, $P$ es la mezcla de las tres esquinas: $P = \alpha A + \beta B + \gamma C$. Es la tercera vez que mezclamos con pesos que suman uno: dos colores en el capítulo 1, dos puntos en el 2, y ahora tres. Y lo que vale para el punto vale para cualquier cosa que tengan las esquinas, como un color en cada una:
 
@@ -183,7 +168,7 @@ $$
   caption="Arrastrá P: sus tres pesos son las partes del área de los tres triángulos chicos, y siempre suman uno."
 />
 
-Con $P = (12, 10)$ en el triángulo de la figura, los pesos son $0{,}346$, $0{,}308$ y $0{,}346$. Y fijate que la prueba de "adentro" de antes era esto mismo: $P$ está adentro justo cuando sus tres pesos son positivos o cero. Los tres signos eran los tres pesos, multiplicados por el área.
+Con $P = (12, 10)$ en el triángulo de la figura, los pesos son $0{,}346$, $0{,}308$ y $0{,}346$. Y fijate que la prueba de "adentro" de antes era esto mismo: $P$ está adentro justo cuando sus tres pesos son positivos o cero. Los tres signos eran los tres pesos, multiplicados por $\text{edge}(A, B, C)$, el doble del área con signo.
 
 El canvas no tiene cómo hacer esto: sus degradés van de un color a otro a lo largo de una recta, o en círculos, nunca entre tres puntos. La placa de video, en cambio, lo hace con cada triángulo que dibuja, y es como colorea los modelos con un color por esquina: lo vemos en el capítulo 16.
 
@@ -193,18 +178,22 @@ El canvas no tiene cómo hacer esto: sus degradés van de un color a otro a lo l
   (afín), igual que $P$ mismo. Las dos coinciden en las tres esquinas: en $A$ los pesos son $1, 0, 0$ y la mezcla da $A$, y lo
   mismo en $B$ y en $C$. Dos funciones afines del plano que coinciden en tres puntos que no están en una recta son la misma
   función, porque una función afín queda determinada por sus valores en tres puntos así. Entonces $P = \alpha A + \beta B + \gamma
-  C$ en todo el plano, adentro del triángulo o no.
+  C$ en todo el plano, adentro del triángulo o no. Lo mismo prueba que los pesos suman uno en todo el plano: la suma de las tres
+  cuentas también es una función afín de $P$, y en $A$, en $B$ y en $C$ vale lo mismo, $\text{edge}(A, B, C)$; así que vale eso en
+  todas partes.
 </Margen>
 
 ## Colinas y un vitral
 
 Tu código suma dos archivos y cambia `main.ts`:
 
-- **`triangle.ts`**: `edge`, la cuenta de qué lado; la regla de arriba a la izquierda; `fillTriangle`, que ordena las esquinas, pregunta solo la caja y pinta cada píxel del triángulo una vez; `fillTriangle3`, con un color en cada esquina; y `fillPolygon`, que rellena una figura convexa cortándola en triángulos desde su primera esquina, como un abanico.
+- **`triangle.ts`**: `edge`, la cuenta de qué lado; la regla de arriba a la izquierda; `fillTriangle`, que ordena las esquinas, pregunta solo la caja y pinta cada píxel del triángulo una vez; `fillTriangle3`, con un color en cada esquina; y `fillPolygon`, que rellena una figura convexa (sin entrantes: el segmento entre dos puntos de adentro queda adentro) cortándola en triángulos desde su primera esquina, como un abanico.
 - **`landscape.ts`**: las dos colinas, dos triángulos del mismo color que comparten un lado vertical en $x = 100{,}5$, justo sobre los centros de la columna $100$; y el vitral, con un color en cada esquina.
 - **`main.ts`**: el cielo del capítulo 2, con las colinas y el vitral, de las dos formas. El canvas pinta el vitral de un solo color, el promedio de los tres: no tiene otra manera.
 
 `screen.ts`, `line.ts`, `sky.ts` y `constellations.ts` siguen como estaban, y las herramientas del libro, al final, en cursiva.
+
+El corazón de `triangle.ts` es `eachPixel`, que hace el trabajo de las dos funciones que pintan. Ordena las esquinas para que el área dé positiva, intercambiando $B$ y $C$ si hace falta; recorre la caja; para el centro de cada píxel calcula las tres cuentas, `wa`, `wb` y `wc`, y toma el píxel si las tres lo dejan. Eso lo decide `takes`: la cuenta es positiva, o es cero y el lado es de arriba o de la izquierda (`topLeft`). A cada píxel que toma le aplica `paint`, una función que `eachPixel` recibe como argumento (como `every` recibía la suya en el fragmento de antes), con el píxel y sus tres pesos. `fillTriangle` le pasa una que pinta de un color y no mira los pesos; `fillTriangle3`, una que mezcla con ellos los tres colores. Un detalle: si intercambió $B$ y $C$, los pesos salen en ese orden, y `eachPixel` los devuelve cruzados, para que cada uno vuelva a su esquina.
 
 <Consigna>
 
@@ -220,7 +209,7 @@ Tu código suma dos archivos y cambia `main.ts`:
 
 3\. Una rajadura de un píxel de ancho, del color del cielo, en la columna $100$, desde la cima hasta el suelo: $30$ píxeles que ningún triángulo toma, porque su centro está justo sobre el lado y los dos piden $> 0$.
 
-4\. No: `fillTriangle` ordena las esquinas antes de empezar, así que da lo mismo en qué orden vengan.
+4\. No: `eachPixel` ordena las esquinas antes de empezar, así que da lo mismo en qué orden vengan.
 
 </details>
 
@@ -234,7 +223,7 @@ Con la vista _differences_ se ven las tres cosas que distinguen a los dos dibujo
 
 ## Lo que tenemos
 
-Cualquier figura de lados rectos, rellena: un triángulo por los tres signos de sus lados, una figura convexa cortada en triángulos, vecinos sin costuras ni rajaduras, y un color que se mezcla entre tres esquinas. De acá salen tres cosas que vuelven: la cuenta de qué lado, que en el espacio es el producto vectorial (capítulo 10); las coordenadas baricéntricas, que van a repartir entre las esquinas la profundidad (capítulo 11), las texturas (capítulo 13) y el lugar donde pega un rayo (capítulo 27); y la regla de arriba a la izquierda, que es la de la placa de video.
+Cualquier figura de lados rectos, rellena: un triángulo por los tres signos de sus lados, una figura convexa cortada en triángulos como un abanico (y cualquier otra, cortándola a mano, como en el reto 2), vecinos sin costuras ni rajaduras, y un color que se mezcla entre tres esquinas. De acá salen tres cosas que vuelven: la cuenta de qué lado, que en el espacio es el producto vectorial (capítulo 10); las coordenadas baricéntricas, que van a repartir entre las esquinas la profundidad (capítulo 11), las texturas (capítulo 13) y el lugar donde pega un rayo (capítulo 27); y la regla de arriba a la izquierda, que es la de Direct3D.
 
 ### Retos
 
@@ -252,7 +241,7 @@ El mástil va como un `Block` más de la torre, en `sky.ts`; la bandera, como un
 <details>
 <summary>Una pista</summary>
 
-En un pentágono en el medio, que sí es convexo, más un triángulo por cada punta: seis piezas que se tocan por sus lados, y la regla de arriba a la izquierda hace que no se note ninguna costura.
+En un pentágono en el medio, que sí es convexo, más un triángulo por cada punta (las esquinas del pentágono son los cruces de las líneas de la estrella: leelas con la lupa): seis piezas que se tocan por sus lados, y la regla de arriba a la izquierda hace que no se note ninguna costura.
 
 </details>
 

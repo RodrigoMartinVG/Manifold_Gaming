@@ -115,3 +115,13 @@ describe("the links to the engine's code point to files that exist", () => {
       }
     });
 });
+
+describe('the drawings keep their labels', () => {
+  // A page is markdown: an SVG written in it gets each label on a line of its own made a paragraph, and the browser
+  // moves a paragraph out of a drawing, so its letters fall below it. A drawing lives in its own component
+  // (site/src/components/libro/), which markdown does not touch.
+  for (const [id, text] of PAGES)
+    it(`${id} draws no SVG in its markdown`, () => {
+      expect(text.includes('<svg'), 'move the drawing into a component, as site/src/components/libro/ does').toBe(false);
+    });
+});

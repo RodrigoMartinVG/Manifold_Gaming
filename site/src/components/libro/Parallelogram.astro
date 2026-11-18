@@ -1,0 +1,33 @@
+---
+/**
+ * THE PARALLELOGRAM, chapter 3: two ways from one corner, (a, b) and (c, d), inside the rectangle (a + c) × (b + d); the rectangle less its six pieces is ad − bc.
+ *
+ * A drawing of the book lives in a component, not in its page: the page is markdown, and a label on a line of its own
+ * inside an SVG would become a paragraph, which the browser moves out of the drawing (site/src/tutorial.test.ts).
+ */
+---
+
+<figure style="margin: 1.5rem 0; text-align: center">
+  <svg
+    viewBox="0 0 280 245"
+    width="280"
+    height="245"
+    role="img"
+    aria-label="Un paralelogramo dentro de un rectángulo, con las seis piezas que sobran alrededor: cuatro triángulos y dos rectángulos"
+  >
+    <rect x="10" y="10" width="240" height="210" fill="none" stroke="currentColor" stroke-width="1.5" />
+    <polygon points="10,220 190,220 190,160" fill="rgba(97,175,239,0.25)" stroke="currentColor" />
+    <polygon points="190,220 250,220 250,160 190,160" fill="rgba(224,108,117,0.25)" stroke="currentColor" />
+    <polygon points="190,160 250,160 250,10" fill="rgba(152,195,121,0.25)" stroke="currentColor" />
+    <polygon points="70,70 70,10 250,10" fill="rgba(97,175,239,0.25)" stroke="currentColor" />
+    <polygon points="10,70 70,70 70,10 10,10" fill="rgba(224,108,117,0.25)" stroke="currentColor" />
+    <polygon points="10,220 70,70 10,70" fill="rgba(152,195,121,0.25)" stroke="currentColor" />
+    <polygon points="10,220 190,160 250,10 70,70" fill="rgba(229,192,123,0.35)" stroke="currentColor" stroke-width="2" />
+    <text x="100" y="236" font-size="13" fill="currentColor" text-anchor="middle">a</text>
+    <text x="220" y="236" font-size="13" fill="currentColor" text-anchor="middle">c</text>
+    <text x="264" y="194" font-size="13" fill="currentColor">b</text>
+    <text x="264" y="90" font-size="13" fill="currentColor">d</text>
+    <text x="132" y="120" font-size="14" fill="currentColor" text-anchor="middle">ad − bc</text>
+  </svg>
+  <figcaption style="font-size: 0.85em; opacity: 0.8">El rectángulo grande, menos sus seis piezas, es el paralelogramo.</figcaption>
+</figure>

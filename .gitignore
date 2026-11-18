@@ -13,8 +13,9 @@ test-results/
 !.vscode/extensions.json
 .idea/
 
-# Local configuration of Claude's tools
-.claude/
+# Local configuration of Claude's tools (the app's launch file, worktrees) stays out; the project's agents are shared.
+.claude/*
+!.claude/agents/
 
 # The tutorial's libraries (bundled at build time: site/scripts/vendor.mjs)
 site/public/vendor/

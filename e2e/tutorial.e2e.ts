@@ -165,6 +165,7 @@ test('a figure is to look at, not to read: no code, a caption; the project’s t
     'main.ts',
     'screen.ts',
     'sky.ts',
+    'herramientas/panel.ts',
     'herramientas/random.ts',
     'herramientas/view.ts',
   ]);

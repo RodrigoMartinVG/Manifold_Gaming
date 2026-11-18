@@ -17,7 +17,7 @@ ctx.lineTo(bx, by);
 ctx.stroke();
 ```
 
-Pero una línea, en matemática, no tiene ancho: pasa entre los píxeles, rozando unos y cortando otros. ¿Cuáles hay que encender? En este capítulo lo decidimos nosotros, nos equivocamos dos veces de maneras que se ven, y terminamos con una línea sin agujeros que usa la menor cantidad posible de píxeles.
+`moveTo` lleva la lapicera a $A$ sin pintar, `lineTo` marca el tramo hasta $B$, y `stroke` lo pinta. Pero una línea, en matemática, no tiene ancho: pasa entre los píxeles, rozando unos y cortando otros. ¿Cuáles hay que encender? En este capítulo lo decidimos nosotros, nos equivocamos dos veces de maneras que se ven, y terminamos con una línea sin agujeros que usa la menor cantidad posible de píxeles.
 
 **Dónde estamos.** Parte I, Dibujar: el segundo paso. Ya podemos pintar un píxel; ahora, muchos en fila.
 
@@ -75,7 +75,7 @@ Con el punto que viaja, una línea parece fácil: recorremos las columnas de la 
 ```ts
 for (let x = Math.floor(A.x); x <= Math.floor(B.x); x++) {
   const t = (x + 0.5 - A.x) / (B.x - A.x); // qué parte del camino es esta columna
-  setPixel(x, Math.floor(A.y + t * (B.y - A.y)), color);
+  setPixel(s, x, Math.floor(A.y + t * (B.y - A.y)), color);
 }
 ```
 
@@ -85,9 +85,9 @@ for (let x = Math.floor(A.x); x <= Math.floor(B.x); x++) {
   caption="Probá los tres intentos. Arrastrá A y B, y llevá B a la izquierda de A, o justo debajo."
 />
 
-Con la línea de la figura, de $(3, 2)$ a $(8, 13)$, se rompe. Son seis columnas, y entonces seis píxeles, para once filas: entre uno y el siguiente la línea baja más de una fila y quedan **agujeros** (la figura los marca en rojo). Arrastrá $B$ para que la línea quede más acostada que $45^\circ$: los agujeros desaparecen, porque entre una columna y la siguiente la línea sube o baja menos de una fila.
+Con la línea de la figura, que va del centro del píxel $(3, 2)$, el punto $(3{,}5;\ 2{,}5)$, al del píxel $(8, 13)$, se rompe. Son seis columnas, y entonces seis píxeles, para once filas: entre uno y el siguiente la línea baja más de una fila y quedan **agujeros** (la figura los marca en rojo). Arrastrá $B$ para que la línea quede más acostada que $45^\circ$: los agujeros desaparecen, porque entre una columna y la siguiente la línea sube o baja menos de una fila.
 
-Y hay dos roturas más. Llevá $B$ a la izquierda de $A$: el `for` va de una columna mayor a una menor y no da ni una vuelta; no se pinta nada. Ponela justo debajo de $A$: $B_x - A_x$ es cero, $t$ sale de dividir por cero, y tampoco se pinta nada.
+Y hay dos roturas más. Llevá $B$ a la izquierda de $A$: el `for` va de una columna mayor a una menor y no da ni una vuelta; no se pinta nada. Ponela justo debajo de $A$: $B_x - A_x$ es cero y $t$ sale de dividir por cero. En JavaScript eso no es un error: da `NaN` ("no es un número") o un infinito, y como ninguna fila tiene ese número, tampoco se pinta nada.
 
 **Antes de probarlo:** pasá a _one per row_, una por fila. ¿Para qué líneas va a andar bien, y para cuáles va a tener agujeros?
 
@@ -106,7 +106,7 @@ $$
 n = \max(|dx|, |dy|), \qquad P_k = P\!\left(\tfrac{k}{n}\right) \quad \text{para } k = 0, 1, \ldots, n,
 $$
 
-y pintemos el píxel que contiene a cada $P_k$. Para la línea de la figura, $n = \max(5, 11) = 11$: doce puntos, doce píxeles. Este método tiene nombre, **DDA** (por _digital differential analyzer_), y hace dos cosas bien, que podemos demostrar.
+y pintemos el píxel que contiene a cada $P_k$. Para la línea de la figura, $n = \max(5, 11) = 11$: doce puntos, doce píxeles. Con los extremos en centros de píxel, como acá, $dx$ y $dy$ son enteros, y $n$ también. En `line.ts` vas a ver dos cuidados más: si los extremos no están en centros, $n$ se redondea para arriba (`Math.ceil`), y cada paso sigue avanzando a lo sumo un píxel; y si $A = B$, $n$ es cero, y en vez de dividir por cero se pinta un solo punto. Este método tiene nombre, **DDA** (por _digital differential analyzer_), y hace dos cosas bien, que podemos demostrar.
 
 **No deja agujeros.** De un punto al siguiente, la $x$ avanza $|dx| / n \le 1$ y la $y$ avanza $|dy| / n \le 1$, porque $n$ es el mayor de los dos. Y si dos números $u$ y $v$ están a distancia a lo sumo $1$, sus pisos (la parte entera, que dice en qué píxel caen) también: como $\lfloor u \rfloor \le u < \lfloor u \rfloor + 1$, y lo mismo con $v$,
 
@@ -116,7 +116,7 @@ $$
 
 y siendo un entero menor que $2$, es a lo sumo $1$; cambiando los papeles de $u$ y $v$, tampoco es menor que $-1$. Así que dos puntos seguidos caen en píxeles que se tocan, al menos por una esquina.
 
-**No usa ni uno de más.** Cualquier cadena de píxeles que se tocan y va del píxel de $A$ al de $B$ avanza a lo sumo una columna y una fila por píxel. Para cubrir las $\max(|dx|, |dy|)$ columnas o filas del lado más largo necesita al menos $n$ saltos, es decir, $n + 1$ píxeles. Los nuestros son justo $n + 1$.
+**No usa ni uno de más.** Cualquier cadena de píxeles que se tocan y va del píxel de $A$ al de $B$ avanza a lo sumo una columna y una fila por salto. Para cubrir las $\max(|dx|, |dy|)$ columnas o filas del lado más largo necesita al menos $n$ saltos, es decir, $n + 1$ píxeles. Los nuestros son justo $n + 1$, y distintos: con los extremos en centros, cada paso avanza exactamente una columna o una fila por el lado más largo, así que ningún punto cae en el píxel del anterior.
 
 Pasá la figura a _as many as the longer side_ y mové $A$ y $B$ por todos lados, también a la izquierda y en vertical: ningún agujero, nunca.
 
@@ -165,14 +165,14 @@ Tu código suma dos archivos al del capítulo 1 y cambia `main.ts`; las pestaña
 
 - **`line.ts`**: `lerp`, la línea con tantos pasos como el lado más largo, y la línea quebrada.
 - **`constellations.ts`**: tres constelaciones como datos, con sus estrellas en centros de píxel, y si se cierran.
-- **`main.ts`**: el cielo de antes, con las constelaciones dibujadas por nuestras líneas y por las del canvas. Tocar una estrella y después otra las une con una línea, de las dos formas.
+- **`main.ts`**: el cielo de antes, con las constelaciones dibujadas por nuestras líneas y por las del canvas (un camino por constelación, que empieza con `beginPath` y, si se cierra, termina con `closePath`). Tocar una estrella y después otra las une con una línea, de las dos formas: la herramienta del panel le pasa a los dos dibujos tus líneas, `mine`.
 
-`screen.ts` y `sky.ts` siguen como en el capítulo 1, y las herramientas del libro (la vista y el azar) siguen al final, en cursiva.
+`screen.ts` y `sky.ts` siguen como en el capítulo 1, y las herramientas del libro (el panel, la vista y el azar) siguen al final, en cursiva.
 
 <Consigna>
 
 1. **Uní tus estrellas.** Tocá una estrella y después otra, y pasá la lupa por tu línea: del lado nuestro, una escalera de píxeles enteros; del lado del canvas, la misma escalera con los píxeles de los costados a medias.
-2. **Sumá una estrella.** En `constellations.ts`, agregale a _the Kite_ un quinto punto, por ejemplo `{ x: 146.5, y: 64.5 }` entre el tercero y el cuarto, y corré.
+2. **Sumá una estrella.** En `constellations.ts`, agregale a _the Kite_ un quinto punto entre el tercero y el cuarto, por ejemplo `{ x: 134.5, y: 67.5 }`, y corré. El barrilete pasa a tener cinco lados, con la punta nueva abajo a la izquierda, y aparece en los dos dibujos, porque los dos leen los mismos datos.
 3. **Antes de correrlo, adiviná.** En `line.ts`, cambiá la cantidad de pasos por la del primer intento, una por columna: `const n = Math.abs(b.x - a.x);`. ¿Qué tramos se van a agujerear?
 
 <details>
@@ -205,7 +205,7 @@ Con el número de paso $k$: pintá solo si $\lfloor k / 4 \rfloor$ es par. En di
 
 </details>
 
-**2. Una línea más gruesa.** Hacé una de dos píxeles de ancho, pintando en cada paso también el píxel de al lado. ¿Qué tiene que pasar? Si la línea es más acostada que empinada, el vecino que conviene es el de abajo; si es más empinada, el de al lado. Con el vecino equivocado, la línea sale más angosta en un sentido que en el otro.
+**2. Una línea más gruesa.** Hacé una de dos píxeles de ancho, pintando en cada paso también el píxel de al lado. ¿Qué tiene que pasar? Si la línea es más acostada que empinada, el vecino que conviene es el de abajo; si es más empinada, el de al lado. Con el vecino equivocado, las líneas de un sentido salen gruesas y las del otro casi tan finas como antes: en una acostada, el vecino de al lado cae casi siempre sobre el píxel del paso siguiente, y no la engorda.
 
 <details>
 <summary>Una pista</summary>

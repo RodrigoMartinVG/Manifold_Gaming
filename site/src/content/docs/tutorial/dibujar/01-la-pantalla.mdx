@@ -8,6 +8,7 @@ sidebar:
 import LiveCode from '../../../../components/LiveCode.astro';
 import Margen from '../../../../components/Margen.astro';
 import Consigna from '../../../../components/Consigna.astro';
+import Pythagoras from '../../../../components/libro/Pythagoras.astro';
 
 Todo lo que vas a construir en este libro (un mundo, las cosas que se mueven en él, la noche, una muralla que se defiende hasta el alba) termina en el mismo lugar: una grilla de puntitos de luz. Antes de mover, de chocar o de pensar, hay que poder encender uno. En este capítulo pintamos píxeles a mano, uno por uno, y los comparamos con los que pinta el navegador con sus propias funciones.
 
@@ -27,16 +28,16 @@ Cada luz tiene un brillo, y la computadora lo guarda como un número del $0$ (ap
 
 Las luces se suman, no se mezclan como pinturas: rojo y verde encendidos dan amarillo, no marrón; las tres al máximo dan blanco, y las tres apagadas, negro.
 
-**Antes de moverlo:** ¿qué color esperás de $(255, 255, 0)$? ¿Y de $(128, 128, 128)$? Probalo en la figura.
+**Antes de moverlo:** ¿qué color esperás de $(255, 0, 255)$? ¿Y de $(128, 128, 128)$? Probalo en la figura.
 
 <details>
 <summary>La respuesta</summary>
 
-$(255, 255, 0)$ es amarillo: rojo y verde a pleno, azul apagado. $(128, 128, 128)$ es un gris medio: las tres luces iguales, a la mitad. Cuando las tres son iguales el color es siempre un gris, más claro cuanto más alto el número.
+$(255, 0, 255)$ es un fucsia: rojo y azul a pleno, verde apagado. $(128, 128, 128)$ es un gris medio: las tres luces iguales, a la mitad. Cuando las tres son iguales el color es siempre un gris, más claro cuanto más alto el número.
 
 </details>
 
-¿Por qué justo $255$? Porque cada brillo se guarda en un **byte**, ocho dígitos binarios, y con ocho dígitos hay $2^8 = 256$ números distintos: del $0$ al $255$. Tres bytes por píxel dan $256 \cdot 256 \cdot 256 = 16\,777\,216$ colores. La figura también los muestra como los escribe CSS (`rgb(229, 192, 123)`) y en hexadecimal (`#e5c07b`): dos cifras de base $16$ por luz, porque $16 \cdot 16 = 256$.
+¿Por qué justo $255$? Porque cada brillo se guarda en un **byte**, ocho dígitos binarios, y con ocho dígitos hay $2^8 = 256$ números distintos: del $0$ al $255$. Tres bytes por píxel dan $256 \cdot 256 \cdot 256 = 16\,777\,216$ colores. La figura también los muestra como los escribe CSS (`rgb(229, 192, 123)`) y en hexadecimal (`#e5c07b`): dos cifras de base $16$ por luz, porque $16 \cdot 16 = 256$. Las cifras de base $16$ van del $0$ al $15$, y de la diez en adelante se escriben con letras, de la `a` a la `f`: el rojo, `e5`, es $14 \cdot 16 + 5 = 229$.
 
 <Margen kind="sabe" title="Más de ocho bits">
   Ocho bits por luz es lo de todos los días, no un límite de la física. Las pantallas de alto rango dinámico (HDR) usan diez o
@@ -85,18 +86,22 @@ Al revés: $1000 = 4 \cdot 250$, así que es el primer número del píxel $250$,
 
 ## Pintar a mano
 
-Ya podemos escribir nuestra pantalla: una tira de números y una función que pinta un píxel.
+Ya podemos escribir nuestra pantalla: su ancho, su alto, una tira de números, y una función que pinta un píxel.
 
 ```ts
-const pixels = new Uint8ClampedArray(ancho * alto * 4); // cuatro números por píxel
+const s = { width: 160, height: 90, pixels: new Uint8ClampedArray(160 * 90 * 4) }; // cuatro números por píxel
 
-function setPixel(x: number, y: number, c: Colour) {
-  const i = 4 * (y * ancho + x);
-  pixels[i] = c[0]; // rojo
-  pixels[i + 1] = c[1]; // verde
-  pixels[i + 2] = c[2]; // azul
+function setPixel(s: Screen, x: number, y: number, c: Colour) {
+  const i = 4 * (y * s.width + x);
+  s.pixels[i] = c[0]; // rojo
+  s.pixels[i + 1] = c[1]; // verde
+  s.pixels[i + 2] = c[2]; // azul
 }
 ```
+
+La pantalla es el objeto `s`, y cada función que pinta la recibe primero: así pinta en la pantalla que le des.
+
+**Cómo se lee este código.** Es TypeScript: JavaScript con anotaciones que dicen qué es cada cosa. `x: number` dice que `x` es un número; `Colour` y `Screen` son nombres para formas de datos ("tres números", "un ancho, un alto y una tira"), y `type` e `interface` son cómo se ponen esos nombres. Al leer, las anotaciones se pueden saltear: sin ellas queda JavaScript, y hace lo mismo. Dos cosas más que vas a ver en el proyecto: `readonly` marca algo que no se cambia, y un `!` después de un valor (`s.pixels[i]!`) le asegura a TypeScript que ahí hay un número. La tira es un `Uint8ClampedArray`, una lista de enteros del $0$ al $255$ que recorta lo que no entra: si le das $300$ guarda $255$, y si le das $-5$, $0$. Justo lo que necesita un brillo.
 
 Con eso, un **rectángulo** son dos `for`: recorremos los píxeles de la zona y pintamos cada uno cuyo centro cae adentro. El canvas del navegador tiene su propia función para lo mismo:
 
@@ -114,14 +119,16 @@ La figura los pone lado a lado, en una pantalla chica de $24 \times 16$ píxeles
   caption="Arriba el nuestro, abajo el del canvas. Arrastrá las esquinas, o llevá x a 4,5."
 />
 
-Con las esquinas en números enteros, los dos pintan exactamente lo mismo: cero píxeles distintos. Ahora llevá `x` a $4{,}5$. El canvas pinta los bordes a medias, con un color entre el de la figura y el del fondo; el nuestro tiene que decidir, y decide por el centro: la columna $4$ entera, la $14$ nada.
+Con las esquinas en números enteros, los dos pintan exactamente lo mismo: cero píxeles distintos. Ahora llevá `x` a $4{,}5$. El canvas pinta los bordes a medias, con un color entre el de la figura y el del fondo; el nuestro tiene que decidir, y decide por el centro.
 
-**Antes de probarlo:** con `x` en $4{,}5$, ancho $10$ y alto $7$, ¿cuántos píxeles van a diferir?
+¿Y si un centro cae justo sobre un borde? Nuestro `fillRect` (en `screen.ts`) desempata así: un centro sobre el borde izquierdo o el de arriba cuenta (en el código, `>=`), y uno sobre el derecho o el de abajo no (`<`). Así, si un rectángulo termina en $x = 4{,}5$ y otro empieza ahí, la columna $4$, cuyo centro está justo en $4{,}5$, es solo del segundo: ningún píxel se pinta dos veces, y ninguno queda sin pintar. La misma idea vuelve en el capítulo 3, con triángulos, como la regla de arriba a la izquierda.
+
+**Antes de probarlo:** con `x` en $4{,}5$, ancho $10$ y alto $7$, ¿se pinta la columna $4$? ¿Y la $14$? ¿Cuántos píxeles van a diferir?
 
 <details>
 <summary>La respuesta</summary>
 
-El rectángulo va de $x = 4{,}5$ a $x = 14{,}5$. El canvas cubre las columnas $4$ y $14$ por la mitad y las pinta a media intensidad. El nuestro pinta la $4$ entera (su centro, $4{,}5$, está adentro) y no pinta la $14$ (su centro, $14{,}5$, ya no). Difieren esas dos columnas de $7$ píxeles: $14$ en total.
+El rectángulo va de $x = 4{,}5$ a $x = 14{,}5$. El canvas cubre las columnas $4$ y $14$ por la mitad y las pinta a media intensidad. El nuestro pinta la $4$ entera (su centro, $4{,}5$, cae sobre el borde izquierdo, que cuenta) y no pinta la $14$ (su centro, $14{,}5$, cae sobre el derecho, que no). Difieren esas dos columnas de $7$ píxeles: $14$ en total.
 
 </details>
 
@@ -139,37 +146,7 @@ $$
 
 Miremos por qué. Tomemos un cuadrado de lado $a + b$ y pongamos adentro cuatro copias del triángulo, una en cada esquina, girándolas de a un cuarto de vuelta, como en el dibujo. Lo que queda en el medio tiene cuatro lados de largo $c$, los lados largos de los triángulos, y sus esquinas son rectas. En cada una, sobre un lado del cuadrado grande, se juntan tres ángulos: uno agudo de un triángulo, la esquina del medio y el otro agudo del triángulo vecino. Los tres forman una línea recta, $180^\circ$, y los dos agudos de un triángulo rectángulo suman $90^\circ$; a la esquina del medio le quedan $90^\circ$. Es un cuadrado de lado $c$.
 
-<figure style="margin: 1.5rem 0; text-align: center">
-  <svg
-    viewBox="0 0 220 220"
-    width="220"
-    height="220"
-    role="img"
-    aria-label="Un cuadrado de lado a más b con cuatro triángulos rectángulos en las esquinas y un cuadrado inclinado de lado c en el medio"
-  >
-    <rect x="10" y="10" width="200" height="200" fill="none" stroke="currentColor" stroke-width="2" />
-    <polygon points="10,10 70,10 10,150" fill="rgba(97,175,239,0.35)" stroke="currentColor" />
-    <polygon points="70,10 210,10 210,70" fill="rgba(97,175,239,0.35)" stroke="currentColor" />
-    <polygon points="210,70 210,210 150,210" fill="rgba(97,175,239,0.35)" stroke="currentColor" />
-    <polygon points="150,210 10,210 10,150" fill="rgba(97,175,239,0.35)" stroke="currentColor" />
-    <polygon points="70,10 210,70 150,210 10,150" fill="rgba(229,192,123,0.3)" stroke="currentColor" stroke-width="2" />
-    <text x="40" y="8" font-size="13" fill="currentColor" text-anchor="middle">
-      a
-    </text>
-    <text x="140" y="8" font-size="13" fill="currentColor" text-anchor="middle">
-      b
-    </text>
-    <text x="110" y="115" font-size="15" fill="currentColor" text-anchor="middle">
-      c²
-    </text>
-    <text x="118" y="44" font-size="13" fill="currentColor">
-      c
-    </text>
-  </svg>
-  <figcaption style="font-size: 0.85em; opacity: 0.8">
-    El cuadrado grande, de lado a + b: cuatro triángulos y un cuadrado de lado c.
-  </figcaption>
-</figure>
+<Pythagoras />
 
 Ahora contemos el área del cuadrado grande de dos maneras. Por su lado, es $(a + b)^2 = a^2 + 2ab + b^2$. Por sus partes, son cuatro triángulos de área $\tfrac12 ab$ cada uno, más el cuadrado del medio: $2ab + c^2$. Las dos cuentas miden lo mismo, así que $a^2 + 2ab + b^2 = 2ab + c^2$, y sacando $2ab$ de los dos lados queda $a^2 + b^2 = c^2$.
 
@@ -178,7 +155,7 @@ La distancia entre $C$ y $P$ es entonces $d = \sqrt{dx^2 + dy^2}$. Y para saber 
 ```ts
 const dx = x + 0.5 - cx; // del centro del círculo al centro del píxel
 const dy = y + 0.5 - cy;
-if (dx * dx + dy * dy <= r * r) setPixel(x, y, color);
+if (dx * dx + dy * dy <= r * r) setPixel(s, x, y, color);
 ```
 
 <LiveCode
@@ -214,7 +191,15 @@ Con $a = 0$ queda el fondo; con $a = 1$, la luna; y en el medio, una mezcla con 
 
 Subí _samples per side_ en la figura y mirá cómo se suaviza el borde. Con $n \times n$ puntos la fracción solo puede valer $0, \tfrac{1}{n^2}, \tfrac{2}{n^2}, \ldots, 1$: hay $n^2 + 1$ tonos posibles para un píxel del borde, $2$ con un punto, $17$ con $4 \times 4$, $65$ con $8 \times 8$.
 
-Y mirá la diferencia más grande con el canvas (en Chrome): $108$ niveles con un punto, $54$ con $2 \times 2$, $27$ con $4 \times 4$... y con $8 \times 8$ vuelve a subir, a $37$. ¿Más puntos y peor? Las dos filas de abajo del panel lo explican: comparan cada dibujo con el **área de verdad** (medida con $128 \times 128$ puntos por píxel). El nuestro se equivoca a lo sumo en $73$ niveles con un punto, y después en $26$, $12$ y $6$ con $2$, $4$ y $8$ puntos por lado: a la mitad cada vez que $n$ se duplica, como promete la demostración del margen. El canvas de Chrome, en cambio, se equivoca hasta en $35$: él también aproxima, a su manera, más rápido. Con $8 \times 8$ puntos, el nuestro está más cerca de la verdad que el del canvas, y por eso más lejos del canvas. **La biblioteca no es la verdad; es otra aproximación**, y comparar con ella sirve para entender qué hace, no para copiarla.
+Y mirá la diferencia más grande con el canvas, en **niveles** (un nivel es un paso de los $256$ de una luz: de $200$ a $201$, por ejemplo). En Chrome es de $108$ con un punto, $54$ con $2 \times 2$, $27$ con $4 \times 4$... y con $8 \times 8$ vuelve a subir, a $37$. ¿Más puntos y peor? Las dos filas de abajo del panel lo explican: comparan cada dibujo con el **área de verdad** (medida con $128 \times 128$ puntos por píxel). Todo junto, la diferencia más grande, en niveles:
+
+| Puntos por lado        |   $1$ |  $2$ |  $4$ |  $8$ |
+| ---------------------- | ----: | ---: | ---: | ---: |
+| el nuestro y el canvas | $108$ | $54$ | $27$ | $37$ |
+| el nuestro y la verdad |  $73$ | $26$ | $12$ |  $6$ |
+| el canvas y la verdad  |  $35$ | $35$ | $35$ | $35$ |
+
+El nuestro se acerca a la verdad: desde dos puntos por lado, su error baja a la mitad cada vez que $n$ se duplica, igual que la cota que prueba el margen. El del canvas no cambia, porque no depende de nuestro $n$: él también aproxima, a su manera, más rápido. Con $8 \times 8$ puntos, el nuestro está más cerca de la verdad que el del canvas, y por eso más lejos del canvas. Los números exactos son de Chrome, pero la forma de la tabla vale en cualquier navegador: la fila del medio baja con $n$, y la de abajo se queda quieta. **La biblioteca no es la verdad; es otra aproximación**, y comparar con ella sirve para entender qué hace, no para copiarla.
 
 <Margen kind="demostracion" title="¿Cuánto se equivoca?">
   Partamos el píxel en $n \times n$ cuadraditos, uno por punto. Un cuadradito que el borde no corta está entero adentro o entero
@@ -242,19 +227,21 @@ Y mirá la diferencia más grande con el canvas (en Chrome): $108$ niveles con u
 
 Ahora todo junto, y esta vez el código es **tuyo**: lo que este capítulo explicó, para leerlo, cambiarlo y romperlo.
 
-- **`main.ts`** pinta el cielo dos veces, una con nuestras funciones (`paintOurs`) y otra con las del canvas (`paintTheirs`), y compara los dos dibujos.
-- **`screen.ts`** es nuestra pantalla: la tira de números, `setPixel`, la mezcla `mix`, el degradé, el rectángulo por los centros y el círculo con $n \times n$ puntos por píxel.
+- **`main.ts`** pinta el cielo dos veces, una con nuestras funciones (`paintOurs`) y otra con las del canvas (`paintTheirs`), y le da los dos dibujos a la herramienta que los compara.
+- **`screen.ts`** es nuestra pantalla: `createScreen`, que arma el objeto `s` con su tira de números, `setPixel`, la mezcla `mix`, el degradé, el rectángulo por los centros y el círculo con $n \times n$ puntos por píxel.
 - **`sky.ts`** es el cielo como datos: los colores de arriba y de abajo, las estrellas, la luna y los rectángulos de la torre. Solo números; lo que dibuja los lee.
 
-Al final de las pestañas, en cursiva, hay dos **herramientas del libro**: `herramientas/view.ts`, que agranda las dos imágenes y pone el divisor y la lupa, y `herramientas/random.ts`, el azar con semilla que hace que las estrellas sean siempre las mismas (el capítulo 25 lo explica, y ahí lo escribís vos). Hacen funcionar el ejemplo, pero no son la lección: no hace falta leerlas, y no se editan.
+`paintTheirs` usa las funciones del canvas que ya viste, `fillRect` y `arc` con `fill`, y tres más. El degradé del cielo es `createLinearGradient(0, 0, 0, alto)`: un degradé a lo largo de la recta que baja de $(0, 0)$ a $(0, \text{alto})$, con dos paradas, `addColorStop(0, …)` y `addColorStop(1, …)`, que dicen qué color va al principio de esa recta y cuál al final. Y al terminar, `getImageData` le pide al canvas sus píxeles: devuelve una tira de cuatro números por píxel, igual que la nuestra, y por eso los dos dibujos se pueden comparar número a número.
+
+Al final de las pestañas, en cursiva, hay tres **herramientas del libro**: `herramientas/panel.ts`, el panel que cuenta dónde difieren los dos dibujos y lee el píxel que tocás; `herramientas/view.ts`, que agranda las dos imágenes y pone el divisor y la lupa; y `herramientas/random.ts`, el azar con semilla que hace que las estrellas sean siempre las mismas (el capítulo 25 lo explica, y ahí lo escribís vos). Hacen funcionar el ejemplo, pero no son la lección: no hace falta leerlas, y no se editan.
 
 El degradé del cielo es la misma mezcla de antes, fila por fila: cada fila mezcla el color de arriba con el de abajo según qué tan abajo está su centro, $t = (y + \tfrac12)/\text{alto}$.
 
 <Consigna>
 
-1. **Mirá primero.** Arrastrá el divisor, pasá la lupa por el borde de la luna y tocá un píxel cualquiera: el panel muestra sus tres números en los dos dibujos.
+1. **Mirá primero.** Arrastrá el divisor, pasá la lupa por el borde de la luna y tocá un píxel cualquiera: el panel muestra sus tres números en los dos dibujos. Arriba en el panel, _view_ elige cómo mirar: los dos con el divisor (_split_), uno solo, o _differences_, dónde difieren.
 2. **Agrandá la luna.** En `sky.ts`, cambiá `r: 9.4` por `r: 16`, y corré (▶ Ejecutar, o Ctrl + Enter). Crece en los dos dibujos, porque los dos leen los mismos datos.
-3. **Antes de correrlo, adiviná.** En `main.ts`, cambiá el `'samples per side': 4` del principio por `1`. ¿La fila _largest difference_ del panel va a subir o bajar?
+3. **Antes de correrlo, adiviná.** En `main.ts`, al principio, cambiá `const SAMPLES = 4` por `1` y corré. Es el valor con que arranca el deslizador _samples per side_ del panel, que después lo cambia sin tocar el código. ¿La fila _largest difference_ va a subir o bajar?
 4. **Rompelo a propósito.** En `screen.ts`, dentro de `fillCircle`, mezclá la mitad: `mixPixel(s, i, j, c, (hits / (n * n)) * 0.5)`. ¿Qué le va a pasar a la luna?
 
 <details>
