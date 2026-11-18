@@ -16,6 +16,13 @@ export const AUDIO_VARIABLES = {
 
 type Sound = Extract<Event, { type: 'sound' }>;
 
+/**
+ * How far a weapon used (stage 5g: `fired`) is heard (m), by its kind: what fires loudly, far; what is
+ * swung or thrown, near. Only the view's (its sound, its subtitle): the world's sounds are its own.
+ */
+const FIRED_HEARD: Readonly<Record<string, number>> = { dart: 30, bolt: 20, shotgun: 45, launcher: 40 };
+export const firedHeard = (kind: string) => FIRED_HEARD[kind] ?? 8;
+
 /** The tone of a step or a hit on each surface: where its noise is (Hz), and a ring if it has one (Hz, and how long, s). */
 const SURFACES: Record<string, { noise: number; q: number; ring?: [frequencies: number[], seconds: number] }> = {
   stone: { noise: 900, q: 1.2 },
@@ -143,28 +150,84 @@ export function mountAudio(page: GamePage): Piece {
     page.container.dataset.sound = `${s.sound} ${s.surface ?? ''}`.trim();
   };
 
+  /**
+   * A weapon used (stage 5g: `fired`), heard: each kind its own, made like the rest. The dart cracks,
+   * the bolt twangs, the shotgun booms (a low thump under a wide rush), the launcher thumps and its
+   * rocket hisses away; what is swung or thrown is a whoosh.
+   */
+  const fire = (kind: string, loudness: number, pan: number) => {
+    const at = context!.currentTime + 0.01;
+    const out = context!.createGain();
+    out.gain.value = loudness;
+    const side = context!.createStereoPanner();
+    side.pan.value = pan;
+    out.connect(side).connect(master!);
+    switch (kind) {
+      case 'dart':
+        burst(out, at, 3200, 0.9, 0.5, 0.06);
+        ring(out, at, 170, 0.35, 0.09, 'sine', 70);
+        break;
+      case 'bolt':
+        ring(out, at, 330, 0.2, 0.16, 'triangle', 210);
+        burst(out, at, 1800, 2, 0.25, 0.05);
+        break;
+      case 'shotgun':
+        ring(out, at, 75, 0.85, 0.32, 'sine', 38);
+        burst(out, at, 650, 0.45, 0.9, 0.3);
+        burst(out, at, 2600, 0.8, 0.35, 0.09);
+        break;
+      case 'launcher':
+        ring(out, at, 95, 0.6, 0.3, 'sine', 50);
+        burst(out, at + 0.03, 1300, 0.6, 0.35, 0.55);
+        break;
+      default:
+        // The stick, a grenade, smoke, a flare: a whoosh.
+        burst(out, at, 700, 0.7, 0.22, 0.18);
+    }
+    made++;
+    page.container.dataset.sounds = String(made);
+    page.container.dataset.sound = `fired ${kind}`;
+  };
+
+  /** How loud a sound at `at` is from the camera, and to which side; null past its reach. */
+  const heard = (at: readonly number[], radius: number): { loudness: number; pan: number } | null => {
+    // Heard from the camera: what the player sees is what it hears.
+    const camera = page.stage.camera;
+    const listener = camera.position;
+    const dx = at[0]! - listener.x;
+    const dy = at[1]! - listener.y;
+    const dz = at[2]! - listener.z;
+    const d = Math.hypot(dx, dy, dz);
+    // Quieter with distance, silent past its radius (with a little more room for the camera's distance).
+    const reach = radius + 6;
+    if (d >= reach) return null;
+    // Which side: the camera's right, as the screen has it.
+    const right = {
+      x: camera.matrixWorld.elements[0]!,
+      y: camera.matrixWorld.elements[1]!,
+      z: camera.matrixWorld.elements[2]!,
+    };
+    const pan = d > 1e-6 ? Math.max(-1, Math.min(1, (dx * right.x + dy * right.y + dz * right.z) / d)) : 0;
+    return { loudness: (1 - d / reach) ** 2, pan: pan * 0.8 };
+  };
+
   return {
     event(ev) {
-      if (ev.type !== 'sound' || !context || !master || context.state !== 'running' || master.gain.value === 0) return;
-      // Heard from the camera: what the player sees is what it hears.
-      const camera = page.stage.camera;
-      const listener = camera.position;
-      const dx = ev.at[0] - listener.x;
-      const dy = ev.at[1] - listener.y;
-      const dz = ev.at[2] - listener.z;
-      const d = Math.hypot(dx, dy, dz);
-      // Quieter with distance, silent past its radius (with a little more room for the camera's distance).
-      const reach = ev.radius + 6;
-      if (d >= reach) return;
-      const loudness = (1 - d / reach) ** 2;
-      // Which side: the camera's right, as the screen has it.
-      const right = {
-        x: camera.matrixWorld.elements[0]!,
-        y: camera.matrixWorld.elements[1]!,
-        z: camera.matrixWorld.elements[2]!,
-      };
-      const pan = d > 1e-6 ? Math.max(-1, Math.min(1, (dx * right.x + dy * right.y + dz * right.z) / d)) : 0;
-      make(ev, loudness, pan * 0.8);
+      if (
+        (ev.type !== 'sound' && ev.type !== 'fired') ||
+        !context ||
+        !master ||
+        context.state !== 'running' ||
+        master.gain.value === 0
+      )
+        return;
+      if (ev.type === 'fired') {
+        const h = heard(ev.at, firedHeard(ev.kind));
+        if (h) fire(ev.kind, h.loudness, h.pan);
+        return;
+      }
+      const h = heard(ev.at, ev.radius);
+      if (h) make(ev, h.loudness, h.pan);
     },
   };
 }

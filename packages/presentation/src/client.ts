@@ -20,6 +20,7 @@ import { mountStats } from './stats';
 import { mountAudio } from './audio';
 import { createMixer } from './mixer';
 import { mountDebris } from './debris';
+import { mountFire } from './fire';
 import { mountLights } from './lights';
 import { mountSignals } from './signals';
 import { mountViews } from './views';
@@ -251,6 +252,8 @@ export function mount(cartridge: Cartridge, container: HTMLElement, o: MountOpti
     mountNotices(page),
     mountInspect(page, bodies, { click: o.camera === 'orbit', clickTaken: () => rig.takesClick() }),
     rig,
+    // (Stage 5g) After the camera: its kick turns the camera as the rig placed it.
+    mountFire(page, bodies),
     mountDrive(page, match, rig, { controls: playerControls, buttons: o.buttons, replaying: () => replays.playing }),
     mountProbe(page, match),
     ...(o.hud ? [mountHud(page, o.hud)] : []),

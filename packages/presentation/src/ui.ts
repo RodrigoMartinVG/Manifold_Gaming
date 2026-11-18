@@ -91,6 +91,19 @@ export function addInterfaceStyles() {
       filter: drop-shadow(0 0 1px rgb(0 0 0 / 0.8));
     }
     .mg-crosshair[hidden] { display: none; }
+    .mg-hitmarker {
+      position: absolute; left: 50%; top: 50%; width: 30px; height: 30px; margin: -15px 0 0 -15px;
+      z-index: 6; pointer-events: none; --c: #fff;
+      background:
+        linear-gradient(45deg, transparent 46%, var(--c) 46% 54%, transparent 54%) 0 0 / 9px 9px no-repeat,
+        linear-gradient(-45deg, transparent 46%, var(--c) 46% 54%, transparent 54%) 100% 0 / 9px 9px no-repeat,
+        linear-gradient(-45deg, transparent 46%, var(--c) 46% 54%, transparent 54%) 0 100% / 9px 9px no-repeat,
+        linear-gradient(45deg, transparent 46%, var(--c) 46% 54%, transparent 54%) 100% 100% / 9px 9px no-repeat;
+      filter: drop-shadow(0 0 1px rgb(0 0 0 / 0.9));
+    }
+    .mg-hitmarker[hidden] { display: none; }
+    .mg-hitmarker-head { --c: #ff5a4a; }
+    .mg-hitmarker-down { width: 40px; height: 40px; margin: -20px 0 0 -20px; --c: #ff5a4a; }
     .mg-hurt {
       position: absolute; inset: 0; z-index: 5; pointer-events: none; opacity: 0;
       box-shadow: inset 0 0 90px 24px rgb(190 24 24 / 0.8);

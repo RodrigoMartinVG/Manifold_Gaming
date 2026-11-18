@@ -20,6 +20,7 @@ export {
   type Weapon,
   type WeaponKind,
 } from './weapons';
+export { armsTool, WEAPON_LOOKS, weaponModel, type WeaponLook } from './looks';
 export { GUARD, GUARD_BRAIN, guard, guardsOf, GUNNER, GUNNER_KEY, gunnerOf, type Gunner } from './guard';
 export { ARMS_BRAINS, type GuardMemory } from './brain';
 export {

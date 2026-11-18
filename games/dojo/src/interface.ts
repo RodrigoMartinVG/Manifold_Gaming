@@ -1,6 +1,7 @@
 import { STEP, type Entity, type World } from '@manifold/core';
 import { openDialog, timeIn, type GamePage, type Hud, type Piece, type Tool, type Words } from '@manifold/presentation';
-import { charge, chargeOf, downFor, runner, weapon, WEAPONS, type WeaponKind } from './rules';
+import { armsTool, weapon } from '@manifold/arms';
+import { charge, chargeOf, downFor, runner } from './rules';
 
 /**
  * THE DOJO'S WORDS (stage 3i, decision 0019): what its notices say (the world sends their keys and
@@ -45,6 +46,8 @@ export const DOJO_WORDS = {
     'dojo.weapon.bolt': 'saeta',
     'dojo.weapon.stick': 'palo',
     'dojo.weapon.grenade': 'granada',
+    'dojo.weapon.shotgun': 'escopeta',
+    'dojo.weapon.launcher': 'lanzador',
     'dojo.who.master': 'El maestro',
     'dojo.story.hello': 'Llegaste. Ese guardia no te va a dejar salir: tendrás que pasar por encima de él.',
     'dojo.story.lock': 'Tomá el palo del soporte. Fijate en él con la T, bloqueá con la B y pegale con la X.',
@@ -86,6 +89,8 @@ export const DOJO_WORDS = {
     'dojo.weapon.bolt': 'bolt',
     'dojo.weapon.stick': 'stick',
     'dojo.weapon.grenade': 'grenade',
+    'dojo.weapon.shotgun': 'shotgun',
+    'dojo.weapon.launcher': 'launcher',
     'dojo.who.master': 'The master',
     'dojo.story.hello': 'You made it. That guard will not let you out: you will have to get past it.',
     'dojo.story.lock': 'Take the stick from its rack. Lock on to him with T, block with B, strike with X.',
@@ -160,22 +165,8 @@ export function dojoGoal(page: GamePage): Piece {
 }
 
 /**
- * THE DOJO'S WEAPONS, DRAWN (stage 4c): each one a box in the hands, held in front of the chest along the
- * aim: the dart, short, the left hand under its front; the bolt's bow, longer; the stick, 1.2 m, held up
- * at rest and swept as the world sweeps its tip (`strike()`: its angle at this step).
+ * THE DOJO'S WEAPONS, DRAWN (stage 4c): each one in the hands, held in front of the chest along the aim,
+ * the stick held up at rest and swept as the world sweeps its tip. Since stage 5g, the games' (`armsTool`,
+ * @manifold/arms): each weapon its model, a box until it loads.
  */
-const LOOKS: Readonly<Record<WeaponKind, Omit<Tool, 'sweep'>>> = {
-  dart: { size: [0.04, 0.07, 0.26], color: 0x8fa8c0, grips: [0.04, 0.16], lift: 0 },
-  bolt: { size: [0.07, 0.06, 0.5], color: 0x9a6e48, grips: [0.08, 0.26], lift: 0 },
-  stick: { size: [0.035, 0.035, WEAPONS.stick.reach], color: 0xc8a060, grips: [0.06, 0.24], lift: 50 },
-  grenade: { size: [0.14, 0.14, 0.14], color: 0x4a6a3a, grips: [0.07], lift: 0 },
-};
-
-export function dojoTool(_world: World, e: Entity): Tool | null {
-  const w = weapon(e);
-  if (!w || w.kind === 'none') return null;
-  const { steps, arc } = WEAPONS.stick;
-  const sweep = w.kind === 'stick' && w.strike > 0 ? arc / 2 - (arc * (steps - w.strike - 1)) / steps : null;
-  // Blocking (stage 4f): held across in front.
-  return { ...LOOKS[w.kind], sweep, ...(e.character?.mode === 'block' ? { block: true } : {}) };
-}
+export const dojoTool = (world: World, e: Entity): Tool | null => armsTool(world, e);

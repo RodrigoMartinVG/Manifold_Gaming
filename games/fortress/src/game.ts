@@ -1,8 +1,9 @@
 import characters from '@manifold/character/assets';
-import { ATTACK, FLARE_INPUT, pouch, SMOKE_INPUT } from '@manifold/arms';
+import { armsTool, ATTACK, FLARE_INPUT, pouch, SMOKE_INPUT } from '@manifold/arms';
 import { STEP, levelFromText, type Cartridge, type Level } from '@manifold/core';
 import { KIT } from '@manifold/kit';
 import kit from '@manifold/kit/assets';
+import weapons from '@manifold/arms/assets';
 import { timeIn, type Hud, type Theme, type Words } from '@manifold/presentation';
 import type { Game } from '@manifold/shell';
 import { createFortress, FORTRESS_ZONES, run, standing } from './rules';
@@ -158,9 +159,11 @@ export const FORTRESS: Game = {
       { who: 'fortress.who.keeper', say: 'fortress.end.2' },
     ],
   },
-  credits: [kit, characters],
+  credits: [kit, characters, weapons],
   music: FORTRESS_THEME,
   hud: fortressHud,
+  // What each one has in its hands (stage 5g: the games' weapons, their models): the stick.
+  tools: armsTool,
   // Its buttons: the stick, X or a click (as the Dojo's); smoke, F; a flare, Z.
   buttons: [
     { action: ATTACK, keys: ['KeyX', 'Mouse0'], pad: 5 },

@@ -16,6 +16,7 @@ import {
   THROWN,
   WEAPON,
   WEAPON_KINDS,
+  WEAPON_LOOKS,
   type Gunner,
   type Thrown,
   type Weapon,
@@ -194,11 +195,9 @@ function buildDojoLevel(world: World, level: Level) {
     );
   for (const zone of [...world.entities.values()].filter((e) => e.sensor?.kind === 'weapon')) {
     const kind = WEAPON_KINDS[(zone.sensor!.params.kind?.[0] ?? 1) - 1] ?? 'dart';
-    zone.appearance = {
-      shape: 'box',
-      size: [0.12, 0.12, 0.7],
-      color: { dart: 0x5a8ae0, bolt: 0xd85a5a, stick: 0x8a6a42, grenade: 0x6a9a4a }[kind],
-    };
+    // (Stage 5g) The weapon itself on its rack: its model, its look's box until it loads.
+    const look = WEAPON_LOOKS[kind];
+    zone.appearance = { shape: 'box', size: [...look.size], color: look.color, model: look.model };
     zone.spin = { angularVelocity: [0, 1.5, 0] };
   }
   character(world, 1, level.spawn, level.facing, 0x93d9c9);

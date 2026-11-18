@@ -243,6 +243,8 @@ export function mountCamera(
   const viewCamera = new THREE.PerspectiveCamera(VIEW_FOV, 1, 0.01, 10);
   const viewTool = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshLambertMaterial({ color: 0xffffff }));
   viewScene.add(viewTool);
+  // (Stage 5g) The tool's model in the view, once it loaded (its box until then): a copy per model.
+  let viewModel: { name: string; object: THREE.Object3D } | null = null;
   /**
    * Back where it wants to be: what moves it (a drag, the wheel, the mouse aiming, the leash) moves
    * that, never the pull, nor first person's move to the eyes. The mouse's moves come between frames,
@@ -463,10 +465,24 @@ export function mountCamera(
             .applyAxisAngle(new THREE.Vector3(1, 0, 0), deg(model.holding.lift))
             .applyAxisAngle(new THREE.Vector3(0, 1, 0), -deg(model.holding.sweep));
       const back = (blocking ? VIEW_BLOCK : VIEW_HOLD).clone().addScaledVector(way, -(pose.size[2] * 0.15));
-      viewTool.scale.set(...pose.size);
-      (viewTool.material as THREE.MeshLambertMaterial).color.setHex(pose.color);
-      viewTool.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), way);
-      viewTool.position.copy(back).addScaledVector(way, pose.size[2] / 2);
+      if (pose.model && viewModel?.name !== pose.model) {
+        const object = bodies.toolModel(pose.model);
+        if (object) {
+          if (viewModel) viewScene.remove(viewModel.object);
+          viewModel = { name: pose.model, object };
+          viewScene.add(object);
+        }
+      }
+      const modelled = !!pose.model && viewModel?.name === pose.model;
+      if (viewModel) viewModel.object.visible = modelled;
+      viewTool.visible = !modelled;
+      const drawnTool = modelled ? viewModel!.object : viewTool;
+      if (!modelled) {
+        viewTool.scale.set(...pose.size);
+        (viewTool.material as THREE.MeshLambertMaterial).color.setHex(pose.color);
+      }
+      drawnTool.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), way);
+      drawnTool.position.copy(back).addScaledVector(way, pose.size[2] / 2);
       const size = renderer.getSize(new THREE.Vector2());
       viewCamera.aspect = size.x / Math.max(1, size.y);
       viewCamera.updateProjectionMatrix();

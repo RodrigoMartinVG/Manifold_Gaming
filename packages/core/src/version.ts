@@ -93,5 +93,9 @@
  *      their state named `arms.weapon`, `arms.fuse`, `arms.thrown`, `arms.gunner`, the attack
  *      `arms.attack`, the guard's brain `arms.guard`. The same behavior to the bit (the old replays,
  *      their names put back, give their old hashes)
+ *  42  stage 5g: thrown by a blast, a character steers in the air by `airStrafe` (the part of its velocity
+ *      along the way asked rises to the speed asked, never past it; until 41 it grew for as long as it
+ *      was asked); the shooter's weapons: a shotgun (its pellets on the shot's dice) and a launcher (a
+ *      rocket that blows where it strikes)
  */
-export const SIMULATION_VERSION = 41;
+export const SIMULATION_VERSION = 42;

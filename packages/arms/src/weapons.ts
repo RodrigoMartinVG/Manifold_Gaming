@@ -38,11 +38,29 @@ export const ARMS_INPUTS: readonly InputAction[] = [
 export const EYE = 0.62;
 
 /**
- * THE WEAPONS (stage 4c; the Dojo's until stage 5e, now the games'), their policy: a dart (hitscan: a ray, at once, with a little spread
- * from the shot's own dice, looking back as far as its shooter saw), a bolt (a projectile, fast enough
- * that only stepping it by segments of ray keeps it from crossing a thin wall) and a stick (a strike:
- * its tip sweeps an arc in front over its steps, a ball swept along each step's segment, each target
- * hit once a strike). How much each takes, how often, how far.
+ * THE WEAPONS (stage 4c; the Dojo's until stage 5e, now the games'; stage 5g gave each its role and two
+ * more), their policy: how much each takes, how often (steps), how far.
+ *
+ *   - the dart: a ray at once (hitscan), a little spread from the shot's own dice, looking back as far as
+ *     its shooter saw. Its role, the one that is always right: quick, precise, at any distance, little
+ *     each time (four to bring someone down, two to the head).
+ *   - the bolt: a projectile, fast enough that only stepping it by segments of ray keeps it from crossing a
+ *     thin wall. Its role, the heavy one: slower to fire, it travels (one leads whoever moves), and takes
+ *     more (three).
+ *   - the stick: a strike, its tip sweeping an arc in front over its steps, each target hit once a strike.
+ *     Its role, the quiet one, at arm's length (and from behind, in a game that sneaks, at once).
+ *   - the grenade: thrown in an arc, and a second and a half later it blows. Its role: round corners, at
+ *     whoever does not move, and what is behind cover.
+ *   - the shotgun (5g): eight pellets at once, each its own direction within 6 degrees from the shot's own
+ *     dice. Its role, the near one: at two meters all of them strike someone (96), at five about half,
+ *     at ten one or two (measured: shooter.test.ts); slow to fire again.
+ *   - the launcher (5g): a rocket, slower than a bolt, that blows where it strikes (its blast the world's:
+ *     what it reaches it pushes, and hurts by how near). Its role: a place rather than someone; and, at
+ *     one's own feet, the explosion jump (one's own blast takes nothing from oneself, it only throws:
+ *     4 m up alone, 9.5 with a jump; a kit wall is 3).
+ *
+ * The numbers of the first four are the ones the arena and the citadel were balanced with (4g, 4.5a):
+ * 5g gave them their roles in words and in feel (the presentation's), not new numbers.
  */
 export const WEAPONS = Object.freeze({
   dart: { damage: 25, reach: 60, spread: 1, every: 12 },
@@ -50,10 +68,14 @@ export const WEAPONS = Object.freeze({
   stick: { damage: 30, reach: 1.2, radius: 0.15, steps: 12, arc: 120, every: 24 },
   /** (Stage 4f) Thrown where it aims; a second and a half later it blows: 60 at its center, less to 4 m. */
   grenade: { damage: 60, speed: 9, fuse: 90, radius: 4, strength: 500, every: 45 },
+  /** (Stage 5g) Eight pellets of 12 within 6 degrees, 30 m at most; once a second. */
+  shotgun: { damage: 12, pellets: 8, reach: 30, spread: 6, every: 60 },
+  /** (Stage 5g) A rocket at 25 m/s for 4 s; where it strikes, a blast of 3.5 m: 90 at its center, less to its edge. */
+  launcher: { damage: 90, speed: 25, radius: 0.08, life: 240, blast: 3.5, strength: 900, every: 50 },
 });
 export type WeaponKind = keyof typeof WEAPONS;
-/** A `weapon` zone's `kind`: 1, 2, 3, 4. */
-export const WEAPON_KINDS: readonly WeaponKind[] = ['dart', 'bolt', 'stick', 'grenade'];
+/** A `weapon` zone's `kind`: 1, 2, 3, 4; (stage 5g) 5, 6. */
+export const WEAPON_KINDS: readonly WeaponKind[] = ['dart', 'bolt', 'stick', 'grenade', 'shotgun', 'launcher'];
 
 /** A grenade's fuse (stage 4f): the steps left, and who threw it. */
 type Fuse = { steps: number; by: number };
@@ -104,37 +126,48 @@ export function arms(world: World, events: readonly Event[]) {
     const eye = vec3.add(e.transform.position, vec3.scale(up, e.character && e.body ? eyeHeightOf(e.character, e.body) : EYE));
     if (w.strike > 0) strike(world, e, w, chest, up, back);
     if (!pressed(world, c.player, ATTACK) || world.tick < w.ready) continue;
-    if (w.kind === 'dart') {
-      const dart = WEAPONS.dart;
-      const direction = spread(ahead, up, dart.spread, shotDice(world, c.player));
-      const hit = castHit(world, eye, direction, dart.reach, { back, skip: e.id });
-      if (hit && world.entities.get(hit.entity)?.health)
-        world.hurt(hit.entity, dart.damage, { from: e.id, part: hit.kind === 'character' ? hit.part : null, kind: 'dart' });
-      world.emit({
-        type: 'shot',
-        from: e.id,
-        start: eye,
-        end: hit ? hit.point : vec3.add(eye, vec3.scale(direction, dart.reach)),
-        hit: hit?.entity ?? null,
-        kind: 'dart',
-      });
-      w.ready = world.tick + dart.every;
-    } else if (w.kind === 'bolt') {
-      const bolt = WEAPONS.bolt;
+    // (Stage 5g) For the eyes and the ears: the weapon used, from where, which way.
+    const thrown = w.kind === 'grenade' || w.kind === 'stick';
+    world.emit({ type: 'fired', from: e.id, at: thrown ? chest : eye, direction: [...ahead], kind: w.kind });
+    if (w.kind === 'dart' || w.kind === 'shotgun') {
+      // A ray at once; the shotgun's pellets, each its own direction from the one shot's dice.
+      const gun = w.kind === 'dart' ? { ...WEAPONS.dart, pellets: 1 } : WEAPONS.shotgun;
+      const dice = shotDice(world, c.player);
+      for (let k = 0; k < gun.pellets; k++) {
+        const direction = spread(ahead, up, gun.spread, dice);
+        const hit = castHit(world, eye, direction, gun.reach, { back, skip: e.id });
+        if (hit && world.entities.get(hit.entity)?.health)
+          world.hurt(hit.entity, gun.damage, { from: e.id, part: hit.kind === 'character' ? hit.part : null, kind: w.kind });
+        world.emit({
+          type: 'shot',
+          from: e.id,
+          start: eye,
+          end: hit ? hit.point : vec3.add(eye, vec3.scale(direction, gun.reach)),
+          hit: hit?.entity ?? null,
+          kind: w.kind,
+        });
+      }
+      w.ready = world.tick + gun.every;
+    } else if (w.kind === 'bolt' || w.kind === 'launcher') {
+      const bolt = w.kind === 'bolt';
+      const p = bolt ? WEAPONS.bolt : WEAPONS.launcher;
       world.createEntity({
         transform: { position: vec3.add(eye, vec3.scale(ahead, 0.4)), rotation: quat.identity() },
         projectile: {
           from: e.id,
-          velocity: vec3.scale(ahead, bolt.speed),
-          radius: bolt.radius,
-          damage: bolt.damage,
-          kind: 'bolt',
+          velocity: vec3.scale(ahead, p.speed),
+          radius: p.radius,
+          // (A rocket's damage is its blast's: `rockets`.)
+          damage: bolt ? WEAPONS.bolt.damage : 0,
+          kind: w.kind === 'bolt' ? 'bolt' : 'rocket',
           gravity: false,
-          life: bolt.life,
+          life: p.life,
         },
-        appearance: { shape: 'sphere', size: [0.12, 0.12, 0.12], color: 0xff7050 },
+        appearance: bolt
+          ? { shape: 'sphere', size: [0.12, 0.12, 0.12], color: 0xff7050 }
+          : { shape: 'sphere', size: [0.2, 0.2, 0.2], color: 0xffa040 },
       });
-      w.ready = world.tick + bolt.every;
+      w.ready = world.tick + p.every;
     } else if (w.kind === 'grenade') {
       const g = WEAPONS.grenade;
       const { above } = aimOf(c, up);
@@ -157,6 +190,25 @@ export function arms(world: World, events: readonly Event[]) {
       w.ready = world.tick + WEAPONS.stick.every;
       strike(world, e, w, chest, up, back);
     }
+  }
+  rockets(world, events);
+}
+
+/**
+ * ROCKETS (stage 5g): each one that struck something blows there, a hair back the way it came (so the
+ * blast is not behind the face it struck: what shelters is asked from where it blows), and each one it
+ * reached with health is hurt by its share of the launcher's damage, from who fired it. (Out of its life
+ * without striking anything, it is gone: the world's.)
+ */
+function rockets(world: World, events: readonly Event[]) {
+  const l = WEAPONS.launcher;
+  for (const ev of events) {
+    if (ev.type !== 'impact' || ev.kind !== 'rocket') continue;
+    const speed = vec3.length(ev.velocity);
+    const at = speed > 1e-9 ? vec3.sub(ev.at, vec3.scale(ev.velocity, 0.1 / speed)) : ev.at;
+    const by = ev.from;
+    for (const { entity, share } of world.explode(at, l.blast, l.strength, by))
+      if (world.entities.get(entity)?.health) world.hurt(entity, Math.round(l.damage * share), { from: by, kind: 'rocket' });
   }
 }
 

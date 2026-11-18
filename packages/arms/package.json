@@ -3,9 +3,11 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "What fights, for the games (stage 5e; the Dojo's rules until then): the weapons and their strikes, shots and blasts, what a hit takes, the guards and their brain, and what the light can be used for. Headless: it runs on a server and in tests.",
+  "description": "What fights, for the games (stage 5e; the Dojo's rules until then): the weapons and their strikes, shots and blasts, what a hit takes, the guards and their brain, and what the light can be used for. Headless: it runs on a server and in tests. Its weapons' model (stage 5g, art/weapons.py) is for the presentation (`./models`).",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./models": "./src/models.ts",
+    "./assets": "./assets/assets.json"
   },
   "dependencies": {
     "@manifold/bots": "0.0.0",

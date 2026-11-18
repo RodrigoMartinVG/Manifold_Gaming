@@ -1,6 +1,7 @@
 import type { VariableInfo } from '@manifold/commands';
 import type { Vec3 } from '@manifold/common';
 import { upAt, type Event } from '@manifold/core';
+import { firedHeard } from './audio';
 import type { GamePage, Piece } from './page';
 import { addInterfaceStyles } from './ui';
 import type { Say } from './words';
@@ -33,6 +34,13 @@ export function subtitleText(say: Say, sound: Sound['sound'], surface: string | 
   const key = `sound.${sound}.${surface ?? 'stone'}`;
   const whole = say(key);
   return whole === key ? say(`sound.${sound}`) : whole;
+}
+
+/** (Stage 5g) A weapon used, in words, by its kind (`sound.fired.shotgun`: "Un escopetazo"); without its own, what is thrown. */
+export function firedText(say: Say, kind: string): string {
+  const key = `sound.fired.${kind}`;
+  const words = say(key);
+  return words === key ? say('sound.fired') : words;
 }
 
 /**
@@ -105,16 +113,17 @@ export function mountSubtitles(page: GamePage): Piece {
 
   return {
     event(ev) {
-      if (!enabled || ev.type !== 'sound') return;
-      const s = ev as Sound;
+      if (!enabled || (ev.type !== 'sound' && ev.type !== 'fired')) return;
+      // (Stage 5g) A weapon used, heard as far as its sound (audio.ts), in words: "Un escopetazo".
+      const radius = ev.type === 'sound' ? ev.radius : firedHeard(ev.kind);
       const camera = page.stage.camera;
-      const dx = s.at[0] - camera.position.x;
-      const dy = s.at[1] - camera.position.y;
-      const dz = s.at[2] - camera.position.z;
-      if (Math.hypot(dx, dy, dz) >= s.radius + 6) return;
+      const dx = ev.at[0] - camera.position.x;
+      const dy = ev.at[1] - camera.position.y;
+      const dz = ev.at[2] - camera.position.z;
+      if (Math.hypot(dx, dy, dz) >= radius + 6) return;
       const at: Vec3 = [camera.position.x, camera.position.y, camera.position.z];
       const arrow = arrowFor([dx, dy, dz], camera.matrixWorld.elements, upAt(page.session.world, at));
-      show(subtitleText(page.words, s.sound, s.surface), arrow);
+      show(ev.type === 'sound' ? subtitleText(page.words, ev.sound, ev.surface) : firedText(page.words, ev.kind), arrow);
     },
     stop() {
       for (const text of [...lines.keys()]) forget(text);

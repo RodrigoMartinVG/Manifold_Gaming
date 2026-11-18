@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import * as THREE from 'three';
 import type { Vec3 } from '@manifold/common';
-import { arrowFor, subtitleText } from './subtitles';
+import { arrowFor, firedText, subtitleText } from './subtitles';
 import { ENGINE_WORDS, sayer } from './words';
 
 /** A camera at `from` looking at `to`, as the presentation's: its matrix's elements. */
@@ -24,6 +24,14 @@ describe('subtitles for sounds (stage 3i)', () => {
     expect(subtitleText(es, 'step', 'oil')).toBe('Pasos');
     expect(subtitleText(es, 'door', 'wood')).toBe('Una puerta');
     expect(subtitleText(en, 'break', null)).toBe('Something breaks');
+  });
+
+  test('(stage 5g) a weapon used, by its kind; what is thrown, without words of its own', () => {
+    const es = sayer([ENGINE_WORDS], 'es');
+    const en = sayer([ENGINE_WORDS], 'en');
+    expect(firedText(es, 'shotgun')).toBe('Un escopetazo');
+    expect(firedText(en, 'launcher')).toBe('A rocket');
+    expect(firedText(es, 'grenade')).toBe('Algo que se tira');
   });
 
   test('the arrow: where it came from around the camera, along the ground, also with the camera looking down', () => {

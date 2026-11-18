@@ -1,4 +1,4 @@
-# Manifold replay 41
+# Manifold replay 42
 game dojo
 profile rapier-deterministic server 60
 birth seed 45
@@ -429,4 +429,4 @@ input 2785 1 move @0
 input 2809 101 move @350
 input 2810 101 move @353
 input 2951 1
-end 2955 7a31137e
+end 2955 9caf3142

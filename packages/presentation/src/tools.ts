@@ -23,6 +23,11 @@ export interface Tool {
   sweep: number | null;
   /** Blocking (stage 4f): held across in front of the chest, level, to take what comes. */
   block?: boolean;
+  /**
+   * (Stage 5g) Its model, by the name the game gives the presentation (`arms.dart`), drawn instead of the
+   * box once it loaded: made to fit the box (`size`, centered on its origin, along it its +Z).
+   */
+  model?: string;
 }
 
 /** What each character carries, as a game says it (mount's `tools`). */
@@ -34,6 +39,8 @@ export interface ToolPose {
   rotation: THREE.Quaternion;
   size: Vec3;
   color: number;
+  /** Its model's name, if it has one (stage 5g). */
+  model?: string;
   muzzle: THREE.Vector3;
   grips: { R: THREE.Vector3; L: THREE.Vector3 | null };
 }
@@ -145,6 +152,7 @@ export function holdTool(
     rotation: new THREE.Quaternion().setFromRotationMatrix(basis),
     size: tool.size,
     color: tool.color,
+    ...(tool.model ? { model: tool.model } : {}),
     muzzle: back.clone().addScaledVector(direction, tool.size[2]),
     grips: { R: gripR, L: second === undefined ? null : back.clone().addScaledVector(direction, second) },
   });

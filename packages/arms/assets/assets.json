@@ -1,0 +1,6 @@
+{
+  "weapons.glb": {
+    "what": "The games' six weapons (stage 5g): a dart pistol, a crossbow, a staff, a grenade, a pump shotgun and a launcher, each a node of the file at its own origin, fitting the box its look gives it (packages/arms/src/looks.ts), its muzzle at its +Z end.",
+    "madeBy": "art/weapons.py"
+  }
+}

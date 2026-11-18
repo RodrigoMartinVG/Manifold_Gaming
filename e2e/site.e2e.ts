@@ -1778,6 +1778,39 @@ test('the arena (stage 4g): in first person, three guards with darts, the object
   expect(list).toEqual([]);
 });
 
+test('the armory (stage 5g): the shotgun from its rack, fired at a dummy: its flash, its sound, its pellets’ marker; the launcher’s rocket blows', async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  const list = errors(page);
+  const game = page.locator('#game');
+  await page.goto('jugar/dojo/armory/');
+  await expect.poll(async () => (await position(page, 'player')).length, { timeout: 15_000 }).toBe(3);
+  await page.keyboard.press('Backquote');
+  await typeInConsole(page, 'dojo.goto 3 1 8.5');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.mg-hud')).toContainText('escopeta');
+  // Two meters before the nearest dummy, looking at it: X fires.
+  await page.keyboard.press('Backquote');
+  await typeInConsole(page, 'dojo.goto 0 1 8.6');
+  await page.keyboard.press('Escape');
+  await afterSteps(page, 20);
+  await page.keyboard.press('KeyX');
+  await expect(game).toHaveAttribute('data-flashes', /^[1-9]/);
+  await expect(game).toHaveAttribute('data-hits', /^[1-9]/);
+  await expect(game).toHaveAttribute('data-sound', 'fired shotgun');
+  // The launcher, fired down the range at the far wall: its rocket blows there.
+  await page.keyboard.press('Backquote');
+  await typeInConsole(page, 'dojo.goto 5 1 8.5');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.mg-hud')).toContainText('lanzador');
+  // (What one carries is ready again a second after the shotgun's shot, whichever it is now.)
+  await afterSteps(page, 70);
+  await page.keyboard.press('KeyX');
+  await expect(game).toHaveAttribute('data-sound', 'blast', { timeout: 10_000 });
+  expect(list).toEqual([]);
+});
+
 test('first person: the mouse, once taken, turns it wherever the character stands, as aiming does (the keep and moves found it)', async ({
   page,
 }) => {

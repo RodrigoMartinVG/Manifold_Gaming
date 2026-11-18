@@ -30,6 +30,7 @@ export {
 } from './session';
 export {
   aimOf,
+  airStrafe,
   CROUCHED,
   crouchPoseOf,
   DEFAULT_MOVEMENT,

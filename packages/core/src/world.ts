@@ -900,7 +900,16 @@ export class World {
         if (hit) {
           if (this.entities.get(hit.entity)?.health)
             this.hurt(hit.entity, p.damage, { from: p.from, part: hit.kind === 'character' ? hit.part : null, kind: p.kind });
-          this.emit({ type: 'impact', projectile: e.id, at: hit.point, hit: hit.entity, kind: p.kind });
+          this.emit({
+            type: 'impact',
+            projectile: e.id,
+            at: hit.point,
+            hit: hit.entity,
+            kind: p.kind,
+            // (Stage 5g) Which way it went, and who fired it: what a game does where it struck (a rocket blows).
+            velocity: [...p.velocity],
+            from: p.from,
+          });
           this.removeEntity(e.id);
           continue;
         }

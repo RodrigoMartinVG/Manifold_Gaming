@@ -1,0 +1,12 @@
+# The armory: the shooter's six weapons
+# group: character
+# Stage 5g, the shooter's weapons done well. The six on their racks where you come in: walk into one to
+# take it. The dart, quick and precise; the bolt, heavy, it travels; the stick, at arm's length;
+# grenades, round corners; the shotgun, eight pellets (all of them at two meters, one or two at ten);
+# the launcher, a rocket that blows where it strikes. Each one kicks, flashes, sounds its own, and a
+# marker round the crosshair says when it struck. The launcher at your feet throws you up: 4 m alone,
+# 9.5 with a jump at once; in the air, what you ask turns you without adding to how fast you go. In
+# first person: a click takes the mouse, it aims, the click shoots.
+seed 5
+dojo.level armory
+view.camera first

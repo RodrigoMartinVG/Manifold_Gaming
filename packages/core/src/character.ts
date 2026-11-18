@@ -223,17 +223,38 @@ const approach = (now: Vec3, wanted: Vec3, most: number): Vec3 => {
 };
 const isZero = (v: Vec3) => v[0] === 0 && v[1] === 0 && v[2] === 0;
 
+/**
+ * STEERING WHILE THROWN (stage 5g: an explosion jump, with control in the air). Of the velocity `now`
+ * (along the ground), only its part along the way asked, `d` (`wanted` = w d, w its speed), changes: it
+ * rises towards w by at most `most` this step, and never past it; the rest is kept. In numbers, with
+ * u = now · d, the velocity is now + min(most, max(0, w − u)) d. So it turns what it was given (asked
+ * across it, u = 0, it adds up to w across), slows it (asked against it, u < 0), but a way asked along a
+ * velocity already past w adds nothing: what a blast gave is not added to without end (until 41, the
+ * velocity went towards now + wanted, and asked along it, it grew by `most` every step, for as long as
+ * it was in the air).
+ */
+export function airStrafe(now: Vec3, wanted: Vec3, most: number): Vec3 {
+  const w = vec3.length(wanted);
+  if (w < 1e-9) return now;
+  const d = vec3.scale(wanted, 1 / w);
+  const add = Math.min(most, Math.max(0, w - vec3.dot(now, d)));
+  return vec3.add(now, vec3.scale(d, add));
+}
+
 const MODES: Record<ModeName, Mode> = {
   // On the ground: towards what is asked, quickly (its feet push against the floor), as much as the
   // floor lets them (stage 3b: on ice, it slides).
   walk: { steer: (c, now, wanted, _move, dt, traction) => approach(now, wanted, c.movement.walk.acceleration * traction * dt) },
   // In the air: the same, but with what the game allows to steer (0: the jump's arc cannot change).
-  // (Thrown by a blast, stage 4f: what it was given stays, until it lands; it steers only with what it asks.)
+  // (Thrown by a blast, stage 4f: what it was given stays, until it lands; it steers only with what it
+  // asks, `airStrafe`: stage 5g, an explosion jump with control in the air.)
   air: {
     steer: (c, now, wanted, move, dt) =>
-      c.thrown && vec3.length(move) < 0.1
-        ? now
-        : approach(now, c.thrown ? vec3.add(now, wanted) : wanted, c.movement.air.control * dt),
+      c.thrown
+        ? vec3.length(move) < 0.1
+          ? now
+          : airStrafe(now, wanted, c.movement.air.control * dt)
+        : approach(now, wanted, c.movement.air.control * dt),
   },
   // Gliding (stage 2c): it steers more, and it falls slowly.
   glide: {

@@ -38,6 +38,8 @@ export interface Bodies extends Piece {
   entityAt(x: number, y: number): EntityId | undefined;
   /** Each character drawn with a model, its copy (its limbs, feet and hands: the `show.ik` view reads them). */
   readonly models: ReadonlyMap<EntityId, ModelInstance>;
+  /** (Stage 5g) A new copy of a tool's model, by its name; null until it loaded (meanwhile, its box). */
+  toolModel(name: string): THREE.Object3D | null;
 }
 
 const ZONE_COLORS: Record<string, number> = { checkpoint: 0x5ad87a, goal: 0xe0c05a, fall: 0xd85a5a };
@@ -109,7 +111,7 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
   };
   // What each character carries (stage 4c: tools.ts), a box drawn where its model holds it, by entity
   // (with its size and color, to make it again if they change); and each shot's tracer as it fades.
-  const tools = new Map<EntityId, { mesh: THREE.Mesh; look: string }>();
+  const tools = new Map<EntityId, { mesh: THREE.Object3D; look: string }>();
   const tracers: { line: THREE.Mesh; left: number }[] = [];
   const dropTool = (id: EntityId) => {
     const tool = tools.get(id);
@@ -118,21 +120,30 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
     release(tool.mesh);
     tools.delete(id);
   };
+  /** A copy of a tool's model (stage 5g): its meshes share the model's geometry and materials, and cast shadows. */
+  const toolModel = (name: string): THREE.Object3D | null => {
+    const object = models.instance(name)?.object ?? null;
+    object?.traverse((o) => (o.castShadow = true));
+    return object;
+  };
   const drawTool = (id: EntityId, model: ModelInstance) => {
     const pose = model.holding.pose;
     // (In first person, stage 4g, the camera draws it.)
     if (!pose || model.holding.inView) return dropTool(id);
-    const look = `${pose.size.join(' ')} ${pose.color}`;
+    // Its model if it has one and it loaded (stage 5g); its box until then. (A copy made once: drawn
+    // already, it is only moved.)
+    const box = `${pose.size.join(' ')} ${pose.color}`;
     let tool = tools.get(id);
+    const drawn = pose.model && tool?.look !== `model ${pose.model}` ? toolModel(pose.model) : null;
+    const look = drawn || tool?.look === `model ${pose.model}` ? `model ${pose.model}` : box;
     if (tool?.look !== look) {
       dropTool(id);
-      const mesh = own(
-        new THREE.Mesh(new THREE.BoxGeometry(...pose.size), new THREE.MeshLambertMaterial({ color: pose.color })),
-        {
+      const mesh =
+        drawn ??
+        own(new THREE.Mesh(new THREE.BoxGeometry(...pose.size), new THREE.MeshLambertMaterial({ color: pose.color })), {
           geometry: true,
           material: true,
-        },
-      );
+        });
       mesh.castShadow = true;
       scene.add(mesh);
       tools.set(id, (tool = { mesh, look }));
@@ -384,6 +395,7 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
     meshes,
     previousTurn,
     models: instances,
+    toolModel,
     meshFor,
     entityAt(x, y) {
       pointer.set(x, y);

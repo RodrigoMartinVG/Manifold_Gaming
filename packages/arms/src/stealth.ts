@@ -80,9 +80,10 @@ export const wary = (e: Entity) => component<Wary>(e, WARY);
 type Burning = { steps: number; then: 'cloud' | 'gone' };
 const BURNING = 'arms.burning';
 
-/** A thing thrown from a character's chest where it aims, a little up, with what it is. */
+/** A thing thrown from a character's chest where it aims, a little up, with what it is (`kind`, for the eyes and ears: stage 5g). */
 function thrown(
   world: World,
+  kind: string,
   by: Entity,
   speed: number,
   look: { size: number; color: number },
@@ -93,6 +94,7 @@ function thrown(
   const up = upAt(world, by.transform!.position);
   const { ahead, above } = aimOf(c, up);
   const chest = vec3.add(by.transform!.position, vec3.scale(up, 0.4));
+  world.emit({ type: 'fired', from: by.id, at: chest, direction: [...ahead], kind });
   return world.createEntity({
     game: { ...game, [THROWN]: { by: by.id } satisfies Thrown },
     transform: { position: vec3.add(chest, vec3.scale(ahead, 0.5)), rotation: quat.identity() },
@@ -147,6 +149,7 @@ export function stealth(world: World, events: readonly Event[]) {
       p.smoke--;
       thrown(
         world,
+        'smoke',
         e,
         STEALTH.smoke.speed,
         { size: 0.2, color: 0x6a6a64 },
@@ -158,6 +161,7 @@ export function stealth(world: World, events: readonly Event[]) {
       const f = STEALTH.flare;
       thrown(
         world,
+        'flare',
         e,
         f.speed,
         { size: 0.14, color: 0xff6a3a },

@@ -744,5 +744,11 @@ export type Event =
   | { type: 'revived'; target: EntityId }
   /** A shot went (stage 4c: hitscan, for its tracer): from whom, from where to where it stopped, what it hit. */
   | { type: 'shot'; from: EntityId; start: Vec3; end: Vec3; hit: EntityId | null; kind: string }
-  /** A projectile struck something (stage 4c) and is gone: where, what. */
-  | { type: 'impact'; projectile: EntityId; at: Vec3; hit: EntityId | null; kind: string };
+  /** A projectile struck something (stage 4c) and is gone: where, what; (stage 5g) which way it went, and who fired it. */
+  | { type: 'impact'; projectile: EntityId; at: Vec3; hit: EntityId | null; kind: string; velocity: Vec3; from: EntityId | null }
+  /**
+   * A weapon used (stage 5g): by whom, from where (its eyes, or its chest for what is thrown), which way,
+   * of what kind (the game's words: `dart`, `shotgun`…). For the eyes and the ears (a flash, a kick, its
+   * sound); the world's own effects are the other events (`shot`, a projectile, a blast).
+   */
+  | { type: 'fired'; from: EntityId; at: Vec3; direction: Vec3; kind: string };
