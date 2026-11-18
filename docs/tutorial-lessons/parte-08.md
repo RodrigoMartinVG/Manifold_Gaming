@@ -564,6 +564,9 @@ show.agreement` prints at least 98%; `view.shadow.bias 0` drops it (acne), `view
 - **Our angle:** "one exponential for time and distance" (2.3 and fog); pools from 4.14. En Manifold: debris lives in a
   physics world of its own, seeded by the break, which nobody hashes (`debris.ts`); its fog is the simulation's, rational,
   "no `exp`" (`world.ts`).
+  En Manifold (stage 5g): the weapons' feel, all view: a flash at the muzzle, sparks where a shot struck, a blast's
+  ball of light growing to most of its radius, the view's kick for one's own shots eased back with a time constant of
+  0.09 s (`presentation/src/fire.ts`).
 - **Sources:** RTR 12.1–12.5, 13.6, 13.8, 14.2.1, 15.1–15.2; L2 §8.5, §10.1–10.3; MF §4.2–4.4; GPP ch. 17, ch. 19. Reuses
   ML 2.5's pooled particles and inverted-hull outlines, and archived 3-02's breaks through 6.11.
 - **Open:** the drawn fog must be the logic's law (problem 3).
@@ -590,6 +593,8 @@ show.agreement` prints at least 98%; `view.shadow.bias 0` drops it (acne), `view
   through a doorway portal (10.7). (3) Beat your ghost at night.
 - **Our angle:** the part's thesis: the drawing shows what the simulation knows, measured. The game's hash ignores every
   view setting.
+  En Manifold (stages 5a, 5f): a sky drawn from the hour (`skyAt`: its hue from the hour, its strength from the
+  ambient), and the fortress at 22 h with an ambient of 0.12 and its lanterns.
 - **Sources:** RTR 18; G §10.8.
 - **Open:** whether 6.16's lamps are spots (one depth pass each) or points (six); the budget assumes spots (problem 8).
 

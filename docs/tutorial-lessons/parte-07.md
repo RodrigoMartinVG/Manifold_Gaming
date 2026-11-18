@@ -313,6 +313,9 @@ preference for a variable step is a disagreement, said once in 7.13.
 - **Our angle:** suspicion is 2.3's equation with evidence as input; state, history and suspicion are data, so they are
   hashed and saved. Behaviour trees with RUNNING and interruption, with MA's hybrid (the machine picks which tree runs),
   are the "Más a fondo" the author decided.
+  En Manifold (stages 5e, 5f): a wary guard wraps the 4e brain without changing it (`guardBrain` round `guardBrain4e`,
+  `packages/arms/src/brain.ts`): a lamp seen lit and found out, a guard down, a shout; with no route it keeps a post,
+  where it stood, facing as it faced.
 - **Sources:** MA §5.3.8–5.3.9, §5.4, §5.10, §14.1; GPP ch. 7; G2 §17.9.5.6–7; Champandard and Dunstan,
   [_The Behavior Tree Starter Kit_](https://www.gameaipro.com/GameAIPro/GameAIPro_Chapter06_The_Behavior_Tree_Starter_Kit.pdf).
   Recalls archived 2-02 (one mode per step) through 5.4.
@@ -408,6 +411,10 @@ preference for a variable step is a disagreement, said once in 7.13.
   belief to the average (the "Más a fondo": belief diffused by a matrix and zeroed where seen).
 - **Our angle:** Dijkstra the third time; memory is data, so a save holds it (6.13). The probabilistic version stays
   deterministic only with a fixed order of operations.
+  En Manifold (stages 5e, 5h): a wary guard's memory holds each lamp it saw lit and the guards down it found, plain
+  data its host keeps; and a search that makes no progress never ends (two of the wall's attackers pushed against the
+  fallen for ever): the game carries the fallen off, and the brain's own check for being stuck is still owed (4.5's
+  list).
 - **Sources:** MA §6.2.6, §5.6, §11.4.3, §6.1.1; Welsh, [_Game AI Pro 2_](https://www.gameaipro.com/).
 - **Open:** whether 6.x computes hiding spots as data (MA's shadow points) or 7.11 does.
 
@@ -433,7 +440,8 @@ preference for a variable step is a disagreement, said once in 7.13.
   samples) count. (3) Tune the bands so a lit player at 10 m is noticed within 2 s and a dark one never.
 - **Our angle:** the mind is a pure function of the state and its own data; the guard is already in every replay. En
   Manifold (stage 4e): the Dojo's guard patrols, stops and listens, walks to look, runs after whoever it sees by the
-  light (a watcher on its body, 3d) and strikes; its memory is plain data its host keeps (`games/dojo/src/guard.ts`).
+  light (a watcher on its body, 3d) and strikes; its memory is plain data its host keeps (`packages/arms/src/brain.ts` since 5e; the Dojo's until then). Since
+  stage 5e a wary guard notices what changed (a lamp put out, a guard down) and shouts (an input, decision 0023).
 - **Sources:** MA §14.2.2–3, §2.1.3.
 - **Open:** `show.senses` is added here, before 7.14's `show.mind` (problem 5).
 
@@ -487,6 +495,9 @@ preference for a variable step is a disagreement, said once in 7.13.
   (3) Beat your ghost's time without being seen.
 - **Our angle:** replays and ghosts contain the guard for free, verified by hash; the 9.10 race through the maze reuses
   this guard unchanged.
+  En Manifold (stage 5h): the wall's attackers come in waves at a rising pace (`paceOf`: from the arena's gunners
+  towards twice as quick and an aim of 0.3; a walking target trailed by v·Δt·(1 − k)/k, 0.42 m at k = 0.15 and 0.18 at
+  0.3).
 - **Sources:** MA §14.1, §2.1.
 - **Open:** the maze of 9.10 must be navmesh-ready (boxes on a grid, as 7.4 assumes).
 

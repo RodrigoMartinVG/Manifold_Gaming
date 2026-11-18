@@ -148,8 +148,11 @@ two parameters; the perturbations "15 fps", "frame spike of 250 ms" and "_h_ = 1
   must not refill mid-jump. "Doblar las reglas": two gravities and a lighter apex are not physics, and that is fine.
 - **Exercises:** (1) The flat gap cleared at 6 m/s with _g_f = 2_g_ (hint: count steps up and down). (2) A double jump
   at the apex (2_H_ exactly). (3) MA's _t_ = 2_v_y/_g_ against the dots (one step off on the descent: why?).
-- **Our angle:** the exact-in-steps form is ours and makes the console's apex equal the designer's number; only
-  - − × ÷, so it is hashable. Manifold counts coyote and buffer as 6 steps each.
+- **Our angle:** the exact-in-steps form is ours and makes the console's apex equal the designer's number; only the
+  four operations (+ − × ÷), so it is hashable. Manifold counts coyote and buffer as 6 steps each. En Manifold (stage
+  5c): exactly this solution, `movement.arc` and `arcOf` (`core/src/character.ts`), g = 2h/(N(N−1)Δt²) and
+  v = 2h/((N−1)Δt), with a stronger gravity let go and falling and a top falling speed; the tower's floors are built by
+  it, measured in the metrics gym (5a, `metricsOf`).
 - **From the archive (1-02):** kept: coyote and buffer "contados en pasos", the exercise "¿hasta dónde sube?".
   Changes: a derivation from conditions instead of parameters. New: the discrete solution, falling gravity, variable
   height.
@@ -184,6 +187,9 @@ two parameters; the perturbations "15 fps", "frame spike of 250 ms" and "_h_ = 1
 - **Our angle:** "Dónde Manifold eligió otra cosa": modes as rows of a table and one decision from scratch each step,
   "already climbing" its only memory; numbers in the world (hashed, replayed); contributions outside the modes let
   moving platforms arrive without touching a mode.
+  En Manifold (stage 5c): two more modes, `slide` (down a wall, off it with a wall jump) and `hang` (a ledge held and
+  climbed onto; still tops only, 5d); and (5g) the air mode, thrown by a blast, steers by `airStrafe`: the velocity's
+  part along what is asked rises to the speed asked, never past it.
 - **From the archive (2-02):** kept: the four modes, the tower and wind, contributions and "limits after the sum", the
   swim exercise. Changes: GPP's ladder as the main path, Manifold's decision as the alternative. New: concurrent and
   hierarchical machines with their counting, context-sensitive input.
@@ -285,6 +291,8 @@ two parameters; the perturbations "15 fps", "frame spike of 250 ms" and "_h_ = 1
   one value (test the absent case).
 - **Our angle:** in Manifold `can` is three booleans in the world (hashed, snapshotted, `dojo.climb on` recorded at its
   step); the cost stated: a new ability is engine code. Decision 0004 is the reason.
+  En Manifold (stage 5c): `can.wallJump` and `can.ledge`, each a character's own; the platformer's character
+  (`PLATFORMER`, `@manifold/character`) has them on, and one that asks for none moves as before, to the bit.
 - **From the archive (2-03):** kept: the three abilities and stars, the demo with identical inputs, `airJumps` and its
   rules, "una capacidad es estado", the dash exercise. Changes: Type Object and the sandbox as the ladder. New: schemas
   with defaults, reach sets, the warning against a language.
@@ -568,6 +576,9 @@ two parameters; the perturbations "15 fps", "frame spike of 250 ms" and "_h_ = 1
   dash that skips a checkpoint allowed? (design).
 - **Our angle:** platforms as functions of the step make the ghost exact for free; Manifold's `circuit` room is this
   game at full size (26 boxes, 9 zones, about 125 m, each part measured).
+  En Manifold (stage 5d): the tower, four floors, one for each beat of the wall jump (shown, demanded, twisted,
+  mastered), built with the kit by the gym's measures; three stars and a gold time a floor, a ghost's link at the end
+  of each; each floor played to its goal by a test, a reference replay.
 - **From the archive:** none directly; 2-03's star demo and 1-05's ghost are its ancestors.
 - **Sources:** G2 §17.6.3.1, §13.12; [Thorson](https://maddymakesgames.com/articles/celeste_and_forgiveness/).
 - **Open:** 6.4's sheet replaces these sphere checkpoints by zones.

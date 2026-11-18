@@ -499,6 +499,10 @@ marker and the figure re-simulates to it).
   (`common/src/random.ts`), whose state is inside the world (in the hash and in every snapshot), because a shared
   generator once let a replay and a live game on one page steal each other's numbers; `Math.random` is forbidden in the
   simulation by a lint rule. The Dojo's `seed 2`.
+  En Manifold (stage 5g): a shot's own dice (`shotDice`, decision 0022), seeded by the world's seed, the step, the
+  player and the shot's number, so the shotgun's eight pellets are the same on every copy and nothing else that draws
+  numbers moves them; each pellet uniform over the disk of angles, θ = 6°·√u, φ = 360°·v (`spread`,
+  `core/src/hits.ts`).
 - **Sources:** G §5.7; MA §8.1–8.1.4, §3.2.2, §5.2.9; O'Neill, [PCG](https://www.pcg-random.org/paper.html); Vigna,
   [xoshiro](https://prng.di.unimi.it/); Eiserloh, _Noise-Based RNG_ (GDC 2017); MDN, `Math.random`.
 - **Reuses:** archived 0-04 (`random.ts`'s LCG, the 60-cube level from a seed, the "use Math.random" toggle) for (a) and
@@ -702,6 +706,9 @@ marker and the figure re-simulates to it).
 - **Our angle:** the first payoff of the determinism thread: the guard of part 7 will be in every replay the same way.
   "En Manifold": the Dojo's `ghost`, `replay export` (a link that replays and checks the hash in the reader's browser),
   and the reference replays of "La misma huella".
+  En Manifold (stage 5d): a floor's ghost travels in a link (`#ghost=`, its strip deflated) and is raced on its floor
+  from the title; drawn on a Hermite cubic through the recorded positions (`ghostAt`, `core/src/ghost.ts`), a jump of
+  more than `LEAP` m (a teleport, a respawn) left as a jump.
 - **Sources:** GPP ch. 2.
 - **Reuses:** archived 1-05 (race your ghost, hashes per step, `createWorld` from a seed) and its "Más a fondo" on what
   breaks determinism.

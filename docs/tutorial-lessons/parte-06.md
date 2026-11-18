@@ -313,6 +313,9 @@ panel with errors by line and a diff; a grid view; the two-viewport figure; seed
 - **Our angle:** Manifold's light is in the world and the hash, computed before signals; a watcher's sight is a signal
   source; its fog attenuates as 1/(1 + σℓ), without `exp`. The archive's Sutileza (drawn light reaches farther than
   logic) is solved by using three.js's window; 8.7 recognizes this function.
+  En Manifold (stages 5e, 5f): the light as a tool: a lamp put out by a hand gives no light (`lamp.out`), smoke is a
+  zone with an opacity that light and sight cross (what gets through, 1/(1 + Σ opacity·length)), a flare a lamp where
+  it falls; the fortress is this count at night, L = a + Σ i(1 − d/r) against 0.3, halved crouched.
 - **From the archive (3-01):** kept: the dark room, column, fog bank, the watcher's four tests, slabs, the rational fog
   ("Más a fondo"), the exercises (carried lamp, two fogs, sweeping watcher). Changes: physical units and three.js's
   window. New: spot cones, Lambert on the floor, samples and their maximum, the linear-quantity rule.
@@ -383,6 +386,9 @@ panel with errors by line and a diff; a grid view; the two-viewport figure; seed
 - **Our angle:** Manifold's sound is born in the simulation with its radius (part 7's guards read the same event), hits
   come from velocities before and after (contact events live outside the state), and it is synthesized (0015). The
   thread's "seeded variation kept out of the hash".
+  En Manifold (stages 5e, 5g): a weapon used is an event (`fired`) the audio makes into its own sound (the shotgun, a
+  low thump under a wide rush) and the subtitles into words, as far as its kind is heard; a guard's shout is an input
+  the simulation makes into a sound the wary hear (decision 0023).
 - **From the archive (3-03):** kept: the three floors, footsteps by distance, radius by surface, hits by Δ_v_, the
   synthesis, "dos pasos en un cuadro", the minimum hit, the carpet and crouch exercises. Changes: a project lesson
   through the queue. New: the service locator, power summing, limits, the audio clock.
@@ -447,6 +453,9 @@ panel with errors by line and a diff; a grid view; the two-viewport figure; seed
 - **Exercises:** (1) The pixels of a given point. (2) Four arrows instead of eight. (3) A missing key's fallback.
 - **Our angle:** decision 0019: the world says keys and numbers, the page says words, in the page's language; the
   console stays in English. Manifold's `hud.ts`, `notices.ts`, `subtitles.ts`.
+  En Manifold (stages 5b, 5g): the games' shell (`@manifold/shell`): a title, the thread's lines as dialogue boxes,
+  each level's result and best, the credits from the asset lists; and a marker round the crosshair when one's own shot
+  hurts (view only, from `hurt` events).
 - **From the archive (3-08):** kept: keys and word tables, plurals and numbers, the HUD read each frame, notices as
   events, the subtitle arrow's derivation and its exercise, settings by source ("Más a fondo"). Changes: the main path
   becomes world to screen with off-screen markers. New: behind-camera handling, the edge clamp, occlusion.
@@ -476,6 +485,8 @@ panel with errors by line and a diff; a grid view; the two-viewport figure; seed
   Keep it in the browser.
 - **Our angle:** decision 0020: an envelope, never a snapshot, loading as a recipe in history, replays and the network.
   Rewinding is not networking (decision 0016).
+  En Manifold (stage 5b): a game's progress kept in the browser, versioned (`PROGRESS_VERSION`): the levels open and
+  each one's best; a level starts again from its beginning, so the world itself is not saved.
 - **From the archive (3-04):** kept almost whole: photo against progress, rebuild and apply, chained migrations, the
   Sutilezas, the memento box, the exercises. Changes: framed by G2's "only what differs" and checkpoints. New: the
   idempotence check, the dirty flag, the rewind ring.
@@ -566,6 +577,9 @@ panel with errors by line and a diff; a grid view; the two-viewport figure; seed
   spots and check the solution uses them.
 - **Our angle:** "the turret of part 1 is a watcher in part 6"; Manifold's `watch` and `keep` rooms join light, signals
   and breaking; the adventure saves this way.
+  En Manifold (stage 5f): the fortress, three levels at night: a breach its lantern lights, wary guards and a gate lit
+  from both sides, a guard at its post watching the flame; each played unseen by a test that waits for the guards to
+  look away, a reference replay.
 - **From the archive:** none directly; it assembles the archived stage's ideas.
 - **Sources:** G2 §17.10; [Leonard](https://www.gamedeveloper.com/programming/building-an-ai-sensory-system-examining-the-design-of-i-thief-the-dark-project-i-).
 - **Open:** six modules arrive at once; keep the five diffs small, or let the markers or saving enter earlier (6.10).
