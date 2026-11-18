@@ -48,11 +48,18 @@ export function levelOf(index: number) {
     const d = Math.hypot(v[0], v[2]);
     return { face: [v[0] / d, 0, v[2] / d], pitch: (Math.atan2(v[1], d) * 180) / Math.PI / 90 };
   };
-  /** The nearest attacker in sight, its chest (a little above its center). */
+  /**
+   * The nearest attacker in sight, its chest (a little above its center); (stage 5o: levels of floors above
+   * floors) or its head, if only that shows (over a railing, a balcony's edge).
+   */
   const target = () =>
     attackers(world())
-      .map((e) => ({ e, chest: vec3.add(e.transform!.position, [0, 0.15, 0]) as Vec3 }))
-      .filter((t) => clear(t.chest))
+      .map((e) => {
+        const chest = vec3.add(e.transform!.position, [0, 0.15, 0]) as Vec3;
+        const head = vec3.add(e.transform!.position, [0, 0.6, 0]) as Vec3;
+        return { e, chest: clear(chest) ? chest : clear(head) ? head : null };
+      })
+      .filter((t): t is { e: Entity; chest: Vec3 } => t.chest !== null)
       .sort((a, b) => flat(a.chest, at()) - flat(b.chest, at()))[0];
   /** Fighting for `steps` (or until held): aiming at the nearest in sight and firing as often as it can, moving `move`. */
   // (Pressed one step, let go the next: a shot is a press. Kept from one call to the next, so fighting a
@@ -112,7 +119,24 @@ export function levelOf(index: number) {
     }
     return false;
   };
-  /** (Stage 5n) A weapon of its arsenal in its hands, by its slot (1 to 7). */
+  /** (Stage 5o) Waiting, still, until `ready` (or `most` steps went by): a ferry that comes, a lift that rises. */
+  const waitFor = (ready: () => boolean, most = 600) => {
+    for (let i = 0; i < most && !ready() && !done(); i++) step();
+    return ready();
+  };
+  /** (Stage 5o) Where something the level names is now (a ferry, a lift). */
+  const where = (name: string): Vec3 => [...world().named(name)!.transform!.position] as Vec3;
+  /** (Stage 5o) A jump toward a place (x, z), up onto what is there: pressed a moment, walking on to it. */
+  const hop = (x: number, z: number) => {
+    for (let k = 0; k < 12; k++) {
+      const dx = x - at()[0]!;
+      const dz = z - at()[2]!;
+      const d = Math.hypot(dx, dz) || 1;
+      step({ move: [dx / d, 0, dz / d], jump: k < 6 });
+    }
+    return walkTo(x, z);
+  };
+  /** (Stage 5n) A weapon of its arsenal in its hands, by its slot (1 to 9). */
   const take = (slot: number) => {
     step({ [`arms.slot${slot}`]: true });
     for (let i = 0; i < 20; i++) step();
@@ -122,5 +146,24 @@ export function levelOf(index: number) {
     step({ use: true });
     step();
   };
-  return { session, bots, world, me, at, h, done, step, fight, walkTo, target, clear: clear_, pushTo, take, use };
+  return {
+    session,
+    bots,
+    world,
+    me,
+    at,
+    h,
+    done,
+    step,
+    fight,
+    walkTo,
+    target,
+    clear: clear_,
+    pushTo,
+    take,
+    use,
+    waitFor,
+    where,
+    hop,
+  };
 }

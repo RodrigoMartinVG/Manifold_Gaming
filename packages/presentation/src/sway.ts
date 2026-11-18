@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import type { VariableInfo } from '@manifold/commands';
-import { STRIDE } from '@manifold/core';
 import type { Bodies } from './bodies';
 import type { GamePage, Piece } from './page';
 
@@ -22,14 +21,21 @@ export const SWAY_VARIABLE = {
  * lowest point, s). What it holds: how far it swings (m), and how far it trails a turn (m per rad/s).
  */
 export const SWAY = Object.freeze({
-  bob: 0.035,
-  side: 0.022,
-  roll: 0.45,
-  run: 1.6,
+  bob: 0.022,
+  side: 0.014,
+  roll: 0.3,
+  run: 1.45,
   crouched: 0.6,
-  lean: 0.9,
+  lean: 0.6,
   land: { per: 0.012, most: 0.1, time: 0.07 },
   hold: { swing: 0.012, trail: 0.006, most: 0.025 },
+  /**
+   * (Stage 5o: the author found it unbalanced, walking and running.) Its cadence, steps a second: walking
+   * (at the walk's speed) and running (at the run's), between them by the speed. Until 5o the dips were the
+   * steps heard, one each 0.8 m: at a jog, 5.6 a second, a tremor rather than a walk. Quake's sways once in
+   * 0.6 s whatever the speed (`cl_bobcycle`); a person walks at about two steps a second.
+   */
+  cadence: { walk: 1.9, run: 2.6 },
 });
 
 /**
@@ -50,6 +56,12 @@ export function swayAt(steps: number, amount: number) {
   };
 }
 
+/** (Stage 5o) The walk's steps a second at a speed (m/s), for a walk's and a run's speeds: by the speed, between them. */
+export function cadenceAt(speed: number, walk: number, run: number): number {
+  const k = Math.max(0, Math.min(1, (speed - walk) / Math.max(0.1, run - walk)));
+  return SWAY.cadence.walk + (SWAY.cadence.run - SWAY.cadence.walk) * k;
+}
+
 /**
  * HOW DEEP THE EYES ARE, `t` seconds after landing at `speed` m/s (stage 5k): a spring that is let go at
  * once, critically damped, y = −v t e^(−t/τ): it sinks, is lowest at t = τ (there y = −v τ / e), and comes
@@ -66,9 +78,8 @@ export function dipAt(t: number, speed: number): number {
 /**
  * THE WALK'S SWAY (stage 5k, decision 0031: the author asked for "el balanceo al ir caminando cuando la
  * cámara es de primera persona"): in first person only, after the camera placed the eyes, before the
- * kick and the shake (fire.ts). The steps are the simulation's: the steps heard (`step` sounds) count
- * whole ones, and how far it has walked since the last (`character.stride`) the part between, so the
- * eyes are lowest exactly when a step is heard. Running, more; crouched, less; in the air, it fades.
+ * kick and the shake (fire.ts). Its steps go at a cadence of their own (since 5o: `SWAY.cadence`, by the
+ * speed), smooth, as much as the speed asks. Running, more; crouched, less; in the air, it fades.
  * Landing, the eyes sink (by how fast it came down) and come back. Walking to the side, it leans into
  * it. What it holds swings with the steps and trails a turn. A setting turns it off (`view.bob`), and
  * so does `view.calm`. For the browser tests: `data-bob` (how deep the walk dips at a step, the most so far, cm) and
@@ -117,8 +128,7 @@ export function mountSway(page: GamePage, bodies: Bodies): Piece {
     event(ev) {
       const hero = page.player();
       if (!hero || ev.type !== 'sound' || ev.source !== hero.id) return;
-      if (ev.sound === 'step') steps = Math.round(steps) + 1;
-      else if (ev.sound === 'land') {
+      if (ev.sound === 'land') {
         landed = 0;
         landSpeed = ev.speed;
       }
@@ -138,9 +148,10 @@ export function mountSway(page: GamePage, bodies: Bodies): Piece {
         ? Math.min(SWAY.run, flat / Math.max(0.1, c.movement.walk.speed)) * (c.mode === 'crouch' ? SWAY.crouched : 1)
         : 0;
       amount += (wants - amount) * (1 - Math.exp(-dt / 0.1));
-      // Where in the walk: the steps heard, and the part walked since.
-      const s = Math.round(steps) + Math.min(1, c.stride / STRIDE);
-      const sway = swayAt(s, amount);
+      // Where in the walk: its steps at their cadence, by the speed (walking, about two a second; running,
+      // a little more), on while it moves and holding where they were when it stops.
+      if (c.grounded && flat > 0.3) steps += dt * cadenceAt(flat, c.movement.walk.speed, c.movement.walk.run);
+      const sway = swayAt(steps, amount);
       // Leaning into a walk to the side.
       camera.matrixWorld.extractBasis(right, up, look);
       const sideways = flat > 0.1 ? (v[0] * right.x + v[2] * right.z) / Math.max(0.1, c.movement.walk.speed) : 0;

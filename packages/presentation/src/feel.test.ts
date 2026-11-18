@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'vitest';
 import * as THREE from 'three';
-import { blastEffect, impactEffect, muzzleEffect } from './effects';
+import { blastEffect, flameEffect, impactEffect, muzzleEffect } from './effects';
 import { colorAt, type Stop } from './particles';
-import { dipAt, SWAY, swayAt } from './sway';
+import { cadenceAt, dipAt, SWAY, swayAt } from './sway';
 import { heardFrom, impulseResponse, passedBy, SPEED_OF_SOUND } from './synth';
 
 /** A source of randomness that gives the same numbers every run. */
@@ -125,6 +125,18 @@ describe('a blast, seen', () => {
     expect(muzzleEffect(at, forward, 0.14, seeded()).covers).toHaveLength(1);
   });
 
+  test('(stage 5o) the flame lance’s breath: five puffs of fire thrown ahead, the air stopping them within its reach', () => {
+    const forward = new THREE.Vector3(0, 0, -1);
+    const { adds } = flameEffect(at, forward, seeded());
+    expect(adds).toHaveLength(5);
+    for (const p of adds) {
+      // Ahead, within a few degrees; and how far the drag lets it go, v/k (5 to 6.8 m: the lance reaches 6).
+      expect(p.velocity!.dot(forward) / p.velocity!.length()).toBeGreaterThan(0.95);
+      expect(p.velocity!.length() / p.drag!).toBeGreaterThanOrEqual(5);
+      expect(p.velocity!.length() / p.drag!).toBeLessThanOrEqual(6.9);
+    }
+  });
+
   test('a shot on stone throws sparks back the way it came and stone dust; on someone, a pale burst and no sparks', () => {
     const back = new THREE.Vector3(0, 0, 1);
     const stone = impactEffect(at, back, false, 'stone', seeded());
@@ -173,6 +185,14 @@ describe('the walk’s sway', () => {
   test('as much as its amount: running more, standing nothing', () => {
     expect(swayAt(2, SWAY.run).up).toBeCloseTo(-SWAY.bob * SWAY.run, 12);
     expect(swayAt(2.3, 0)).toEqual({ up: -0, side: 0, roll: 0, hold: { side: 0, up: -0 } });
+  });
+
+  test('(stage 5o) its cadence: about two steps a second walking, 2.6 running, between them by the speed, no faster than the run’s', () => {
+    expect(cadenceAt(4.5, 4.5, 7.5)).toBeCloseTo(1.9, 12);
+    expect(cadenceAt(7.5, 4.5, 7.5)).toBeCloseTo(2.6, 12);
+    expect(cadenceAt(6, 4.5, 7.5)).toBeCloseTo(2.25, 12);
+    expect(cadenceAt(12, 4.5, 7.5)).toBeCloseTo(2.6, 12);
+    expect(cadenceAt(1, 4.5, 7.5)).toBeCloseTo(1.9, 12);
   });
 
   test('landing, the eyes sink to their lowest at τ and come back without passing', () => {

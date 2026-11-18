@@ -16,8 +16,15 @@ export {
   AMMO_OF,
   ARSENAL,
   arsenal,
+  AUTOMATIC,
   fallbackOf,
   giveAmmo,
+  MAGAZINES,
+  RELOAD,
+  RELOAD_HEARD,
+  RELOAD_IN,
+  reloadShare,
+  roundsOf,
   RAISED,
   raised,
   SLOT_INPUTS,
@@ -36,7 +43,7 @@ export {
   type Weapon,
   type WeaponKind,
 } from './weapons';
-export { armsTool, WEAPON_LOOKS, weaponModel, type WeaponLook } from './looks';
+export { armsTool, RELOAD_LOOK, reloadLift, WEAPON_LOOKS, weaponModel, type WeaponLook } from './looks';
 export { GUARD, GUARD_BRAIN, guard, guardsOf, GUNNER, GUNNER_KEY, gunnerOf, type Fair, type Gunner } from './guard';
 export { ARMS_BRAINS, type GuardMemory } from './brain';
 export {

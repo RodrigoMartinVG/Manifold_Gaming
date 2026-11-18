@@ -726,8 +726,23 @@ export type Event =
    */
   | {
       type: 'sound';
-      // (Stage 5l: a guard's "huh?" and its "nothing", and a pebble's clatter.)
-      sound: 'step' | 'land' | 'hit' | 'door' | 'lift' | 'break' | 'blast' | 'shout' | 'ready' | 'huh' | 'calm' | 'pebble';
+      // (Stage 5l: a guard's "huh?" and its "nothing", and a pebble's clatter; 5o: a reload's clicks, and a
+      // horn, the wall's alarm.)
+      sound:
+        | 'step'
+        | 'land'
+        | 'hit'
+        | 'door'
+        | 'lift'
+        | 'break'
+        | 'blast'
+        | 'shout'
+        | 'ready'
+        | 'huh'
+        | 'calm'
+        | 'pebble'
+        | 'reload'
+        | 'horn';
       source: EntityId;
       at: Vec3;
       surface: string | null;

@@ -1,67 +1,278 @@
 # Manifold level 10
-# The gate (stage 5n, decision 0031): the wall's last section, at six, the sky going pale. A first hall:
-# two sentries, and at its far end a brute (it hardly stops: what the launcher is for, in the west room).
-# The red key in the east room. North of the hall, a yard; the red door: the court before the gate, where
-# the last of them come in two groups. Close the gate. In the west room's corner, a button: a closet of
-# rockets and armor. Drawn as a plan (plans/level-4.plan).
+# The gate (stage 5n; rebuilt in 5o, decision 0031: levels of floors above floors). A hall of columns, a
+# brute at its far end; west, the armory, where the launcher waits on a shelf 3 m up (two blocks to jump up
+# by); east, a room with the flame lance, and a hand in it that opens the closet south (armor). North, the
+# gate court: a rampart 3 m up along its west, north and east, a stair at each side, the west one broken in
+# its middle (a ferry crosses); in the court, those who come out of the gatehouse. North-east, a round
+# turret with the red key: it calls those who come along the north rampart. The red door, off it, opens on the
+# gatehouse's upper floor, where a platform goes up and down to the winch room: the way out. Drawn as a
+# plan (plans/level-4.plan, made by a script).
 title The gate
 spawn 0 1 1
 facing 0 0 -1
 ambient 0.42
 sky 6.0
 
-plan -22 -46
-############################################
-#..........................................#
-#..........................................#
-#..........................................#
-#..........................................#
-#..........................................#
-#.........c................................#
-#..........................................#
-#..........................................#
-#..........................................#
-#..........................cc..............#
-#..........................................#
-#..........................................#
-#..........................................#
-#...............cc.........................#
-#..........................................#
-#.................................c........#
-#..........................................#
-#.........................c................#
-#..........................................#
-#..........................................#
-#..........................................#
-#.......#############..#####################
-#.......#..................................#
-#.......#..................................#
-#.......#..................................#
-#.......#...cc.............................#
-#.......#..................................#
-#.......#.......................cc.........#
-#.......#..................................#
-#########..................................#
-#......##..................................#
-#......##..................................#
-#......##..................................#
-#####..#############....####################
-#............##..............##............#
-#............##..............##............#
-#............##..............##............#
-#..........................................#
-#..........................................#
-#............##..............##............#
-#............##...c......c...##............#
-#............##..............##............#
-#............##..............##............#
-####################....####################
-#..........................................#
-#..........................................#
-#..........................................#
-#..........................................#
-############################################
+plan -26 -60 0
+
+               ++++++++++++++++++++++
+               +....................+
+               +....................+
+               +....................+
+               +....................+
+               +....................+
+               +....................+
+               +....................+
+ ++++++++++++++++++++++......++++++++++++++++++++++
+ #................................................#
+ #................................................#
+ #................................................#
+ #................................................#
+ #................................................#
+ #................................................#
+ #................................................#
+ #................................................#
+ #................................................#
+ #................................................#
+ #................................................#
+ #................................................#
+ #................................................#
+ #................................................#
+ #................................................#
+ #................................................#
+ #................................................#
+ #................................................#
+ #................................................#
+ #................................................#
+ #................................................#
+ #................................................#
+ #................................................#
+ #................................................#
+ #................................................#
+ #................................................#
+ #................................................#
+ #................................................#
+ #................................................#
+ #................................................#
+ #######################....#######################
+ #...........#........................#...........#
+ #...........#........................#...........#
+ #...........#........................#...........#
+ #...........#........................#...........#
+ #...........#........................#...........#
+ #................................................#
+ #................................................#
+ #...........#........................#...........#
+ #...........#........................#...........#
+ #...........#........................#...........#
+ #...........#........................#...........#
+ #...........#........................#...........#
+ #...........#........................#...........#
+ ########################..###################..###
+                     #........#            #......#
+                     #........#            #......#
+                     #........#            #......#
+                     #........#            #......#
+                     #........#            ########
+                     #........#
+                     #........#
+                     #........#
+                     #........#
+                     ##########
+
 end
+
+plan -26 -60 3
+
+               ++++++++++++++++++++++       ..
+               +....................+      ....
+               +....................+     ......
+               +.........  .........+    ........
+               +.........  .........+    ........
+               +....................+     ......
+               +....................+      ....
+               +....................+       ..
+ ++++++++++++++++++++++++..+++++++++++++++++..+++++
+  ................................................
+  ................................................
+  ...==========================================...
+  ...=                                        =...
+  ...=                                        =...
+  ...=                                        =...
+  ...=                                        =...
+  ...=                                        =...
+  ...=                                        =...
+  ...=                                        =...
+  ...=                                        =...
+  ...=                                        =...
+                                              =...
+                                              =...
+                                              =...
+                                              =...
+                                              =...
+                                              =...
+  ...=                                        =...
+  ...=                                        =...
+  ...=                                        =...
+  ...=                                        =...
+
+
+
+
+
+
+
+
+
+  ....
+  ....
+  ....
+  ....
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+end
+
+plan -26 -60 6
+
+                     ++++++++++
+                     +........+
+                     +........+
+                     +...  ...+
+                     +...  ...+
+                     +........+
+                     +........+
+                     +........+
+                     ++++++++++
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+end
+
+
+# The hall’s columns; the armory’s shelf on its column, and the two blocks up to it.
+kit column  -6 0 -9
+kit column  -6 0 -13
+kit column  -6 0 -17
+kit column  6 0 -9
+kit column  6 0 -13
+kit column  6 0 -17
+kit column  -20.3 0 -15.3
+kit platform_2  -17 0 -17
+kit platform_2  -19 0 -17
+kit platform_2  -19 1 -17
+
+# The court: the stairs up to the ramparts, and the ferry across the west one’s break.
+kit stairs_3  -23 0 -25
+kit stairs_3  22 0 -25
+box -22.5 2.85 -33  1.5 0.15 1  move 0 0 -4 3  color #7a5a3a  name ferry
+
+# The platform that goes up and down, from the gatehouse’s upper floor to the winch room.
+box 0 2.85 -55  1 0.15 1  move 0 3 0 3  color #7a5a3a  name hoist
+
+# The turret: its wall below (closed) and above (a door south).
+kit wall_2  23 0 -55  rotate y 90
+kit wall_2  22.696 0 -53.469  rotate y 67.5
+kit wall_2  21.828 0 -52.172  rotate y 45
+kit wall_2  20.531 0 -51.304  rotate y 22.5
+kit wall_2  19 0 -51  rotate y 0
+kit wall_2  17.469 0 -51.304  rotate y -22.5
+kit wall_2  16.172 0 -52.172  rotate y -45
+kit wall_2  15.304 0 -53.469  rotate y -67.5
+kit wall_2  15 0 -55  rotate y -90
+kit wall_2  15.304 0 -56.531  rotate y -112.5
+kit wall_2  16.172 0 -57.828  rotate y -135
+kit wall_2  17.469 0 -58.696  rotate y -157.5
+kit wall_2  19 0 -59  rotate y -180
+kit wall_2  20.531 0 -58.696  rotate y -202.5
+kit wall_2  21.828 0 -57.828  rotate y -225
+kit wall_2  22.696 0 -56.531  rotate y -247.5
+kit wall_2  23 3 -55  rotate y 90
+kit wall_2  22.696 3 -53.469  rotate y 67.5
+kit wall_2  21.828 3 -52.172  rotate y 45
+kit wall_2  20.531 3 -51.304  rotate y 22.5
+kit wall_2  17.469 3 -51.304  rotate y -22.5
+kit wall_2  16.172 3 -52.172  rotate y -45
+kit wall_2  15.304 3 -53.469  rotate y -67.5
+kit wall_2  15 3 -55  rotate y -90
+kit wall_2  15.304 3 -56.531  rotate y -112.5
+kit wall_2  16.172 3 -57.828  rotate y -135
+kit wall_2  17.469 3 -58.696  rotate y -157.5
+kit wall_2  19 3 -59  rotate y -180
+kit wall_2  20.531 3 -58.696  rotate y -202.5
+kit wall_2  21.828 3 -57.828  rotate y -225
+kit wall_2  22.696 3 -56.531  rotate y -247.5
 
 signal never
 signal key_red
@@ -70,39 +281,55 @@ signal red_both  all key_red at_red
 signal red_open  latch red_both never
 signal secret_pressed  used secret_button
 signal secret_open  latch secret_pressed never
-box 0 1.5 -23.5  1 1.5 0.15  door -1 0 0 y 90 1 red_open  color #b04a3a  name red_door
-box -16 1.5 -11.5  1 1.5 0.15  door -1 0 0 y 90 1 secret_open  color #6a645c  name secret_door
+box 0 4.5 -50.5  1 1.5 0.15  door -1 0 0 y 90 1 red_open  color #b04a3a  name red_door
+box 21 1.5 -5.5  1 1.5 0.15  door -1 0 0 y 90 1 secret_open  color #6a645c  name secret_door
 
-lamp 0 2.6 -6  5 1  name lamp_hall
-lamp -15 2.6 -6  4 0.9  name lamp_west
-lamp 15 2.6 -6  4 0.9  name lamp_east
-lamp 0 2.6 -18  6 1  name lamp_yard
-lamp 0 2.6 -34  7 1  name lamp_court
-lamp 0 2.6 -43  5 1  name lamp_gate
+lamp 0 2.6 -1  5 1  name lamp_start
+lamp 0 2.6 -9  6 1  name lamp_hall_south
+lamp 0 2.6 -16  6 1  name lamp_hall_north
+lamp -18 2.4 -10  6 0.9  name lamp_armory
+lamp -22 5.4 -17  4 1  name lamp_shelf
+lamp 18 2.4 -12  6 0.9  name lamp_east
+lamp 21 2.4 -3  3 0.8  name lamp_closet
+lamp -8 2.6 -27  7 1  name lamp_court_sw
+lamp 8 2.6 -27  7 1  name lamp_court_se
+lamp -8 2.6 -42  7 1  name lamp_court_nw
+lamp 8 2.6 -42  7 1  name lamp_court_ne
+lamp -22.5 5.6 -35  5 1  name lamp_break
+lamp 0 5.6 -49  6 1  name lamp_north_rampart
+lamp 0 2.4 -55  6 0.9  name lamp_gatehouse
+lamp 0 5.4 -55  5 0.9  name lamp_hoist
+lamp 19 5.6 -55  4 1  name lamp_turret
+lamp 0 8.6 -55  5 1  name lamp_winch
 
-sensor area        0 1 -21.5     1.5 0.8 1.5  name red_front
-sensor area        -18 1 -9.5    0.5 0.8 0.5  name secret_button
-sensor checkpoint  0 1 0         2 0.8 1
-sensor checkpoint  0 1 -14       2 0.8 1.5
-sensor checkpoint  0 1 -26       2 0.8 1.5
-sensor weapon      -18 0.5 -4    0.4 0.5 0.4  kind 6
-sensor ammo        -12 1 -4      0.3 0.4 0.3  kind 4  amount 4
-sensor key         18 1 -9       0.3 0.6 0.3  color 1
-sensor health      18 1 -3       0.3 0.4 0.3  amount 25
-sensor ammo        12 1 -3       0.3 0.4 0.3  kind 2  amount 12
-sensor health      -18 1 -20     0.3 0.4 0.3  amount 25
-sensor ammo        18 1 -20      0.3 0.4 0.3  kind 1  amount 40
-sensor health      -18 1 -40     0.3 0.4 0.3  amount 25
-sensor armor       -15.5 1 -14.4 0.4 0.6 0.4  amount 50
-sensor ammo        -15.3 1 -13.2 0.3 0.4 0.3  kind 4  amount 4
-sensor secret      -16.4 1 -13.6 0.9 0.8 1
-sensor attackers   0 1 -9        0.4 0.8 0.4  wave 0  count 2  role 1  rotate y 180
-sensor attackers   0 1 -20       0.4 0.8 0.4  wave 0  count 1  role 4  rotate y 180
-sensor trigger     0 1 -25.5     2 0.8 1  wave 1
-sensor attackers   -10 1 -38     0.4 0.8 0.4  wave 1  count 2  role 2
-sensor attackers   10 1 -38      0.4 0.8 0.4  wave 1  count 2  role 1
-sensor trigger     0 1 -33       3 0.8 1  wave 2
-sensor attackers   0 1 -43       0.4 0.8 0.4  wave 2  count 2  role 3
-sensor attackers   -6 1 -42      0.4 0.8 0.4  wave 2  count 1  role 4
-sensor goal        0 1 -44.5     2 0.8 1
-sensor fall        0 -10 0       80 2 80
+sensor area        0.5 4 -49.5    1.2 0.8 1  name red_front
+sensor area        23.5 1 -7      0.5 0.8 0.5  name secret_button
+sensor checkpoint  0 1 0          2 0.8 1.5
+sensor checkpoint  0 1 -22        2 0.8 1.5
+sensor checkpoint  -22.5 4 -42    1 0.8 1.5
+sensor weapon      -22.5 3.5 -17.5  0.4 0.5 0.4  kind 6
+sensor weapon      18 0.5 -13     0.4 0.5 0.4  kind 10
+sensor key         19 3.8 -56     0.3 0.6 0.3  color 1
+sensor trigger     19 4 -56       0.8 0.8 0.8  wave 2
+sensor trigger     0 1 -22.5      2.5 0.8 1  wave 1
+sensor health      22 1 -17       0.3 0.4 0.3  amount 25
+sensor health      12 4 -49.5     0.3 0.4 0.3  amount 25
+sensor armor       21 1 -2.5      0.4 0.6 0.4  amount 50
+sensor secret      21 1 -3        2 0.8 1.5
+sensor ammo        0 1 -3         0.3 0.4 0.3  kind 1  amount 30
+sensor ammo        -21.5 3.5 -16  0.3 0.4 0.3  kind 4  amount 4
+sensor ammo        16 1 -16       0.3 0.4 0.3  kind 6  amount 60
+sensor ammo        -10 1 -25      0.3 0.4 0.3  kind 1  amount 30
+sensor ammo        -22.5 4 -45    0.3 0.4 0.3  kind 1  amount 30
+sensor ammo        20 1 -1        0.3 0.4 0.3  kind 4  amount 4
+sensor attackers   0 1 -17        0.4 0.8 0.4  wave 0  count 1  role 4  rotate y 180
+sensor attackers   -9 1 -17       0.4 0.8 0.4  wave 0  count 1  role 1  rotate y 180
+sensor attackers   9 1 -17        0.4 0.8 0.4  wave 0  count 1  role 1  rotate y 180
+sensor attackers   19 1 -9        0.4 0.8 0.4  wave 0  count 1  role 1  rotate y 90
+sensor attackers   -12 4 -49.5    0.4 0.8 0.4  wave 0  count 1  role 2
+sensor attackers   0 1 -55        0.4 0.8 0.4  wave 1  count 3  role 1
+sensor attackers   5 1 -55        0.4 0.8 0.4  wave 1  count 1  role 2
+sensor attackers   -21 4 -49.5    0.4 0.8 0.4  wave 2  count 2  role 3  rotate y -90
+sensor attackers   -17 4 -49.5    0.4 0.8 0.4  wave 2  count 1  role 4  rotate y -90
+sensor goal        2 7 -57        1.5 0.8 1
+sensor fall        0 -10 -25      80 2 80

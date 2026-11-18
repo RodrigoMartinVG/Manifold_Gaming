@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { Vec3 } from '@manifold/common';
 import type { Event } from '@manifold/core';
 import type { Bodies } from './bodies';
-import { blastEffect, impactEffect, muzzleEffect, trailEffect, type Effect } from './effects';
+import { blastEffect, flameEffect, impactEffect, muzzleEffect, trailEffect, type Effect } from './effects';
 import type { GamePage, Piece } from './page';
 import { createParticles } from './particles';
 import { addInterfaceStyles } from './ui';
@@ -38,7 +38,7 @@ import { addInterfaceStyles } from './ui';
  * (the markers shown), `data-flashes`, `data-kick` (the view's kick now, in degrees), `data-readies`
  * (the glints shown), `data-trauma` (the shake's trauma now), and (5k) `data-blasts`, `data-scorches`
  * (the blasts seen, the scorches left), `data-particles` (how many live) and `data-flare` (the blast
- * light's brightest yet).
+ * light's brightest yet); (5o) `data-flames`, the flame lance's breaths seen.
  */
 
 /** Each kind's flash (m across; none for what is thrown or swung) and kick (degrees up). */
@@ -50,6 +50,9 @@ export const FEEL: Readonly<Record<string, { flash: number; kick: number }>> = O
   // (Stage 5n) Quick and light; the orb's, an attacker's, has no flash (it glows itself).
   repeater: { flash: 0.12, kick: 0.7 },
   orb: { flash: 0, kick: 0 },
+  // (Stage 5o) The longshot, a heavy flash and a hard kick; the flame lance, its flames instead (`flameEffect`).
+  longshot: { flash: 0.2, kick: 3.5 },
+  flamer: { flash: 0, kick: 0.2 },
   stick: { flash: 0, kick: 0 },
   grenade: { flash: 0, kick: 0.6 },
   smoke: { flash: 0, kick: 0.6 },
@@ -108,6 +111,7 @@ export function mountFire(page: GamePage, bodies: Bodies, o: { timeScale(): numb
   let hits = 0;
   let downs = 0;
   let flashes = 0;
+  let flames = 0;
   let readies = 0;
   // The flash's light: one, kept in the scene and lit only for an instant.
   const light = new THREE.PointLight(0xffd08a, 0, 9, 2);
@@ -184,6 +188,11 @@ export function mountFire(page: GamePage, bodies: Bodies, o: { timeScale(): numb
       if (ev.type === 'fired') {
         const feel = FEEL[ev.kind];
         if (!feel) return;
+        // (Stage 5o) The flame lance: its flames, from where its end is drawn.
+        if (ev.kind === 'flamer') {
+          throwing(flameEffect(muzzleOf(ev.from, ev.at), new THREE.Vector3(...ev.direction).normalize()));
+          page.container.dataset.flames = String(++flames);
+        }
         if (feel.flash > 0) {
           const at = muzzleOf(ev.from, ev.at);
           // (In first person its end is under a meter from the eyes: half as large there, or it fills the view.)
@@ -204,7 +213,8 @@ export function mountFire(page: GamePage, bodies: Bodies, o: { timeScale(): numb
           page.container.dataset.kick = kick.toFixed(2);
         }
       } else if (ev.type === 'shot') {
-        if (ev.hit === null) return;
+        // (The flame lance's strikes are its flames: no sparks.)
+        if (ev.hit === null || ev.kind === 'flamer') return;
         const end = new THREE.Vector3(...ev.end);
         const back = new THREE.Vector3(...ev.start).sub(end).normalize();
         sparks(end, back, ev.hit);

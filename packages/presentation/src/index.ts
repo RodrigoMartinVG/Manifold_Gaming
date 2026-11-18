@@ -27,9 +27,9 @@ export {
   type Words,
 } from './words';
 export { ambienceAt, mountAmbience, type AmbienceLayers } from './ambience';
-export { blastEffect, impactEffect, muzzleEffect, trailEffect, type Effect } from './effects';
+export { blastEffect, flameEffect, impactEffect, muzzleEffect, trailEffect, type Effect } from './effects';
 export { colorAt, createParticles, type ParticleSpec, type Particles, type Stop } from './particles';
-export { dipAt, mountSway, SWAY, SWAY_VARIABLE, swayAt } from './sway';
+export { cadenceAt, dipAt, mountSway, SWAY, SWAY_VARIABLE, swayAt } from './sway';
 export { mountWariness, type Noticed, type WarinessOptions } from './wariness';
 export { heardFrom, impulseResponse, SPEED_OF_SOUND } from './synth';
 export { ATMOSPHERE, GLOW_VARIABLE, nightOf } from './stage';

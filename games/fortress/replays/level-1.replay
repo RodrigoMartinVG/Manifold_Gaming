@@ -1,4 +1,4 @@
-# Manifold replay 47
+# Manifold replay 48
 # The fortress's outer wall, played unseen to its way out: the culvert, a pebble, the gate.
 # A reference replay (stage 5f, as the tower’s since 5d): playing it must end with the hash on its
 # last line. Recorded by games/fortress/src/levels.test.ts; recorded again (npm run references) only

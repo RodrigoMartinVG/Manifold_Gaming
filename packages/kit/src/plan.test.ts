@@ -48,6 +48,35 @@ describe('a level from its plan', () => {
     expect(levelFromPlan(plan, 'a test')).toBe(made);
   });
 
+  test('(stage 5o) a second grid, 3 m up: its floor exactly where its cells are (a balcony does not cover the hall), its walls and railings on it', () => {
+    const two = [
+      'title Two floors',
+      'plan 0 0',
+      '....',
+      '....',
+      '....',
+      '....',
+      'end',
+      'plan 0 0 3',
+      '##  ',
+      '#.= ',
+      '#.= ',
+      '##  ',
+      'end',
+    ].join('\n');
+    const lines = levelFromPlan(two).split('\n');
+    // The ground: one tile of 4. Up: its 12 cells that are not empty, in tiles of 2 and of 1 at y 3; none of 4.
+    expect(lines.filter((l) => l.startsWith('kit floor_4'))).toEqual(['kit floor_4  2 0 2']);
+    expect(lines.filter((l) => / 3 /.test(l) && l.startsWith('kit floor_')).length).toBeGreaterThan(0);
+    expect(lines.some((l) => l.startsWith('kit floor_4') && / 3 /.test(l))).toBe(false);
+    // Up, a wall of 2 along the first row, standing on 3 and on 6; a railing turned along the last column.
+    expect(lines).toContain('kit wall_2  1 3 0.5');
+    expect(lines).toContain('kit wall_2  1 6 0.5');
+    expect(lines).toContain('kit railing_2  2.5 3 2  rotate y 90');
+    // Nothing laid over the last column, empty: the hall below is seen.
+    expect(lines.some((l) => l.startsWith('kit floor_1  3.5 3'))).toBe(false);
+  });
+
   test('a plan without its grid, or with a grid that never ends, is refused', () => {
     expect(() => levelFromPlan('title x')).toThrow(/plan <x> <z>/);
     expect(() => levelFromPlan('plan 0 0\n###')).toThrow(/end/);

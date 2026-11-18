@@ -115,5 +115,9 @@
  *      the best with ammunition when empty); the repeater and the orb; the wall's levels to advance
  *      through (keys that turn on the signals doors read, health, armor, ammunition, secrets, groups
  *      called in by triggers, roles); a guard fires an orb as a dart. What has no arsenal as in 46
+ *  48  stage 5o: magazines and reloads for whoever carries an arsenal (`loaded`, `reloading`, `arms.reload`,
+ *      heard twice: `reload`), what fires while held (the repeater, the flame lance), two weapons (the
+ *      longshot, the flame lance and its oil); the wall's levels of floors above floors, and a horn where
+ *      the defender is when a group is called in. What has no arsenal as in 47
  */
-export const SIMULATION_VERSION = 47;
+export const SIMULATION_VERSION = 48;

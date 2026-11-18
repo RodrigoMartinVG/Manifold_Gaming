@@ -49,6 +49,19 @@ export const ARMS_INPUTS: readonly InputAction[] = [
 export type Raised = { since: number };
 export const RAISED = 'arms.raised';
 export const raised = (e: Entity) => component<Raised>(e, RAISED);
+/** (Stage 5o) How far a reload is heard (m): the clicks of a magazine, near. */
+export const RELOAD_HEARD = 10;
+/** (Stage 5o) How far into a reload the new magazine goes in (a share of its time): heard, and seen (looks.ts). */
+export const RELOAD_IN = 0.65;
+/** (Stage 5o) How far a character's reload under way has gone (0 to 1), or null if none is. */
+export function reloadShare(world: World, e: Entity): number | null {
+  const a = arsenal(e);
+  const w = weapon(e);
+  const m = w && w.kind !== 'none' ? MAGAZINES[w.kind] : undefined;
+  if (!a || !m || a.reloading < 0) return null;
+  const length = Math.round(m.seconds * 60);
+  return Math.min(1, Math.max(0, 1 - (a.reloading - world.tick) / length));
+}
 /** How far a raised weapon is heard (m): across a yard, so a fight's warning reaches whoever it aims at. */
 export const READY_HEARD = 14;
 
@@ -104,31 +117,68 @@ export const WEAPONS = Object.freeze({
    * 1.2 times the player's run, 7.5 m/s: seen coming, and stepped out of), 16 where it strikes.
    */
   orb: { damage: 16, speed: 11, radius: 0.18, life: 300, every: 75 },
+  /** (Stage 5o, decision 0031: the author asked for more weapons) The longshot: a long dart gun, 60 a shot, true to a sixth of a degree, slow. */
+  longshot: { damage: 60, reach: 90, spread: 0.15, every: 45 },
+  /**
+   * (Stage 5o) The flame lance: the game's flame, as a weapon (the keeper's fire, poured): a jet of burning
+   * oil, a ray within 10 degrees every fifteenth of a second, 4 each, to 6 m. While it is held.
+   */
+  flamer: { damage: 4, reach: 6, spread: 10, every: 4 },
 });
 export type WeaponKind = keyof typeof WEAPONS;
-/** A `weapon` zone's `kind`: 1, 2, 3, 4; (stage 5g) 5, 6; (stage 5n) 7, the repeater; 8, the orb. */
-export const WEAPON_KINDS: readonly WeaponKind[] = ['dart', 'bolt', 'stick', 'grenade', 'shotgun', 'launcher', 'repeater', 'orb'];
+/** A `weapon` zone's `kind`: 1, 2, 3, 4; (stage 5g) 5, 6; (stage 5n) 7, the repeater; 8, the orb; (stage 5o) 9, the longshot; 10, the flame lance. */
+export const WEAPON_KINDS: readonly WeaponKind[] = [
+  'dart',
+  'bolt',
+  'stick',
+  'grenade',
+  'shotgun',
+  'launcher',
+  'repeater',
+  'orb',
+  'longshot',
+  'flamer',
+];
+/** (Stage 5o) What fires while it is held, not once a press. */
+export const AUTOMATIC: ReadonlySet<WeaponKind> = new Set(['repeater', 'flamer']);
+/**
+ * (Stage 5o, decision 0031: "quizás alguna animación de recarga") MAGAZINES, for whoever carries an arsenal:
+ * how many a weapon holds before it reloads from what one carries, and how long reloading takes (s). The
+ * flame lance burns from its tank and a grenade is thrown as it is: no reload.
+ */
+export const MAGAZINES: Readonly<Partial<Record<WeaponKind, { holds: number; seconds: number }>>> = Object.freeze({
+  dart: { holds: 12, seconds: 1.2 },
+  repeater: { holds: 30, seconds: 1.8 },
+  shotgun: { holds: 6, seconds: 2 },
+  bolt: { holds: 5, seconds: 1.5 },
+  launcher: { holds: 3, seconds: 2.2 },
+  longshot: { holds: 4, seconds: 2 },
+});
 
 /**
  * (Stage 5n) AMMUNITION, for whoever carries an arsenal: what each weapon fires (the stick nothing), how
  * much a rack of it gives, and how much of each one carries at most.
  */
-export type AmmoKind = 'darts' | 'shells' | 'bolts' | 'rockets' | 'grenades';
+export type AmmoKind = 'darts' | 'shells' | 'bolts' | 'rockets' | 'grenades' | 'oil';
 export const AMMO_OF: Readonly<Partial<Record<WeaponKind, AmmoKind>>> = Object.freeze({
   dart: 'darts',
   repeater: 'darts',
+  longshot: 'darts',
   shotgun: 'shells',
   bolt: 'bolts',
   launcher: 'rockets',
   grenade: 'grenades',
+  flamer: 'oil',
 });
 export const AMMO_GIVEN: Readonly<Partial<Record<WeaponKind, number>>> = Object.freeze({
   dart: 30,
   repeater: 60,
+  longshot: 12,
   shotgun: 8,
   bolt: 10,
   launcher: 4,
   grenade: 3,
+  flamer: 90,
 });
 export const AMMO_MOST: Readonly<Record<AmmoKind, number>> = Object.freeze({
   darts: 200,
@@ -136,34 +186,70 @@ export const AMMO_MOST: Readonly<Record<AmmoKind, number>> = Object.freeze({
   bolts: 40,
   rockets: 16,
   grenades: 8,
+  oil: 200,
 });
 
 /**
  * (Stage 5n) AN ARSENAL: the weapons a character owns (its `arms.weapon` the one in its hands) and its
  * ammunition. Only a character that has one (the wall's defender) keeps more than one weapon, spends
  * ammunition, and uses up the racks it takes; the rest (the Dojo's, the guards) as before. Its slots, in
- * order (the keys 1 to 7): the stick, the dart, the shotgun, the repeater, the bolt, the launcher, the
- * grenade.
+ * order (the keys 1 to 9): the stick, the dart, the shotgun, the repeater, the bolt, the launcher, the
+ * grenade; (5o) the longshot, the flame lance. (Stage 5o) What is in each weapon's magazine (`loaded`: the
+ * ammunition is what is carried besides), and when the reload under way ends (−1: none).
  */
-export type Arsenal = { owned: WeaponKind[]; ammo: Record<AmmoKind, number> };
+export type Arsenal = {
+  owned: WeaponKind[];
+  ammo: Record<AmmoKind, number>;
+  loaded: Partial<Record<WeaponKind, number>>;
+  reloading: number;
+};
 export const ARSENAL = 'arms.arsenal';
 export const arsenal = (e: Entity) => component<Arsenal>(e, ARSENAL);
-export const SLOTS: readonly WeaponKind[] = ['stick', 'dart', 'shotgun', 'repeater', 'bolt', 'launcher', 'grenade'];
-export const SLOT_INPUTS: readonly InputAction[] = SLOTS.map((kind, k) => ({
-  name: `arms.slot${k + 1}`,
-  kind: 'button' as const,
-  description: `the character takes its ${kind} in its hands, if it owns one (stage 5n: an arsenal)`,
-}));
+export const SLOTS: readonly WeaponKind[] = [
+  'stick',
+  'dart',
+  'shotgun',
+  'repeater',
+  'bolt',
+  'launcher',
+  'grenade',
+  'longshot',
+  'flamer',
+];
+export const RELOAD = 'arms.reload';
+export const SLOT_INPUTS: readonly InputAction[] = [
+  ...SLOTS.map((kind, k) => ({
+    name: `arms.slot${k + 1}`,
+    kind: 'button' as const,
+    description: `the character takes its ${kind} in its hands, if it owns one (stage 5n: an arsenal)`,
+  })),
+  { name: RELOAD, kind: 'button', description: 'the character reloads the weapon in its hands from what it carries (stage 5o)' },
+];
+/** (Stage 5o) What a weapon has to fire: what is in its magazine, or (without one) what is carried. */
+export function roundsOf(a: Arsenal, kind: WeaponKind): number {
+  const ammo = AMMO_OF[kind];
+  if (!ammo) return Infinity;
+  return MAGAZINES[kind] ? (a.loaded[kind] ?? 0) : a.ammo[ammo];
+}
+/** (Stage 5o) A weapon's magazine filled from what is carried, as far as it goes. */
+function load(a: Arsenal, kind: WeaponKind) {
+  const m = MAGAZINES[kind];
+  const ammo = AMMO_OF[kind];
+  if (!m || !ammo) return;
+  const take = Math.min(m.holds - (a.loaded[kind] ?? 0), a.ammo[ammo]);
+  a.loaded[kind] = (a.loaded[kind] ?? 0) + take;
+  a.ammo[ammo] -= take;
+}
 /**
  * (Stage 5n) What an arsenal takes up when what it holds is empty, as Doom does: the first it owns with
  * ammunition of these, and the stick last (it needs none). Never the launcher or a grenade by itself: at
  * arm's length they are one's own end.
  */
-const FALLBACK: readonly WeaponKind[] = ['shotgun', 'repeater', 'dart', 'bolt', 'stick'];
+const FALLBACK: readonly WeaponKind[] = ['shotgun', 'repeater', 'flamer', 'dart', 'longshot', 'bolt', 'stick'];
 export function fallbackOf(a: Arsenal): WeaponKind | null {
   for (const kind of FALLBACK) {
     const ammo = AMMO_OF[kind];
-    if (a.owned.includes(kind) && (!ammo || a.ammo[ammo] > 0)) return kind;
+    if (a.owned.includes(kind) && (!ammo || a.ammo[ammo] > 0 || (a.loaded[kind] ?? 0) > 0)) return kind;
   }
   return null;
 }
@@ -227,6 +313,8 @@ export function arms(world: World, events: readonly Event[]) {
     }
     const ammo = AMMO_OF[kind];
     if (ammo) giveAmmo(carried, ammo, AMMO_GIVEN[kind] ?? 0);
+    // (Stage 5o) A weapon taken comes loaded.
+    load(a, kind);
     world.removeEntity(zone.id);
   }
   for (const e of world.entities.values()) {
@@ -255,7 +343,8 @@ export function arms(world: World, events: readonly Event[]) {
         radius: READY_HEARD,
       });
     } else if (!lifting && raised(e)) delete e.game![RAISED];
-    // (Stage 5n) An arsenal: a slot's key takes that weapon in its hands (a third of a second to raise it).
+    // (Stage 5n) An arsenal: a slot's key takes that weapon in its hands (a third of a second to raise it;
+    // a reload under way is let go).
     const a = arsenal(e);
     if (a)
       SLOTS.forEach((kind, k) => {
@@ -263,14 +352,53 @@ export function arms(world: World, events: readonly Event[]) {
           w.kind = kind;
           w.strike = 0;
           w.ready = Math.max(w.ready, world.tick + 18);
+          a.reloading = -1;
         }
       });
-    if (!pressed(world, c.player, ATTACK) || world.tick < w.ready) continue;
-    // (Stage 5n) With an arsenal, what fires spends its ammunition; with none left, it does not fire: it
-    // takes up the best it has with some (`fallbackOf`).
+    // (Stage 5o) A reload: asked for (`arms.reload`), or by firing with the magazine empty and something
+    // carried, it takes its time, heard twice (the magazine out, energy 0; `RELOAD_IN` of the way, the new
+    // one in, energy 1); when it ends, the magazine filled from what is carried.
+    const magazine = a ? MAGAZINES[w.kind] : undefined;
+    const reloadSound = (energy: number) =>
+      world.emit({
+        type: 'sound',
+        sound: 'reload',
+        source: e.id,
+        at: [...eye],
+        surface: null,
+        speed: 0,
+        energy,
+        radius: RELOAD_HEARD,
+      });
+    if (a && magazine && a.reloading >= 0 && world.tick === a.reloading - Math.round((1 - RELOAD_IN) * magazine.seconds * 60))
+      reloadSound(1);
+    if (a && a.reloading >= 0 && world.tick >= a.reloading) {
+      load(a, w.kind);
+      a.reloading = -1;
+    }
+    const held = w.kind;
+    const reload = () => {
+      const kind = held;
+      const ammo = AMMO_OF[kind];
+      if (!a || !magazine || !ammo || a.reloading >= 0 || a.ammo[ammo] <= 0 || (a.loaded[kind] ?? 0) >= magazine.holds) return;
+      a.reloading = world.tick + Math.round(magazine.seconds * 60);
+      reloadSound(0);
+    };
+    if (a && pressed(world, c.player, RELOAD)) reload();
+    // (Stage 5o) What fires while held (the repeater, the flame lance) fires while the button is down.
+    const wants = AUTOMATIC.has(w.kind)
+      ? isDown(world.inputs.get(c.player) ?? NO_INPUT, ATTACK)
+      : pressed(world, c.player, ATTACK);
+    if (!wants || world.tick < w.ready || (a && a.reloading >= 0)) continue;
+    // (Stage 5n) With an arsenal, what fires spends its ammunition (5o: from its magazine, if it has one);
+    // empty, it reloads, or with nothing left takes up the best it has with some (`fallbackOf`).
     const spends = a ? AMMO_OF[w.kind] : undefined;
     if (spends) {
-      if (a!.ammo[spends] <= 0) {
+      if (roundsOf(a!, w.kind) <= 0) {
+        if (magazine && a!.ammo[spends] > 0) {
+          reload();
+          continue;
+        }
         const next = fallbackOf(a!);
         if (next && next !== w.kind) {
           w.kind = next;
@@ -278,12 +406,13 @@ export function arms(world: World, events: readonly Event[]) {
         }
         continue;
       }
-      a!.ammo[spends]--;
+      if (magazine) a!.loaded[w.kind] = (a!.loaded[w.kind] ?? 0) - 1;
+      else a!.ammo[spends]--;
     }
     // (Stage 5g) For the eyes and the ears: the weapon used, from where, which way.
     const thrown = w.kind === 'grenade' || w.kind === 'stick';
     world.emit({ type: 'fired', from: e.id, at: thrown ? chest : eye, direction: [...ahead], kind: w.kind });
-    if (w.kind === 'dart' || w.kind === 'shotgun' || w.kind === 'repeater') {
+    if (w.kind === 'dart' || w.kind === 'shotgun' || w.kind === 'repeater' || w.kind === 'longshot' || w.kind === 'flamer') {
       // A ray at once; the shotgun's pellets, each its own direction from the one shot's dice.
       const gun = w.kind === 'shotgun' ? WEAPONS.shotgun : { ...WEAPONS[w.kind], pellets: 1 };
       const dice = shotDice(world, c.player);

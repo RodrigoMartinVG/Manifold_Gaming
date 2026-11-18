@@ -21,7 +21,16 @@ type Sound = Extract<Event, { type: 'sound' }>;
  * How far a weapon used (stage 5g: `fired`) is heard (m), by its kind: what fires loudly, far; what is
  * swung or thrown, near. Only the view's (its sound, its subtitle): the world's sounds are its own.
  */
-const FIRED_HEARD: Readonly<Record<string, number>> = { dart: 30, bolt: 20, shotgun: 45, launcher: 40, repeater: 30, orb: 25 };
+const FIRED_HEARD: Readonly<Record<string, number>> = {
+  dart: 30,
+  bolt: 20,
+  shotgun: 45,
+  launcher: 40,
+  repeater: 30,
+  orb: 25,
+  longshot: 50,
+  flamer: 12,
+};
 export const firedHeard = (kind: string) => FIRED_HEARD[kind] ?? 8;
 
 /**
@@ -41,6 +50,8 @@ const ECHO: Readonly<Record<string, number>> = {
   huh: 0.3,
   calm: 0.3,
   pebble: 0.35,
+  reload: 0.1,
+  horn: 0.7,
   ready: 0.2,
   fired: 0.55,
   whiz: 0.1,
@@ -209,6 +220,12 @@ export function mountAudio(page: GamePage): Piece {
         break;
       case 'pebble':
         synth.pebble(k, p.out, p.when);
+        break;
+      case 'reload':
+        synth.reload(k, p.out, p.when, s.energy > 0);
+        break;
+      case 'horn':
+        synth.horn(k, p.out, p.when);
         break;
     }
     counted(`${s.sound} ${s.surface ?? ''}`.trim());

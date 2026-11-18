@@ -61,8 +61,8 @@ export const WALL_ZONES: ZoneKinds = {
 
 /** The keys' colors, by a key zone's `color`: the signal each turns on is `key_<color>`. */
 export const KEY_COLORS = ['red', 'blue', 'yellow'] as const;
-/** The ammunition by an `ammo` zone's `kind`. */
-const AMMO_KINDS: readonly AmmoKind[] = ['darts', 'shells', 'bolts', 'rockets', 'grenades'];
+/** The ammunition by an `ammo` zone's `kind`: (stage 5o) 6, the flame lance's oil. */
+const AMMO_KINDS: readonly AmmoKind[] = ['darts', 'shells', 'bolts', 'rockets', 'grenades', 'oil'];
 
 /**
  * How the defender is doing on a level: which level of the night it is (its place: the attackers' pace
@@ -95,7 +95,8 @@ const WAVE = 'wall.wave';
  * ITS NUMBERS: how long the defender is down before it is back at its checkpoint (s); its health; how much
  * armor it can have, and how much of a hit the armor takes; how long a fallen attacker stays before it is
  * carried off (s: down, its body still stands in the way); the attackers' eyes (they come looking for the
- * wall's defender: farther and wider than a guard on its round, 12 m and 100°).
+ * wall's defender: farther and wider than a guard on its round, 12 m and 100°); (stage 5o) how far the horn
+ * of a group called in is heard (m: across a level).
  */
 export const WALL = Object.freeze({
   back: 3,
@@ -103,6 +104,7 @@ export const WALL = Object.freeze({
   armor: { most: 100, takes: 0.5 },
   gone: 2,
   sight: { range: 30, degrees: 120 },
+  horn: 80,
 });
 
 /**
@@ -190,7 +192,10 @@ function defender(world: World, player: number, at: Vec3, facing: Vec3, place: n
       [WEAPON]: { kind: 'dart', ready: 0, strike: 0, struck: [] } satisfies Weapon,
       [ARSENAL]: {
         owned: ['stick', 'dart'],
-        ammo: { darts: 40, shells: 0, bolts: 0, rockets: 0, grenades: 0 },
+        // (Stage 5o) The dart's magazine full, and 28 more carried.
+        ammo: { darts: 28, shells: 0, bolts: 0, rockets: 0, grenades: 0, oil: 0 },
+        loaded: { dart: 12 },
+        reloading: -1,
       } satisfies Arsenal,
     },
   });
@@ -353,6 +358,18 @@ export function createWall(levels: Readonly<Record<string, Level>>): Cartridge {
             if (!(h.called & (1 << wave))) {
               h.called |= 1 << wave;
               callIn(world, wave, h.place);
+              // (Stage 5o) The alarm: a horn where the defender is, heard across the level; those called hear
+              // it and come to look (the attackers are guards: they go only to what they see or hear).
+              world.emit({
+                type: 'sound',
+                sound: 'horn',
+                source: me.id,
+                at: [...me.transform!.position],
+                surface: null,
+                speed: 0,
+                energy: 0,
+                radius: WALL.horn,
+              });
             }
             world.removeEntity(zone.id);
           } else if (kind === 'goal' && h.finish < 0) {

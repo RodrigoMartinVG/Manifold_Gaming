@@ -1,5 +1,5 @@
 import characters from '@manifold/character/assets';
-import { AMMO_OF, armsTool, arsenal, ATTACK, SLOTS, weapon } from '@manifold/arms';
+import { AMMO_OF, armsTool, arsenal, ATTACK, MAGAZINES, RELOAD, SLOTS, weapon } from '@manifold/arms';
 import { STEP, levelFromText, type Cartridge, type Level } from '@manifold/core';
 import { KIT } from '@manifold/kit';
 import kit from '@manifold/kit/assets';
@@ -52,6 +52,9 @@ export const WALL_WORDS = {
     'wall.weapon.bolt': 'ballesta',
     'wall.weapon.launcher': 'lanzador',
     'wall.weapon.grenade': 'granada',
+    'wall.weapon.longshot': 'fusil',
+    'wall.reloading': 'recargando…',
+    'wall.weapon.flamer': 'lanzallamas',
     'wall.down': 'Caíste: de vuelta en tres segundos',
     'wall.out': '¡Tramo recuperado!',
     'wall.key': { by: 0, '=0': 'La llave roja', '=1': 'La llave azul', other: 'La llave amarilla' },
@@ -88,6 +91,9 @@ export const WALL_WORDS = {
     'wall.weapon.bolt': 'crossbow',
     'wall.weapon.launcher': 'launcher',
     'wall.weapon.grenade': 'grenade',
+    'wall.weapon.longshot': 'longshot',
+    'wall.reloading': 'reloading…',
+    'wall.weapon.flamer': 'flamethrower',
     'wall.down': 'down: back in three seconds',
     'wall.out': 'section taken back!',
     'wall.key': { by: 0, '=0': 'the red key', '=1': 'the blue key', other: 'the yellow key' },
@@ -107,7 +113,8 @@ const KEY_MARKS = ['🟥', '🟦', '🟨'];
 
 /**
  * What its HUD shows: the time, the defender's health and armor, the weapon in its hands and its
- * ammunition (stage 5n: an arsenal), the keys it has.
+ * ammunition (stage 5n: an arsenal; 5o: with a magazine, what is in it / what is carried besides, and
+ * "recargando" while it reloads), the keys it has.
  */
 export const wallHud: Hud = ({ world, hero, say, language }) => {
   const h = hero && hold(hero);
@@ -122,7 +129,20 @@ export const wallHud: Hud = ({ world, hero, say, language }) => {
     { label: say('wall.hud.health'), value: String(Math.ceil(hero.health?.points ?? 0)) },
     ...(h.armor > 0 ? [{ label: say('wall.hud.armor'), value: String(h.armor) }] : []),
     ...(w && w.kind !== 'none'
-      ? [{ label: say('wall.hud.weapon'), value: `${say(`wall.weapon.${w.kind}`)}${ammo && a ? ` ${a.ammo[ammo]}` : ''}` }]
+      ? [
+          {
+            label: say('wall.hud.weapon'),
+            value: `${say(`wall.weapon.${w.kind}`)}${
+              !ammo || !a
+                ? ''
+                : a.reloading >= 0
+                  ? ` ${say('wall.reloading')}`
+                  : MAGAZINES[w.kind]
+                    ? ` ${a.loaded[w.kind] ?? 0}/${a.ammo[ammo]}`
+                    : ` ${a.ammo[ammo]}`
+            }`,
+          },
+        ]
       : []),
     ...(keys ? [{ label: say('wall.hud.keys'), value: keys }] : []),
   ];
@@ -176,10 +196,10 @@ export const WALL: Game = {
   // night's last hours to the dawn, the pace rising with them (rules.ts: paceOf). Each with its gold time
   // (s): about 1.3 times its test's run (levels.test.ts).
   levels: [
-    { id: 'walk', recipe: 'wall.level level-1\nview.camera first', name: 'wall.level.1', gold: 53 },
-    { id: 'gatehouse', recipe: 'wall.level level-2\nview.camera first', name: 'wall.level.2', gold: 61 },
-    { id: 'towers', recipe: 'wall.level level-3\nview.camera first', name: 'wall.level.3', gold: 60 },
-    { id: 'gate', recipe: 'wall.level level-4\nview.camera first', name: 'wall.level.4', gold: 67 },
+    { id: 'walk', recipe: 'wall.level level-1\nview.camera first', name: 'wall.level.1', gold: 82 },
+    { id: 'gatehouse', recipe: 'wall.level level-2\nview.camera first', name: 'wall.level.2', gold: 106 },
+    { id: 'towers', recipe: 'wall.level level-3\nview.camera first', name: 'wall.level.3', gold: 148 },
+    { id: 'gate', recipe: 'wall.level level-4\nview.camera first', name: 'wall.level.4', gold: 129 },
   ],
   done: (_, hero) => {
     const h = hero && hold(hero);
@@ -204,9 +224,11 @@ export const WALL: Game = {
   music: WALL_THEME,
   hud: wallHud,
   tools: armsTool,
-  // Its buttons: the shot, X or a click; (stage 5n) each weapon of the arsenal by its number, 1 to 7.
+  // Its buttons: the shot, X or a click; (stage 5n) each weapon of the arsenal by its number, 1 to 9;
+  // (5o) a reload, R or the pad's X.
   buttons: [
     { action: ATTACK, keys: ['KeyX', 'Mouse0'], pad: 5 },
     ...SLOTS.map((_, k) => ({ action: `arms.slot${k + 1}`, keys: [`Digit${k + 1}`] })),
+    { action: RELOAD, keys: ['KeyR'], pad: 2 },
   ],
 };

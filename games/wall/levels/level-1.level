@@ -1,9 +1,12 @@
 # Manifold level 10
-# The wall walk (stage 5n, decision 0031): the wall's first section, at half past four. From the stair's
-# foot into a courtyard of crates, three sentries at its far end; west, a corridor to a tower room, the red
-# key in it and two more; a shotgun in a niche on the way. The guardhouse's red door, north: past it, the
-# hall to the next section, and those who wait in it. East, a storeroom. In the start's west wall, a
-# button hides a door (a shade lighter than the wall): armor. Drawn as a plan (plans/level-1.plan).
+# The wall walk (stage 5n; rebuilt in 5o, decision 0031: levels of floors above floors). From the stair's
+# foot into a yard with a balcony 3 m up along each side, a stair to each and a bridge between them:
+# sentries below and above. North-west, the guardhouse, two floors: the barracks below (a lift up), the
+# armory above (the shotgun), reached from the west balcony; from it a bridge over the inner court into
+# the round tower, onto a dais 3 m up where the red key is, a stair from the tower's south door rising
+# through it. The red door is the tower's north: past it, the hall and those who wait in it. In the
+# start's west wall, a button hides a door (a shade lighter than the wall): armor. Drawn as a plan
+# (plans/level-1.plan, made by a script: stairs, lifts, bridges and the round wall are its own lines).
 title The wall walk
 spawn 0 1 1
 facing 0 0 -1
@@ -11,347 +14,506 @@ ambient 0.22
 sky 4.5
 
 # Made from plans/level-1.plan (levelFromPlan, @manifold/kit): the floor, the walls, crates and pillars.
-kit floor_4  -18 0 -34
-kit floor_4  -14 0 -34
-kit floor_4  -10 0 -34
-kit floor_4  -6 0 -34
-kit floor_4  -2 0 -34
-kit floor_4  2 0 -34
-kit floor_4  6 0 -34
-kit floor_4  10 0 -34
-kit floor_4  14 0 -34
-kit floor_4  18 0 -34
-kit floor_4  -18 0 -30
-kit floor_4  -14 0 -30
-kit floor_4  -10 0 -30
-kit floor_4  -6 0 -30
-kit floor_4  -2 0 -30
-kit floor_4  2 0 -30
-kit floor_4  6 0 -30
-kit floor_4  10 0 -30
-kit floor_4  14 0 -30
-kit floor_4  18 0 -30
-kit floor_4  -18 0 -26
-kit floor_4  -14 0 -26
-kit floor_4  -10 0 -26
-kit floor_4  -6 0 -26
-kit floor_4  -2 0 -26
-kit floor_4  2 0 -26
-kit floor_4  6 0 -26
-kit floor_4  10 0 -26
-kit floor_4  14 0 -26
-kit floor_4  18 0 -26
-kit floor_4  -18 0 -22
-kit floor_4  -14 0 -22
-kit floor_4  -10 0 -22
-kit floor_4  -6 0 -22
-kit floor_4  -2 0 -22
-kit floor_4  2 0 -22
-kit floor_4  6 0 -22
-kit floor_4  10 0 -22
-kit floor_4  14 0 -22
-kit floor_4  18 0 -22
-kit floor_4  -18 0 -18
-kit floor_4  -14 0 -18
-kit floor_4  -10 0 -18
-kit floor_4  -6 0 -18
-kit floor_4  -2 0 -18
-kit floor_4  2 0 -18
-kit floor_4  6 0 -18
-kit floor_4  10 0 -18
-kit floor_4  14 0 -18
-kit floor_4  18 0 -18
-kit floor_4  -18 0 -14
-kit floor_4  -14 0 -14
-kit floor_4  -10 0 -14
-kit floor_4  -6 0 -14
-kit floor_4  -2 0 -14
-kit floor_4  2 0 -14
-kit floor_4  6 0 -14
-kit floor_4  10 0 -14
-kit floor_4  14 0 -14
-kit floor_4  18 0 -14
-kit floor_4  -18 0 -10
-kit floor_4  -14 0 -10
-kit floor_4  -10 0 -10
-kit floor_4  -6 0 -10
-kit floor_4  -2 0 -10
-kit floor_4  2 0 -10
-kit floor_4  6 0 -10
-kit floor_4  10 0 -10
-kit floor_4  14 0 -10
-kit floor_4  18 0 -10
-kit floor_4  -18 0 -6
-kit floor_4  -14 0 -6
-kit floor_4  -10 0 -6
-kit floor_4  -6 0 -6
-kit floor_4  -2 0 -6
-kit floor_4  2 0 -6
-kit floor_4  6 0 -6
-kit floor_4  10 0 -6
-kit floor_4  14 0 -6
-kit floor_4  18 0 -6
-kit floor_4  -18 0 -2
-kit floor_4  -14 0 -2
-kit floor_4  -10 0 -2
-kit floor_4  -6 0 -2
-kit floor_4  -2 0 -2
-kit floor_4  2 0 -2
-kit floor_4  6 0 -2
-kit floor_4  10 0 -2
-kit floor_4  14 0 -2
-kit floor_4  18 0 -2
-kit floor_4  -18 0 2
-kit floor_4  -14 0 2
-kit floor_4  -10 0 2
-kit floor_4  -6 0 2
-kit floor_4  -2 0 2
-kit floor_4  2 0 2
-kit floor_4  6 0 2
-kit floor_4  10 0 2
-kit floor_4  14 0 2
-kit floor_4  18 0 2
-kit wall_4  -18 0 -35.5
-kit wall_4  -18 3 -35.5
-kit wall_4  -14 0 -35.5
-kit wall_4  -14 3 -35.5
-kit wall_4  -10 0 -35.5
-kit wall_4  -10 3 -35.5
-kit wall_4  -6 0 -35.5
-kit wall_4  -6 3 -35.5
-kit wall_4  -2 0 -35.5
-kit wall_4  -2 3 -35.5
-kit wall_4  2 0 -35.5
-kit wall_4  2 3 -35.5
-kit wall_4  6 0 -35.5
-kit wall_4  6 3 -35.5
-kit wall_4  10 0 -35.5
-kit wall_4  10 3 -35.5
-kit wall_4  14 0 -35.5
-kit wall_4  14 3 -35.5
-kit wall_4  18 0 -35.5
-kit wall_4  18 3 -35.5
-kit wall_4  -18 0 -24.5
-kit wall_4  -18 3 -24.5
-kit wall_2  -15 0 -24.5
-kit wall_2  -15 3 -24.5
-kit wall_2  -11 0 -24.5
-kit wall_2  -11 3 -24.5
-kit wall_4  -12 0 -21.5
-kit wall_4  -12 3 -21.5
-kit wall_4  -8 0 -21.5
-kit wall_4  -8 3 -21.5
-kit wall_4  -4 0 -21.5
-kit wall_4  -4 3 -21.5
-kit wall_1  -1.5 0 -21.5
-kit wall_1  -1.5 3 -21.5
-kit wall_4  3 0 -21.5
-kit wall_4  3 3 -21.5
-kit wall_4  7 0 -21.5
-kit wall_4  7 3 -21.5
-kit wall_4  11 0 -21.5
-kit wall_4  11 3 -21.5
-kit wall_4  15 0 -21.5
-kit wall_4  15 3 -21.5
-kit wall_2  18 0 -21.5
-kit wall_2  18 3 -21.5
-kit wall_1  19.5 0 -21.5
-kit wall_1  19.5 3 -21.5
-kit wall_4  15 0 -19.5
-kit wall_4  15 3 -19.5
-kit wall_2  18 0 -19.5
-kit wall_2  18 3 -19.5
-kit wall_1  19.5 0 -19.5
-kit wall_1  19.5 3 -19.5
-kit wall_4  15 0 -6.5
-kit wall_4  15 3 -6.5
-kit wall_2  18 0 -6.5
-kit wall_2  18 3 -6.5
-kit wall_1  19.5 0 -6.5
-kit wall_1  19.5 3 -6.5
-kit wall_4  -18 0 -2.5
-kit wall_4  -18 3 -2.5
-kit wall_4  -14 0 -2.5
-kit wall_4  -14 3 -2.5
-kit wall_4  -10 0 -2.5
-kit wall_4  -10 3 -2.5
-kit wall_4  -6 0 -2.5
-kit wall_4  -6 3 -2.5
-kit wall_2  -3 0 -2.5
-kit wall_2  -3 3 -2.5
-kit wall_4  4 0 -2.5
-kit wall_4  4 3 -2.5
-kit wall_4  8 0 -2.5
-kit wall_4  8 3 -2.5
-kit wall_4  12 0 -2.5
-kit wall_4  12 3 -2.5
-kit wall_4  16 0 -2.5
-kit wall_4  16 3 -2.5
-kit wall_2  19 0 -2.5
-kit wall_2  19 3 -2.5
-kit wall_4  -18 0 -1.5
-kit wall_4  -18 3 -1.5
-kit wall_4  -14 0 -1.5
-kit wall_4  -14 3 -1.5
-kit wall_4  -10 0 -1.5
-kit wall_4  -10 3 -1.5
-kit wall_1  -7.5 0 -1.5
-kit wall_1  -7.5 3 -1.5
-kit wall_4  -18 0 2.5
-kit wall_4  -18 3 2.5
-kit wall_4  -14 0 2.5
-kit wall_4  -14 3 2.5
-kit wall_4  -10 0 2.5
-kit wall_4  -10 3 2.5
-kit wall_1  -7.5 0 2.5
-kit wall_1  -7.5 3 2.5
-kit wall_4  -18 0 3.5
-kit wall_4  -18 3 3.5
-kit wall_4  -14 0 3.5
-kit wall_4  -14 3 3.5
-kit wall_4  -10 0 3.5
-kit wall_4  -10 3 3.5
-kit wall_4  -6 0 3.5
-kit wall_4  -6 3 3.5
-kit wall_4  -2 0 3.5
-kit wall_4  -2 3 3.5
-kit wall_4  2 0 3.5
-kit wall_4  2 3 3.5
-kit wall_4  6 0 3.5
-kit wall_4  6 3 3.5
-kit wall_4  10 0 3.5
-kit wall_4  10 3 3.5
-kit wall_4  14 0 3.5
-kit wall_4  14 3 3.5
-kit wall_4  18 0 3.5
-kit wall_4  18 3 3.5
-kit wall_4  -19.5 0 -34  rotate y 90
-kit wall_4  -19.5 3 -34  rotate y 90
-kit wall_4  -19.5 0 -30  rotate y 90
-kit wall_4  -19.5 3 -30  rotate y 90
-kit wall_4  -19.5 0 -26  rotate y 90
-kit wall_4  -19.5 3 -26  rotate y 90
-kit wall_4  -19.5 0 -22  rotate y 90
-kit wall_4  -19.5 3 -22  rotate y 90
-kit wall_4  -19.5 0 -18  rotate y 90
-kit wall_4  -19.5 3 -18  rotate y 90
-kit wall_4  -19.5 0 -14  rotate y 90
-kit wall_4  -19.5 3 -14  rotate y 90
-kit wall_4  -19.5 0 -10  rotate y 90
-kit wall_4  -19.5 3 -10  rotate y 90
-kit wall_4  -19.5 0 -6  rotate y 90
-kit wall_4  -19.5 3 -6  rotate y 90
-kit wall_4  -19.5 0 -2  rotate y 90
-kit wall_4  -19.5 3 -2  rotate y 90
-kit wall_4  -19.5 0 2  rotate y 90
-kit wall_4  -19.5 3 2  rotate y 90
-kit wall_2  -18.5 0 -2  rotate y 90
-kit wall_2  -18.5 3 -2  rotate y 90
-kit wall_2  -18.5 0 3  rotate y 90
-kit wall_2  -18.5 3 3  rotate y 90
-kit wall_2  -17.5 0 -2  rotate y 90
-kit wall_2  -17.5 3 -2  rotate y 90
-kit wall_2  -17.5 0 3  rotate y 90
-kit wall_2  -17.5 3 3  rotate y 90
-kit wall_2  -16.5 0 -2  rotate y 90
-kit wall_2  -16.5 3 -2  rotate y 90
-kit wall_2  -16.5 0 3  rotate y 90
-kit wall_2  -16.5 3 3  rotate y 90
-kit wall_2  -15.5 0 -2  rotate y 90
-kit wall_2  -15.5 3 -2  rotate y 90
-kit wall_2  -15.5 0 3  rotate y 90
-kit wall_2  -15.5 3 3  rotate y 90
-kit wall_2  -14.5 0 -2  rotate y 90
-kit wall_2  -14.5 3 -2  rotate y 90
-kit wall_2  -14.5 0 3  rotate y 90
-kit wall_2  -14.5 3 3  rotate y 90
-kit wall_4  -13.5 0 -20  rotate y 90
-kit wall_4  -13.5 3 -20  rotate y 90
-kit wall_4  -13.5 0 -16  rotate y 90
-kit wall_4  -13.5 3 -16  rotate y 90
-kit wall_4  -13.5 0 -12  rotate y 90
-kit wall_4  -13.5 3 -12  rotate y 90
-kit wall_4  -13.5 0 -6  rotate y 90
-kit wall_4  -13.5 3 -6  rotate y 90
-kit wall_2  -13.5 0 -3  rotate y 90
-kit wall_2  -13.5 3 -3  rotate y 90
-kit wall_1  -13.5 0 -1.5  rotate y 90
-kit wall_1  -13.5 3 -1.5  rotate y 90
-kit wall_2  -13.5 0 3  rotate y 90
-kit wall_2  -13.5 3 3  rotate y 90
-kit wall_2  -12.5 0 -2  rotate y 90
-kit wall_2  -12.5 3 -2  rotate y 90
-kit wall_2  -12.5 0 3  rotate y 90
-kit wall_2  -12.5 3 3  rotate y 90
-kit wall_2  -11.5 0 -2  rotate y 90
-kit wall_2  -11.5 3 -2  rotate y 90
-kit wall_2  -11.5 0 3  rotate y 90
-kit wall_2  -11.5 3 3  rotate y 90
-kit wall_4  -10.5 0 -34  rotate y 90
-kit wall_4  -10.5 3 -34  rotate y 90
-kit wall_4  -10.5 0 -30  rotate y 90
-kit wall_4  -10.5 3 -30  rotate y 90
-kit wall_4  -10.5 0 -26  rotate y 90
-kit wall_4  -10.5 3 -26  rotate y 90
-kit wall_2  -10.5 0 -23  rotate y 90
-kit wall_2  -10.5 3 -23  rotate y 90
-kit wall_1  -10.5 0 -21.5  rotate y 90
-kit wall_1  -10.5 3 -21.5  rotate y 90
-kit wall_2  -10.5 0 -2  rotate y 90
-kit wall_2  -10.5 3 -2  rotate y 90
-kit wall_2  -10.5 0 3  rotate y 90
-kit wall_2  -10.5 3 3  rotate y 90
-kit wall_2  -9.5 0 -2  rotate y 90
-kit wall_2  -9.5 3 -2  rotate y 90
-kit wall_2  -9.5 0 3  rotate y 90
-kit wall_2  -9.5 3 3  rotate y 90
-kit wall_2  -8.5 0 -2  rotate y 90
-kit wall_2  -8.5 3 -2  rotate y 90
-kit wall_2  -8.5 0 3  rotate y 90
-kit wall_2  -8.5 3 3  rotate y 90
-kit wall_2  -7.5 0 -2  rotate y 90
-kit wall_2  -7.5 3 -2  rotate y 90
-kit wall_1  -7.5 0 -0.5  rotate y 90
-kit wall_1  -7.5 3 -0.5  rotate y 90
-kit wall_2  -7.5 0 3  rotate y 90
-kit wall_2  -7.5 3 3  rotate y 90
-kit wall_4  13.5 0 -18  rotate y 90
-kit wall_4  13.5 3 -18  rotate y 90
-kit wall_2  13.5 0 -15  rotate y 90
-kit wall_2  13.5 3 -15  rotate y 90
-kit wall_4  13.5 0 -10  rotate y 90
-kit wall_4  13.5 3 -10  rotate y 90
-kit wall_2  13.5 0 -7  rotate y 90
-kit wall_2  13.5 3 -7  rotate y 90
-kit wall_4  19.5 0 -34  rotate y 90
-kit wall_4  19.5 3 -34  rotate y 90
-kit wall_4  19.5 0 -30  rotate y 90
-kit wall_4  19.5 3 -30  rotate y 90
-kit wall_4  19.5 0 -26  rotate y 90
-kit wall_4  19.5 3 -26  rotate y 90
-kit wall_4  19.5 0 -22  rotate y 90
-kit wall_4  19.5 3 -22  rotate y 90
-kit wall_4  19.5 0 -18  rotate y 90
-kit wall_4  19.5 3 -18  rotate y 90
-kit wall_4  19.5 0 -14  rotate y 90
-kit wall_4  19.5 3 -14  rotate y 90
-kit wall_4  19.5 0 -10  rotate y 90
-kit wall_4  19.5 3 -10  rotate y 90
-kit wall_4  19.5 0 -6  rotate y 90
-kit wall_4  19.5 3 -6  rotate y 90
-kit wall_4  19.5 0 -2  rotate y 90
-kit wall_4  19.5 3 -2  rotate y 90
-kit wall_4  19.5 0 2  rotate y 90
-kit wall_4  19.5 3 2  rotate y 90
-kit block_1  -8.5 0 -14.5
-kit block_1  8.5 0 -14.5
-kit block_1  -1.5 0 -12.5
-kit block_1  -0.5 0 -12.5
-kit block_1  0.5 0 -12.5
-kit block_1  -5.5 0 -7.5
-kit block_1  -4.5 0 -7.5
-kit block_1  5.5 0 -7.5
-kit block_1  6.5 0 -7.5
+kit floor_4  8 0 -44
+kit floor_4  12 0 -44
+kit floor_4  16 0 -44
+kit floor_4  8 0 -40
+kit floor_4  12 0 -40
+kit floor_4  16 0 -40
+kit floor_4  -16 0 -36
+kit floor_4  -12 0 -36
+kit floor_4  -8 0 -36
+kit floor_4  -4 0 -36
+kit floor_4  0 0 -36
+kit floor_4  4 0 -36
+kit floor_4  8 0 -36
+kit floor_4  12 0 -36
+kit floor_4  16 0 -36
+kit floor_4  20 0 -36
+kit floor_4  -16 0 -32
+kit floor_4  -12 0 -32
+kit floor_4  -8 0 -32
+kit floor_4  -4 0 -32
+kit floor_4  0 0 -32
+kit floor_4  4 0 -32
+kit floor_4  8 0 -32
+kit floor_4  12 0 -32
+kit floor_4  16 0 -32
+kit floor_4  20 0 -32
+kit floor_4  -16 0 -28
+kit floor_4  -12 0 -28
+kit floor_4  -8 0 -28
+kit floor_4  -4 0 -28
+kit floor_4  0 0 -28
+kit floor_4  4 0 -28
+kit floor_4  8 0 -28
+kit floor_4  12 0 -28
+kit floor_4  16 0 -28
+kit floor_4  20 0 -28
+kit floor_4  -16 0 -24
+kit floor_4  -12 0 -24
+kit floor_4  -8 0 -24
+kit floor_4  -4 0 -24
+kit floor_4  0 0 -24
+kit floor_4  4 0 -24
+kit floor_4  8 0 -24
+kit floor_4  12 0 -24
+kit floor_4  16 0 -24
+kit floor_4  20 0 -24
+kit floor_4  -16 0 -20
+kit floor_4  -12 0 -20
+kit floor_4  -8 0 -20
+kit floor_4  -4 0 -20
+kit floor_4  0 0 -20
+kit floor_4  4 0 -20
+kit floor_4  8 0 -20
+kit floor_4  12 0 -20
+kit floor_4  16 0 -20
+kit floor_4  -16 0 -16
+kit floor_4  -12 0 -16
+kit floor_4  -8 0 -16
+kit floor_4  -4 0 -16
+kit floor_4  0 0 -16
+kit floor_4  4 0 -16
+kit floor_4  8 0 -16
+kit floor_4  12 0 -16
+kit floor_4  16 0 -16
+kit floor_4  -16 0 -12
+kit floor_4  -12 0 -12
+kit floor_4  -8 0 -12
+kit floor_4  -4 0 -12
+kit floor_4  0 0 -12
+kit floor_4  4 0 -12
+kit floor_4  8 0 -12
+kit floor_4  12 0 -12
+kit floor_4  16 0 -12
+kit floor_4  -16 0 -8
+kit floor_4  -12 0 -8
+kit floor_4  -8 0 -8
+kit floor_4  -4 0 -8
+kit floor_4  0 0 -8
+kit floor_4  4 0 -8
+kit floor_4  8 0 -8
+kit floor_4  12 0 -8
+kit floor_4  16 0 -8
+kit floor_4  -16 0 -4
+kit floor_4  -12 0 -4
+kit floor_4  -8 0 -4
+kit floor_4  -4 0 -4
+kit floor_4  0 0 -4
+kit floor_4  4 0 -4
+kit floor_4  8 0 -4
+kit floor_4  12 0 -4
+kit floor_4  16 0 -4
+kit floor_4  -12 0 0
+kit floor_4  -8 0 0
+kit floor_4  -4 0 0
+kit floor_4  0 0 0
+kit floor_4  4 0 0
+kit floor_4  8 0 0
+kit floor_4  -12 0 4
+kit floor_4  -8 0 4
+kit floor_4  -4 0 4
+kit floor_4  0 0 4
+kit floor_4  4 0 4
+kit floor_4  8 0 4
+kit wall_4  9 0 -45.5
+kit wall_4  9 3 -45.5
+kit wall_4  13 0 -45.5
+kit wall_4  13 3 -45.5
+kit wall_2  16 0 -45.5
+kit wall_2  16 3 -45.5
+kit wall_1  17.5 0 -45.5
+kit wall_1  17.5 3 -45.5
+kit wall_2  18 0 -36.5
+kit wall_2  18 3 -36.5
+kit wall_4  9 0 -35.5
+kit wall_4  9 3 -35.5
+kit wall_4  15 0 -35.5
+kit wall_4  15 3 -35.5
+kit wall_2  18 0 -35.5
+kit wall_2  18 3 -35.5
+kit wall_4  -2 0 -34.5
+kit wall_4  -2 3 -34.5
+kit wall_4  2 0 -34.5
+kit wall_4  2 3 -34.5
+kit wall_2  5 0 -34.5
+kit wall_2  5 3 -34.5
+kit wall_1  6.5 0 -34.5
+kit wall_1  6.5 3 -34.5
+kit wall_2  -2 0 -22.5
+kit wall_2  -2 3 -22.5
+kit wall_1  -0.5 0 -22.5
+kit wall_1  -0.5 3 -22.5
+kit wall_4  4 0 -22.5
+kit wall_4  4 3 -22.5
+kit wall_4  8 0 -22.5
+kit wall_4  8 3 -22.5
+kit wall_1  10.5 0 -22.5
+kit wall_1  10.5 3 -22.5
+kit wall_4  15 0 -22.5
+kit wall_4  15 3 -22.5
+kit wall_2  18 0 -22.5
+kit wall_2  18 3 -22.5
+kit wall_4  -13 0 -4.5
+kit wall_4  -13 3 -4.5
+kit wall_4  -9 0 -4.5
+kit wall_4  -9 3 -4.5
+kit wall_4  -5 0 -4.5
+kit wall_4  -5 3 -4.5
+kit wall_2  -2 0 -4.5
+kit wall_2  -2 3 -4.5
+kit wall_4  3 0 -4.5
+kit wall_4  3 3 -4.5
+kit wall_4  7 0 -4.5
+kit wall_4  7 3 -4.5
+kit wall_4  11 0 -4.5
+kit wall_4  11 3 -4.5
+kit wall_2  14 0 -4.5
+kit wall_2  14 3 -4.5
+kit wall_4  -12 0 -3.5
+kit wall_4  -12 3 -3.5
+kit wall_4  -8 0 -3.5
+kit wall_4  -8 3 -3.5
+kit wall_4  -12 0 2.5
+kit wall_4  -12 3 2.5
+kit wall_4  -8 0 2.5
+kit wall_4  -8 3 2.5
+kit wall_4  -5 0 3.5
+kit wall_4  -5 3 3.5
+kit wall_4  -1 0 3.5
+kit wall_4  -1 3 3.5
+kit wall_4  3 0 3.5
+kit wall_4  3 3 3.5
+kit wall_2  6 0 3.5
+kit wall_2  6 3 3.5
+kit wall_4  -14.5 0 -20  rotate y 90
+kit wall_4  -14.5 3 -20  rotate y 90
+kit wall_4  -14.5 0 -16  rotate y 90
+kit wall_4  -14.5 3 -16  rotate y 90
+kit wall_4  -14.5 0 -12  rotate y 90
+kit wall_4  -14.5 3 -12  rotate y 90
+kit wall_4  -14.5 0 -8  rotate y 90
+kit wall_4  -14.5 3 -8  rotate y 90
+kit wall_2  -14.5 0 -5  rotate y 90
+kit wall_2  -14.5 3 -5  rotate y 90
+kit wall_4  -13.5 0 -3  rotate y 90
+kit wall_4  -13.5 3 -3  rotate y 90
+kit wall_4  -13.5 0 1  rotate y 90
+kit wall_4  -13.5 3 1  rotate y 90
+kit wall_2  -12.5 0 -4  rotate y 90
+kit wall_2  -12.5 3 -4  rotate y 90
+kit wall_2  -11.5 0 -4  rotate y 90
+kit wall_2  -11.5 3 -4  rotate y 90
+kit wall_2  -10.5 0 -4  rotate y 90
+kit wall_2  -10.5 3 -4  rotate y 90
+kit wall_2  -9.5 0 -4  rotate y 90
+kit wall_2  -9.5 3 -4  rotate y 90
+kit wall_2  -8.5 0 -4  rotate y 90
+kit wall_2  -8.5 3 -4  rotate y 90
+kit wall_2  -7.5 0 -4  rotate y 90
+kit wall_2  -7.5 3 -4  rotate y 90
+kit wall_4  -6.5 0 -3  rotate y 90
+kit wall_4  -6.5 3 -3  rotate y 90
+kit wall_1  -6.5 0 -0.5  rotate y 90
+kit wall_1  -6.5 3 -0.5  rotate y 90
+kit wall_2  -6.5 0 3  rotate y 90
+kit wall_2  -6.5 3 3  rotate y 90
+kit wall_2  6.5 0 -34  rotate y 90
+kit wall_2  6.5 3 -34  rotate y 90
+kit wall_1  6.5 0 -32.5  rotate y 90
+kit wall_1  6.5 3 -32.5  rotate y 90
+kit wall_4  6.5 0 -26  rotate y 90
+kit wall_4  6.5 3 -26  rotate y 90
+kit wall_2  6.5 0 -23  rotate y 90
+kit wall_2  6.5 3 -23  rotate y 90
+kit wall_4  6.5 0 -3  rotate y 90
+kit wall_4  6.5 3 -3  rotate y 90
+kit wall_4  6.5 0 1  rotate y 90
+kit wall_4  6.5 3 1  rotate y 90
+kit wall_1  6.5 0 3.5  rotate y 90
+kit wall_1  6.5 3 3.5  rotate y 90
+kit wall_4  7.5 0 -44  rotate y 90
+kit wall_4  7.5 3 -44  rotate y 90
+kit wall_4  7.5 0 -40  rotate y 90
+kit wall_4  7.5 3 -40  rotate y 90
+kit wall_2  7.5 0 -37  rotate y 90
+kit wall_2  7.5 3 -37  rotate y 90
+kit wall_1  7.5 0 -35.5  rotate y 90
+kit wall_1  7.5 3 -35.5  rotate y 90
+kit wall_4  14.5 0 -21  rotate y 90
+kit wall_4  14.5 3 -21  rotate y 90
+kit wall_4  14.5 0 -17  rotate y 90
+kit wall_4  14.5 3 -17  rotate y 90
+kit wall_4  14.5 0 -13  rotate y 90
+kit wall_4  14.5 3 -13  rotate y 90
+kit wall_4  14.5 0 -9  rotate y 90
+kit wall_4  14.5 3 -9  rotate y 90
+kit wall_2  14.5 0 -6  rotate y 90
+kit wall_2  14.5 3 -6  rotate y 90
+kit wall_1  14.5 0 -4.5  rotate y 90
+kit wall_1  14.5 3 -4.5  rotate y 90
+kit wall_4  17.5 0 -44  rotate y 90
+kit wall_4  17.5 3 -44  rotate y 90
+kit wall_4  17.5 0 -40  rotate y 90
+kit wall_4  17.5 3 -40  rotate y 90
+kit wall_2  17.5 0 -37  rotate y 90
+kit wall_2  17.5 3 -37  rotate y 90
+kit wall_1  17.5 0 -35.5  rotate y 90
+kit wall_1  17.5 3 -35.5  rotate y 90
+kit wall_4  18.5 0 -35  rotate y 90
+kit wall_4  18.5 3 -35  rotate y 90
+kit wall_4  18.5 0 -31  rotate y 90
+kit wall_4  18.5 3 -31  rotate y 90
+kit wall_4  18.5 0 -27  rotate y 90
+kit wall_4  18.5 3 -27  rotate y 90
+kit wall_2  18.5 0 -24  rotate y 90
+kit wall_2  18.5 3 -24  rotate y 90
+kit wall_1  18.5 0 -22.5  rotate y 90
+kit wall_1  18.5 3 -22.5  rotate y 90
+kit wall_4  -13 0 -34.5
+kit wall_4  -9 0 -34.5
+kit wall_2  -6 0 -34.5
+kit wall_1  -4.5 0 -34.5
+kit wall_4  -13 0 -22.5
+kit wall_2  -10 0 -22.5
+kit wall_4  -5 0 -22.5
+kit wall_4  -14.5 0 -33  rotate y 90
+kit wall_4  -14.5 0 -29  rotate y 90
+kit wall_4  -14.5 0 -25  rotate y 90
+kit wall_1  -14.5 0 -22.5  rotate y 90
+kit wall_2  -3.5 0 -33  rotate y 90
+kit wall_1  -3.5 0 -31.5  rotate y 90
+kit wall_4  -3.5 0 -27  rotate y 90
+kit wall_2  -3.5 0 -24  rotate y 90
+kit wall_1  -3.5 0 -22.5  rotate y 90
+kit block_1  -0.5 0 -32.5
+kit block_1  0.5 0 -32.5
+kit block_1  4.5 0 -26.5
+kit block_1  3.5 0 -25.5
+kit block_1  4.5 0 -25.5
+kit block_1  -7.5 0 -16.5
+kit block_1  7.5 0 -16.5
+kit block_1  8.5 0 -16.5
+kit block_1  -0.5 0 -13.5
+kit block_1  0.5 0 -13.5
+kit block_1  -5.5 0 -9.5
+kit block_1  -4.5 0 -9.5
+kit block_1  5.5 0 -9.5
+kit block_1  6.5 0 -9.5
+
+# Made from plans/level-1.plan (levelFromPlan, @manifold/kit): the floor, the walls, crates and pillars, 3 m up.
+kit floor_1  -14.5 3 -34.5
+kit floor_1  -13.5 3 -34.5
+kit floor_1  -12.5 3 -34.5
+kit floor_1  -11.5 3 -34.5
+kit floor_1  -10.5 3 -34.5
+kit floor_1  -9.5 3 -34.5
+kit floor_1  -8.5 3 -34.5
+kit floor_1  -7.5 3 -34.5
+kit floor_1  -6.5 3 -34.5
+kit floor_1  -5.5 3 -34.5
+kit floor_1  -4.5 3 -34.5
+kit floor_1  -3.5 3 -34.5
+kit floor_1  -14.5 3 -33.5
+kit floor_1  -14.5 3 -32.5
+kit floor_1  -14.5 3 -31.5
+kit floor_1  -14.5 3 -30.5
+kit floor_4  -12 3 -32
+kit floor_4  -8 3 -32
+kit floor_2  -5 3 -33
+kit floor_1  -3.5 3 -33.5
+kit floor_1  -3.5 3 -32.5
+kit floor_2  -5 3 -31
+kit floor_1  -3.5 3 -31.5
+kit floor_1  9.5 3 -31.5
+kit floor_1  8.5 3 -30.5
+kit floor_1  9.5 3 -30.5
+kit floor_1  10.5 3 -32.5
+kit floor_1  11.5 3 -32.5
+kit floor_1  12.5 3 -32.5
+kit floor_1  13.5 3 -32.5
+kit floor_2  11 3 -31
+kit floor_2  13 3 -31
+kit floor_1  14.5 3 -31.5
+kit floor_1  14.5 3 -30.5
+kit floor_1  -14.5 3 -29.5
+kit floor_1  -14.5 3 -28.5
+kit floor_1  -14.5 3 -27.5
+kit floor_1  -14.5 3 -26.5
+kit floor_4  -12 3 -28
+kit floor_2  -9 3 -29
+kit floor_2  -7 3 -29
+kit floor_2  -9 3 -27
+kit floor_1  -7.5 3 -27.5
+kit floor_1  -6.5 3 -27.5
+kit floor_1  -7.5 3 -26.5
+kit floor_2  -5 3 -29
+kit floor_1  -3.5 3 -28.5
+kit floor_1  -5.5 3 -27.5
+kit floor_1  -4.5 3 -27.5
+kit floor_1  -4.5 3 -26.5
+kit floor_1  -3.5 3 -27.5
+kit floor_1  -3.5 3 -26.5
+kit floor_1  8.5 3 -29.5
+kit floor_1  9.5 3 -29.5
+kit floor_1  9.5 3 -28.5
+kit floor_1  10.5 3 -29.5
+kit floor_1  10.5 3 -28.5
+kit floor_1  13.5 3 -29.5
+kit floor_1  13.5 3 -28.5
+kit floor_1  10.5 3 -27.5
+kit floor_1  13.5 3 -27.5
+kit floor_1  14.5 3 -29.5
+kit floor_1  14.5 3 -28.5
+kit floor_1  -14.5 3 -25.5
+kit floor_1  -14.5 3 -24.5
+kit floor_1  -14.5 3 -23.5
+kit floor_1  -14.5 3 -22.5
+kit floor_4  -12 3 -24
+kit floor_2  -9 3 -25
+kit floor_1  -7.5 3 -25.5
+kit floor_1  -7.5 3 -24.5
+kit floor_1  -6.5 3 -24.5
+kit floor_2  -9 3 -23
+kit floor_2  -7 3 -23
+kit floor_1  -4.5 3 -25.5
+kit floor_1  -5.5 3 -24.5
+kit floor_1  -4.5 3 -24.5
+kit floor_1  -3.5 3 -25.5
+kit floor_1  -3.5 3 -24.5
+kit floor_2  -5 3 -23
+kit floor_1  -3.5 3 -23.5
+kit floor_1  -3.5 3 -22.5
+kit floor_1  -14.5 3 -21.5
+kit floor_1  -14.5 3 -20.5
+kit floor_1  -14.5 3 -19.5
+kit floor_1  -14.5 3 -18.5
+kit floor_2  -13 3 -21
+kit floor_1  -11.5 3 -21.5
+kit floor_1  -11.5 3 -20.5
+kit floor_2  -13 3 -19
+kit floor_1  -11.5 3 -19.5
+kit floor_1  11.5 3 -21.5
+kit floor_1  11.5 3 -20.5
+kit floor_2  13 3 -21
+kit floor_1  11.5 3 -19.5
+kit floor_2  13 3 -19
+kit floor_1  14.5 3 -21.5
+kit floor_1  14.5 3 -20.5
+kit floor_1  14.5 3 -19.5
+kit floor_1  14.5 3 -18.5
+kit floor_1  -14.5 3 -17.5
+kit floor_1  -14.5 3 -16.5
+kit floor_1  -14.5 3 -15.5
+kit floor_1  -14.5 3 -14.5
+kit floor_2  -13 3 -17
+kit floor_1  -11.5 3 -16.5
+kit floor_2  -13 3 -15
+kit floor_1  -11.5 3 -15.5
+kit floor_1  -11.5 3 -14.5
+kit floor_1  11.5 3 -16.5
+kit floor_2  13 3 -17
+kit floor_1  11.5 3 -15.5
+kit floor_1  11.5 3 -14.5
+kit floor_2  13 3 -15
+kit floor_1  14.5 3 -17.5
+kit floor_1  14.5 3 -16.5
+kit floor_1  14.5 3 -15.5
+kit floor_1  14.5 3 -14.5
+kit floor_1  -14.5 3 -13.5
+kit floor_1  -13.5 3 -13.5
+kit floor_1  -12.5 3 -13.5
+kit floor_1  -11.5 3 -13.5
+kit floor_1  11.5 3 -13.5
+kit floor_1  12.5 3 -13.5
+kit floor_1  13.5 3 -13.5
+kit floor_1  14.5 3 -13.5
+kit wall_4  -13 3 -34.5
+kit wall_4  -9 3 -34.5
+kit wall_4  -5 3 -34.5
+kit wall_4  -10 3 -22.5
+kit wall_4  -6 3 -22.5
+kit wall_1  -3.5 3 -22.5
+kit wall_4  -14.5 3 -33  rotate y 90
+kit wall_4  -14.5 3 -29  rotate y 90
+kit wall_4  -14.5 3 -25  rotate y 90
+kit wall_1  -14.5 3 -22.5  rotate y 90
+kit wall_4  -3.5 3 -33  rotate y 90
+kit wall_4  -3.5 3 -27  rotate y 90
+kit wall_2  -3.5 3 -24  rotate y 90
+kit wall_1  -3.5 3 -22.5  rotate y 90
+kit railing_2  -11.5 3 -21  rotate y 90
+kit railing_2  -11.5 3 -20  rotate y 90
+kit railing_2  -11.5 3 -16  rotate y 90
+kit railing_2  -11.5 3 -14  rotate y 90
+kit railing_2  11.5 3 -21  rotate y 90
+kit railing_2  11.5 3 -20  rotate y 90
+kit railing_2  11.5 3 -16  rotate y 90
+kit railing_2  11.5 3 -14  rotate y 90
+
+signal barracks_lift_up  zone barracks_lift_ride
+
+# The yard: a stair up to each balcony, and a bridge between them 3 m up.
+kit stairs_3  -13 0 -10
+kit stairs_3  12 0 -10
+kit bridge_4  -10 3 -18  rotate y 90
+kit bridge_4  -6 3 -18  rotate y 90
+kit bridge_4  -2 3 -18  rotate y 90
+kit bridge_4  2 3 -18  rotate y 90
+kit bridge_4  6 3 -18  rotate y 90
+kit bridge_4  10 3 -18  rotate y 90
+
+# The barracks’ lift, to the armory: stepped off above, it goes back down.
+box -6 0.15 -26  1 0.15 1  lift 0 2.7 0 2.5 barracks_lift_up  color #7a5a3a  name barracks_lift
+
+# The bridge over the inner court, from the armory to the tower’s dais, 3 m up.
+kit bridge_4  -2 3 -30  rotate y 90
+kit bridge_4  2 3 -30  rotate y 90
+kit bridge_4  6 3 -30  rotate y 90
+
+# The round tower: its wall, a door south, west (the bridge above it) and north (the red door).
+kit wall_2  18 0 -30  rotate y 90
+kit wall_2  18 3 -30  rotate y 90
+kit wall_2  17.706 0 -28.146  rotate y 72
+kit wall_2  17.706 3 -28.146  rotate y 72
+kit wall_2  16.854 0 -26.473  rotate y 54
+kit wall_2  16.854 3 -26.473  rotate y 54
+kit wall_2  15.527 0 -25.146  rotate y 36
+kit wall_2  15.527 3 -25.146  rotate y 36
+kit wall_2  13.854 0 -24.294  rotate y 18
+kit wall_2  13.854 3 -24.294  rotate y 18
+kit wall_2  12 3 -24  rotate y 0
+kit wall_2  10.146 0 -24.294  rotate y -18
+kit wall_2  10.146 3 -24.294  rotate y -18
+kit wall_2  8.473 0 -25.146  rotate y -36
+kit wall_2  8.473 3 -25.146  rotate y -36
+kit wall_2  7.146 0 -26.473  rotate y -54
+kit wall_2  7.146 3 -26.473  rotate y -54
+kit wall_2  6.294 0 -28.146  rotate y -72
+kit wall_2  6.294 3 -28.146  rotate y -72
+kit wall_2  6.294 0 -31.854  rotate y -108
+kit wall_2  6.294 3 -31.854  rotate y -108
+kit wall_2  7.146 0 -33.527  rotate y -126
+kit wall_2  7.146 3 -33.527  rotate y -126
+kit wall_2  8.473 0 -34.854  rotate y -144
+kit wall_2  8.473 3 -34.854  rotate y -144
+kit wall_2  10.146 0 -35.706  rotate y -162
+kit wall_2  10.146 3 -35.706  rotate y -162
+kit wall_2  12 3 -36  rotate y -180
+kit wall_2  13.854 0 -35.706  rotate y -198
+kit wall_2  13.854 3 -35.706  rotate y -198
+kit wall_2  15.527 0 -34.854  rotate y -216
+kit wall_2  15.527 3 -34.854  rotate y -216
+kit wall_2  16.854 0 -33.527  rotate y -234
+kit wall_2  16.854 3 -33.527  rotate y -234
+kit wall_2  17.706 0 -31.854  rotate y -252
+kit wall_2  17.706 3 -31.854  rotate y -252
+kit stairs_3  12 0 -27
+kit pillar  9.5 0 -32.5
+kit pillar  14.5 0 -32.5
+kit pillar  9.5 0 -27.5
+kit pillar  14.5 0 -27.5
 
 signal never
 signal key_red
@@ -360,30 +522,47 @@ signal red_both  all key_red at_red
 signal red_open  latch red_both never
 signal secret_pressed  used secret_button
 signal secret_open  latch secret_pressed never
-box 0 1.5 -21.5  1 1.5 0.15  door -1 0 0 y 90 1 red_open  color #b04a3a  name red_door
-box -7.5 1.5 1  0.15 1.5 1  door 0 0 -1 y 90 1 secret_open  color #6a645c  name secret_door
+box 12 1.5 -36  1 1.5 0.15  door -1 0 0 y 90 1 red_open  color #b04a3a  name red_door
+box -6.5 1.5 1  0.15 1.5 1  door 0 0 -1 y 90 1 secret_open  color #6a645c  name secret_door
 
 lamp 0 2.6 -1  5 1  name lamp_start
-lamp -6 2.6 -14  5 1  name lamp_yard_west
-lamp 7 2.6 -18  5 1  name lamp_yard_east
-lamp -15 2.6 -30  5 1  name lamp_tower
-lamp 0 2.6 -28  6 1  name lamp_hall
-lamp 16.5 2.6 -13  4 0.8  name lamp_store
+lamp -7 2.6 -12  6 1  name lamp_yard_west
+lamp 7 2.6 -12  6 1  name lamp_yard_east
+lamp 0 2.6 -20  6 1  name lamp_yard_north
+lamp -13 5.6 -18  5 0.9  name lamp_balcony_west
+lamp 13 5.6 -18  5 0.9  name lamp_balcony_east
+lamp -9 2.4 -29  6 0.9  name lamp_barracks
+lamp -9 5.4 -29  6 1  name lamp_armory
+lamp 1 2.6 -29  6 0.9  name lamp_court
+lamp 12 2.4 -30  6 0.9  name lamp_tower
+lamp 12 5.8 -31  5 1  name lamp_dais
+lamp 12 2.6 -41  6 1  name lamp_hall
+lamp -10 2.6 0  4 0.8  name lamp_alcove
 
-sensor area        0 1 -19.5     1.5 0.8 1.5  name red_front
-sensor area        -6.5 1 2.5    0.5 0.8 0.5  name secret_button
-sensor checkpoint  0 1 0         2 0.8 1.5
-sensor checkpoint  -12 1 -18     1.5 0.8 1.5
-sensor weapon      -12.5 0.5 -6  0.4 0.5 0.4  kind 5
-sensor key         -15 1 -31     0.3 0.6 0.3  color 1
-sensor health      16.5 1 -18    0.3 0.4 0.3  amount 25
-sensor ammo        16.5 1 -8     0.3 0.4 0.3  kind 2  amount 12
-sensor ammo        -17 1 -6      0.3 0.4 0.3  kind 1  amount 30
-sensor armor       -10 1 0.5     0.4 0.6 0.4  amount 50
-sensor secret      -10 1 1.5     1 0.8 1
-sensor attackers   0 1 -17       0.4 0.8 0.4  wave 0  count 3  role 1  rotate y 180
-sensor attackers   -15 1 -28     0.4 0.8 0.4  wave 0  count 2  role 1  rotate y 180
-sensor trigger     0 1 -23.5     2 0.8 1  wave 1
-sensor attackers   0 1 -33       0.4 0.8 0.4  wave 1  count 3  role 1
-sensor goal        0 1 -34.5     2 0.8 1
-sensor fall        0 -10 0       80 2 80
+sensor area  -6 2.3 -26  0.9 1.9 0.9  name barracks_lift_ride
+sensor area        12 1 -34.8     1.2 0.8 1  name red_front
+sensor area        -5.5 1 2.2     0.5 0.8 0.5  name secret_button
+sensor checkpoint  0 1 0          2 0.8 1.5
+sensor checkpoint  -13 4 -21      1 0.8 1
+sensor checkpoint  12 1 -25       1.5 0.8 1
+sensor weapon      -10 3.5 -32    0.4 0.5 0.4  kind 5
+sensor key         12 3.8 -33     0.3 0.6 0.3  color 1
+sensor health      -12 1 -33      0.3 0.4 0.3  amount 25
+sensor ammo        13 4 -21       0.3 0.4 0.3  kind 2  amount 12
+sensor ammo        -13 1 -5.5     0.3 0.4 0.3  kind 1  amount 30
+sensor ammo        -13.5 4 -20    0.3 0.4 0.3  kind 1  amount 20
+sensor ammo        -6 4 -24       0.3 0.4 0.3  kind 1  amount 30
+sensor ammo        -8 4 -31       0.3 0.4 0.3  kind 2  amount 8
+sensor ammo        13 4 -32       0.3 0.4 0.3  kind 2  amount 8
+sensor ammo        16 1 -28       0.3 0.4 0.3  kind 1  amount 20
+sensor ammo        -2 1 -33       0.3 0.4 0.3  kind 1  amount 20
+sensor armor       -10 1 0.5      0.4 0.6 0.4  amount 50
+sensor secret      -10 1 1.5      1 0.8 1
+sensor attackers   0 1 -19        0.4 0.8 0.4  wave 0  count 3  role 1  rotate y 180
+sensor attackers   12.5 4 -16     0.4 0.8 0.4  wave 0  count 2  role 1  rotate y 180
+sensor attackers   2 1 -30        0.4 0.8 0.4  wave 0  count 2  role 1  rotate y 90
+sensor attackers   15 1 -31       0.4 0.8 0.4  wave 0  count 2  role 1  rotate y 90
+sensor trigger     12 1 -37.5     2 0.8 1  wave 1
+sensor attackers   12 1 -43       0.4 0.8 0.4  wave 1  count 3  role 1
+sensor goal        12 1 -44.5     2 0.8 1
+sensor fall        0 -10 -20      80 2 80

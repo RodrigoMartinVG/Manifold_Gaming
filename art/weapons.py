@@ -1,5 +1,5 @@
 """
-THE GAMES' WEAPONS (stage 5g, decision 0015; two more in 5n): the weapons of `@manifold/arms`, one model each, made by
+THE GAMES' WEAPONS (stage 5g, decision 0015; two more in 5n, two in 5o): the weapons of `@manifold/arms`, one model each, made by
 this script, run by Blender without a screen (`npm run art:weapons`), never by hand. It writes
 `packages/arms/assets/weapons.glb`.
 
@@ -9,8 +9,10 @@ this script, run by Blender without a screen (`npm run art:weapons`), never by h
   it) the +Z end, as the presentation holds a tool (tools.ts: along it, its +Z).
 - Its look, by role: the dart a slim pistol of blued metal; the bolt a crossbow of wood with its limbs
   across; the stick a staff with leather grips; the grenade a ribbed ball with its lever; the shotgun a
-  pump gun, wood and dark metal, a wide bore; the launcher a long tube, olive, with a flared mouth.
-  Few triangles (a weapon is held, small on the screen), four materials, no textures.
+  pump gun, wood and dark metal, a wide bore; the launcher a long tube, olive, with a flared mouth;
+  (5n) the repeater, the orb caster; (5o) the longshot, a long rifle with its sight; the flame lance, a
+  rust-red tank under a nozzle. Few triangles (a weapon is held, small on the screen), five materials,
+  no textures.
 
 It is built in Blender's frame (Z up, and along a weapon is Blender's −Y); the glTF exporter turns
 Blender's Z into glTF's Y and −Y into +Z.
@@ -48,6 +50,7 @@ METAL = material("gunmetal", "3c4248", 0.45, 0.6)
 WOOD = material("wood", "8a5a34", 0.7)
 LEATHER = material("leather", "4a3020", 0.85)
 OLIVE = material("olive", "56603a", 0.6)
+RUST = material("rust", "8a4a2a", 0.5, 0.4)
 
 
 def at(across, up, along):
@@ -121,6 +124,9 @@ SIZES = {
     # (Stage 5n)
     "repeater": (0.06, 0.15, 0.42),
     "orb": (0.42, 0.1, 0.56),
+    # (Stage 5o)
+    "longshot": (0.06, 0.16, 1.05),
+    "flamer": (0.14, 0.2, 0.78),
 }
 
 made = {}
@@ -233,6 +239,40 @@ made["orb"] = joined(
         box((0.03, 0.03, 0.1), (0.165, 0.0, 0.22), METAL),
         box((0.03, 0.03, 0.1), (-0.165, 0.0, 0.22), METAL),
         glass,
+    ],
+)
+
+# (Stage 5o) The longshot: a stock of wood, the receiver, a long thin barrel with a brake at its mouth, a
+# sight on top on two mounts, a short magazine under it.
+s = SIZES["longshot"]
+made["longshot"] = joined(
+    "longshot",
+    [
+        box((0.045, 0.11, 0.3), (0, -0.02, -0.37), WOOD),
+        box((0.05, 0.06, 0.22), (0, 0.02, -0.12), METAL),
+        tube(0.012, 0.6, (0, 0.03, 0.22), METAL, 8),
+        tube(0.017, 0.05, (0, 0.03, 0.495), METAL, 8),
+        tube(0.016, 0.22, (0, 0.06, -0.1), METAL, 10),
+        box((0.012, 0.02, 0.02), (0, 0.045, -0.17), METAL),
+        box((0.012, 0.02, 0.02), (0, 0.045, -0.03), METAL),
+        box((0.03, 0.06, 0.05), (0, -0.03, -0.06), METAL),
+        box((0.035, 0.07, 0.04), (0, -0.04, -0.2), LEATHER),
+    ],
+)
+# The flame lance: a stock, the body, the tank under its front (rust red), a nozzle flared at its mouth
+# with a pilot light beside it, two grips.
+s = SIZES["flamer"]
+made["flamer"] = joined(
+    "flamer",
+    [
+        box((0.04, 0.09, 0.12), (0, 0.0, -0.32), METAL),
+        box((0.05, 0.07, 0.36), (0, 0.03, -0.1), METAL),
+        tube(0.04, 0.2, (0, -0.05, -0.01), RUST, 12),
+        tube(0.018, 0.3, (0, 0.035, 0.22), METAL, 8),
+        tube(0.018, 0.04, (0, 0.035, 0.37), METAL, 10, radius_end=0.03),
+        box((0.015, 0.015, 0.03), (0.026, 0.012, 0.33), RUST),
+        box((0.035, 0.08, 0.045), (0, -0.04, -0.19), LEATHER),
+        box((0.03, 0.07, 0.04), (0, -0.035, 0.14), LEATHER),
     ],
 )
 

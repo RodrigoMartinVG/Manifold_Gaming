@@ -2,9 +2,9 @@ import { describe, expect, test } from 'vitest';
 import { gltf } from '@manifold/character/glb';
 import weaponsGlb from '../assets/weapons.glb?inline';
 import list from '../assets/assets.json';
-import { WEAPON_LOOKS, weaponModel } from './looks';
+import { RELOAD_LOOK, reloadLift, WEAPON_LOOKS, weaponModel } from './looks';
 import { ARMS_MODELS } from './models';
-import { WEAPON_KINDS } from './weapons';
+import { RELOAD_IN, WEAPON_KINDS } from './weapons';
 
 const scripts = import.meta.glob('../../../art/*.py', { query: '?raw', eager: true });
 
@@ -50,5 +50,14 @@ describe('the weapons’ model (stage 5g, decision 0015)', () => {
       expect(hi[2]!, n.name).toBeGreaterThan(look.size[2] / 2 - 0.02);
       expect(triangles, n.name).toBeLessThan(300);
     }
+  });
+});
+
+describe('a reload, seen (stage 5o)', () => {
+  test('down at once, a jolt up when the new magazine goes in, back up for the last eighth', () => {
+    expect([0, 0.3, 0.6].map(reloadLift)).toEqual([RELOAD_LOOK.down, RELOAD_LOOK.down, RELOAD_LOOK.down]);
+    expect(reloadLift(RELOAD_IN)).toBe(RELOAD_LOOK.jolt);
+    expect(reloadLift(RELOAD_IN + RELOAD_LOOK.joltFor)).toBe(RELOAD_LOOK.down);
+    expect([RELOAD_LOOK.upAt, 1].map(reloadLift)).toEqual([0, 0]);
   });
 });

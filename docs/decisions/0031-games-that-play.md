@@ -4,7 +4,10 @@
   proposed order, with the recommended answer to each question (below). The tower's camera, the one concrete bug, was
   fixed first (commit `e6af334`). After 5j the author asked for better explosions and sounds, for the walk's
   sway in first person, and for a better calibrated jump ("quizás sea la gravedad"): a stage of its own, the new
-  5k, and the later ones one letter on (5l to 5o).
+  5k, and the later ones one letter on (5l to 5o). After playing 5n the author asked for far more complex levels
+  ("pisos, plataformas, ascensores, plataformas móviles, puentes, varios pisos, balcones, salas redondas"), a sway
+  better balanced walking and running, more weapons and a reload's animation: the new 5o, the tower one letter
+  on (5p).
 - **Date:** 2026-11-18
 
 ## Context
@@ -144,14 +147,15 @@ by section (the wall walk, the gatehouse, the towers) to close the gate before t
 | 5l    | The fortress's readability: light gem, noise rings, awareness that fills, guards' signs, the pebble | Yes: awareness (a version)     |
 | 5m    | The fortress's levels rebuilt: longer, loops, vantage points, optional objectives                   | Levels only                    |
 | 5n    | The wall's levels: keys, doors, secrets, enemy roles, new weapons and pickups                       | Yes: new enemies, weapons      |
-| 5o    | The tower: contact, forgiveness, longer floors, the finale                                          | Forgiveness (a version)        |
+| 5o    | (The author's, after 5n) The shooter's levels with floors above floors; more weapons, reloads; sway | Yes: reloads, weapons          |
+| 5p    | The tower: contact, forgiveness, longer floors, the finale                                          | Forgiveness (a version)        |
 
 Each stage keeps the project's rules: deterministic simulation, reference replays recorded again where the
 simulation changes (with `SIMULATION_VERSION` raised, today 42), its tests, its report.
 
 As it went (5j): footsteps by surface were already there (stage 3f), from every character and in space; the music's
 layers depend on each game, so they go with its stage: tiers by the guards' awareness (5l), combat (5n), a layer per
-floor (5o).
+floor (5p).
 
 As it went (5k): the floaty jump was the world's gravity under the engine's old jump (6.5 m/s against 9.81 m/s², 2.15
 m up and 1.3 s in the air); the fortress and the wall now jump as grounded characters (`GROUNDED`: 1.1 m in 0.36 s,
@@ -177,13 +181,22 @@ fortress's replays keep their hashes. The repeater and the orb have models of th
 On the author's word mid-stage, the walk's sway puts its dips back before the camera places the eyes again (they
 stayed, and the aim rose).
 
+As it went (5o): the levels' height is the plans' (`plan x z y`: several grids, the raised ones laid exactly, with
+railings), and what a grid cannot say (stairs, lifts, ferries, bridges, the round walls, as rings of the kit's
+pieces) the scripts that draw the plans write as lines; each level is played to its way out by a test, up and down
+all of it. The attackers are guards and go only to what they see or hear, so a group called in did not come: now a
+horn sounds where the defender is (a world sound, heard and subtitled), and they come to look. A railing between the
+two flights of the stair that turns back keeps the bots' smoothed routes from cutting across from one to the other
+(the navigation's smoothing does not yet know a stair's side: a follow-up). Magazines are the arsenal's (`loaded`,
+`reloading`), so what has none keeps its hashes; the sway's cadence follows the speed, not a step's length.
+
 ## The author's answers
 
 The author took every recommendation (2026-11-18):
 
 1. **The order:** the wall's bots and weapon feel first (5i), then the shared atmosphere (5j), the fortress's
    readability (5k) and levels (5l), the wall's levels (5m), the tower (5n). (Since 5j, one letter on: the author's
-   5k came in first.)
+   5k came in first; since 5n, one more: the author's 5o.)
 2. **The shooter's thread:** the dawn stays, as progression: the attackers broke in, and the defender takes the wall
    back section by section to close the gate before the sun rises.
 3. **Seen in the fortress:** a chase one escapes and hides from, the genre's norm; the takedown from behind stays, and

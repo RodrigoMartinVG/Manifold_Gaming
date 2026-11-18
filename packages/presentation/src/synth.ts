@@ -274,6 +274,9 @@ export function whiz(kit: Kit, out: AudioNode, at: number, closeness: number) {
  *   - the shotgun: a wide crack, a body of pink noise closing from 2.5 kHz down, a gritty thump at 70 Hz,
  *     and half a second later its pump, back and forth;
  *   - the launcher: a thump, the rocket's ignition, a hiss that rises as it leaves;
+ *   - (5n) the repeater, the dart's lighter; an attacker's orb, a hum that rises;
+ *   - (5o) the longshot, a sharper crack and a long ring, its bolt worked; the flame lance, a breath of
+ *     roar that runs into the next;
  *   - what is swung or thrown: a whoosh.
  */
 export function fired(kit: Kit, out: AudioNode, at: number, kind: string) {
@@ -333,6 +336,54 @@ export function fired(kit: Kit, out: AudioNode, at: number, kind: string) {
       noise(kit, out, at, { filter: 'highpass', from: 2400, gain: 0.45, attack: 0.0005, decay: 0.01 });
       noise(kit, out, at, { from: near(kit, 1500, 0.1), q: 1.2, gain: 0.35, decay: 0.04 });
       tone(kit, out, at, { from: near(kit, 180, 0.08), to: 90, gain: 0.3, decay: 0.05, grit: true });
+      break;
+    case 'longshot':
+      // (Stage 5o) A crack sharper than the dart's, a heavier body, a thump and a long ring; then its bolt
+      // worked, back and forth.
+      noise(kit, out, at, { filter: 'highpass', from: 2600, gain: 0.95, attack: 0.0003, decay: 0.012 });
+      noise(kit, out, at, { from: near(kit, 950, 0.06), to: 380, sweep: 0.2, q: 0.9, gain: 0.7, decay: 0.22, grit: true });
+      tone(kit, out, at, { from: near(kit, 110, 0.05), to: 42, gain: 0.85, decay: 0.3, grit: true });
+      noise(kit, out, at, {
+        noise: 'pink',
+        filter: 'lowpass',
+        from: 1400,
+        to: 300,
+        sweep: 0.8,
+        gain: 0.25,
+        attack: 0.02,
+        decay: 0.8,
+      });
+      for (const [delay, f] of [
+        [0.36, 1700],
+        [0.5, 2700],
+      ] as const)
+        noise(kit, out, at, { from: f, q: 4, gain: 0.14, attack: 0.001, decay: 0.03, delay });
+      break;
+    case 'flamer':
+      // (Stage 5o) A breath of roaring flame, fifteen a second (they run together into one roar), and now
+      // and then a crackle.
+      noise(kit, out, at, {
+        noise: 'pink',
+        filter: 'lowpass',
+        from: near(kit, 1100, 0.15),
+        to: 500,
+        sweep: 0.15,
+        q: 0.6,
+        gain: 0.32,
+        attack: 0.025,
+        decay: 0.14,
+      });
+      noise(kit, out, at, {
+        noise: 'brown',
+        filter: 'lowpass',
+        from: 260,
+        q: 0.7,
+        gain: 0.35,
+        attack: 0.03,
+        decay: 0.12,
+        grit: true,
+      });
+      if (kit.random() < 0.35) crackles(kit, out, at, 1, 0.1, 0.12);
       break;
     case 'orb':
       // (Stage 5n) An attacker's orb leaving: a hum that rises, and a crackle.
@@ -523,6 +574,44 @@ export function pebble(kit: Kit, out: AudioNode, at: number) {
     tone(kit, out, at, { from: near(kit, 1800, 0.15), gain: 0.06 / (1 + i), decay: 0.04, delay });
     delay += 0.08 + 0.07 * kit.random();
   }
+}
+
+/**
+ * A RELOAD (stage 5o), in two parts, as the world says them: the old magazine out (a release's click and
+ * the slide of it coming free), and later the new one `in` (a slap, a lower knock, and the action worked,
+ * two clicks back and forth).
+ */
+export function reload(kit: Kit, out: AudioNode, at: number, goingIn: boolean) {
+  if (!goingIn) {
+    noise(kit, out, at, { from: near(kit, 2300, 0.08), q: 6, gain: 0.4, attack: 0.001, decay: 0.025 });
+    noise(kit, out, at, { from: 1300, to: 700, sweep: 0.14, q: 1.5, gain: 0.16, attack: 0.02, decay: 0.12, delay: 0.06 });
+    return;
+  }
+  noise(kit, out, at, { from: near(kit, 900, 0.1), q: 2, gain: 0.5, attack: 0.001, decay: 0.04 });
+  tone(kit, out, at, { from: near(kit, 190, 0.08), to: 120, gain: 0.25, decay: 0.06 });
+  for (const [delay, f] of [
+    [0.16, 1500],
+    [0.27, 2600],
+  ] as const)
+    noise(kit, out, at, { from: f, q: 4, gain: 0.3, attack: 0.001, decay: 0.03, delay });
+}
+
+/**
+ * A HORN (stage 5o), the wall's alarm: a low brass note (a sawtooth at 98 Hz under a filter that opens as it
+ * swells and closes as it dies), its fifth above it, softer, and the breath in it; a second and a half.
+ */
+export function horn(kit: Kit, out: AudioNode, at: number) {
+  const c = kit.context;
+  const filter = c.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.Q.value = 2;
+  filter.frequency.setValueAtTime(300, at);
+  filter.frequency.linearRampToValueAtTime(1400, at + 0.35);
+  filter.frequency.exponentialRampToValueAtTime(400, at + 1.5);
+  filter.connect(out);
+  tone(kit, filter, at, { wave: 'sawtooth', from: 98, to: 96, sweep: 1.4, gain: 0.5, attack: 0.18, decay: 1.3 });
+  tone(kit, filter, at, { wave: 'sawtooth', from: 147, to: 144, sweep: 1.4, gain: 0.22, attack: 0.22, decay: 1.2 });
+  noise(kit, out, at, { noise: 'pink', from: 700, q: 1, gain: 0.05, attack: 0.15, decay: 1.1 });
 }
 
 /** A WEAPON RAISED (stage 5i): a metal click and a short rising whine, the warning. */

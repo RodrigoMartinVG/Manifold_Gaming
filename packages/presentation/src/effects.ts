@@ -227,6 +227,47 @@ export function muzzleEffect(
 }
 
 /**
+ * (Stage 5o) THE FLAME LANCE'S BREATH, one of fifteen a second: puffs of fire thrown along `forward` and
+ * slowed by the air (a strong drag: thrown at 14 m/s, they stop about 6 m out, the lance's reach), growing
+ * as they go, rising a little (hot), white-yellow to red to nothing; a wisp of smoke after.
+ */
+export function flameEffect(at: THREE.Vector3, forward: THREE.Vector3, random: () => number = Math.random): Effect {
+  const adds: ParticleSpec[] = [];
+  for (let i = 0; i < 5; i++)
+    adds.push({
+      kind: 'puff',
+      at: at.clone().addScaledVector(forward, 0.1 * random()),
+      velocity: forward
+        .clone()
+        .add(direction(random).multiplyScalar(0.12))
+        .normalize()
+        .multiplyScalar(between(random, 11, 15)),
+      drag: 2.2,
+      gravity: -1.5,
+      life: between(random, 0.4, 0.58),
+      size: [0.1, between(random, 0.6, 0.9)],
+      spin: between(random, -3, 3),
+      stops: FIRE,
+    });
+  const covers: ParticleSpec[] = [];
+  if (random() < 0.4)
+    covers.push({
+      kind: 'puff',
+      at: at.clone().addScaledVector(forward, 4),
+      velocity: forward
+        .clone()
+        .multiplyScalar(1.5)
+        .add(new THREE.Vector3(0, 1.2, 0)),
+      drag: 1.5,
+      gravity: -0.8,
+      life: between(random, 0.8, 1.3),
+      size: [0.4, 1.2],
+      stops: SMOKE,
+    });
+  return { adds, covers };
+}
+
+/**
  * Where a shot struck: off what does not live, sparks bouncing away from where it came from, a small
  * flash, and a puff of the surface's dust (stone grey, wood brown); off whoever it hurt, a pale burst.
  */

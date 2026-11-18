@@ -1374,9 +1374,9 @@ test('the fortress, in the dark: the gem says hidden, and a guard that glimpses 
 
 /**
  * The wall's link recipe (stage 5h; levels to advance through since 5n): every attacker standing down at once,
- * and the defender at the first level's way out.
+ * and the defender at the first level's way out (since 5o, past the round tower's red door).
  */
-const allDown = 'recipe=wait+30;wall.down;wait+5;set+defender+transform.position+0+0.9+-34.5';
+const allDown = 'recipe=wait+30;wall.down;wait+5;set+defender+transform.position+12+0.9+-44.5';
 
 test('the wall: its title, in first person, a level done (its gold time, its recap) and kept, at dawn’s edge', async ({
   page,
@@ -1396,14 +1396,14 @@ test('the wall: its title, in first person, a level done (its gold time, its rec
   await page.getByRole('button', { name: 'Seguir' }).click();
   await expect(game).toHaveAttribute('data-level', 'walk');
   await expect(page.locator('.mg-crosshair')).toBeVisible();
-  // (Stage 5n) Its HUD: the weapon in its hands and its darts.
-  await expect(page.locator('.mg-hud')).toContainText('saeta 40');
+  // (Stage 5n) Its HUD: the weapon in its hands and its darts (5o: in its magazine, and carried besides).
+  await expect(page.locator('.mg-hud')).toContainText('saeta 12/28');
   await expect(game).toHaveAttribute('data-dialog', 'El adarve: listo', { timeout: 200_000 });
-  await expect(page.locator('.mg-panel')).toContainText('Tiempo de oro: 0:53,0');
+  await expect(page.locator('.mg-panel')).toContainText('Tiempo de oro: 1:22,0');
   await expect(page.locator('.mg-panel')).toContainText('Sin caer');
   // Its recap: the secret not found; the attackers it brought down (the command's are not its own).
   await expect(page.locator('.mg-panel')).toContainText('Secretos: ninguno de 1');
-  await expect(page.locator('.mg-panel')).toContainText('Atacantes: 0 de 8');
+  await expect(page.locator('.mg-panel')).toContainText('Atacantes: 0 de 12');
   expect(JSON.parse((await game.getAttribute('data-progress'))!)).toMatchObject({ version: 1, started: true, reached: 1 });
   await page.getByRole('button', { name: 'Seguir', exact: true }).click();
   await expect(game).toHaveAttribute('data-level', 'gatehouse');
@@ -1416,16 +1416,23 @@ test('the wall’s attackers are fair: each raises its weapon, seen and heard, b
   test.setTimeout(240_000);
   const list = errors(page);
   const game = page.locator('#game');
-  // A step up the stair, within the sentries' range (stage 5n: a fair gunner fires only within it, and a
+  // In the yard's door, within the sentries' range (stage 5n: a fair gunner fires only within it, and a
   // page drawn without a GPU takes some ten steps a second: from the start they would take minutes).
-  await page.goto('jugar/muralla/#recipe=wait+1;set+defender+transform.position+0+0.9+-2.5');
+  await page.goto('jugar/muralla/#recipe=wait+1;set+defender+transform.position+0+0.9+-5');
   await expect(game).toHaveAttribute('data-dialog', 'La muralla', { timeout: 20_000 });
   await page.getByRole('button', { name: 'Jugar', exact: true }).click();
   await page.getByRole('button', { name: 'Seguir' }).click();
   await page.getByRole('button', { name: 'Seguir' }).click();
   await expect(game).toHaveAttribute('data-level', 'walk');
-  // There, the defender only watches: the courtyard's sentries see it through the stair's opening, and each
-  // raises its weapon (a glint, `data-readies`; and its sound, heard and in subtitles) before the first hit.
+  // (Stage 5o) A dart fired from its magazine; R, a reload (heard: its subtitle), and the magazine full again.
+  await expect(page.locator('.mg-hud')).toContainText('saeta 12/28');
+  await page.keyboard.press('KeyX');
+  await expect(page.locator('.mg-hud')).toContainText('saeta 11/28', { timeout: 20_000 });
+  await page.keyboard.press('KeyR');
+  await expect(page.locator('.mg-hud')).toContainText('saeta recargando…', { timeout: 20_000 });
+  await expect(page.locator('.mg-hud')).toContainText('saeta 12/27', { timeout: 60_000 });
+  // There, the defender only watches: the yard's sentries see it in the door, and each raises its weapon
+  // (a glint, `data-readies`; and its sound, heard and in subtitles) before the first hit.
   await expect.poll(() => game.getAttribute('data-hurt').then(Number), { timeout: 200_000 }).toBeGreaterThan(0);
   expect(Number(await game.getAttribute('data-readies')), 'warned before the first hit').toBeGreaterThan(0);
   // The hit shook the view (a trauma that decays in under a second: it was there).
@@ -1507,14 +1514,18 @@ test('the walk’s sway (stage 5k): in first person the eyes dip with each step 
   await page.keyboard.press('Backquote');
   await typeInConsole(page, 'view.camera first');
   await page.keyboard.press('Escape');
-  /** How far up and down the eyes went while it walked ahead for a second and a half (m). */
+  /**
+   * How far up and down the eyes went while it walked ahead for a second and a half of the world (m). (Stage
+   * 5o: read every four of the world's steps, not by the clock: its cadence is about two steps a second of
+   * the world, and a page drawn without a GPU takes some ten a second of the clock.)
+   */
   const swayWalking = async () => {
     const heights: number[] = [];
     await page.keyboard.down('KeyW');
     await afterSteps(page, 20);
     for (let i = 0; i < 24; i++) {
       heights.push((await position(page, 'camera'))[1]!);
-      await page.waitForTimeout(60);
+      await afterSteps(page, 4);
     }
     await page.keyboard.up('KeyW');
     await page.keyboard.down('KeyS');
@@ -1523,8 +1534,9 @@ test('the walk’s sway (stage 5k): in first person the eyes dip with each step 
     return Math.max(...heights) - Math.min(...heights);
   };
   const pitchBefore = (await position(page, 'look'))[1]!;
-  expect(await swayWalking()).toBeGreaterThan(0.02);
-  expect(Number(await game.getAttribute('data-bob'))).toBeGreaterThan(2);
+  // (Stage 5o: the dip at a walk is 2.2 cm, rebalanced from 3.5.)
+  expect(await swayWalking()).toBeGreaterThan(0.012);
+  expect(Number(await game.getAttribute('data-bob'))).toBeGreaterThan(1.5);
   // Walking ahead, the mouse still, where it looks up or down stays (the sway's dips once stayed in the
   // camera, frame after frame, and the aim rose by itself: the author found it).
   expect(Math.abs((await position(page, 'look'))[1]! - pitchBefore)).toBeLessThan(0.01);
@@ -1534,7 +1546,8 @@ test('the walk’s sway (stage 5k): in first person the eyes dip with each step 
   await page.keyboard.press('Backquote');
   await typeInConsole(page, 'view.bob false');
   await page.keyboard.press('Escape');
-  expect(await swayWalking()).toBeLessThan(0.004);
+  // (The probe writes centimeters: gliding, the eyes move at most one of its steps, from rounding.)
+  expect(await swayWalking()).toBeLessThan(0.015);
   expect((await position(page, 'camera')).every(Number.isFinite)).toBe(true);
   expect(list).toEqual([]);
 });

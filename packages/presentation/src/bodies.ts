@@ -547,7 +547,8 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
       }
       // A shot (stage 4c): its tracer, from the end of what fired it as drawn (or where the world fired
       // it from) to where it struck or ended, fading.
-      if (ev.type === 'shot') {
+      // (Stage 5o: the flame lance's are its flames, fire.ts.)
+      if (ev.type === 'shot' && ev.kind !== 'flamer') {
         const holding = instances.get(ev.from)?.holding;
         const from = (holding?.inView ? holding.viewMuzzle : holding?.pose?.muzzle)?.clone() ?? new THREE.Vector3(...ev.start);
         const to = new THREE.Vector3(...ev.end);

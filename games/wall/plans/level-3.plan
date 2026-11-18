@@ -1,61 +1,429 @@
 # Manifold level 10
-# The towers (stage 5n, decision 0031): the wall's third section, at half past five. A yard between two
-# towers; sentries and a caster at its far end. In the west tower, the crossbow and grenades; behind it, a
-# room a button opens. In the east tower, the yellow key: and those who charge (quick, with sticks: turn
-# and meet them) come in from the yard when one takes it. The yellow door, north: the hall to the gate,
-# and more who charge. Drawn as a plan (plans/level-3.plan).
+# The towers (stage 5n; rebuilt in 5o, decision 0031: levels of floors above floors). From the south bank,
+# a moat 8 m across and 3 m down: a ferry crosses it, a bridge at its west end, a stair out of it at its
+# east; under the bank, behind a door a hand opens, armor and grenades. North, a courtyard between two
+# round towers 14 m across. The west one has a lift to its top, 6 m up, and the longshot there; from it a
+# bridge crosses to the east one's top, the yellow key, and those who charge are called. In the east one
+# a stair rises to a landing and another turns back over it. The yellow door is the courtyard's north: past
+# it, the way out. Drawn as a plan (plans/level-3.plan, made by a script).
 title The towers
 spawn 0 1 1
 facing 0 0 -1
 ambient 0.32
 sky 5.5
 
-plan -22 -40
-############################################
-#..........................................#
-#..........................................#
-#..........................................#
-#..........................................#
-#..........................................#
-#..........................................#
-#..........................................#
-#..........................................#
-#..........................................#
-#..........................................#
-#..........................................#
-#..........................................#
-#..........................................#
-#####################..#####################
-#........#.................................#
-#........#.................................#
-#####..###........................##########
-#........#........................#........#
-#........#........................#........#
-#........#........................#........#
-#........#...........cc...........#........#
-#........#....................c...#........#
-#..........................................#
-#.............c............................#
-#........#........................#........#
-#........#........................#........#
-#........#........................#........#
-#........#........................#...c....#
-#........#........................#........#
-##########........................##########
-#..........................................#
-#................cc.......cc...............#
-#..........................................#
-#..........................................#
-#..........................................#
-#..........................................#
-#..........................................#
-####################....####################
-#..........................................#
-#..........................................#
-#..........................................#
-#..........................................#
-############################################
+plan -24 -54 -3
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ++++++++++++++++++++++++++++++++++++++++
+   +......................................+
+   +......................................+
+   +......................................+
+   +......................................+
+   +......................................+
+   +......................................+
+   +......................................+
+   +......................................+
+   ++..++++++++++++++++++++++++++++++++++++
+   +....+
+   +....+
+   ++++++
+
+
+
+
+
+
+
+
+
+
+
 end
+
+plan -24 -54 0
+                  ############
+                  #..........#
+                  #..........#
+                  #..........#
+                  #..........#
+                  #..........#
+                  #..........#
+                  #..........#
+                  #..........#
+                  #..........#
+                  #..........#
+  #####################..#####################
+  #..........................................#
+  #..........................................#
+  #..........................................#
+  #..........................................#
+  #..........................................#
+  #..........................................#
+  #..........................................#
+  #..........................................#
+  #..........................................#
+  #..........................................#
+  #..........................................#
+  #..........................................#
+  #..........................................#
+  #..........................................#
+  #..........................................#
+  #..........................................#
+  #..........................................#
+  #..........................................#
+  #..........................................#
+  #..........................................#
+  #..........................................#
+  #..........................................#
+  #..........................................#
+  #..........................................#
+  #..........................................#
+  #.                                      ...#
+  #.                                      ...#
+  #.                                      ...#
+  #.                                      ...#
+  #.                                      ...#
+  #.                                      ...#
+  #.                                      ...#
+  #.                                      ...#
+  #..........................................#
+  #..........................................#
+  #..........................................#
+  ###################......###################
+               #................#
+               #................#
+               #................#
+               #................#
+               #................#
+               #................#
+               #................#
+               #................#
+               #................#
+               ##################
+
+end
+
+plan -24 -54 3
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                   ....
+                                   ....
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+end
+
+plan -24 -54 6
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            ..                    ..
+          ......                ......
+        ..........            ..........
+        ..........            ..........
+       ............          ............
+       ............          ............
+      ......  ....            .....  .....
+      ......  ....            .....  .....
+       ............          ......  ....
+       ............          ......  ....
+        ..........            .....  ...
+        ..........            .....  ...
+          ......                ......
+            ..                    ..
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+end
+
+signal west_lift_up  zone west_lift_ride
+
+# The moat: its stair out, east; its bridge, west.
+kit stairs_3  15 -3 -13  rotate y -90
+kit bridge_4  -15 0 -15
+kit bridge_4  -15 0 -11
+box 0 -0.15 -10  1.5 0.15 1  move 0 0 -6 4  color #7a5a3a  name ferry
+
+# The west tower: its wall (a door south), its parapet (a gap east, the bridge), its lift.
+kit wall_2  -4 0 -29  rotate y 90
+kit wall_2  -4 3 -29  rotate y 90
+kit wall_2  -4.239 0 -27.188  rotate y 75
+kit wall_2  -4.239 3 -27.188  rotate y 75
+kit wall_2  -4.938 0 -25.5  rotate y 60
+kit wall_2  -4.938 3 -25.5  rotate y 60
+kit wall_2  -6.05 0 -24.05  rotate y 45
+kit wall_2  -6.05 3 -24.05  rotate y 45
+kit wall_2  -7.5 0 -22.938  rotate y 30
+kit wall_2  -7.5 3 -22.938  rotate y 30
+kit wall_2  -9.188 0 -22.239  rotate y 15
+kit wall_2  -9.188 3 -22.239  rotate y 15
+kit wall_2  -11 3 -22  rotate y 0
+kit wall_2  -12.812 0 -22.239  rotate y -15
+kit wall_2  -12.812 3 -22.239  rotate y -15
+kit wall_2  -14.5 0 -22.938  rotate y -30
+kit wall_2  -14.5 3 -22.938  rotate y -30
+kit wall_2  -15.95 0 -24.05  rotate y -45
+kit wall_2  -15.95 3 -24.05  rotate y -45
+kit wall_2  -17.062 0 -25.5  rotate y -60
+kit wall_2  -17.062 3 -25.5  rotate y -60
+kit wall_2  -17.761 0 -27.188  rotate y -75
+kit wall_2  -17.761 3 -27.188  rotate y -75
+kit wall_2  -18 0 -29  rotate y -90
+kit wall_2  -18 3 -29  rotate y -90
+kit wall_2  -17.761 0 -30.812  rotate y -105
+kit wall_2  -17.761 3 -30.812  rotate y -105
+kit wall_2  -17.062 0 -32.5  rotate y -120
+kit wall_2  -17.062 3 -32.5  rotate y -120
+kit wall_2  -15.95 0 -33.95  rotate y -135
+kit wall_2  -15.95 3 -33.95  rotate y -135
+kit wall_2  -14.5 0 -35.062  rotate y -150
+kit wall_2  -14.5 3 -35.062  rotate y -150
+kit wall_2  -12.812 0 -35.761  rotate y -165
+kit wall_2  -12.812 3 -35.761  rotate y -165
+kit wall_2  -11 0 -36  rotate y -180
+kit wall_2  -11 3 -36  rotate y -180
+kit wall_2  -9.188 0 -35.761  rotate y -195
+kit wall_2  -9.188 3 -35.761  rotate y -195
+kit wall_2  -7.5 0 -35.062  rotate y -210
+kit wall_2  -7.5 3 -35.062  rotate y -210
+kit wall_2  -6.05 0 -33.95  rotate y -225
+kit wall_2  -6.05 3 -33.95  rotate y -225
+kit wall_2  -4.938 0 -32.5  rotate y -240
+kit wall_2  -4.938 3 -32.5  rotate y -240
+kit wall_2  -4.239 0 -30.812  rotate y -255
+kit wall_2  -4.239 3 -30.812  rotate y -255
+kit railing_2  -4.721 6 -27.318  rotate y 75
+kit railing_2  -5.371 6 -25.75  rotate y 60
+kit railing_2  -6.404 6 -24.404  rotate y 45
+kit railing_2  -7.75 6 -23.371  rotate y 30
+kit railing_2  -9.318 6 -22.721  rotate y 15
+kit railing_2  -11 6 -22.5  rotate y 0
+kit railing_2  -12.682 6 -22.721  rotate y -15
+kit railing_2  -14.25 6 -23.371  rotate y -30
+kit railing_2  -15.596 6 -24.404  rotate y -45
+kit railing_2  -16.629 6 -25.75  rotate y -60
+kit railing_2  -17.279 6 -27.318  rotate y -75
+kit railing_2  -17.5 6 -29  rotate y -90
+kit railing_2  -17.279 6 -30.682  rotate y -105
+kit railing_2  -16.629 6 -32.25  rotate y -120
+kit railing_2  -15.596 6 -33.596  rotate y -135
+kit railing_2  -14.25 6 -34.629  rotate y -150
+kit railing_2  -12.682 6 -35.279  rotate y -165
+kit railing_2  -11 6 -35.5  rotate y -180
+kit railing_2  -9.318 6 -35.279  rotate y -195
+kit railing_2  -7.75 6 -34.629  rotate y -210
+kit railing_2  -6.404 6 -33.596  rotate y -225
+kit railing_2  -5.371 6 -32.25  rotate y -240
+kit railing_2  -4.721 6 -30.682  rotate y -255
+box -11 0.15 -29  1 0.15 1  lift 0 5.7 0 4 west_lift_up  color #7a5a3a  name west_lift
+
+# The east tower: its wall, its parapet (a gap west), a stair to a landing 3 m up and one back over it.
+kit wall_2  18 0 -29  rotate y 90
+kit wall_2  18 3 -29  rotate y 90
+kit wall_2  17.761 0 -27.188  rotate y 75
+kit wall_2  17.761 3 -27.188  rotate y 75
+kit wall_2  17.062 0 -25.5  rotate y 60
+kit wall_2  17.062 3 -25.5  rotate y 60
+kit wall_2  15.95 0 -24.05  rotate y 45
+kit wall_2  15.95 3 -24.05  rotate y 45
+kit wall_2  14.5 0 -22.938  rotate y 30
+kit wall_2  14.5 3 -22.938  rotate y 30
+kit wall_2  12.812 0 -22.239  rotate y 15
+kit wall_2  12.812 3 -22.239  rotate y 15
+kit wall_2  11 3 -22  rotate y 0
+kit wall_2  9.188 0 -22.239  rotate y -15
+kit wall_2  9.188 3 -22.239  rotate y -15
+kit wall_2  7.5 0 -22.938  rotate y -30
+kit wall_2  7.5 3 -22.938  rotate y -30
+kit wall_2  6.05 0 -24.05  rotate y -45
+kit wall_2  6.05 3 -24.05  rotate y -45
+kit wall_2  4.938 0 -25.5  rotate y -60
+kit wall_2  4.938 3 -25.5  rotate y -60
+kit wall_2  4.239 0 -27.188  rotate y -75
+kit wall_2  4.239 3 -27.188  rotate y -75
+kit wall_2  4 0 -29  rotate y -90
+kit wall_2  4 3 -29  rotate y -90
+kit wall_2  4.239 0 -30.812  rotate y -105
+kit wall_2  4.239 3 -30.812  rotate y -105
+kit wall_2  4.938 0 -32.5  rotate y -120
+kit wall_2  4.938 3 -32.5  rotate y -120
+kit wall_2  6.05 0 -33.95  rotate y -135
+kit wall_2  6.05 3 -33.95  rotate y -135
+kit wall_2  7.5 0 -35.062  rotate y -150
+kit wall_2  7.5 3 -35.062  rotate y -150
+kit wall_2  9.188 0 -35.761  rotate y -165
+kit wall_2  9.188 3 -35.761  rotate y -165
+kit wall_2  11 0 -36  rotate y -180
+kit wall_2  11 3 -36  rotate y -180
+kit wall_2  12.812 0 -35.761  rotate y -195
+kit wall_2  12.812 3 -35.761  rotate y -195
+kit wall_2  14.5 0 -35.062  rotate y -210
+kit wall_2  14.5 3 -35.062  rotate y -210
+kit wall_2  15.95 0 -33.95  rotate y -225
+kit wall_2  15.95 3 -33.95  rotate y -225
+kit wall_2  17.062 0 -32.5  rotate y -240
+kit wall_2  17.062 3 -32.5  rotate y -240
+kit wall_2  17.761 0 -30.812  rotate y -255
+kit wall_2  17.761 3 -30.812  rotate y -255
+kit railing_2  17.5 6 -29  rotate y 90
+kit railing_2  17.279 6 -27.318  rotate y 75
+kit railing_2  16.629 6 -25.75  rotate y 60
+kit railing_2  15.596 6 -24.404  rotate y 45
+kit railing_2  14.25 6 -23.371  rotate y 30
+kit railing_2  12.682 6 -22.721  rotate y 15
+kit railing_2  11 6 -22.5  rotate y 0
+kit railing_2  9.318 6 -22.721  rotate y -15
+kit railing_2  7.75 6 -23.371  rotate y -30
+kit railing_2  6.404 6 -24.404  rotate y -45
+kit railing_2  5.371 6 -25.75  rotate y -60
+kit railing_2  4.721 6 -27.318  rotate y -75
+kit railing_2  4.721 6 -30.682  rotate y -105
+kit railing_2  5.371 6 -32.25  rotate y -120
+kit railing_2  6.404 6 -33.596  rotate y -135
+kit railing_2  7.75 6 -34.629  rotate y -150
+kit railing_2  9.318 6 -35.279  rotate y -165
+kit railing_2  11 6 -35.5  rotate y -180
+kit railing_2  12.682 6 -35.279  rotate y -195
+kit railing_2  14.25 6 -34.629  rotate y -210
+kit railing_2  15.596 6 -33.596  rotate y -225
+kit railing_2  16.629 6 -32.25  rotate y -240
+kit railing_2  17.279 6 -30.682  rotate y -255
+kit stairs_3  14 0 -27
+kit stairs_3  12 3 -27  rotate y 180
+kit railing_2  13 3 -29  rotate y 90
+
+# The bridge between the towers’ tops, 6 m up.
+kit bridge_4  -4 6 -29  rotate y 90
+kit bridge_4  0 6 -29  rotate y 90
+kit bridge_4  4 6 -29  rotate y 90
 
 signal never
 signal key_yellow
@@ -64,36 +432,52 @@ signal yellow_both  all key_yellow at_yellow
 signal yellow_open  latch yellow_both never
 signal secret_pressed  used secret_button
 signal secret_open  latch secret_pressed never
-box 0 1.5 -25.5  1 1.5 0.15  door -1 0 0 y 90 1 yellow_open  color #c8a83a  name yellow_door
-box -16 1.5 -22.5  1 1.5 0.15  door -1 0 0 y 90 1 secret_open  color #6a645c  name secret_door
+box 0 1.5 -42.5  1 1.5 0.15  door -1 0 0 y 90 1 yellow_open  color #c8a83a  name yellow_door
+box -18 -1.5 -8.5  1 1.5 0.15  door -1 0 0 y 90 1 secret_open  color #6a645c  name secret_door
 
-lamp 0 2.6 -1.4  4 1  name lamp_start
-lamp 0 2.6 -14  6 1  name lamp_yard
-lamp -17 2.6 -16  4 0.9  name lamp_west
-lamp 17 2.6 -16  4 0.9  name lamp_east
-lamp 0 2.6 -33  6 1  name lamp_hall
+lamp 0 2.6 0  5 1  name lamp_start
+lamp -12 2.4 -7.5  6 0.9  name lamp_bank_west
+lamp 12 2.4 -7.5  6 0.9  name lamp_bank_east
+lamp -10 -0.6 -13  6 0.9  name lamp_moat_west
+lamp 8 -0.6 -13  6 0.9  name lamp_moat_east
+lamp -18 -0.8 -7  3 0.8  name lamp_armory
+lamp 0 2.6 -20  7 1  name lamp_yard_south
+lamp 0 2.6 -34  7 1  name lamp_yard_north
+lamp -18 2.6 -39  5 0.9  name lamp_yard_nw
+lamp 18 2.6 -39  5 0.9  name lamp_yard_ne
+lamp -11 2.4 -29  6 0.9  name lamp_west_tower
+lamp -11 8.6 -29  7 1  name lamp_west_top
+lamp 11 2.4 -29  6 0.9  name lamp_east_tower
+lamp 13 5.4 -31  4 0.9  name lamp_landing
+lamp 11 8.6 -29  7 1  name lamp_east_top
+lamp 0 2.6 -48  6 1  name lamp_way_out
 
-sensor area        0 1 -23.5     1.5 0.8 1.5  name yellow_front
-sensor area        -16 1 -20.5   0.5 0.8 0.5  name secret_button
-sensor checkpoint  0 1 0         2 0.8 1
-sensor checkpoint  0 1 -21       2 0.8 1.5
-sensor weapon      -19 0.5 -12   0.4 0.5 0.4  kind 2
-sensor ammo        -19 1 -20     0.3 0.4 0.3  kind 5  amount 4
-sensor ammo        -15 1 -12     0.3 0.4 0.3  kind 3  amount 10
-sensor key         19 1 -19      0.3 0.6 0.3  color 3
-sensor health      17 1 -11      0.3 0.4 0.3  amount 25
-sensor health      -6 1 -1       0.3 0.4 0.3  amount 25
-sensor ammo        6 1 -1        0.3 0.4 0.3  kind 1  amount 40
-sensor armor       -15 1 -24.4   0.4 0.6 0.4  amount 50
-sensor ammo        -13.5 1 -23.5 0.3 0.4 0.3  kind 2  amount 12
-sensor secret      -15.5 1 -24   1.5 0.8 1
-sensor attackers   0 1 -21       0.4 0.8 0.4  wave 0  count 2  role 1  rotate y 180
-sensor attackers   6 1 -22       0.4 0.8 0.4  wave 0  count 1  role 2  rotate y 180
-sensor attackers   -18 1 -15     0.4 0.8 0.4  wave 0  count 1  role 1  rotate y -90
-sensor trigger     15 1 -16      1 0.8 1.5  wave 1
-sensor attackers   0 1 -23       0.4 0.8 0.4  wave 1  count 2  role 3
-sensor trigger     0 1 -27.5     2 0.8 1  wave 2
-sensor attackers   0 1 -36       0.4 0.8 0.4  wave 2  count 2  role 3
-sensor attackers   8 1 -34       0.4 0.8 0.4  wave 2  count 1  role 1
-sensor goal        0 1 -38.5     2 0.8 1
-sensor fall        0 -10 0       80 2 80
+sensor area  -11 3.8 -29  0.9 3.4 0.9  name west_lift_ride
+sensor area        0 1 -41        1.2 0.8 1  name yellow_front
+sensor area        -19.5 -2 -13   0.5 0.8 0.6  name secret_button
+sensor checkpoint  0 1 0          2 0.8 1.5
+sensor checkpoint  0 1 -19        2 0.8 1.5
+sensor checkpoint  -11 7 -33      1 0.8 1
+sensor weapon      -5 0.5 -19     0.4 0.5 0.4  kind 2
+sensor weapon      -13 6.5 -33    0.4 0.5 0.4  kind 9
+sensor weapon      -18 -2.5 -7    0.4 0.5 0.4  kind 4
+sensor key         13 6.8 -32     0.3 0.6 0.3  color 3
+sensor trigger     13 7 -32       0.8 0.8 0.8  wave 1
+sensor health      10 3.9 -31.5   0.3 0.4 0.3  amount 25
+sensor health      -3 -2.6 -13    0.3 0.4 0.3  amount 25
+sensor armor       -16.5 -2 -7    0.4 0.6 0.4  amount 50
+sensor secret      -18 -2 -7      1.8 0.8 0.8
+sensor ammo        -4 1 -21       0.3 0.4 0.3  kind 1  amount 30
+sensor ammo        -9 6.5 -34     0.3 0.4 0.3  kind 1  amount 20
+sensor ammo        16 1 -33       0.3 0.4 0.3  kind 3  amount 10
+sensor ammo        5 1 -38        0.3 0.4 0.3  kind 1  amount 30
+sensor attackers   0 1 -33        0.4 0.8 0.4  wave 0  count 3  role 1
+sensor attackers   -8 -2.2 -13    0.4 0.8 0.4  wave 0  count 1  role 1  rotate y 90
+sensor attackers   -9 1 -32       0.4 0.8 0.4  wave 0  count 1  role 1
+sensor attackers   14 6.8 -27     0.4 0.8 0.4  wave 0  count 1  role 1  rotate y 90
+sensor attackers   8 6.8 -33      0.4 0.8 0.4  wave 0  count 1  role 1  rotate y 90
+sensor attackers   13 3.8 -31     0.4 0.8 0.4  wave 0  count 1  role 2
+sensor attackers   -18 1 -40      0.4 0.8 0.4  wave 1  count 2  role 3
+sensor attackers   18 1 -40       0.4 0.8 0.4  wave 1  count 2  role 3
+sensor goal        0 1 -52        2 0.8 1
+sensor fall        0 -14 -20      80 2 80
