@@ -56,8 +56,17 @@ export interface Holding {
    */
   inView: boolean;
   viewMuzzle: THREE.Vector3 | null;
+  /** (Stage 5k) How far the walk's sway moves it in the view (m: right, up, back; sway.ts). */
+  viewSway: THREE.Vector3;
 }
-export const newHolding = (): Holding => ({ pose: null, sweep: 0, lift: 0, inView: false, viewMuzzle: null });
+export const newHolding = (): Holding => ({
+  pose: null,
+  sweep: 0,
+  lift: 0,
+  inView: false,
+  viewMuzzle: null,
+  viewSway: new THREE.Vector3(),
+});
 
 /**
  * Where the right hand holds a tool, from the middle between the shoulders, in the body's frame turned

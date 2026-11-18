@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, test } from 'vitest';
-import { initPhysics, type Event } from '@manifold/core';
+import { initPhysics, NO_INPUT, type Entity, type Event, type PlayerInput } from '@manifold/core';
 import { missingKeys, notesBetween } from '@manifold/presentation';
 import { WALL, WALL_THEME, WALL_WORDS } from './game';
 import { levelOf } from './play';
@@ -8,6 +8,24 @@ import { attackers, paceOf, WALL as RULES } from './rules';
 beforeAll(initPhysics);
 
 const notices = (events: readonly Event[]) => events.flatMap((e) => (e.type === 'notice' ? [e.say] : []));
+
+/**
+ * (Stage 5k) A jump on the spot, held to its top: how high its feet went (m), when they got there and
+ * when it stood again (s, at 60 steps a second).
+ */
+function jumpOf(f: { me(): Entity; at(): readonly number[]; step(input?: PlayerInput): void }) {
+  for (let i = 0; i < 30 && !f.me().character!.grounded; i++) f.step();
+  const ground = f.at()[1]!;
+  let top = ground;
+  let topAt = 0;
+  for (let k = 1; k < 120; k++) {
+    f.step({ ...NO_INPUT, jump: true });
+    const y = f.at()[1]!;
+    if (y > top + 1e-9) [top, topAt] = [y, k];
+    if (k > 5 && f.me().character!.grounded) return { height: top - ground, top: topAt / 60, landed: k / 60 };
+  }
+  throw new Error('it never came down');
+}
 
 describe('the wall, on the games’ shell (stage 5h)', () => {
   test('its waves: the first a few seconds in; the next a few seconds after the last attacker is down, the defender’s health back; after the last, held', () => {
@@ -66,6 +84,14 @@ describe('the wall, on the games’ shell (stage 5h)', () => {
     // From 0.6 s to see and 0.5 s raised (3.5 degrees), to 0.3 and 0.3 (1.5 degrees); never two at once more.
     expect(paceOf(0)).toMatchObject({ see: 36, every: 90, fair: { windup: 30, spread: 3.5, lag: 12, tokens: 2 } });
     expect(paceOf(20)).toMatchObject({ see: 18, every: 45, aim: 0.3, fair: { windup: 18, spread: 1.5, tokens: 2 } });
+  });
+
+  test('its jump, grounded (stage 5k): its feet 1.1 m up in 0.36 s, on its feet again in about 0.66 s, no longer 2 m on the world’s gravity', () => {
+    const j = jumpOf(levelOf(0));
+    expect(j.height).toBeCloseTo(1.1, 1);
+    expect(j.top).toBeCloseTo(0.36, 1);
+    expect(j.landed).toBeGreaterThan(0.6);
+    expect(j.landed).toBeLessThan(0.72);
   });
 
   test('its words: the same keys in Spanish and English, and every key the game names among them', () => {

@@ -464,7 +464,11 @@ export function mountCamera(
         : new THREE.Vector3(0, 0, -1)
             .applyAxisAngle(new THREE.Vector3(1, 0, 0), deg(model.holding.lift))
             .applyAxisAngle(new THREE.Vector3(0, 1, 0), -deg(model.holding.sweep));
-      const back = (blocking ? VIEW_BLOCK : VIEW_HOLD).clone().addScaledVector(way, -(pose.size[2] * 0.15));
+      // (Stage 5k: moved by the walk's sway, sway.ts.)
+      const back = (blocking ? VIEW_BLOCK : VIEW_HOLD)
+        .clone()
+        .addScaledVector(way, -(pose.size[2] * 0.15))
+        .add(model.holding.viewSway);
       if (pose.model && viewModel?.name !== pose.model) {
         const object = bodies.toolModel(pose.model);
         if (object) {

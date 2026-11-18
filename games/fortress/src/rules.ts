@@ -1,4 +1,4 @@
-import { characterParts } from '@manifold/character';
+import { characterParts, GROUNDED } from '@manifold/character';
 import { quat, vec3, type Vec3 } from '@manifold/common';
 import {
   ARMS_BRAINS,
@@ -88,7 +88,8 @@ function intruder(world: World, player: number, at: Vec3, facing: Vec3) {
     name: player === 1 ? 'intruder' : `intruder_${player}`,
     transform: { position: [...at], rotation: quat.identity() },
     body: parts.body,
-    character: parts.character,
+    // (Stage 5k) Its jump, the grounded one: 1.1 m in 0.36 s, not the world's floaty 2 m.
+    character: { ...parts.character, movement: { ...parts.character.movement, arc: { ...GROUNDED.movement.arc } } },
     appearance: parts.appearance,
     health: { most: FORTRESS.health },
     game: {

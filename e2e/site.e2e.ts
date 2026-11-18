@@ -454,6 +454,7 @@ const VIEW_VALUES: Record<string, string> = {
   'view.fov': '75',
   'view.crosshair': 'off',
   'view.shake': 'off',
+  'view.bob': 'off',
   'view.subtitles': 'on',
   'view.hud': 'off',
   'view.sky': '20.5',
@@ -1196,7 +1197,8 @@ test('the camera, steady: running to a side and jumping it does not turn, as fol
     await page.keyboard.press('Space');
     await afterSteps(page, 40);
     await page.keyboard.up('KeyD');
-    await settled(page, 'camera');
+    // Read at once: left alone, following turns back to where the course's zone suggests looking (stage
+    // 3h), more the longer it waits (a reading after it settled was a matter of timing: 0.086 one run).
     return Math.abs(heading(await position(page, 'look')) - before);
   };
   // Following, a step to a side turns it round the character, and with it where forward is (the tower's
@@ -1372,6 +1374,108 @@ test('the wall’s attackers are fair: each raises its weapon, seen and heard, b
   expect(Number(await game.getAttribute('data-readies')), 'warned before the first hit').toBeGreaterThan(0);
   // The hit shook the view (a trauma that decays in under a second: it was there).
   expect(await game.getAttribute('data-trauma')).not.toBeNull();
+  // (Stage 5k) In first person, the camera is somewhere: three numbers (the walk's sway once made it "not a number").
+  expect((await position(page, 'camera')).every(Number.isFinite)).toBe(true);
+  expect(list).toEqual([]);
+});
+
+test('a shot that misses near the ears is heard going by (stage 5k): strafing before a guard of the arena, its aim behind', async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  const list = errors(page);
+  const game = page.locator('#game');
+  await page.goto('jugar/dojo/arena/');
+  await expect.poll(async () => (await position(page, 'player')).length, { timeout: 15_000 }).toBe(3);
+  // On the east guard's beat, in its sight; going from side to side, its aim, which follows, trails behind.
+  await page.keyboard.press('Backquote');
+  await typeInConsole(page, 'view.camera first', 'dojo.goto 8 1 1');
+  await page.keyboard.press('Escape');
+  await expect
+    .poll(
+      async () => {
+        for (const key of ['KeyD', 'KeyA']) {
+          await page.keyboard.down(key);
+          await afterSteps(page, 36);
+          await page.keyboard.up(key);
+        }
+        return Number(await game.getAttribute('data-whizzes'));
+      },
+      { timeout: 60_000 },
+    )
+    .toBeGreaterThan(0);
+  expect(list).toEqual([]);
+});
+
+test('explosions (stage 5k): the launcher’s rocket leaves a trail, and blows into a flash, fire, sparks, smoke, rubble and a flare of light', async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  const list = errors(page);
+  const game = page.locator('#game');
+  await page.goto('jugar/dojo/armory/');
+  await expect.poll(async () => (await position(page, 'player')).length, { timeout: 15_000 }).toBe(3);
+  await page.keyboard.press('Backquote');
+  await typeInConsole(page, 'dojo.goto 5 1 8.5');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.mg-hud')).toContainText('lanzador');
+  // At a tenth of the speed, to see it as it happens (the effects go at the world's pace).
+  await page.keyboard.press('Backquote');
+  await typeInConsole(page, 'view.timescale 0.1');
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('KeyX');
+  // In flight: its trail.
+  await expect.poll(() => game.getAttribute('data-particles').then(Number), { timeout: 20_000 }).toBeGreaterThan(5);
+  await expect.poll(() => game.getAttribute('data-blasts'), { timeout: 60_000 }).toBe('1');
+  // Its particles (a blast throws about ninety), its light, its rubble, its sound.
+  expect(Number(await game.getAttribute('data-particles'))).toBeGreaterThan(60);
+  expect(Number(await game.getAttribute('data-flare'))).toBeGreaterThan(0);
+  await expect.poll(() => game.getAttribute('data-fragments').then(Number)).toBeGreaterThan(0);
+  await expect(game).toHaveAttribute('data-sound', 'blast');
+  // Paused, they hold; and at the world's own pace, they are gone in a few seconds but the scorch, if it struck the floor.
+  await page.keyboard.press('Backquote');
+  await typeInConsole(page, 'view.timescale 1');
+  await page.keyboard.press('Escape');
+  await expect.poll(() => game.getAttribute('data-particles').then(Number), { timeout: 20_000 }).toBeLessThanOrEqual(1);
+  expect(list).toEqual([]);
+});
+
+test('the walk’s sway (stage 5k): in first person the eyes dip with each step and sink on landing; with view.bob off they glide', async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  const list = errors(page);
+  const game = page.locator('#game');
+  await page.goto('jugar/dojo/course/');
+  await expect.poll(() => game.getAttribute('data-player'), { timeout: 20_000 }).toBeTruthy();
+  await page.keyboard.press('Backquote');
+  await typeInConsole(page, 'view.camera first');
+  await page.keyboard.press('Escape');
+  /** How far up and down the eyes went while it walked ahead for a second and a half (m). */
+  const swayWalking = async () => {
+    const heights: number[] = [];
+    await page.keyboard.down('KeyW');
+    await afterSteps(page, 20);
+    for (let i = 0; i < 24; i++) {
+      heights.push((await position(page, 'camera'))[1]!);
+      await page.waitForTimeout(60);
+    }
+    await page.keyboard.up('KeyW');
+    await page.keyboard.down('KeyS');
+    await afterSteps(page, 60);
+    await page.keyboard.up('KeyS');
+    return Math.max(...heights) - Math.min(...heights);
+  };
+  expect(await swayWalking()).toBeGreaterThan(0.02);
+  expect(Number(await game.getAttribute('data-bob'))).toBeGreaterThan(2);
+  // A jump, and the eyes sink a few centimeters as it lands.
+  await page.keyboard.press('Space');
+  await expect.poll(() => game.getAttribute('data-dip').then(Number), { timeout: 10_000 }).toBeGreaterThan(2);
+  await page.keyboard.press('Backquote');
+  await typeInConsole(page, 'view.bob false');
+  await page.keyboard.press('Escape');
+  expect(await swayWalking()).toBeLessThan(0.004);
+  expect((await position(page, 'camera')).every(Number.isFinite)).toBe(true);
   expect(list).toEqual([]);
 });
 

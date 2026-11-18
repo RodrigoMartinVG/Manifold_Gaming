@@ -31,6 +31,21 @@ export const PLATFORMER = {
 } as const satisfies Pick<CharacterSpec, 'movement' | 'can'>;
 
 /**
+ * THE GROUNDED CHARACTER (stage 5k, decision 0031: the author found the jump of some games badly calibrated,
+ * "quizás sea la gravedad"): where jumping is not what the game is about (the fortress, the wall), a jump as
+ * the shooters and the stealth games give one: 1.1 m in 0.36 s (its own gravity, 17 m/s², and speed, 6.3 m/s,
+ * from `arcOf`), 1.4 times as strong falling (24 m/s², about Quake's), twice let go rising (a short hop), no
+ * faster down than 30 m/s, nudged up to 10 cm round a corner its head clips. Until 5k they had the world's
+ * gravity, 9.81 m/s², and 6.5 m/s: 2.15 m up in 0.66 s and 1.3 s in the air, higher than the character
+ * and as slow as on a smaller planet. (Quake's, from its code: 270 units/s against 800 units/s², at about
+ * 32 units a meter, 1.4 m in 0.34 s. The world's gravity stays the Earth's: what falls besides the
+ * character, a crate, a grenade, falls as it did.)
+ */
+export const GROUNDED = {
+  movement: { arc: { height: 1.1, time: 0.36, release: 2, fall: 1.4, terminal: 30, corner: 0.1 } },
+} as const satisfies Pick<CharacterSpec, 'movement'>;
+
+/**
  * What the mannequin's body is in each way of moving where it is not the standing capsule (stage 2e,
  * for phase 4's blows), from its animations: crouched in the air, its knees up; gliding, tilted 55°
  * forward; crouching. (The controller moves the standing capsule, except crouching: stage 4b.)

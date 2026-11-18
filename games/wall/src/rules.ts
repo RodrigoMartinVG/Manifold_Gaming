@@ -1,4 +1,4 @@
-import { characterParts } from '@manifold/character';
+import { characterParts, GROUNDED } from '@manifold/character';
 import { quat, sinCosDegrees, vec3, type Vec3 } from '@manifold/common';
 import {
   ARMS_BRAINS,
@@ -122,7 +122,8 @@ function defender(world: World, player: number, at: Vec3, facing: Vec3, waves: n
     name: player === 1 ? 'defender' : `defender_${player}`,
     transform: { position: [...at], rotation: quat.identity() },
     body: parts.body,
-    character: parts.character,
+    // (Stage 5k) Its jump, the grounded one: 1.1 m in 0.36 s, not the world's floaty 2 m.
+    character: { ...parts.character, movement: { ...parts.character.movement, arc: { ...GROUNDED.movement.arc } } },
     appearance: parts.appearance,
     health: { most: WALL.health },
     game: {

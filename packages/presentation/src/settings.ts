@@ -32,6 +32,8 @@ export const SETTINGS: readonly Setting[] = [
   { name: 'view.shake', say: 'settings.shake', control: { kind: 'toggle' } },
   // (Stage 5j.)
   { name: 'view.glow', say: 'settings.glow', control: { kind: 'toggle' } },
+  // (Stage 5k: comfort, shown where the camera can be first person.)
+  { name: 'view.bob', say: 'settings.bob', control: { kind: 'toggle' } },
 ];
 
 /**

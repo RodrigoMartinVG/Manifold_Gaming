@@ -101,5 +101,8 @@
  *      as `ready`) before a fair gunner's shot; its aim where the target was, its error on the shot's own
  *      dice, at most two raised at once, the first shot a miss, a flinch when hit (`arms.gunner`'s
  *      `fair`). A gunner without `fair` fights as in 42 to the bit (the Dojo's replays keep their hashes)
+ *  44  stage 5k: the fortress's intruder and the wall's defender jump as grounded characters
+ *      (`GROUNDED`: an arc of 1.1 m in 0.36 s, falling 1.4 times as fast), no longer 2.15 m on the
+ *      world's gravity; the engine, the Dojo and the tower as in 43
  */
-export const SIMULATION_VERSION = 43;
+export const SIMULATION_VERSION = 44;

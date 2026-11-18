@@ -153,6 +153,12 @@ As it went (5j): footsteps by surface were already there (stage 3f), from every 
 layers depend on each game, so they go with its stage: tiers by the guards' awareness (5l), combat (5n), a layer per
 floor (5o).
 
+As it went (5k): the floaty jump was the world's gravity under the engine's old jump (6.5 m/s against 9.81 m/s², 2.15
+m up and 1.3 s in the air); the fortress and the wall now jump as grounded characters (`GROUNDED`: 1.1 m in 0.36 s,
+falling at 1.4 times that gravity), the world's gravity unchanged. The sounds stay made, not recorded (decision 0027),
+in layers after Farnell's "Designing Sound", heard as sound travels (the highs off with distance, late at 343 m/s, a
+made convolution echo, a compressor). The walk's sway is a comfort setting (`view.bob`), as the research asked.
+
 ## The author's answers
 
 The author took every recommendation (2026-11-18):

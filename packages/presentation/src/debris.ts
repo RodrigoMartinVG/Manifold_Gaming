@@ -6,6 +6,8 @@ import type { GamePage, Piece } from './page';
 
 /** How many fragments a break makes, how long they last (s), and the last part of it, when they shrink away. */
 const FRAGMENTS = 14;
+/** (Stage 5k) How many chunks of rubble a blast throws, of what color (soot over stone). */
+const RUBBLE = { count: 9, color: 0x3a342e };
 const LIFE = 2.5;
 const FADE = 0.6;
 
@@ -22,8 +24,9 @@ interface Fragment {
  * pieces fly from where it was, made from the break's seed (the same ones in every copy of the match),
  * in A PHYSICS OF THEIR OWN: a world of the presentation's, with the level's fixed boxes to fall on and
  * bounce off, that no gameplay ray sees and nobody hashes. Debris that really falls, in every profile,
- * without touching the match. They last a couple of seconds, and shrink away. (For the browser tests:
- * how many there are, `data-fragments`.)
+ * without touching the match. They last a couple of seconds, and shrink away. (Stage 5k: a blast throws
+ * rubble the same way, larger and faster, from a seed made of where and when it blew, so every copy of
+ * the match throws the same.) (For the browser tests: how many there are, `data-fragments`.)
  */
 export function mountDebris(page: GamePage, o: { timeScale(): number }): Piece {
   const { scene } = page.stage;
@@ -64,13 +67,18 @@ export function mountDebris(page: GamePage, o: { timeScale(): number }): Piece {
       count();
     },
     event(ev, world) {
-      if (ev.type !== 'broke') return;
+      if (ev.type !== 'broke' && ev.type !== 'blast') return;
       const p = debrisWorld(world);
-      const random = new Random(ev.seed);
-      const color = world.entities.get(ev.entity)?.appearance?.color ?? 0xb8b0a0;
-      for (let i = 0; i < FRAGMENTS; i++) {
-        const size = random.between(0.02, 0.06);
-        const out: Vec3 = vec3.normalize([random.between(-1, 1), random.between(-0.2, 1), random.between(-1, 1)]);
+      const blast = ev.type === 'blast';
+      const random = new Random(
+        blast
+          ? (Math.imul(world.tick, 2654435761) ^ Math.round(ev.at[0] * 97 + ev.at[1] * 389 + ev.at[2] * 1543)) >>> 0
+          : ev.seed,
+      );
+      const color = blast ? RUBBLE.color : (world.entities.get(ev.entity)?.appearance?.color ?? 0xb8b0a0);
+      for (let i = 0; i < (blast ? RUBBLE.count : FRAGMENTS); i++) {
+        const size = blast ? random.between(0.05, 0.14) : random.between(0.02, 0.06);
+        const out: Vec3 = vec3.normalize([random.between(-1, 1), random.between(blast ? 0.3 : -0.2, 1), random.between(-1, 1)]);
         const transform: Transform = {
           position: vec3.add(ev.at, vec3.scale(out, random.between(0, 0.08))),
           rotation: quat.identity(),
@@ -80,7 +88,7 @@ export function mountDebris(page: GamePage, o: { timeScale(): number }): Piece {
             type: 'dynamic',
             shape: { kind: 'box', halfExtents: [size / 2, size / 2, size / 2] },
             restitution: 0.4,
-            linearVelocity: vec3.scale(out, random.between(2, 4.5)),
+            linearVelocity: vec3.scale(out, blast ? random.between(4, 10) : random.between(2, 4.5)),
             angularVelocity: [random.between(-15, 15), random.between(-15, 15), random.between(-15, 15)],
           },
           transform,

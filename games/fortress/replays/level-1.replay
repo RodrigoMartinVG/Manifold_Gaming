@@ -1,4 +1,4 @@
-# Manifold replay 43
+# Manifold replay 44
 # The fortress's outer wall, played unseen to its way out: a lantern put out, the dark yard.
 # A reference replay (stage 5f, as the tower’s since 5d): playing it must end with the hash on its
 # last line. Recorded by games/fortress/src/levels.test.ts; recorded again (npm run references) only
@@ -58,4 +58,4 @@ input 790 1 move @58:0.68 crouch
 input 791 1 move @58:0.6 crouch
 input 792 1 move @58:0.53 crouch
 input 793 1 move @1
-end 849 a811feba
+end 849 0267486f

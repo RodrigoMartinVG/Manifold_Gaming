@@ -7,6 +7,7 @@ import { CAMERA_COMMANDS, CAMERA_VARIABLES } from './camera';
 import { CONSOLE_COMMANDS } from './console';
 import { DRIVE_COMMANDS, DRIVE_VARIABLES } from './drive';
 import { SHAKE_VARIABLE } from './fire';
+import { SWAY_VARIABLE } from './sway';
 import { INSPECT_COMMANDS } from './inspect';
 import { LIGHTS_VARIABLES } from './lights';
 import { MATCH_COMMANDS, MATCH_VARIABLES } from './match';
@@ -38,6 +39,8 @@ export const PRESENTATION_VARIABLES: readonly VariableInfo[] = [
   // (Stage 5i: every page has the weapons' feel. Not the glow of 5j, nor the music of 5b: only a game's
   // page with them declares them, and the Dojo's has neither.)
   SHAKE_VARIABLE,
+  // (Stage 5k: every page has the walk's sway, in first person.)
+  SWAY_VARIABLE,
 ];
 
 export const PRESENTATION_COMMANDS: readonly CommandInfo[] = [

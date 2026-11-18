@@ -40,6 +40,8 @@ export const CONSOLE_ES: Readonly<Record<string, string>> = {
     'menos movimiento de la cámara, para quien se marea: no sigue girando después de un arrastre, y vuelve atrás del personaje más despacio',
   'view.shake':
     'un golpe recibido, o una explosión cerca, sacude la vista (etapa 5i): un momento, más cuanto más fuerte; apagado, la vista queda quieta, para quien se marea',
+  'view.bob':
+    'en primera persona, la vista se balancea al caminar (etapa 5k): baja en cada paso y va hacia el pie de apoyo, más corriendo, se hunde un poco al aterrizar, y lo que tiene en las manos se mece; apagado, se desliza (también lo apaga `view.calm`)',
   'view.subtitles': 'subtítulos de los sonidos: cada sonido cerca de la cámara, escrito abajo, con una flecha hacia donde vino',
   'view.sky':
     'la hora que muestra el cielo en esta página, de 0 a 24 (etapa 5a): `view.sky 6` un amanecer, `view.sky 20.5` la hora azul, `view.sky 0` una noche con estrellas; solo el dibujo (cuánta luz hay sigue siendo la del nivel); −1, la hora del nivel',

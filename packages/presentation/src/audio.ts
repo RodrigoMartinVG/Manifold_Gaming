@@ -1,6 +1,7 @@
 import type { VariableInfo } from '@manifold/commands';
-import type { Event } from '@manifold/core';
+import type { Event, World } from '@manifold/core';
 import type { GamePage, Piece } from './page';
+import * as synth from './synth';
 
 /** What the sound lets people change, as data (the site's console reference reads it). */
 export const AUDIO_VARIABLES = {
@@ -23,236 +24,300 @@ type Sound = Extract<Event, { type: 'sound' }>;
 const FIRED_HEARD: Readonly<Record<string, number>> = { dart: 30, bolt: 20, shotgun: 45, launcher: 40 };
 export const firedHeard = (kind: string) => FIRED_HEARD[kind] ?? 8;
 
-/** The tone of a step or a hit on each surface: where its noise is (Hz), and a ring if it has one (Hz, and how long, s). */
-const SURFACES: Record<string, { noise: number; q: number; ring?: [frequencies: number[], seconds: number] }> = {
-  stone: { noise: 900, q: 1.2 },
-  wood: { noise: 420, q: 3, ring: [[180, 360], 0.12] },
-  metal: { noise: 2400, q: 6, ring: [[1830, 2770, 4120], 0.45] },
-  glass: { noise: 3600, q: 8, ring: [[4200, 6100], 0.18] },
-  ice: { noise: 3000, q: 0.8 },
+/**
+ * How much of each kind of sound goes to the place's echo (stage 5k): a step hardly, a shot a good
+ * part, a blast most (it is the echo that tells how large it was).
+ */
+const ECHO: Readonly<Record<string, number>> = {
+  step: 0.08,
+  land: 0.15,
+  hit: 0.25,
+  impact: 0.3,
+  door: 0.3,
+  lift: 0.2,
+  break: 0.35,
+  blast: 0.9,
+  shout: 0.4,
+  ready: 0.2,
+  fired: 0.55,
+  whiz: 0.1,
 };
+/** The place's echo: how long it rings (s, its RT60), and how loud it comes back. */
+const ROOM = { seconds: 1.6, gain: 0.5 };
+/**
+ * A shot passing within this many meters of the ears is heard going by (a fair gunner's first shot passes
+ * 0.8 m to a side of its target, with an error as wide as 10° when it has just seen them: at 15 m, up to
+ * 3.5 m off).
+ */
+const WHIZ = 4;
+/** How far a rocket in flight is heard (m), and how loud its hiss is up close. */
+const ROCKET = { heard: 30, gain: 0.22 };
 
 /**
- * THE SOUND (stage 3f, decision 0015): what the simulation's sounds say, synthesized in the browser
- * with Web Audio (noise through a filter, a few partials that ring, envelopes), without recorded
- * files. A step's tone is its surface's (stone thuds, wood knocks, metal rings, glass tinkles, ice
- * crunches), as loud as how fast it went; a hit, as loud as its energy; a door creaks, a lift hums, a
- * break shatters. Heard from the camera, quieter with distance until the sound's own radius (and a
- * little more, for how far the camera is behind the player), to the left or the right as it is. The browser lets audio start only after a
- * key or a click: until then nothing is made. (For the browser tests: how many it made, and the last.)
+ * THE SOUND (stage 3f, decision 0015; rebuilt in 5k, decision 0031): what the simulation says happened,
+ * made in the browser with Web Audio, without recorded files, each sound in layers (`synth.ts`: a
+ * transient, a body, a low thump through a soft clip, and a tail). Heard from the camera as sound
+ * travels (5k):
+ *
+ *   - quieter with distance, silent past the sound's own reach (and a little more, for how far the
+ *     camera is behind the player), to the left or the right as it is;
+ *   - the air takes the highs off with distance, and a far sound comes late, at 343 m/s (a far blast is
+ *     seen before it is heard);
+ *   - every sound sends a share to THE PLACE'S ECHO (a convolution reverb from a made impulse response),
+ *     which falls with distance more slowly than the sound itself: far, it is mostly echo;
+ *   - all of it through a compressor, which keeps many at once from clipping and gives them punch.
+ *
+ * Besides the world's sounds and the weapons used (`fired`): where a shot strikes what does not live, a
+ * tick (and now and then a ricochet); a shot that passes near the ears, its whine; a rocket in flight,
+ * its hiss following it, higher coming and lower going (Doppler). The browser lets audio start only
+ * after a key or a click: until then nothing is made. (For the browser tests: `data-sounds`, how many
+ * it made, `data-sound`, the last; `data-whizzes`, `data-echo`, the echo's RT60.)
  */
 export function mountAudio(page: GamePage): Piece {
   // The page's mixer (stage 5b): its context, made on the first key or click, and the sounds' channel.
   let context: AudioContext | null = null;
-  let master: GainNode | null = null;
-  let noise: AudioBuffer | null = null;
+  let kit: synth.Kit | null = null;
+  let bus: GainNode | null = null;
+  let echo: GainNode | null = null;
   let made = 0;
+  let whizzes = 0;
+  /** The rockets heard in flight: each its hiss, its pan, its gain, its rate. */
+  const rockets = new Map<number, { source: AudioBufferSourceNode; gain: GainNode; pan: StereoPannerNode; last: number }>();
   page.mixer.volume('sounds', Number(AUDIO_VARIABLES.volume.default));
   page.registry.declareVariable({ ...AUDIO_VARIABLES.volume, onChange: (v) => page.mixer.volume('sounds', Number(v)) });
   page.mixer.onStart((c) => {
+    const master = page.mixer.channel('sounds');
+    if (!master) return;
     context = c;
-    master = page.mixer.channel('sounds');
-    noise = c.createBuffer(1, c.sampleRate, c.sampleRate);
-    const data = noise.getChannelData(0);
-    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+    kit = synth.makeKit(c);
+    // Everything into a compressor, then the channel.
+    const squeeze = c.createDynamicsCompressor();
+    squeeze.threshold.value = -14;
+    squeeze.knee.value = 12;
+    squeeze.ratio.value = 4;
+    squeeze.attack.value = 0.003;
+    squeeze.release.value = 0.25;
+    squeeze.connect(master);
+    bus = c.createGain();
+    bus.connect(squeeze);
+    // The place's echo.
+    const reverb = c.createConvolver();
+    const [left, right] = synth.impulseResponse(c.sampleRate, ROOM.seconds);
+    const ir = c.createBuffer(2, left.length, c.sampleRate);
+    ir.copyToChannel(left as Float32Array<ArrayBuffer>, 0);
+    ir.copyToChannel(right as Float32Array<ArrayBuffer>, 1);
+    reverb.buffer = ir;
+    const back = c.createGain();
+    back.gain.value = ROOM.gain;
+    reverb.connect(back).connect(squeeze);
+    echo = c.createGain();
+    echo.connect(reverb);
+    page.container.dataset.echo = ROOM.seconds.toFixed(1);
   });
 
-  /** A burst of noise through a band, with a quick envelope. */
-  const burst = (out: AudioNode, at: number, frequency: number, q: number, gain: number, seconds: number) => {
-    const source = context!.createBufferSource();
-    source.buffer = noise;
-    const band = context!.createBiquadFilter();
-    band.type = 'bandpass';
-    band.frequency.value = frequency;
-    band.Q.value = q;
-    const envelope = context!.createGain();
-    envelope.gain.setValueAtTime(0, at);
-    envelope.gain.linearRampToValueAtTime(gain, at + 0.004);
-    envelope.gain.exponentialRampToValueAtTime(0.0001, at + seconds);
-    source.connect(band).connect(envelope).connect(out);
-    source.start(at, Math.random() * 0.5);
-    source.stop(at + seconds + 0.02);
-  };
-  /** A tone that rings and fades (a partial of metal, of wood, of glass). */
-  const ring = (
-    out: AudioNode,
-    at: number,
-    frequency: number,
-    gain: number,
-    seconds: number,
-    type: OscillatorType = 'sine',
-    to?: number,
-  ) => {
-    const osc = context!.createOscillator();
-    osc.type = type;
-    osc.frequency.setValueAtTime(frequency, at);
-    if (to) osc.frequency.linearRampToValueAtTime(to, at + seconds);
-    const envelope = context!.createGain();
-    envelope.gain.setValueAtTime(0, at);
-    envelope.gain.linearRampToValueAtTime(gain, at + 0.005);
-    envelope.gain.exponentialRampToValueAtTime(0.0001, at + seconds);
-    osc.connect(envelope).connect(out);
-    osc.start(at);
-    osc.stop(at + seconds + 0.02);
-  };
+  const live = () =>
+    !!context && !!kit && !!bus && !!echo && context.state === 'running' && page.mixer.channel('sounds')!.gain.value > 0;
 
-  /** One sound, made: through a gain for how loud it is from here, and a pan for which side. */
-  const make = (s: Sound, loudness: number, pan: number) => {
-    const at = context!.currentTime + 0.01;
-    const out = context!.createGain();
-    out.gain.value = loudness;
-    const side = context!.createStereoPanner();
-    side.pan.value = pan;
-    out.connect(side).connect(master!);
-    const surface = SURFACES[s.surface ?? 'stone'] ?? SURFACES.stone!;
-    switch (s.sound) {
-      case 'step':
-      case 'land': {
-        const hard = s.sound === 'land' ? 1.6 : 1;
-        burst(out, at, surface.noise, surface.q, 0.5 * hard, 0.07 * hard);
-        ring(out, at, 80 * hard, 0.35 * hard, 0.08);
-        if (surface.ring) for (const f of surface.ring[0]) ring(out, at, f, 0.08, surface.ring[1]);
-        break;
-      }
-      case 'hit': {
-        const strength = Math.min(1, Math.sqrt(s.energy) / 1.5);
-        burst(out, at, surface.noise * 0.8, surface.q, 0.6 * strength + 0.1, 0.12);
-        ring(out, at, 110, 0.5 * strength + 0.1, 0.12);
-        if (surface.ring) for (const f of surface.ring[0]) ring(out, at, f * 0.9, 0.15 * strength, surface.ring[1] * 1.5);
-        break;
-      }
-      case 'door':
-        ring(out, at, 220, 0.08, 0.6, 'sawtooth', 130);
-        burst(out, at, 600, 2, 0.12, 0.5);
-        break;
-      case 'lift':
-        ring(out, at, 70, 0.12, 0.9, 'square', 75);
-        break;
-      case 'break':
-        burst(out, at, 4000, 0.7, 0.7, 0.35);
-        for (let i = 0; i < 8; i++)
-          ring(out, at + Math.random() * 0.2, 2200 + Math.random() * 4500, 0.12, 0.15 + Math.random() * 0.2);
-        break;
-      case 'blast':
-        // (Stage 4f) A deep thump and a long rush of noise.
-        ring(out, at, 45, 0.9, 0.7, 'sine', 30);
-        burst(out, at, 900, 0.5, 0.9, 1.1);
-        break;
-      case 'shout':
-        // (Stage 5e) A guard's call: two short voiced tones, falling, and breath.
-        ring(out, at, 240, 0.12, 0.22, 'sawtooth', 200);
-        ring(out, at + 0.24, 210, 0.12, 0.3, 'sawtooth', 170);
-        burst(out, at, 1400, 1.5, 0.08, 0.4);
-        break;
-      case 'ready':
-        // (Stage 5i) A weapon raised to take aim: a metal click and a short rising whine, the warning.
-        burst(out, at, 2600, 6, 0.3, 0.03);
-        ring(out, at + 0.02, 520, 0.16, 0.32, 'triangle', 980);
-        break;
-    }
-    made++;
-    page.container.dataset.sounds = String(made);
-    page.container.dataset.sound = `${s.sound} ${s.surface ?? ''}`.trim();
+  /** The camera, where the ears are: its place and its right. */
+  const ears = () => {
+    const camera = page.stage.camera;
+    const m = camera.matrixWorld.elements;
+    return { at: camera.position, right: [m[0]!, m[1]!, m[2]!] as const };
   };
 
   /**
-   * A weapon used (stage 5g: `fired`), heard: each kind its own, made like the rest. The dart cracks,
-   * the bolt twangs, the shotgun booms (a low thump under a wide rush), the launcher thumps and its
-   * rocket hisses away; what is swung or thrown is a whoosh.
+   * A sound at `at`, heard as far as `radius`: its chain from the ears' point of view (late by the
+   * distance, its highs taken off, to its side, and its share to the echo), or null if it is not heard.
    */
-  const fire = (kind: string, loudness: number, pan: number) => {
-    const at = context!.currentTime + 0.01;
-    const out = context!.createGain();
-    out.gain.value = loudness;
-    const side = context!.createStereoPanner();
-    side.pan.value = pan;
-    out.connect(side).connect(master!);
-    switch (kind) {
-      case 'dart':
-        burst(out, at, 3200, 0.9, 0.5, 0.06);
-        ring(out, at, 170, 0.35, 0.09, 'sine', 70);
-        break;
-      case 'bolt':
-        ring(out, at, 330, 0.2, 0.16, 'triangle', 210);
-        burst(out, at, 1800, 2, 0.25, 0.05);
-        break;
-      case 'shotgun':
-        ring(out, at, 75, 0.85, 0.32, 'sine', 38);
-        burst(out, at, 650, 0.45, 0.9, 0.3);
-        burst(out, at, 2600, 0.8, 0.35, 0.09);
-        break;
-      case 'launcher':
-        ring(out, at, 95, 0.6, 0.3, 'sine', 50);
-        burst(out, at + 0.03, 1300, 0.6, 0.35, 0.55);
-        break;
-      default:
-        // The stick, a grenade, smoke, a flare: a whoosh.
-        burst(out, at, 700, 0.7, 0.22, 0.18);
-    }
-    made++;
-    page.container.dataset.sounds = String(made);
-    page.container.dataset.sound = `fired ${kind}`;
-  };
-
-  /** How loud a sound at `at` is from the camera, and to which side; null past its reach. */
-  const heard = (at: readonly number[], radius: number): { loudness: number; pan: number } | null => {
-    // Heard from the camera: what the player sees is what it hears.
-    const camera = page.stage.camera;
-    const listener = camera.position;
+  const placed = (at: readonly number[], radius: number, kind: string, loud = 1): { out: AudioNode; when: number } | null => {
+    if (!live()) return null;
+    const c = context!;
+    const { at: listener, right } = ears();
     const dx = at[0]! - listener.x;
     const dy = at[1]! - listener.y;
     const dz = at[2]! - listener.z;
     const d = Math.hypot(dx, dy, dz);
-    // Quieter with distance, silent past its radius (with a little more room for the camera's distance).
-    const reach = radius + 6;
-    if (d >= reach) return null;
-    // Which side: the camera's right, as the screen has it.
-    const right = {
-      x: camera.matrixWorld.elements[0]!,
-      y: camera.matrixWorld.elements[1]!,
-      z: camera.matrixWorld.elements[2]!,
-    };
-    const pan = d > 1e-6 ? Math.max(-1, Math.min(1, (dx * right.x + dy * right.y + dz * right.z) / d)) : 0;
-    return { loudness: (1 - d / reach) ** 2, pan: pan * 0.8 };
+    // (A little more room than its radius, for how far the camera is behind the player.)
+    const h = synth.heardFrom(d, radius + 6);
+    if (!h) return null;
+    const pan = d > 1e-6 ? Math.max(-1, Math.min(1, (dx * right[0] + dy * right[1] + dz * right[2]) / d)) : 0;
+    const input = c.createGain();
+    input.gain.value = loud;
+    const air = c.createBiquadFilter();
+    air.type = 'lowpass';
+    air.frequency.value = h.cutoff;
+    air.Q.value = 0.5;
+    const side = c.createStereoPanner();
+    side.pan.value = pan * 0.8;
+    const dry = c.createGain();
+    dry.gain.value = h.dry;
+    const wet = c.createGain();
+    wet.gain.value = h.wet * (ECHO[kind] ?? 0.2);
+    input.connect(air).connect(side);
+    side.connect(dry).connect(bus!);
+    side.connect(wet).connect(echo!);
+    // The chain lets go once its sound is over (a few seconds at most, a blast's tail).
+    return { out: input, when: c.currentTime + 0.01 + h.delay };
+  };
+  const counted = (name: string) => {
+    made++;
+    page.container.dataset.sounds = String(made);
+    page.container.dataset.sound = name;
   };
 
-  /**
-   * (Stage 5i) The page's own hits, heard: a short tick for a hit, a deeper thud for bringing someone
-   * down; not placed (they are about the shot, not where it struck), as the marker on the crosshair.
-   */
-  const struck = (down: boolean) => {
-    const at = context!.currentTime + 0.01;
-    const out = context!.createGain();
-    out.gain.value = 0.5;
-    out.connect(master!);
-    if (down) {
-      ring(out, at, 320, 0.35, 0.22, 'triangle', 120);
-      burst(out, at, 700, 1.2, 0.25, 0.12);
-    } else ring(out, at, 1900, 0.22, 0.05, 'square', 1500);
+  /** One of the world's sounds, made. */
+  const make = (s: Sound) => {
+    const p = placed(s.at, s.radius, s.sound);
+    if (!p) return;
+    const k = kit!;
+    switch (s.sound) {
+      case 'step':
+        synth.step(k, p.out, p.when, s.surface, Math.min(1.4, 0.6 + s.speed / 10));
+        break;
+      case 'land':
+        synth.land(k, p.out, p.when, s.surface, Math.min(1.6, 0.5 + s.speed / 10));
+        break;
+      case 'hit':
+        synth.hit(k, p.out, p.when, s.surface, Math.min(1, Math.sqrt(s.energy) / 1.5));
+        break;
+      case 'door':
+        synth.door(k, p.out, p.when);
+        break;
+      case 'lift':
+        synth.lift(k, p.out, p.when);
+        break;
+      case 'break':
+        synth.shatter(k, p.out, p.when);
+        break;
+      case 'blast':
+        synth.blast(k, p.out, p.when);
+        break;
+      case 'shout':
+        synth.shout(k, p.out, p.when);
+        break;
+      case 'ready':
+        synth.ready(k, p.out, p.when);
+        break;
+    }
+    counted(`${s.sound} ${s.surface ?? ''}`.trim());
+  };
+
+  /** What a shot struck, by what it is made of (its body's material), or null if it lives. */
+  const struckSurface = (id: number | null): string | null | false => {
+    if (id === null) return null;
+    const e = page.session.world.entities.get(id);
+    if (e?.health) return false;
+    return e?.body?.material ?? null;
+  };
+
+  /** A shot from `start` to `end`: if it passed near the ears (and not from the page's own character), its whine. */
+  const passing = (from: number, start: readonly number[], end: readonly number[]) => {
+    const hero = page.player();
+    if (hero && from === hero.id) return;
+    const { at: l } = ears();
+    const by = synth.passedBy(start, end, [l.x, l.y, l.z]);
+    if (!by || by.distance > WHIZ) return;
+    const p = placed(by.point, WHIZ + 2, 'whiz');
+    if (!p) return;
+    synth.whiz(kit!, p.out, p.when, 1 - by.distance / WHIZ);
+    page.container.dataset.whizzes = String(++whizzes);
+  };
+
+  /** A rocket's hiss, following it: louder near, to its side, its pitch by how fast it comes or goes. */
+  const rocketsHeard = (world: World) => {
+    const seen = new Set<number>();
+    if (live()) {
+      const c = context!;
+      const { at: l, right } = ears();
+      for (const e of world.entities.values()) {
+        if (e.projectile?.kind !== 'rocket' || !e.transform) continue;
+        const [x, y, z] = e.transform.position;
+        const d = Math.hypot(x - l.x, y - l.y, z - l.z);
+        const h = synth.heardFrom(d, ROCKET.heard);
+        if (!h) continue;
+        seen.add(e.id);
+        let r = rockets.get(e.id);
+        if (!r) {
+          const source = c.createBufferSource();
+          source.buffer = kit!.pink;
+          source.loop = true;
+          const band = c.createBiquadFilter();
+          band.type = 'bandpass';
+          band.frequency.value = 1600;
+          band.Q.value = 1.2;
+          const gain = c.createGain();
+          gain.gain.value = 0;
+          const pan = c.createStereoPanner();
+          source.connect(band).connect(gain).connect(pan).connect(bus!);
+          source.start(c.currentTime, kit!.random());
+          r = { source, gain, pan, last: d };
+          rockets.set(e.id, r);
+        }
+        // Coming nearer, higher; going, lower: f' = f · c / (c + v), v the rate the distance grows.
+        const v = e.projectile.velocity;
+        const toward = d > 1e-6 ? ((x - l.x) * v[0] + (y - l.y) * v[1] + (z - l.z) * v[2]) / d : 0;
+        r.source.playbackRate.setTargetAtTime(
+          synth.SPEED_OF_SOUND / Math.max(100, synth.SPEED_OF_SOUND + toward),
+          c.currentTime,
+          0.03,
+        );
+        r.gain.gain.setTargetAtTime(ROCKET.gain * h.dry, c.currentTime, 0.03);
+        r.pan.pan.setTargetAtTime(
+          d > 1e-6 ? (0.8 * ((x - l.x) * right[0] + (y - l.y) * right[1] + (z - l.z) * right[2])) / d : 0,
+          c.currentTime,
+          0.03,
+        );
+        r.last = d;
+      }
+    }
+    for (const [id, r] of rockets)
+      if (!seen.has(id)) {
+        if (context) r.source.stop(context.currentTime + 0.05);
+        rockets.delete(id);
+      }
   };
 
   return {
     event(ev) {
-      if ((ev.type === 'hurt' || ev.type === 'down') && context?.state === 'running' && master && master.gain.value > 0) {
+      if (!live()) return;
+      if (ev.type === 'hurt' || ev.type === 'down') {
+        // (Stage 5i) The page's own hits, heard: not placed (they are about the shot, as the marker is).
         const hero = page.player();
-        if (hero && ev.from === hero.id && ev.target !== hero.id) struck(ev.type === 'down');
+        if (hero && ev.from === hero.id && ev.target !== hero.id)
+          synth.struck(kit!, bus!, context!.currentTime + 0.01, ev.type === 'down');
         return;
       }
-      if (
-        (ev.type !== 'sound' && ev.type !== 'fired') ||
-        !context ||
-        !master ||
-        context.state !== 'running' ||
-        master.gain.value === 0
-      )
-        return;
       if (ev.type === 'fired') {
-        const h = heard(ev.at, firedHeard(ev.kind));
-        if (h) fire(ev.kind, h.loudness, h.pan);
+        const p = placed(ev.at, firedHeard(ev.kind), 'fired');
+        if (!p) return;
+        synth.fired(kit!, p.out, p.when, ev.kind);
+        counted(`fired ${ev.kind}`);
         return;
       }
-      const h = heard(ev.at, ev.radius);
-      if (h) make(ev, h.loudness, h.pan);
+      if (ev.type === 'shot') {
+        passing(ev.from, ev.start, ev.end);
+        const surface = struckSurface(ev.hit);
+        if (surface === false || ev.hit === null) return;
+        const p = placed(ev.end, 18, 'impact');
+        if (p) synth.impact(kit!, p.out, p.when, surface);
+        return;
+      }
+      if (ev.type === 'impact') {
+        if (ev.kind === 'rocket') return;
+        const surface = struckSurface(ev.hit);
+        if (surface === false) return;
+        const p = placed(ev.at, 18, 'impact');
+        if (p) synth.impact(kit!, p.out, p.when, surface);
+        return;
+      }
+      if (ev.type === 'sound') make(ev);
+    },
+    frame({ world }) {
+      rocketsHeard(world);
+    },
+    stop() {
+      for (const r of rockets.values()) r.source.stop();
+      rockets.clear();
     },
   };
 }
