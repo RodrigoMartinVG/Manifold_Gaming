@@ -1,0 +1,164 @@
+---
+title: 'Mirar: delante, detrás, a qué lado'
+description: 'La torreta, dibujada desde la ventana al mundo, ahora ve: de cada blanco sabe si está delante, de qué lado y si está adentro de su cono, con los dos productos. Y lo que sabe se ve: una herramienta para dibujar lo que el código decidió, que el proyecto tiene desde la primera lección que la necesita.'
+sidebar:
+  order: 7
+---
+
+import LiveCode from '../../../../components/LiveCode.astro';
+
+## El problema
+
+La torreta está en el medio del piso desde [Una ventana al mundo](../03-una-ventana-al-mundo/), quieta, con la nariz hacia el fondo. Ahora tiene que **ver**: de cada uno de los tres blancos, saber si está delante o detrás, de qué lado, y si está adentro de su cono de tiro. Con el [producto escalar](../05-el-producto-escalar/) y el [vectorial](../06-el-producto-vectorial/), son tres cuentas.
+
+Y quien programa tiene que **ver lo que la torreta decidió**, no leerlo en una lista de números. Una flecha hacia cada blanco, del color de lo que se decidió; los bordes del cono; los ejes de la torreta. Dibujar para entender es la herramienta más barata contra los errores, y el proyecto la suma ahora, en la primera lección que la necesita.
+
+<LiveCode project="parte-1/02-mirar" autorun />
+
+La torreta en el origen, mirando al norte (hacia $-Z$), con sus ejes: su frente en rojo, su derecha en verde y su arriba en azul. Las dos líneas doradas son los bordes de su cono, de medio ángulo $30^\circ$. Una flecha va del ojo a cada blanco: dorada si el blanco está adentro del cono, blanca si está delante pero afuera, gris si está detrás. Arriba de cada blanco, lo que la torreta sabe de él. Hacé clic en el dibujo: **Q** y **E** la giran un octavo de vuelta, **W A S D** la mueven un metro, y **Tab** la hace mirar hacia el blanco siguiente. Los botones del panel hacen lo mismo.
+
+## La matemática
+
+### Las tres preguntas
+
+Con el ojo de la torreta en $E$, su frente $\mathbf{f}$ (un vector de largo 1) y el camino a un blanco $\mathbf{t} = T - E$, cada pregunta es una cuenta de las lecciones anteriores:
+
+- **Delante:** $\mathbf{f} \cdot \mathbf{t} \gt 0$.
+- **A la izquierda:** $(\mathbf{f} \times \mathbf{t})_y = f_z t_x - f_x t_z \gt 0$; a la derecha si es negativo.
+- **Adentro del cono:** $\mathbf{f} \cdot \mathbf{t} \ge \lvert \mathbf{t} \rvert \cos\alpha$, con $\cos\alpha$ guardado en el mundo, calculado una vez.
+
+### Girar sin rotaciones
+
+Las rotaciones llegan en la lección 1.12, y la torreta ya tiene que girar. Mientras tanto, mira hacia uno de **ocho rumbos**, los de la brújula: el norte $(0, 0, -1)$, el este $(1, 0, 0)$, el sur, el oeste, y los cuatro del medio, como el noreste, $(1, 0, -1)$. Girar es pasar al rumbo siguiente (a la derecha) o al anterior (a la izquierda).
+
+Los del medio miden $\sqrt{2}$, y por eso se guardan **normalizados**: el noreste es $(1, 0, -1)/\sqrt{2} \approx (0{,}707;\ 0;\ -0{,}707)$. La prueba del cono pide un frente de largo 1: con $\lvert \mathbf{f} \rvert = \sqrt{2}$, el lado izquierdo de la desigualdad crece $\sqrt{2}$ veces, y es como comparar con $\cos\alpha / \sqrt{2}$. Para $\alpha = 30^\circ$ eso da $0{,}612$, el coseno de unos $52^\circ$: en los rumbos del medio, el cono se ensancharía sin que nadie lo pidiera.
+
+### El rumbo hacia un blanco
+
+**Tab** elige, entre los ocho rumbos, el más cercano al camino hasta el blanco. El más cercano es el que forma el ángulo más chico, que es el de coseno más grande (el coseno decrece entre $0^\circ$ y $180^\circ$). Como todos los rumbos miden 1, ese coseno es el producto escalar con el camino normalizado: Tab se queda con el rumbo de **producto escalar más grande**, sin calcular un solo ángulo.
+
+### El marco de la torreta, y su cono
+
+Sus ejes son el marco de [El producto vectorial](../06-el-producto-vectorial/): con el arriba del mundo $\hat{\mathbf{y}}$, la derecha es $\mathbf{r} = \operatorname{normalize}(\mathbf{f} \times \hat{\mathbf{y}})$ y su arriba, $\mathbf{u} = \mathbf{r} \times \mathbf{f}$. Mirando al norte, $\mathbf{r} = (1, 0, 0)$, el este, y $\mathbf{u} = (0, 1, 0)$.
+
+Los dos bordes del cono, en el piso, salen del mismo marco: son las direcciones
+
+$$
+\cos\alpha\ \mathbf{f} \pm \sin\alpha\ \mathbf{r}, \qquad \sin\alpha = \sqrt{1 - \cos^2\alpha}.
+$$
+
+Miden 1, porque $\mathbf{f}$ y $\mathbf{r}$ son perpendiculares y miden 1: $\cos^2\alpha + \sin^2\alpha = 1$. Y forman con el frente el ángulo $\alpha$, porque su producto escalar con $\mathbf{f}$ es $\cos\alpha$. El seno sale del coseno guardado: no hace falta otra función trigonométrica.
+
+### Un ejemplo con números
+
+El ojo está en $(0;\ 0{,}5;\ 0)$, mirando al norte, $\mathbf{f} = (0, 0, -1)$, con $\alpha = 30^\circ$ ($\cos\alpha \approx 0{,}866$). Los blancos están a la altura del ojo:
+
+- $T_1 = (2;\ 0{,}5;\ -3)$, $\mathbf{t} = (2, 0, -3)$: $\mathbf{f} \cdot \mathbf{t} = 3 \gt 0$, **delante**; $f_z t_x - f_x t_z = (-1) \cdot 2 - 0 = -2$, a la **derecha**; $\lvert \mathbf{t} \rvert \cos\alpha = \sqrt{13} \cdot 0{,}866 \approx 3{,}122 \gt 3$, **afuera** (está a $33{,}7^\circ$).
+- $T_2 = (-1;\ 0{,}5;\ 2)$, $\mathbf{t} = (-1, 0, 2)$: $\mathbf{f} \cdot \mathbf{t} = -2$, **detrás**; $(-1)(-1) - 0 = 1$, a la **izquierda**.
+- $T_3 = (-1;\ 0{,}5;\ -4)$, $\mathbf{t} = (-1, 0, -4)$: $\mathbf{f} \cdot \mathbf{t} = 4$, **delante**; $1$, a la **izquierda**; $\sqrt{17} \cdot 0{,}866 \approx 3{,}571 \le 4$, **adentro** (a $14{,}0^\circ$).
+
+Un octavo a la derecha, $\mathbf{f} = (1, 0, -1)/\sqrt{2}$: para $T_1$, $\mathbf{f} \cdot \mathbf{t} = 5/\sqrt{2} \approx 3{,}536 \ge 3{,}122$, y entra en el cono, a $11{,}3^\circ$. Pero ahora $f_z t_x - f_x t_z = (-2 + 3)/\sqrt{2} \approx 0{,}707 \gt 0$: queda a la **izquierda**, porque el noreste está más a la derecha que el blanco.
+
+## En el proyecto
+
+El proyecto suma cuatro archivos y cambia dos:
+
+- **`vec.ts`, los vectores del proyecto (nuevo):** las funciones de [Vectores](../04-vectores/), y `dot` y `cross`. Desde ahora, todo el proyecto usa estas.
+- **`turret.ts`, lo que la torreta sabe (nuevo):** `HEADINGS`, los ocho rumbos normalizados; `inFront`, `sideOf` e `inCone`, las tres preguntas, cada una un renglón; `classify(world)`, que de cada blanco devuelve si está delante, de qué lado y si está adentro del cono; y `headingTowards`, el rumbo de producto escalar más grande. No importa nada de three.js: son reglas, y leen el mundo.
+- **`world.ts`, el mundo (cambia):** la torreta tiene ahora un rumbo (`heading`, de 0 a 7), la altura de su ojo y su cono, con el medio ángulo en grados y su coseno, calculado una sola vez al crear el mundo.
+- **`debug.ts`, dibujar para ver (nuevo):** `debug.arrow`, `debug.line`, `debug.point`, `debug.axes` y `debug.text` piden algo para dibujar, desde cualquier lugar del código. Cada pedido es un dato simple que va a una **cola**; dura `life` segundos de reloj (por defecto, un cuadro) y puede pedir que nada lo tape (`depth: false`). Al final del cuadro, `debug.flush` entrega lo que sigue vivo. La cola es lo que permite que una regla pida un dibujo sin saber nada de la escena.
+- **`view/debug-view.ts`, quien lo dibuja (nuevo):** con three.js, un objeto por lugar de la lista, hecho una vez y reutilizado en cada cuadro (`ArrowHelper` para las flechas), y los textos en cajas de la página donde la cámara ve su punto. Libera todo al cerrar.
+- **`main.ts`, el arranque (cambia):** la cámara ahora está alta y mira hacia abajo, a la torreta, con el `lookAt` de three.js (cómo gira una cámara tiene su propia lección; en [Una ventana al mundo](../03-una-ventana-al-mundo/) no giraba, para poder comparar con nuestra proyección). Lee las teclas por su lugar en el teclado (`e.code`, no la letra), una vez por apretada (las repeticiones de una tecla sostenida se ignoran). En cada cuadro pide los dibujos de lo que la torreta sabe, y la vista los dibuja. Cada apretada escribe en la consola del navegador la tabla de `classify`.
+
+El kit de laboratorio que hay debajo de cada figura del tutorial es esta misma idea en grande: flechas, puntos, líneas y etiquetas, dibujados en cada cuadro a partir de lo que la lección calcula. Desde ahora se puede leer: su código está en el enlace que hay debajo de cada editor.
+
+## Probalo
+
+1. **Al empezar**, el panel dice: _target 1_ (el primer blanco), _in front, right, outside_ (delante, a la derecha, afuera); _target 2_, _behind, left, outside_; _target 3_, _in front, left, inside_. Son los números del ejemplo, y la flecha al tercero es dorada.
+2. **Tocá _turn right (E)_** (girar a la derecha): el rumbo pasa a _NE_ (noreste), el primer blanco entra en el cono y su flecha se vuelve dorada. Y ahora está a la **izquierda**: estaba a $33{,}7^\circ$ a la derecha del norte, y el noreste está a $45^\circ$, así que el giro lo pasó por $11{,}3^\circ$. Tocá _next target (Tab)_ dos veces: la torreta mira al segundo blanco, que estaba detrás.
+3. **Destildá _normalize forward_** (normalizar el frente) y girá hasta _NW_ (noroeste): el tercer blanco, a $31^\circ$, entra en el cono, aunque el cono es de $30^\circ$. El frente sin normalizar mide $\sqrt{2}$ y el cono se ensancha. Volvé a tildarlo.
+4. **Jugá:** moviendo y girando la torreta, poné los tres blancos adentro del cono a la vez. Cuando lo logres, aparece _¡los tres en el cono!_.
+
+## Lo importante
+
+- **Tres cuentas para tres preguntas:** delante si $\mathbf{f} \cdot \mathbf{t} \gt 0$; a la izquierda si $f_z t_x - f_x t_z \gt 0$; adentro del cono si $\mathbf{f} \cdot \mathbf{t} \ge \lvert \mathbf{t} \rvert \cos\alpha$, con un $\mathbf{f}$ de largo 1.
+- **Los rumbos se guardan normalizados,** y el más cercano a un camino es el de producto escalar más grande.
+- **El marco de la torreta** sale de su frente y del arriba del mundo, con dos productos vectoriales, y los bordes de su cono, de ese marco.
+- **Lo que el código decide se dibuja:** pedidos simples a una cola, desde cualquier lugar, que la vista dibuja al final del cuadro. Nunca son parte del mundo.
+
+## Más a fondo
+
+<details>
+<summary>Dibujar para depurar, en un motor grande</summary>
+
+Los motores profesionales tienen una herramienta como `debug.ts`, y las decisiones son las mismas: llamadas simples desde cualquier lado (una línea, una flecha, una esfera, un texto), un color, una duración, y si los sólidos las tapan o no. Los pedidos se juntan durante el cuadro y se dibujan al final, todos de una vez, para que no importe en qué momento del cuadro los hizo cada parte del código. Y se pueden pedir en el espacio del mundo o en el de la pantalla.
+
+Lo que agrega un motor grande es poder **prenderlos y apagarlos por tema** (las colisiones, la navegación, lo que ve cada guardia) sin tocar el código, y que apagados no cuesten nada. En la parte 2, la consola del proyecto declara variables para eso.
+
+</details>
+
+<details>
+<summary>¿Por qué no basta con mirar los números?</summary>
+
+Una tabla dice que el primer blanco está "delante, a la derecha, afuera". Si un día dijera "a la izquierda", habría que pensar si el error está en el blanco, en el frente o en la cuenta. Una flecha que no llega al blanco, o un borde del cono que apunta al revés, lo dice de un vistazo: el dibujo pone cada número en el lugar del mundo del que habla, y los errores de signo y de orden, los más comunes en este código, se ven antes de leerse.
+
+</details>
+
+:::caution[Sutilezas]
+
+- **Lo que se dibuja para depurar es vista, nunca mundo.** No entra en el estado del juego ni cambia lo que la torreta decide. Si un pedido de dibujo cambiara algo del mundo, apagar la depuración cambiaría el juego.
+- **Una regla no puede necesitar la escena.** `turret.ts` no importa three.js, y si quisiera dibujar algo lo pediría a `debug.ts`, que es solo una cola de datos. Por eso la cola: lo que dibuja está en `view/`, y las reglas no saben que existe.
+- **Las flechas salen de adentro del bloque.** El ojo está a 0,5 m, dentro de la torreta, y una flecha que respeta los sólidos quedaría tapada en su arranque. Por eso se piden con `depth: false`.
+- **Una flecha de largo cero no tiene dirección.** Si un blanco quedara justo sobre el ojo, no hay hacia dónde dibujarla: la vista se la saltea, en vez de normalizar el cero.
+- **Las teclas, por su lugar.** `e.code` es la tecla física (`KeyW`), y `e.key` la letra que escribe: en un teclado francés (AZERTY), la tecla de la W escribe Z. Para moverse importa dónde está la tecla.
+
+:::
+
+## En los motores
+
+- **three.js:** `ArrowHelper`, `AxesHelper` y `Line` para dibujar a mano; no tiene una cola de pedidos con duración, y se arma como acá.
+- **Unity:** `Debug.DrawLine` y `Debug.DrawRay`, con duración y con `depthTest`; y los `Gizmos`, en el editor.
+- **Unreal:** `DrawDebugLine`, `DrawDebugDirectionalArrow` y `DrawDebugString`, con duración (`LifeTime`) y la opción de líneas que no se borran.
+- **Godot:** no trae un dibujo de depuración en 3D listo para usar; se arma con `ImmediateMesh`, o con complementos de la comunidad.
+- **En los libros:** Jason Gregory, _Game Engine Architecture_ (3.ª ed., 2018), §10.2 "Debug Drawing Facilities".
+
+**Dónde Manifold eligió otra cosa.** Sus vistas de depuración son variables declaradas, que se prenden y apagan desde la consola (`show.axes`, `show.vectors`, `show.physics`), y apagadas no cuestan nada. No hay una cola de pedidos: cada vista lee el mundo directamente en cada cuadro.
+
+## En Manifold
+
+Las vistas de depuración están en [`views.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/presentation/src/views.ts): `show.axes` dibuja los ejes del mundo, `show.vectors` la velocidad y la mirada de cada personaje, y `show.vision`, lo que ve cada guardia, con su cono. El cono de un guardia, como el de la torreta, se guarda como coseno, y la prueba es la misma: el producto escalar de su mirada con el camino a cada personaje, en [`world.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/world.ts). Y un personaje no tiene rumbos de brújula: su mirada es un vector cualquiera, que gira sin ángulos.
+
+## Para practicar
+
+**1. Los tres en el cono.** Sin la figura, con lápiz y papel, encontrá una posición de la torreta sobre la cuadrícula de 1 m y un rumbo que pongan los tres blancos adentro del cono de $30^\circ$. Después probala en la figura. Una respuesta es la torreta en $(0;\ 0;\ 5)$, mirando al norte.
+
+<details>
+<summary>Una pista</summary>
+
+Desde lejos, los tres blancos quedan más juntos en ángulo. Desde $(0;\ 0;\ 5)$, el más abierto es el primero: $\mathbf{t} = (2, 0, -8)$, con $\cos = 8/\sqrt{68} \approx 0{,}970$, unos $14^\circ$. El segundo, $(-1, 0, -3)$, está a unos $18{,}4^\circ$.
+
+</details>
+
+**2. Los ángulos, escritos.** Agregá un `debug.text` que muestre, al lado de cada blanco, el ángulo entre el frente y el camino, en grados. Tiene que decir 33,7°, 153,4° y 14,0° al empezar.
+
+<details>
+<summary>Una pista</summary>
+
+En la vista el ángulo se puede calcular, porque es solo para mostrar: `Math.acos(dot(f, t) / length(t)) * 180 / Math.PI`, con `t` el camino al blanco. El segundo blanco está detrás: su coseno es $-2/\sqrt{5}$.
+
+</details>
+
+**3. Un cono que se ajusta.** Hacé que el medio ángulo del cono sea un control del panel, de 5° a 60°, y encontrá el ángulo más chico para el que el primer y el tercer blanco están adentro a la vez desde el comienzo. Tiene que dar $33{,}7^\circ$.
+
+<details>
+<summary>Una pista</summary>
+
+El coseno guardado en el mundo tiene que cambiar con el control: `world.turret.cone.cos = Math.cos(degrees * Math.PI / 180)` en su `onChange`. El ángulo más chico es el del blanco más abierto de los dos, el primero.
+
+</details>
+
+## Para saber más
+
+- Jason Gregory, _Game Engine Architecture_ (3.ª ed., 2018), §10.2 "Debug Drawing Facilities" (en inglés).
+- Ian Millington, _AI for Games_ (3.ª ed., 2019), §3.3.14 (en inglés): el cono de visión de un personaje, sin arcocoseno.
+- [Debug.DrawLine](https://docs.unity3d.com/ScriptReference/Debug.DrawLine.html), en la documentación de Unity (en inglés): una herramienta de depuración con duración y prueba de profundidad.

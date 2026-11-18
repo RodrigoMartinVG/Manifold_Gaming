@@ -2,16 +2,20 @@
 title: Moverse
 description: 'La pelota se mueve con el teclado, a la misma velocidad hacia cualquier lado. Las teclas arman una dirección, que normalizada y por la rapidez es la velocidad; sin normalizar, en diagonal se va un 41% más rápido.'
 sidebar:
-  order: 5
+  order: 18
 ---
 
 import LiveCode from '../../../../components/LiveCode.astro';
 
 ## El problema
 
-La pelota del proyecto se movía sola. Ahora la tiene que mover quien juega: W la aleja, S la acerca, A y D la llevan a los costados. Y tiene que ir **a una rapidez dada, en metros por segundo, hacia donde se le pida**, también en diagonal, con dos teclas a la vez. Con los [vectores](../04-vectores/) de la lección anterior, es una cuenta de tres renglones. Sin ellos, hay una trampa: la diagonal va más rápido.
+:::note[Del primer borrador]
+Esta lección viene del primer borrador del tutorial, donde seguía a [Vectores](../04-vectores/). En el plan nuevo es la 2.8, y pasa a la parte 2 cuando el tiempo llegue al proyecto: acá la pelota se mueve con el reloj, algo que la parte 1 todavía no hace.
+:::
 
-<LiveCode project="parte-1/02-moverse" autorun />
+La pelota del proyecto se movía sola. Ahora la tiene que mover quien juega: W la aleja, S la acerca, A y D la llevan a los costados. Y tiene que ir **a una rapidez dada, en metros por segundo, hacia donde se le pida**, también en diagonal, con dos teclas a la vez. Con los [vectores](../04-vectores/), es una cuenta de tres renglones. Sin ellos, hay una trampa: la diagonal va más rápido.
+
+<LiveCode project="parte-2/08-moverse" autorun />
 
 El piso visto desde arriba, y la pelota. La flecha dorada es su velocidad: hacia dónde va, y tan larga como lo rápido que va. Mientras nadie toca una tecla, un piloto automático las aprieta: un cuadrado, con una tecla por vez, y un rombo, con dos a la vez. El panel mide cuán rápido fue de verdad, de frente y en diagonal.
 
@@ -55,11 +59,11 @@ Con $s = 3$ m/s y D y W apretadas, $\mathbf{d} = (1, 0, -1)$:
 
 ## En el proyecto
 
-El proyecto suma un archivo y cambia uno:
+El proyecto cambia un archivo:
 
-- **`vec.ts`, nuevo: los vectores** de la lección anterior, como funciones que devuelven un vector nuevo: `add`, `sub`, `scale`, `length` y `normalize`, que deja el cero como cero.
+- **`vec.ts`, los vectores del proyecto,** los de [Mirar](../07-mirar/): `add`, `sub`, `scale`, `length` y `normalize`, que deja el cero como cero (y los dos productos, que esta lección no usa).
 - **`main.ts`, cambiado: la pelota se mueve.** En cada cuadro lee las teclas (`input`), arma la dirección, la normaliza si _normalize_ está prendido, la multiplica por la rapidez y suma `scale(velocity, dt)` al lugar. Mide además cuántos metros recorrió en cuánto tiempo, de frente y en diagonal.
-- **`view/view.ts`, `view/screen.ts`, `world.ts` y `layouts.ts` siguen como estaban.** Esta lección todavía no usa los blancos: su pelota vive en `main.ts`. La cámara ahora mira hacia abajo, con `camera.lookAt`; cómo gira una cámara tiene su propia lección.
+- **Los demás archivos siguen como estaban.** Esta lección todavía no usa los blancos ni la torreta: su pelota vive en `main.ts`. La cámara ahora mira hacia abajo, con `camera.lookAt`; cómo gira una cámara tiene su propia lección.
 
 ## Probalo
 

@@ -192,7 +192,7 @@ Los de la primera parada del piloto automático: $\mathbf{a} = (3, 0, -1)$, $\ma
 
 ## El código
 
-- **`vec.ts`: los vectores, los mismos del proyecto.** Un vector es un objeto con `x`, `y` y `z` (`Vec`), y cada operación es una función que devuelve uno nuevo: `add`, `sub`, `scale`, `length` y `normalize`, que deja el cero como cero. El opuesto es `scale(a, -1)`; la distancia entre dos puntos, `length(sub(q, p))`. Es el archivo que el proyecto suma en [Moverse](../05-moverse/).
+- **`vec.ts`: los vectores, los mismos del proyecto.** Un vector es un objeto con `x`, `y` y `z` (`Vec`), y cada operación es una función que devuelve uno nuevo: `add`, `sub`, `scale`, `length` y `normalize`, que deja el cero como cero. El opuesto es `scale(a, -1)`; la distancia entre dos puntos, `length(sub(q, p))`. Es el archivo que el proyecto suma en [Mirar](../07-mirar/), con los dos productos de las lecciones que siguen.
 - **En cada cuadro, las cuentas:** `main.ts` calcula `sum`, `difference`, `stretched` y `unit` con esas funciones. `a` y `b` no cambian.
 - **Y las flechas:** una flecha es un vector dibujado en un punto, `set(desde, vector)`. `draw.sum.set(O, sum)` dibuja la suma desde el origen; `draw.bAfterA.set(a, b)`, el vector $\mathbf{b}$ desde la punta de $\mathbf{a}$ (el punto $O + \mathbf{a}$, con los números de `a`); `draw.difference.set(b, sub(a, b))`, la resta, desde la punta de $\mathbf{b}$ hasta la de $\mathbf{a}$.
 - **Arrastrar una punta:** `draggable` lleva la bolita de cada punta por el piso, el plano $y = 0$, que se le da como $[\mathbf{n} \mid d]$ con $\mathbf{n} = (0, 1, 0)$ y $d = 0$: un rayo desde el ojo por el puntero, cortado con ese plano. El punto se redondea a medios metros (`half`), para poder llegar a números exactos. Tomar una punta apaga el piloto automático (`start`), y la cámara se queda quieta mientras se arrastra.
@@ -212,7 +212,7 @@ Los de la primera parada del piloto automático: $\mathbf{a} = (3, 0, -1)$, $\ma
 - **Un punto dice dónde; un vector, cuánto y hacia dónde.** $Q - P$ lleva de $P$ a $Q$, y $P + \mathbf{v}$ es otro punto. La misma flecha en otro lugar es el mismo vector.
 - **Se suman y se estiran componente a componente:** la suma es una flecha a continuación de la otra, y un escalar estira, achica o da vuelta.
 - **El largo sale de Pitágoras,** $\lvert \mathbf{v} \rvert = \sqrt{v_x^2 + v_y^2 + v_z^2}$. La distancia entre dos puntos es $\lvert Q - P \rvert$, y $\lvert \mathbf{a} + \mathbf{b} \rvert \le \lvert \mathbf{a} \rvert + \lvert \mathbf{b} \rvert$.
-- **Dividido por su largo queda una dirección,** de largo 1; el cero no tiene. El proyecto lo usa en [Moverse](../05-moverse/): las teclas arman una dirección, y la dirección normalizada, multiplicada por la rapidez, es la velocidad.
+- **Dividido por su largo queda una dirección,** de largo 1; el cero no tiene. El proyecto lo usa en [Mirar](../07-mirar/): los rumbos de la torreta son direcciones normalizadas, y en la parte 2 la velocidad es una dirección por una rapidez.
 
 ## Más a fondo
 

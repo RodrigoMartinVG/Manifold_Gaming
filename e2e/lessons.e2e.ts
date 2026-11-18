@@ -491,7 +491,7 @@ test('a window into the world: each target at three.js’s pixel, and the drawin
 test('the new tutorial, moving with vectors: normalized, 3 m/s straight and diagonally; without, the diagonal is √2 faster', async ({
   page,
 }) => {
-  const f = await open(page, 'tutorial/parte-1/05-moverse/');
+  const f = await open(page, 'tutorial/parte-1/18-moverse/');
   await expect.poll(() => number(f, 'straight speed'), { timeout: 20_000 }).toBeCloseTo(3, 2);
   await expect.poll(() => number(f, 'diagonal speed'), { timeout: 20_000 }).toBeCloseTo(3, 2);
   await toggle(f, 'normalize');
@@ -651,4 +651,86 @@ test('vectors: the worked example’s numbers, ours and three.js’s', async ({ 
   expect(await value(f, 'unit â')).toBe('0.949, 0.000, -0.316');
   expect(await value(f, 'three.js a + b')).toBe('4.00, 0.00, -3.00');
   expect(await value(f, 'three.js â')).toBe('0.949, 0.000, -0.316');
+});
+
+test('the dot product: the worked example’s numbers; the projection ignores b’s length and sense; the naive cone lets a far target in', async ({
+  page,
+}) => {
+  const f = await open(page, 'tutorial/parte-1/05-el-producto-escalar/');
+  await click(f, 'worked example');
+  await expect.poll(() => value(f, 'a · b')).toBe('5.00');
+  expect(await value(f, '|a| |b| cos θ')).toBe('5.00');
+  expect(await value(f, 'angle θ (°)')).toBe('45.00');
+  expect(await value(f, 'projection a‖b')).toBe('1.00, 0.00, -2.00');
+  expect(await value(f, 'rejection a⊥b')).toBe('2.00, 0.00, 1.00');
+  expect(await value(f, '|a⊥b|')).toBe('2.236');
+  expect(await value(f, '|a| sin θ')).toBe('2.236');
+  // b flipped and doubled: the same line, the same projection.
+  await toggle(f, 'flip b');
+  await toggle(f, 'b × 2');
+  await expect.poll(() => value(f, 'vector b')).toBe('-2.00, 0.00, 4.00');
+  expect(await value(f, 'projection a‖b')).toBe('1.00, 0.00, -2.00');
+  await toggle(f, 'flip b');
+  await toggle(f, 'b × 2');
+  // Looking along b at a: 45° off, outside a cone of 30°, inside one of 50°; naive (unnormalized), inside at 30°.
+  await set(f, 'mode', 'look');
+  await expect.poll(() => value(f, 'in front')).toBe('yes');
+  expect(await value(f, 'inside the cone')).toBe('no');
+  await set(f, 'cone half-angle α (°)', '50');
+  await expect.poll(() => value(f, 'inside the cone')).toBe('yes');
+  await set(f, 'cone half-angle α (°)', '30');
+  await expect.poll(() => value(f, 'inside the cone')).toBe('no');
+  await toggle(f, 'normalize');
+  await expect.poll(() => value(f, 'inside the cone')).toBe('yes');
+});
+
+test('the cross product: the worked example on the floor (left), the naive order (right), and in space 7 long, perpendicular, a right-handed box', async ({
+  page,
+}) => {
+  const f = await open(page, 'tutorial/parte-1/06-el-producto-vectorial/');
+  await click(f, 'worked example');
+  await expect.poll(() => value(f, 'a × b')).toBe('0.00, 5.00, 0.00');
+  expect(await value(f, '|a × b|')).toBe('5.000');
+  expect(await value(f, '|a| |b| sin θ')).toBe('5.000');
+  expect(await value(f, 'area of triangle')).toBe('2.500');
+  expect(await value(f, 'side (seen from above)')).toBe('left');
+  await toggle(f, 'x then z');
+  await expect.poll(() => value(f, 'side (seen from above)')).toBe('right');
+  await toggle(f, 'x then z');
+  await click(f, 'space example');
+  await expect.poll(() => value(f, 'a × b')).toBe('3.00, -6.00, 2.00');
+  expect(await value(f, '|a × b|')).toBe('7.000');
+  expect(await value(f, '(a × b) · a')).toBe('0.000');
+  expect(await value(f, '[a, b, c]')).toBe('10.000');
+  expect(await value(f, 'right-handed')).toBe('yes');
+  // c over the plane of a and b, on the other side: the box's volume changes sign.
+  await set(f, 'c height (m)', '2');
+  await expect.poll(() => value(f, '[a, b, c]')).toBe('-8.000');
+  expect(await value(f, 'right-handed')).toBe('no');
+});
+
+test('the turret looks: in front, behind, which side, in its cone; an eighth to the right, target 1 comes in; unnormalized, the cone widens', async ({
+  page,
+}) => {
+  const f = await open(page, 'tutorial/parte-1/07-mirar/');
+  await expect.poll(() => value(f, 'target 1')).toBe('in front, right, outside');
+  expect(await value(f, 'target 2')).toBe('behind, left, outside');
+  expect(await value(f, 'target 3')).toBe('in front, left, inside');
+  expect(await value(f, 'heading')).toBe('N');
+  await click(f, 'turn right (E)');
+  await expect.poll(() => value(f, 'heading')).toBe('NE');
+  // (North-east is 45° to the right; target 1, at 33.7°, is now 11.3° to the left of it.)
+  expect(await value(f, 'target 1')).toBe('in front, left, inside');
+  // North-west: target 3 is 31.0° off (to the right: it is 14° left of north, north-west 45°), outside a
+  // cone of 30°; with the forward √2 long, inside.
+  await click(f, 'turn left (Q)');
+  await click(f, 'turn left (Q)');
+  await expect.poll(() => value(f, 'heading')).toBe('NW');
+  expect(await value(f, 'target 3')).toBe('in front, right, outside');
+  await toggle(f, 'normalize forward');
+  await expect.poll(() => value(f, 'target 3')).toBe('in front, right, inside');
+  // Tab faces the next target: the first, along north-east.
+  await toggle(f, 'normalize forward');
+  await click(f, 'next target (Tab)');
+  await expect.poll(() => value(f, 'heading')).toBe('NE');
 });

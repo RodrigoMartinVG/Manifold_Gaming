@@ -1,0 +1,272 @@
+---
+title: 'El producto escalar: proyectar y rechazar'
+description: 'Cuánto de un vector va en la dirección de otro, y cuánto queda de través. El producto escalar, definido por componentes; su geometría, demostrada con Pitágoras: la sombra, el coseno, la perpendicular. Delante o detrás, y adentro de un cono, sin calcular un solo ángulo.'
+sidebar:
+  order: 5
+---
+
+import LiveCode from '../../../../components/LiveCode.astro';
+
+## El problema
+
+La torreta va a tener que contestar, de cada blanco, dos preguntas: **¿está delante o detrás?** y **¿está adentro de mi cono de tiro?** Las dos son la misma pregunta: cuánto del camino hasta el blanco va en la dirección en que la torreta mira. Y detrás de esa hay una más general, que vuelve en todo el tutorial: dado un vector, **cuánto de él va a lo largo de otro, y cuánto queda de través**. Un personaje contra una pared se queda con la parte de su velocidad que va a lo largo de la pared; una pelota que rebota da vuelta la parte que va contra el piso.
+
+La herramienta es una cuenta de tres productos y dos sumas, el **producto escalar** (_dot product_). Esta lección la define, demuestra qué dice de la geometría, y la usa.
+
+<LiveCode lesson="parte-1/dot" autorun />
+
+El piso visto desde arriba, como en [Vectores](../04-vectores/). Las puntas de $\mathbf{a}$ (roja) y $\mathbf{b}$ (azul) se arrastran por sus bolitas. En el modo **split** (partir), la línea punteada es la recta de $\mathbf{b}$; la flecha dorada, $\mathbf{a}_\parallel$ (en la figura, a‖), es la sombra de $\mathbf{a}$ sobre esa recta, y la verde, $\mathbf{a}_\perp$, lo que queda de través, con el ángulo recto marcado entre las dos. El sector violeta es el ángulo $\theta$ entre $\mathbf{a}$ y $\mathbf{b}$. En el modo **look** (mirar), un ojo en el origen mira hacia donde apunta $\mathbf{b}$: la mitad del piso que tiene delante está sombreada, el sector dorado es su cono de tiro, y la punta de $\mathbf{a}$ es el blanco.
+
+## La matemática
+
+### La definición
+
+El producto escalar de dos vectores es un **número**: cada componente de uno por la misma del otro, y todo sumado.
+
+$$
+\mathbf{a} \cdot \mathbf{b} = a_x b_x + a_y b_y + a_z b_z.
+$$
+
+Se llama _escalar_ porque el resultado es un escalar, no un vector. De la definición salen, componente a componente, las reglas con que se hacen las cuentas:
+
+- **conmuta:** $\mathbf{a} \cdot \mathbf{b} = \mathbf{b} \cdot \mathbf{a}$, porque $a_x b_x = b_x a_x$;
+- **distribuye:** $\mathbf{a} \cdot (\mathbf{b} + \mathbf{c}) = \mathbf{a} \cdot \mathbf{b} + \mathbf{a} \cdot \mathbf{c}$, porque $a_x (b_x + c_x) = a_x b_x + a_x c_x$;
+- **los escalares salen afuera:** $(k\,\mathbf{a}) \cdot \mathbf{b} = k\,(\mathbf{a} \cdot \mathbf{b})$;
+- **un vector consigo mismo da su largo al cuadrado:** $\mathbf{a} \cdot \mathbf{a} = a_x^2 + a_y^2 + a_z^2 = \lvert \mathbf{a} \rvert^2$.
+
+La última es el puente con la geometría: el producto escalar sabe de largos, y con eso alcanza para saber de ángulos.
+
+### Perpendiculares, por Pitágoras
+
+Desarrollando con esas reglas el largo al cuadrado de una diferencia:
+
+$$
+\lvert \mathbf{a} - \mathbf{b} \rvert^2 = (\mathbf{a} - \mathbf{b}) \cdot (\mathbf{a} - \mathbf{b}) = \mathbf{a} \cdot \mathbf{a} - 2\,\mathbf{a} \cdot \mathbf{b} + \mathbf{b} \cdot \mathbf{b} = \lvert \mathbf{a} \rvert^2 + \lvert \mathbf{b} \rvert^2 - 2\,\mathbf{a} \cdot \mathbf{b}.
+$$
+
+Dibujados desde un mismo punto $O$, $\mathbf{a}$ y $\mathbf{b}$ son dos lados de un triángulo, y $\mathbf{a} - \mathbf{b}$ es el tercero, el que va de la punta de $\mathbf{b}$ a la de $\mathbf{a}$. El teorema de Pitágoras y su recíproco dicen que el ángulo en $O$ es recto **si y solo si** $\lvert \mathbf{a} - \mathbf{b} \rvert^2 = \lvert \mathbf{a} \rvert^2 + \lvert \mathbf{b} \rvert^2$. Comparando con la cuenta de arriba, eso pasa exactamente cuando el término que sobra es cero:
+
+$$
+\mathbf{a} \perp \mathbf{b} \iff \mathbf{a} \cdot \mathbf{b} = 0.
+$$
+
+Es la primera cosa que dice el producto escalar, y la más usada: **dos vectores son perpendiculares cuando su producto escalar es cero.** (El vector cero cumple la cuenta con cualquiera; se dice que es perpendicular a todos, lo que no sirve de mucho.)
+
+### La sombra de un vector
+
+Sea $\hat{\mathbf{u}}$ un vector de largo 1, una dirección. Todo vector $\mathbf{a}$ se parte en un pedazo a lo largo de $\hat{\mathbf{u}}$ y otro de través:
+
+$$
+\mathbf{a} = \underbrace{(\mathbf{a} \cdot \hat{\mathbf{u}})\,\hat{\mathbf{u}}}_{\text{a lo largo}} + \underbrace{\bigl(\mathbf{a} - (\mathbf{a} \cdot \hat{\mathbf{u}})\,\hat{\mathbf{u}}\bigr)}_{\text{de través}}.
+$$
+
+Que la suma da $\mathbf{a}$ es evidente: se suma y se resta lo mismo. Lo que hay que ver es que el segundo pedazo es perpendicular a $\hat{\mathbf{u}}$, y por la sección anterior basta con que su producto escalar con $\hat{\mathbf{u}}$ sea cero:
+
+$$
+\hat{\mathbf{u}} \cdot \bigl(\mathbf{a} - (\mathbf{a} \cdot \hat{\mathbf{u}})\,\hat{\mathbf{u}}\bigr) = \hat{\mathbf{u}} \cdot \mathbf{a} - (\mathbf{a} \cdot \hat{\mathbf{u}})\,(\hat{\mathbf{u}} \cdot \hat{\mathbf{u}}) = \mathbf{a} \cdot \hat{\mathbf{u}} - (\mathbf{a} \cdot \hat{\mathbf{u}}) \cdot 1 = 0.
+$$
+
+Así que $\mathbf{a}$, su pedazo a lo largo y su pedazo de través forman un **triángulo rectángulo**: $\mathbf{a}$ es la hipotenusa, y el pedazo a lo largo es el cateto que cae sobre la recta de $\hat{\mathbf{u}}$. Es la **sombra** de $\mathbf{a}$ sobre esa recta, con la luz cayendo perpendicular a ella. Y el número $\mathbf{a} \cdot \hat{\mathbf{u}}$ es el largo de esa sombra, **con signo**: positivo si la sombra cae hacia donde apunta $\hat{\mathbf{u}}$, negativo si cae hacia el otro lado.
+
+### El coseno
+
+Sea $\theta$ el ángulo entre $\mathbf{a}$ y $\hat{\mathbf{u}}$, entre $0^\circ$ y $180^\circ$. En el triángulo rectángulo de la sección anterior, el cateto pegado al ángulo es la hipotenusa por el coseno: esa es la definición del coseno en un triángulo rectángulo. Si $\theta$ es obtuso, la sombra cae del otro lado, y el coseno, negativo, da el signo justo. En los dos casos:
+
+$$
+\mathbf{a} \cdot \hat{\mathbf{u}} = \lvert \mathbf{a} \rvert \cos\theta.
+$$
+
+Para un $\mathbf{b}$ cualquiera, que no sea cero, $\mathbf{b} = \lvert \mathbf{b} \rvert\,\hat{\mathbf{b}}$, y los escalares salen afuera:
+
+$$
+\boxed{\ \mathbf{a} \cdot \mathbf{b} = \lvert \mathbf{a} \rvert\, \lvert \mathbf{b} \rvert \cos\theta\ }
+$$
+
+La cuenta de tres productos y dos sumas, que no sabe nada de ángulos, da el coseno del ángulo entre los dos vectores multiplicado por sus largos. Lo que dice el signo:
+
+| $\mathbf{a} \cdot \mathbf{b}$ | el ángulo       | qué quiere decir            |
+| ----------------------------- | --------------- | --------------------------- |
+| $\gt 0$                       | menor que 90°   | apuntan para el mismo lado  |
+| $= 0$                         | exactamente 90° | perpendiculares             |
+| $\lt 0$                       | mayor que 90°   | apuntan para lados opuestos |
+
+De paso sale la **ley de los cosenos**: reemplazando en la cuenta de las perpendiculares, $\lvert \mathbf{a} - \mathbf{b} \rvert^2 = \lvert \mathbf{a} \rvert^2 + \lvert \mathbf{b} \rvert^2 - 2\,\lvert \mathbf{a} \rvert\,\lvert \mathbf{b} \rvert \cos\theta$. Pitágoras es el caso $\theta = 90^\circ$.
+
+### Proyectar y rechazar
+
+La sombra de $\mathbf{a}$ sobre la recta de $\mathbf{b}$, con $\mathbf{b}$ de cualquier largo, es la **proyección** (_projection_) de $\mathbf{a}$ sobre $\mathbf{b}$. Con $\hat{\mathbf{b}} = \mathbf{b}/\lvert \mathbf{b} \rvert$ y $\lvert \mathbf{b} \rvert^2 = \mathbf{b} \cdot \mathbf{b}$:
+
+$$
+\mathbf{a}_\parallel = (\mathbf{a} \cdot \hat{\mathbf{b}})\,\hat{\mathbf{b}} = \frac{\mathbf{a} \cdot \mathbf{b}}{\mathbf{b} \cdot \mathbf{b}}\,\mathbf{b}.
+$$
+
+La segunda forma no pide una raíz cuadrada. Lo que queda de través es el **rechazo** (_rejection_):
+
+$$
+\mathbf{a}_\perp = \mathbf{a} - \mathbf{a}_\parallel, \qquad \lvert \mathbf{a}_\perp \rvert = \lvert \mathbf{a} \rvert \sin\theta.
+$$
+
+El largo sale de Pitágoras en el mismo triángulo: $\lvert \mathbf{a}_\perp \rvert^2 = \lvert \mathbf{a} \rvert^2 - \lvert \mathbf{a} \rvert^2 \cos^2\theta = \lvert \mathbf{a} \rvert^2 \sin^2\theta$.
+
+La proyección depende solo de la **recta** de $\mathbf{b}$, no de su largo ni de su sentido: si se cambia $\mathbf{b}$ por $k\,\mathbf{b}$, con $k \neq 0$, el cociente da $\dfrac{k\,(\mathbf{a} \cdot \mathbf{b})}{k^2\,(\mathbf{b} \cdot \mathbf{b})}\,k\,\mathbf{b}$, que es lo mismo. En la figura, _flip b_ (dar vuelta $\mathbf{b}$) y _b × 2_ (duplicarlo) no mueven la flecha dorada.
+
+### El mismo movimiento
+
+Partir un vector en su parte a lo largo y su parte de través es el primer ejemplo de un movimiento que vuelve una y otra vez en este tutorial: **partir, hacer algo con cada parte, y volver a juntar.**
+
+- Quedarse solo con la parte a lo largo: la **proyección**.
+- Quedarse solo con la de través: el **rechazo**. Un personaje que choca contra una pared se queda con la parte de su velocidad que va a lo largo de la pared.
+- Dar vuelta la parte a lo largo y dejar la otra: la **reflexión**, $\mathbf{a} - 2\,\mathbf{a}_\parallel$. Es el rebote de una pelota contra un piso cuya perpendicular es $\mathbf{b}$, y vuelve en las lecciones de matrices y de planos.
+
+### Dos desigualdades, demostradas
+
+Como $\lvert \cos\theta \rvert \le 1$, la fórmula del coseno da la **desigualdad de Cauchy–Schwarz**:
+
+$$
+\lvert \mathbf{a} \cdot \mathbf{b} \rvert \le \lvert \mathbf{a} \rvert\, \lvert \mathbf{b} \rvert,
+$$
+
+con igualdad exactamente cuando $\cos\theta = \pm 1$: cuando los dos están sobre una misma recta (o alguno es cero).
+
+Y con ella, la desigualdad triangular, que [Vectores](../04-vectores/) dejó enunciada. Desarrollando el largo al cuadrado de una suma, como antes el de una diferencia, y acotando el término del medio:
+
+$$
+\lvert \mathbf{a} + \mathbf{b} \rvert^2 = \lvert \mathbf{a} \rvert^2 + 2\,\mathbf{a} \cdot \mathbf{b} + \lvert \mathbf{b} \rvert^2 \le \lvert \mathbf{a} \rvert^2 + 2\,\lvert \mathbf{a} \rvert\, \lvert \mathbf{b} \rvert + \lvert \mathbf{b} \rvert^2 = \bigl(\lvert \mathbf{a} \rvert + \lvert \mathbf{b} \rvert\bigr)^2.
+$$
+
+Los dos lados son números no negativos, así que vale también sin los cuadrados: $\lvert \mathbf{a} + \mathbf{b} \rvert \le \lvert \mathbf{a} \rvert + \lvert \mathbf{b} \rvert$. La igualdad pide $\mathbf{a} \cdot \mathbf{b} = \lvert \mathbf{a} \rvert\, \lvert \mathbf{b} \rvert$, es decir, $\cos\theta = 1$: que apunten para el mismo lado, como decía la lección anterior.
+
+### Delante, y adentro de un cono
+
+Un ojo en $E$ mira en la dirección $\mathbf{f}$, y hay un blanco en $T$. Con $\mathbf{t} = T - E$, el camino hasta el blanco:
+
+- **Está delante** si $\mathbf{f} \cdot \mathbf{t} \gt 0$: el ángulo entre la mirada y el camino es menor que 90°. No hace falta normalizar nada: solo importa el signo, y los largos son positivos.
+- **Está adentro del cono** de medio ángulo $\alpha$ (el ángulo entre el eje del cono y su borde) si el ángulo entre $\mathbf{f}$ y $\mathbf{t}$ es a lo sumo $\alpha$. Como el coseno **decrece** entre $0^\circ$ y $180^\circ$, eso es lo mismo que pedir que el coseno sea por lo menos $\cos\alpha$, y el coseno lo da el producto escalar:
+
+$$
+\frac{\mathbf{f} \cdot \mathbf{t}}{\lvert \mathbf{f} \rvert\, \lvert \mathbf{t} \rvert} \ge \cos\alpha \qquad\iff\qquad \hat{\mathbf{f}} \cdot \mathbf{t} \ge \lvert \mathbf{t} \rvert \cos\alpha.
+$$
+
+La segunda forma multiplica en vez de dividir, y no se rompe cuando el blanco está sobre el ojo. $\cos\alpha$ se calcula una vez, cuando se elige el cono, y después cada pregunta es un producto escalar y una raíz: **nunca hace falta calcular el ángulo.**
+
+### Un ejemplo con números
+
+Los vectores de [Vectores](../04-vectores/): $\mathbf{a} = (3, 0, -1)$ y $\mathbf{b} = (1, 0, -2)$.
+
+- El producto escalar: $\mathbf{a} \cdot \mathbf{b} = 3 \cdot 1 + 0 \cdot 0 + (-1)(-2) = 5$. Positivo: apuntan para el mismo lado.
+- Los largos: $\lvert \mathbf{a} \rvert = \sqrt{10}$ y $\lvert \mathbf{b} \rvert = \sqrt{5}$, y su producto, $\sqrt{50} = 5\sqrt{2}$.
+- El ángulo: $\cos\theta = \dfrac{5}{5\sqrt{2}} = \dfrac{1}{\sqrt{2}}$, así que $\theta = 45^\circ$.
+- La proyección: $\mathbf{b} \cdot \mathbf{b} = 5$, y $\mathbf{a}_\parallel = \tfrac{5}{5}\,\mathbf{b} = (1, 0, -2)$: la sombra de $\mathbf{a}$ es exactamente $\mathbf{b}$.
+- El rechazo: $\mathbf{a}_\perp = (3, 0, -1) - (1, 0, -2) = (2, 0, 1)$. Es perpendicular a $\mathbf{b}$: $2 \cdot 1 + 1 \cdot (-2) = 0$. Y su largo, $\sqrt{5}$, es $\sqrt{10} \cdot \sin 45^\circ = \sqrt{10}/\sqrt{2}$.
+- El cono: con el ojo en el origen mirando hacia $\mathbf{b}$ y el blanco en la punta de $\mathbf{a}$, el ángulo es 45°. Con $\alpha = 30^\circ$ queda **afuera** ($\cos 45^\circ \approx 0{,}707 \lt \cos 30^\circ \approx 0{,}866$); con $\alpha = 50^\circ$, **adentro** ($0{,}707 \ge \cos 50^\circ \approx 0{,}643$).
+
+## El código
+
+- **`vec.ts`: la lección.** Las funciones de [Vectores](../04-vectores/), y ahora `dot`, que es la definición, un renglón. `project(a, b)` es $\frac{\mathbf{a} \cdot \mathbf{b}}{\mathbf{b} \cdot \mathbf{b}}\,\mathbf{b}$, y devuelve el cero si $\mathbf{b}$ es cero, porque sobre el cero no hay recta. `reject(a, b)` es $\mathbf{a}$ menos su proyección.
+- **Delante y adentro del cono:** `inFront(e, f, t)` mira el signo de $\mathbf{f} \cdot (T - E)$. `inCone(e, f, t, cosAlpha)` es la segunda forma de la condición: `dot(normalize(f), toT) >= length(toT) * cosAlpha`. El coseno llega calculado.
+- **En cada cuadro, las cuentas:** `main.ts` calcula `along = project(a, B)` y `across = reject(a, B)`, y dibuja la verde desde la punta de la dorada, porque $\mathbf{a}_\parallel + \mathbf{a}_\perp = \mathbf{a}$.
+- **El panel compara dos caminos:** _a · b_ es nuestra cuenta; _|a| |b| cos θ_ mide el ángulo de otra manera, con la dirección de cada flecha en el piso (`Math.atan2`, que es del dibujo y no de la lección), y los multiplica. Tienen que dar lo mismo.
+- **El dibujo es el kit de laboratorio** (`'lab'`): las flechas, las bolitas que se arrastran, la línea punteada, el ángulo recto (`rightAngle`) y los sectores (`fan`).
+
+## Probalo
+
+1. **Tocá _worked example_:** _a · b_ dice 5,00 y _|a| |b| cos θ_ también; _angle θ_, 45,00; _projection a‖b_, $(1, 0, -2)$; _rejection a⊥b_, $(2, 0, 1)$; y _|a⊥b|_ coincide con _|a| sin θ_.
+2. **Arrastrá $\mathbf{a}$ alrededor del origen** y mirá el signo de _a · b_: positivo de un lado de la perpendicular a $\mathbf{b}$, cero sobre ella (la flecha dorada desaparece) y negativo del otro (la sombra cae hacia atrás).
+3. **Tildá _flip b_ y _b × 2_:** $\mathbf{b}$ se da vuelta y se estira, y la dorada y la verde no se mueven. La proyección es sobre la recta, no sobre la flecha.
+4. **Pasá a _look_.** El blanco está a 45° de la mirada, y con _cone half-angle α_ en 30 queda afuera; subilo a 50 y entra. Ahora destildá _normalize_: _inside the cone_ dice _yes_ con 30°. La cuenta ingenua compara $\hat{\mathbf{f}} \cdot \mathbf{t} \approx 2{,}236$ con $0{,}866$, sin dividir por la distancia: un blanco lejano pasa aunque esté afuera.
+
+## Lo importante
+
+- **$\mathbf{a} \cdot \mathbf{b} = a_x b_x + a_y b_y + a_z b_z$**, un número. Con un vector de largo 1, es el largo con signo de la sombra del otro.
+- **$\mathbf{a} \cdot \mathbf{b} = \lvert \mathbf{a} \rvert\, \lvert \mathbf{b} \rvert \cos\theta$:** el signo dice si apuntan para el mismo lado, y cero quiere decir perpendiculares.
+- **Partir un vector** en $\mathbf{a}_\parallel = \frac{\mathbf{a} \cdot \mathbf{b}}{\mathbf{b} \cdot \mathbf{b}}\,\mathbf{b}$ y $\mathbf{a}_\perp = \mathbf{a} - \mathbf{a}_\parallel$, hacer algo con cada parte y juntarlas: proyectar, rechazar, reflejar.
+- **Delante, si $\mathbf{f} \cdot \mathbf{t} \gt 0$; adentro del cono, si $\hat{\mathbf{f}} \cdot \mathbf{t} \ge \lvert \mathbf{t} \rvert \cos\alpha$,** con $\cos\alpha$ calculado una vez. La torreta lo usa en [Mirar](../07-mirar/).
+
+## Más a fondo
+
+<details>
+<summary>Cauchy–Schwarz sin ángulos</summary>
+
+La demostración de arriba usa el ángulo $\theta$, y el ángulo entre dos vectores de tres componentes es una idea del dibujo. Hay una demostración que solo usa las reglas del producto escalar, y por eso vale igual en espacios donde no hay dibujo (vectores de muchas componentes, funciones).
+
+Para todo número $s$, el largo al cuadrado de $\mathbf{a} + s\,\mathbf{b}$ no es negativo:
+
+$$
+0 \le \lvert \mathbf{a} + s\,\mathbf{b} \rvert^2 = \lvert \mathbf{a} \rvert^2 + 2s\,(\mathbf{a} \cdot \mathbf{b}) + s^2\,\lvert \mathbf{b} \rvert^2.
+$$
+
+Si $\mathbf{b} \neq \mathbf{0}$, eso es un polinomio de grado 2 en $s$ que nunca es negativo, así que no puede tener dos raíces distintas: su discriminante es a lo sumo cero, $4\,(\mathbf{a} \cdot \mathbf{b})^2 - 4\,\lvert \mathbf{a} \rvert^2\,\lvert \mathbf{b} \rvert^2 \le 0$, que es Cauchy–Schwarz. Y así se puede **definir** el ángulo entre dos vectores, como el $\theta$ entre $0$ y $\pi$ con $\cos\theta = \frac{\mathbf{a} \cdot \mathbf{b}}{\lvert \mathbf{a} \rvert\, \lvert \mathbf{b} \rvert}$: la desigualdad garantiza que ese cociente está entre $-1$ y $1$.
+
+</details>
+
+<details>
+<summary>El punto más lejano en una dirección</summary>
+
+Entre muchos puntos, ¿cuál está más adelante en la dirección $\mathbf{d}$? Es el que tiene el producto escalar $P \cdot \mathbf{d}$ más grande: ese número es cuánto avanza cada punto a lo largo de $\mathbf{d}$, a menos de un factor $\lvert \mathbf{d} \rvert$ que es el mismo para todos. Para compararlos **no hace falta normalizar $\mathbf{d}$**.
+
+El **punto extremo** (_support point_) de una forma en una dirección vuelve en la parte de formas y choques: es la pieza con que se arman las cajas que envuelven a un objeto y el algoritmo GJK, que decide si dos formas convexas se tocan preguntando solo por puntos extremos.
+
+</details>
+
+:::caution[Sutilezas]
+
+- **Proyectar sobre un $\mathbf{b}$ que no mide 1 pide dividir por $\mathbf{b} \cdot \mathbf{b}$.** $(\mathbf{a} \cdot \mathbf{b})\,\mathbf{b}$ sin la división es la proyección multiplicada por $\lvert \mathbf{b} \rvert^2$: con $\mathbf{b}$ de 3 m, nueve veces más larga.
+- **El producto escalar de vectores sin normalizar no es un coseno.** Es el coseno por los dos largos. Compararlo con $\cos\alpha$ sin dividir hace que los blancos lejanos pasen aunque estén afuera y los cercanos fallen aunque estén adentro (el último paso de Probalo).
+- **El cero es perpendicular a todo**, porque $\mathbf{0} \cdot \mathbf{b} = 0$. Si un rechazo da cero (el vector estaba justo sobre la recta), normalizarlo para usarlo como dirección no da nada útil: hay que preguntar antes.
+- **Cerca de 90°, el signo lo deciden los redondeos.** Un blanco casi exactamente al costado puede dar $10^{-17}$ o $-10^{-17}$; una prueba que importa (delante o detrás, para decidir algo) tiene que elegir qué hace con el cero, y el resultado debe ser el mismo en todas las máquinas.
+
+:::
+
+:::tip[Para quien ya sabe: ¿por qué no `Math.acos`?]
+Si venís de calcular el ángulo con `acos(dot(f̂, t̂))` y compararlo con $\alpha$: da lo mismo, porque el coseno decrece en $[0°, 180°]$, pero cuesta más y pierde precisión cerca de 0° (donde `acos` tiene pendiente infinita). Y en el proyecto hay una razón más: lo que entra en el estado del juego se calcula solo con $+$, $-$, $\times$, $\div$ y $\sqrt{}$, que dan los mismos bits en todos los navegadores; `Math.acos` no tiene esa garantía. La parte 2 lo explica.
+:::
+
+## En los motores
+
+- **three.js:** `Vector3.dot`, `projectOnVector` (la proyección), `projectOnPlane` (el rechazo, sobre el plano perpendicular a un vector) y `reflect`; `angleTo` usa `Math.acos`.
+- **Unity:** `Vector3.Dot`, `Vector3.Project`, `Vector3.ProjectOnPlane` y `Vector3.Reflect`; `Vector3.Angle`, en grados.
+- **Unreal:** `FVector::DotProduct` (también el operador `|`), `ProjectOnTo` y `FVector::VectorPlaneProject`.
+- **Godot:** `dot`, `project`, `slide` (el rechazo: "deslizarse" sobre un plano) y `reflect`.
+- **En los libros:** Eric Lengyel, _Foundations of Game Engine Development_, vol. 1 (2016), §1.5 "Vector Multiplication" y §1.6 "Vector Projection".
+
+**Dónde Manifold eligió otra cosa.** Las funciones de ángulo de los motores (`angleTo`, `Vector3.Angle`) llaman a `acos`, y es común comparar ángulos con ellas. Manifold, como el proyecto, convierte el ángulo de un cono en coseno una sola vez, cuando el nivel lo declara, y cada pregunta es un producto escalar: así no entra ninguna trigonometría en el estado del juego.
+
+## En Manifold
+
+El producto escalar del motor es `vec3.dot`, en [`math.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/common/src/math.ts), y `vec3.onPlane` es un rechazo: lo que queda de un vector sobre el plano perpendicular a una dirección de largo 1, que el personaje usa para trepar a lo largo de una pared. El vigía que ve por la luz guarda su cono como coseno (`cone`) y en [`world.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/world.ts) compara con él el producto escalar de su mirada con el camino a cada personaje, ya normalizado. Y el control en el aire de un personaje arrojado por una explosión (`airStrafe`, en [`character.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/core/src/character.ts)) parte su velocidad con un producto escalar: solo cambia la parte a lo largo de la dirección pedida.
+
+## Para practicar
+
+**1. Las desigualdades triangulares.** Demostrá $\lvert \mathbf{a} + \mathbf{b} \rvert \le \lvert \mathbf{a} \rvert + \lvert \mathbf{b} \rvert$ sin mirar la sección de arriba, y después la **inversa**: $\bigl\lvert \lvert \mathbf{a} \rvert - \lvert \mathbf{b} \rvert \bigr\rvert \le \lvert \mathbf{a} - \mathbf{b} \rvert$. La segunda dice que dos puntas que están cerca tienen largos parecidos.
+
+<details>
+<summary>Una pista</summary>
+
+Para la primera, desarrollá $\lvert \mathbf{a} + \mathbf{b} \rvert^2$ y acotá el término del medio con Cauchy–Schwarz. Para la inversa, aplicá la primera a $\mathbf{a} = (\mathbf{a} - \mathbf{b}) + \mathbf{b}$, y después a $\mathbf{b} = (\mathbf{b} - \mathbf{a}) + \mathbf{a}$: salen $\lvert \mathbf{a} \rvert - \lvert \mathbf{b} \rvert \le \lvert \mathbf{a} - \mathbf{b} \rvert$ y lo mismo al revés.
+
+</details>
+
+**2. Los tres blancos.** Una torreta en el origen mira hacia $(0, 0, -1)$, con un cono de medio ángulo $40^\circ$. De cada blanco, $(2, 0, -3)$, $(-1, 0, 2)$ y $(4, 0, -2)$, decí si está delante y si está adentro del cono, con productos escalares y un coseno calculado una vez. Tiene que salir: el primero adentro (a 33,7°), el segundo detrás, y el tercero delante pero afuera (a 63,4°).
+
+<details>
+<summary>Una pista</summary>
+
+$\cos 40^\circ \approx 0{,}766$. Para el primero, $\hat{\mathbf{f}} \cdot \mathbf{t} = 3$ y $\lvert \mathbf{t} \rvert \cos 40^\circ = \sqrt{13} \cdot 0{,}766 \approx 2{,}762$: $3 \ge 2{,}762$. Los ángulos, solo para comprobar, son $\arccos(3/\sqrt{13})$ y $\arccos(2/\sqrt{20})$.
+
+</details>
+
+**3. Un rebote.** Reflejá $\mathbf{a} = (3, 0, -1)$ en el plano que pasa por el origen y tiene la perpendicular $\hat{\mathbf{n}} = (0{,}6;\ 0;\ 0{,}8)$, dando vuelta su parte a lo largo de $\hat{\mathbf{n}}$. Agregá la reflexión a la figura, como una flecha más. Tiene que dar $(1{,}8;\ 0;\ -2{,}6)$, del mismo largo, $\sqrt{10}$.
+
+<details>
+<summary>Una pista</summary>
+
+$\mathbf{a} \cdot \hat{\mathbf{n}} = 1{,}8 - 0{,}8 = 1$, y la reflexión es $\mathbf{a} - 2\,(\mathbf{a} \cdot \hat{\mathbf{n}})\,\hat{\mathbf{n}}$. En el código, con $\mathbf{b}$ en el lugar de la perpendicular: `sub(a, scale(project(a, B), 2))`, dibujada con una `arrow` más.
+
+</details>
+
+## Para saber más
+
+- Jacob Ström, Kalle Åström y Tomas Akenine-Möller, [_Immersive Linear Algebra_](https://immersivemath.com/ila/index.html), cap. 3 "The Dot Product" (en inglés): el producto escalar con figuras que se pueden mover.
+- Eric Lengyel, _Foundations of Game Engine Development_, vol. 1 (2016), §1.5–1.6 (en inglés).
+- Fletcher Dunn e Ian Parberry, [_3D Math Primer for Graphics and Game Development_](https://gamemath.com/book/), cap. 2 "Vectors" (en inglés, libre en la web).
+- [Essence of linear algebra](https://www.3blue1brown.com/topics/linear-algebra), de 3Blue1Brown, cap. 9 "Dot products and duality" (en inglés, con subtítulos).

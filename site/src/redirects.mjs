@@ -11,6 +11,7 @@ import { join } from 'node:path';
  *   old address too, read from the archive's folder, so none is forgotten.
  * - Stage 1's lessons took other places in the deeper pass (decision 0013).
  * - The new tutorial's pilot lived at /tutorial-nuevo/ before it took /tutorial/.
+ * - Moverse, the pilot's, went to the end of part 1 when lessons 1.5 to 1.7 came.
  *
  * @param {string} base the site's base, without the final slash: '/Manifold_Gaming'
  * @param {string} docs the docs folder: src/content/docs
@@ -41,13 +42,16 @@ export function redirects(base, docs) {
     'parte-1/02-la-proyeccion/',
     'parte-1/03-una-ventana-al-mundo/',
     'parte-1/04-vectores/',
-    'parte-1/05-moverse/',
     'notacion/',
     'typescript/',
   ])
     out[`/tutorial-nuevo/${page}`] = to(`tutorial/${page}`);
   out['/tutorial-nuevo/parte-1/01-una-ventana-al-mundo/'] = to('tutorial/parte-1/03-una-ventana-al-mundo/');
-  out['/tutorial-nuevo/parte-1/02-moverse/'] = to('tutorial/parte-1/05-moverse/');
+  out['/tutorial-nuevo/parte-1/02-moverse/'] = to('tutorial/parte-1/18-moverse/');
+  // Part 1's second batch (1.5–1.7) took Moverse's place: it waits at the end of the part until part 2
+  // takes it as 2.8.
+  out['/tutorial/parte-1/05-moverse/'] = to('tutorial/parte-1/18-moverse/');
+  out['/tutorial-nuevo/parte-1/05-moverse/'] = to('tutorial/parte-1/18-moverse/');
   return out;
 }
 
