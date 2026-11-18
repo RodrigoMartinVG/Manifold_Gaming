@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createScreen, fillCircle, fillRect, mix, setPixel, verticalGradient, type Colour, type Screen } from './screen';
 
 /**
- * THE BOOK'S CHAPTER 1, as numbers (site/src/content/docs/tutorial/libro/01-la-pantalla.mdx): what the text says
+ * THE BOOK'S CHAPTER 1, as numbers (site/src/content/docs/tutorial/dibujar/01-la-pantalla.mdx): what the text says
  * our screen does, it does.
  */
 const MOON: Colour = [240, 226, 182];

@@ -3,7 +3,7 @@ import { createScreen } from './screen';
 import { drawLine, drawPolyline, lerp } from './line';
 
 /**
- * THE BOOK'S CHAPTER 2, as numbers (site/src/content/docs/tutorial/libro/02-lineas.mdx): the point that travels,
+ * THE BOOK'S CHAPTER 2, as numbers (site/src/content/docs/tutorial/dibujar/02-lineas.mdx): the point that travels,
  * and a line with no holes and no pixel too many, in every direction. (`./screen` is chapter 1's: the test sees
  * the project as the reader has it at this step; vitest.config.ts.)
  */
