@@ -1,8 +1,13 @@
-/** How a level went: how many steps it took (60 a second), how many stars it found, how many falls. */
+/**
+ * How a level went: how many steps it took (60 a second), how many stars it found, how many falls; and
+ * (stage 5m) lines of the game's own for the panel at its end (a key of its words and what it says in it:
+ * the fortress's scrolls found, its guards taken down), shown, never kept.
+ */
 export interface LevelResult {
   steps: number;
   stars: number;
   falls: number;
+  notes?: readonly (readonly [key: string, ...values: string[]])[];
 }
 
 /** The version of the progress this code writes (decision 0020: kept data says its version). */
@@ -56,7 +61,7 @@ export function finished(
             stars: Math.max(was.stars, result.stars),
             falls: Math.min(was.falls, result.falls),
           }
-        : { ...result },
+        : { steps: result.steps, stars: result.stars, falls: result.falls },
     },
   };
 }

@@ -32,9 +32,9 @@ describe('the fortress, on the games’ shell (stage 5f)', () => {
   test('caught (down), the intruder is back at its checkpoint three seconds later, on its feet, the time counted', () => {
     const f = levelOf(0);
     f.step();
-    f.session.world.place(f.me(), [0, 0.82, -2]);
+    f.session.world.place(f.me(), [-3, 0.82, -2.5]);
     f.step();
-    expect(f.r().checkpoint).toEqual([0, 1, -2]);
+    expect(f.r().checkpoint).toEqual([-3, 1, -2.5]);
     f.session.world.place(f.me(), [6, 0.82, -10]);
     f.step();
     f.session.world.hurt(f.me().id, 1000);
@@ -45,14 +45,14 @@ describe('the fortress, on the games’ shell (stage 5f)', () => {
       said = [...said, ...notices(f.session.world.stepEvents)];
     }
     expect(f.me().health!.down).toBe(-1);
-    expect(Math.hypot(f.at()[0]!, f.at()[2]! + 2)).toBeLessThan(0.1);
+    expect(Math.hypot(f.at()[0]! + 3, f.at()[2]! + 2.5)).toBeLessThan(0.1);
     expect(f.r().caught).toBe(1);
     expect(said).toContain('fortress.caught');
     f.session.world.dispose();
   });
 
   test('the keep’s way out counts only with the flame: without it, a line that says so; with it, done', () => {
-    const f = levelOf(2);
+    const f = levelOf(3);
     f.step();
     let said: string[] = [];
     const steps = (n: number) => {
@@ -61,17 +61,17 @@ describe('the fortress, on the games’ shell (stage 5f)', () => {
         said = [...said, ...notices(f.session.world.stepEvents)];
       }
     };
-    f.session.world.place(f.me(), [12, 0.82, -11]);
+    f.session.world.place(f.me(), [-15.5, 0.82, -2]);
     steps(3);
     expect(f.done()).toBe(false);
     expect(said).toContain('fortress.need');
     // The guard at its post down (it would see the flame), the flame taken by its zone, and out again.
     f.session.world.hurt(f.guards()[0]!.id, 1000);
-    f.session.world.place(f.me(), [0.3, 0.82, -17.2]);
+    f.session.world.place(f.me(), [0.3, 0.82, -36.4]);
     steps(3);
     expect([f.r().relic, f.me().lamp?.radius]).toEqual([true, RULES.flame.radius]);
     expect(said).toContain('fortress.flame');
-    f.session.world.place(f.me(), [12, 0.82, -11]);
+    f.session.world.place(f.me(), [-15.5, 0.82, -2]);
     steps(3);
     expect(f.done()).toBe(true);
     expect(FORTRESS.done(f.session.world, f.me())).toMatchObject({ stars: 1, falls: 0 });
@@ -79,7 +79,7 @@ describe('the fortress, on the games’ shell (stage 5f)', () => {
   });
 
   test('seen (stage 5l): a glimpse is not; a moment longer in its sight, the guard is suspicious (“huh?”), then alerted (it shouts), and that is being seen (no star); a guard down sees nothing', () => {
-    const f = levelOf(2);
+    const f = levelOf(3);
     f.step();
     const g0 = () => f.guards()[0]!;
     const n = () => noticeOf(g0())!;
@@ -90,8 +90,12 @@ describe('the fortress, on the games’ shell (stage 5f)', () => {
         for (const ev of f.world().stepEvents) if (ev.type === 'sound' && ev.source === g0().id) said.push(ev.sound);
       }
     };
-    // Before the guard at its post, the flame lighting it (it carries it): a glimpse, three steps.
-    f.session.world.place(f.me(), [0.3, 0.82, -17.2]);
+    // The flame taken behind the guard at its post (it faces the hall), then before it, the flame lighting
+    // it (it carries it): a glimpse, three steps.
+    f.session.world.place(f.me(), [0.3, 0.82, -36.4]);
+    steps(2);
+    expect(f.r().relic).toBe(true);
+    f.session.world.place(f.me(), [0.3, 0.82, -29.6]);
     steps(3);
     expect(n().level).toBeGreaterThan(0);
     expect([n().state, f.r().seen]).toEqual(['calm', 0]);
@@ -104,10 +108,10 @@ describe('the fortress, on the games’ shell (stage 5f)', () => {
     expect(said.indexOf('huh')).toBeLessThan(said.indexOf('shout'));
     expect(f.r().seen).toBe(1);
     // Again, the guard down first: the same place, unseen.
-    const g = levelOf(2);
+    const g = levelOf(3);
     g.step();
     g.session.world.hurt(g.guards()[0]!.id, 1000);
-    g.session.world.place(g.me(), [0.3, 0.82, -17.2]);
+    g.session.world.place(g.me(), [0.3, 0.82, -36.4]);
     for (let i = 0; i < 3; i++) g.step();
     expect(g.r().relic).toBe(true);
     expect(g.r().seen).toBe(0);
@@ -127,7 +131,7 @@ describe('the fortress, on the games’ shell (stage 5f)', () => {
   });
 
   test('suspicious and out of its sight, one gets away: the guard goes to look, then lets it go (“nothing”); alerted and lost, it searches, then goes back warier', () => {
-    const f = levelOf(2);
+    const f = levelOf(3);
     f.step();
     const g0 = () => f.guards()[0]!;
     const n = () => noticeOf(g0())!;
@@ -148,7 +152,9 @@ describe('the fortress, on the games’ shell (stage 5f)', () => {
       f.session.world.place(f.me(), at as [number, number, number]);
       f.session.step();
     };
-    put([0.3, 0.82, -17.2]);
+    // The flame taken behind it, then before it, lit by the flame.
+    put([0.3, 0.82, -36.4]);
+    put([0.3, 0.82, -29.6]);
     steps(60, () => n().state === 'suspicious');
     expect(n().state).toBe('suspicious');
     // Gone (back at the level's start, out of its sight): it goes to look, and in a few seconds lets it go.
@@ -159,7 +165,7 @@ describe('the fortress, on the games’ shell (stage 5f)', () => {
     expect(Math.hypot(g0().transform!.position[0] - post[0]!, g0().transform!.position[2] - post[2]!)).toBeGreaterThan(0.5);
     expect(f.r().seen).toBe(0);
     // Alerted, then lost: three seconds on it searches, ten more and it is back, warier for half a minute.
-    put([0.3, 0.82, -17.2]);
+    put([0.3, 0.82, -29.6]);
     steps(120, () => n().state === 'alerted');
     expect(n().state).toBe('alerted');
     put([...f.r().spawn]);

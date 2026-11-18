@@ -165,6 +165,11 @@ so the view can draw it and any host's brain reads the same; only guards whose w
 weapons no longer go through walls: what is held is drawn raised out of a wall in front of it, and what is
 fired or thrown starts on this side of a near wall.
 
+As it went (5m): the four levels drawn as plans of characters made into the kit's lines (`levelFromPlan`), since
+levels of this size are hundreds of pieces; and, for them to stay within decision 0026's 300 draw calls, the
+level's still pieces drawn as instances by squares of 16 m (one batch for a whole level drew all its triangles from
+anywhere: 46,000 of the 50,000).
+
 ## The author's answers
 
 The author took every recommendation (2026-11-18):

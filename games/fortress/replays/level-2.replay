@@ -1,92 +1,77 @@
-# Manifold replay 45
-# The fortress's courtyard, played unseen to its way out: the dark side, a gate lantern put out.
+# Manifold replay 46
+# The fortress's courtyard, played unseen to its way out: the west side, a blow from behind.
 # A reference replay (stage 5f, as the tower’s since 5d): playing it must end with the hash on its
 # last line. Recorded by games/fortress/src/levels.test.ts; recorded again (npm run references) only
 # when the simulation changes on purpose, with SIMULATION_VERSION.
 game fortress
 profile rapier-deterministic server 60
 birth fortress.level level-2
-input 1 101 move @270
-input 1 1 move @0
-input 2 100 move @0
-input 77 1 move @0:0.8
-input 78 1 move @0:0.6
-input 79 1 move @30 crouch
-input 102 100 move @2
-input 102 101 move @268
-input 159 1 move @29 crouch
-input 161 1 move @29:0.98 crouch
-input 162 1 move @29:0.87 crouch
-input 163 1 move @29:0.77 crouch
-input 164 1 move @29:0.68 crouch
-input 165 1 move @29:0.61 crouch
-input 166 1 move @29:0.54 crouch
-input 167 1 move @68 crouch
-input 176 100 move @1
-input 177 101 move @269
-input 212 101
-input 213 100
-input 213 101 move @90
-input 214 100 move @180
-input 313 1 move @67 crouch
-input 404 1 move @67:0.99 crouch
-input 405 1 move @67:0.88 crouch
-input 406 1 move @67:0.78 crouch
-input 407 1 move @67:0.7 crouch
-input 408 1 move @67:0.62 crouch
-input 409 1 move @67:0.55 crouch
-input 410 1 move @0 crouch
-input 416 101
-input 417 100
-input 417 101 move @270
-input 418 100 move @0
-input 620 101
-input 621 100
-input 621 101 move @90
-input 622 100 move @180
-input 709 1 move @1 crouch
-input 824 101
-input 825 100
-input 825 101 move @270
-input 826 100 move @0
-input 914 1 move @1:0.92 crouch
-input 915 1 move @1:0.82 crouch
-input 916 1 move @1:0.73 crouch
-input 917 1 move @1:0.65 crouch
-input 918 1 move @1:0.58 crouch
-input 919 1 move @1:0.51 crouch
-input 920 1 crouch
-input 945 1 move @279 crouch
-input 1028 101
-input 1028 1 move @280 crouch
-input 1029 100
-input 1029 101 move @90
-input 1030 100 move @180
-input 1089 1 move @280:0.97 crouch
-input 1090 1 move @280:0.87 crouch
-input 1091 1 move @280:0.77 crouch
-input 1092 1 move @280:0.68 crouch
-input 1093 1 move @280:0.61 crouch
-input 1094 1 move @280:0.54 crouch
-input 1095 1 move @278 crouch
-input 1158 1 move @278:0.89 crouch
-input 1159 1 move @278:0.79 crouch
-input 1160 1 move @278:0.7 crouch
-input 1161 1 move @277:0.62 crouch
-input 1162 1 move @277:0.55 crouch
-input 1163 1 crouch use
-input 1164 1 crouch
-input 1165 1 move @322 crouch
-input 1228 1 move @323 crouch
-input 1232 101
-input 1233 100
-input 1233 101 move @270
-input 1234 100 move @0
-input 1253 1 move @323:0.9 crouch
-input 1254 1 move @323:0.8 crouch
-input 1255 1 move @323:0.71 crouch
-input 1256 1 move @323:0.64 crouch
-input 1257 1 move @323:0.56 crouch
-input 1258 1 move @323:0.5 crouch
-input 1259 1 move @359
-end 1281 26538cf7
+input 1 102 face @180
+input 1 1 move @276
+input 2 100 move @90
+input 2 101 move @0
+input 167 1 move @277
+input 170 100 move @92
+input 170 101 move @1
+input 227 100 move @93
+input 239 100
+input 240 100 move @3
+input 245 1 move @277:0.84
+input 246 1 move @277:0.63
+input 247 1 move @0
+input 291 101 move @2
+input 320 101
+input 321 101 move @180
+input 409 100 move @2
+input 450 100
+input 451 100 move @271
+input 506 1 move @359
+input 513 1 move @359:0.82
+input 514 1 move @359:0.61
+input 515 1 move @31 crouch
+input 613 100 move @270
+input 631 101
+input 632 101 move @0
+input 688 100
+input 689 100 move @181
+input 702 1 move @30 crouch
+input 848 100 move @180
+input 861 1 move @30:0.91 crouch
+input 862 1 move @30:0.81 crouch
+input 863 1 move @30:0.72 crouch
+input 864 1 move @30:0.64 crouch
+input 865 1 move @30:0.57 crouch
+input 866 1 move @30:0.51 crouch
+input 867 1 move @89 crouch
+input 892 100
+input 893 100 move @93
+input 942 101
+input 943 101 move @180
+input 998 100 move @92
+input 1056 1 move @90 crouch
+input 1123 100
+input 1124 100 move @3
+input 1131 1 move @90:0.94 crouch
+input 1132 1 move @90:0.83 crouch
+input 1133 1 move @90:0.74 crouch
+input 1134 1 move @90:0.66 crouch
+input 1135 1 move @90:0.59 crouch
+input 1136 1 move @90:0.52 crouch
+input 1137 1 move @94 crouch
+input 1189 1 move @95 crouch
+input 1208 1 move @95:0.94 crouch
+input 1209 1 move @95:0.84 crouch
+input 1210 1 move @95:0.74 crouch
+input 1211 1 move @95:0.66 crouch
+input 1212 1 move @95:0.59 crouch
+input 1213 1 move @95:0.52 crouch
+input 1214 1 face @180 crouch
+input 1234 1 crouch arms.attack
+input 1235 1 crouch
+input 1240 102
+input 1249 1 move @1
+input 1253 101
+input 1254 101 move @0
+input 1269 100 move @2
+input 1287 1 move @2
+end 1293 6340b1a7

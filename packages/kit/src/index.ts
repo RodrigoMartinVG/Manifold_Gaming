@@ -50,3 +50,4 @@ export const KIT_LEAVES: Readonly<Record<string, { size: Vec3; model: string }>>
 export const KIT_TRIANGLES: Readonly<Record<string, number>> = Object.fromEntries(
   [...Object.entries((made as Made).pieces), ...Object.entries((made as Made).leaves)].map(([name, p]) => [name, p.triangles]),
 );
+export { levelFromPlan } from './plan';

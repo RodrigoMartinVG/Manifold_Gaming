@@ -1066,7 +1066,10 @@ test('the citadel: built with the kit, drawn within its budget everywhere in it,
     expect(draws, `draws at ${at}`).toBeLessThanOrEqual(300);
     expect(triangles, `triangles at ${at}`).toBeLessThanOrEqual(50_000);
     expect(triangles, `drawn at ${at}`).toBeGreaterThan(2000);
+    // (Stage 5m) Its still pieces drawn in batches by squares of 16 m: up to 300 before, 39 to 81 measured.
+    expect(draws, `batched at ${at}`).toBeLessThanOrEqual(150);
   }
+  expect(Number(await page.locator('#game').getAttribute('data-batches'))).toBeGreaterThan(0);
   expect(warnings).toEqual([]);
   expect(list).toEqual([]);
 });
@@ -1269,7 +1272,8 @@ test('the fortress: its title, its lines, a level done unseen (its gold time) an
   test.setTimeout(120_000);
   const list = errors(page);
   const game = page.locator('#game');
-  await page.goto(`jugar/fortaleza/#${intruderAt(0, 0.9, -20)}`);
+  // (Stage 5m: the first level's way out, past the gate.)
+  await page.goto(`jugar/fortaleza/#${intruderAt(-0.5, 0.9, -22)}`);
   await expect(game).toHaveAttribute('data-dialog', 'La fortaleza', { timeout: 20_000 });
   await expect(game).toHaveAttribute('data-sky', '22');
   await page.getByRole('button', { name: 'Créditos' }).click();
@@ -1281,7 +1285,10 @@ test('the fortress: its title, its lines, a level done unseen (its gold time) an
   await page.getByRole('button', { name: 'Seguir' }).click();
   await expect(game).toHaveAttribute('data-level', 'wall');
   await expect(game).toHaveAttribute('data-dialog', 'La muralla: listo', { timeout: 60_000 });
-  await expect(page.locator('.mg-panel')).toContainText('Tiempo de oro: 0:19,0');
+  await expect(page.locator('.mg-panel')).toContainText('Tiempo de oro: 0:32,0');
+  // (Stage 5m) Its recap: the scrolls taken of the level's two, the guards taken down.
+  await expect(page.locator('.mg-panel')).toContainText('Pergaminos: ninguno de 2');
+  await expect(page.locator('.mg-panel')).toContainText('No volteaste a nadie');
   await expect(page.locator('.mg-panel')).toContainText('Nadie te vio');
   await expect(page.locator('.mg-panel')).toContainText('No te atraparon');
   expect(JSON.parse((await game.getAttribute('data-progress'))!)).toMatchObject({ version: 1, started: true, reached: 1 });
@@ -1298,14 +1305,15 @@ test('the fortress’s end: the flame carried out of the keep, the thread’s la
   const game = page.locator('#game');
   await page.addInitScript(() => {
     if (!sessionStorage.getItem('kept')) {
-      localStorage.setItem('manifold.fortress.progress', JSON.stringify({ version: 1, started: true, reached: 2, best: {} }));
+      localStorage.setItem('manifold.fortress.progress', JSON.stringify({ version: 1, started: true, reached: 3, best: {} }));
       sessionStorage.setItem('kept', '1');
     }
   });
-  // The flame taken (its zone), and out of the postern: the guard at its post sees it carried, lit, for half
-  // a second (stage 5l: long enough to be sure, a quarter; three steps were a glimpse, let go).
+  // The flame taken (its zone, behind the guard at its post since 5m), then before that guard, carried, lit,
+  // for half a second (stage 5l: long enough to be sure, a quarter; three steps were a glimpse, let go),
+  // and out of the postern.
   await page.goto(
-    'jugar/fortaleza/#recipe=wait+1;set+intruder+transform.position+0.3+0.9+-17.2;wait+30;set+intruder+transform.position+12+0.9+-11',
+    'jugar/fortaleza/#recipe=wait+1;set+intruder+transform.position+0.3+0.9+-36.4;wait+2;set+intruder+transform.position+0.3+0.9+-29.6;wait+30;set+intruder+transform.position+-15.5+0.9+-2',
   );
   await expect(game).toHaveAttribute('data-dialog', 'La fortaleza', { timeout: 20_000 });
   await page.getByRole('button', { name: 'Seguir: La torre del homenaje' }).click();
@@ -1319,7 +1327,7 @@ test('the fortress’s end: the flame carried out of the keep, the thread’s la
   await expect(game).toHaveAttribute('data-dialog', 'Créditos');
   await page.getByRole('button', { name: 'Volver' }).click();
   await expect(game).toHaveAttribute('data-dialog', 'La fortaleza');
-  expect(JSON.parse((await game.getAttribute('data-progress'))!).reached).toBe(3);
+  expect(JSON.parse((await game.getAttribute('data-progress'))!).reached).toBe(4);
   expect(list).toEqual([]);
 });
 
@@ -1351,8 +1359,8 @@ test('the fortress, in the dark: the gem says hidden, and a guard that glimpses 
   test.setTimeout(90_000);
   const list = errors(page);
   const game = page.locator('#game');
-  // By the outer wall, east of the breach, in the dark.
-  await page.goto(`jugar/fortaleza/#${intruderAt(4, 0.9, 0.75)}`);
+  // Outside the outer wall, east of the breach, in the dark.
+  await page.goto(`jugar/fortaleza/#${intruderAt(6, 0.9, 5)}`);
   await expect(game).toHaveAttribute('data-dialog', 'La fortaleza', { timeout: 20_000 });
   await page.getByRole('button', { name: 'Jugar', exact: true }).click();
   await page.getByRole('button', { name: 'Seguir' }).click();

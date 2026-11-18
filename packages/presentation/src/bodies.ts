@@ -302,6 +302,87 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
     });
   };
 
+  /**
+   * THE LEVEL'S STILL PIECES, BATCHED (stage 5m, decision 0031: levels larger than phase 5's within decision
+   * 0026's budget of 300 draw calls a frame). What the physics never moves and a model draws (the kit's walls,
+   * floors, crates: not what breaks, gives light, or is a zone) is drawn as instances, one draw for each of
+   * its models' meshes in each square of the level `CHUNK` m on a side, however many pieces share it there
+   * (by squares, so what is out of the camera's sight is left out a square at a time: one batch for the
+   * whole citadel drew all its triangles from anywhere, 46,000 of the budget's 50,000); their copies stay,
+   * hidden, for what reads them (a click on one, the tests' count). Batched again only when one comes, goes
+   * or is moved (the console's `set`). For the browser tests: `data-batches`, how many batches there are.
+   */
+  const CHUNK = 16;
+  const still = new Map<EntityId, { position: Vec3; rotation: Quat } | null>();
+  let batches: THREE.InstancedMesh[] = [];
+  let stillDirty = false;
+  const isStill = (e: Entity) =>
+    e.body?.type === 'fixed' && !!e.appearance?.model && !e.character && !e.lamp && !e.breakable && !e.sensor;
+  const unbatch = () => {
+    for (const b of batches) {
+      scene.remove(b);
+      b.dispose();
+    }
+    batches = [];
+  };
+  const rebatch = (world: World) => {
+    unbatch();
+    const groups = new Map<
+      string,
+      { geometry: THREE.BufferGeometry; material: THREE.Material; matrices: THREE.Matrix4[]; cast: boolean; receive: boolean }
+    >();
+    for (const id of still.keys()) {
+      const object = meshes.get(id);
+      const t = world.entities.get(id)?.transform;
+      if (!object || !t) continue;
+      still.set(id, { position: [...t.position], rotation: [...t.rotation] });
+      object.position.set(...t.position);
+      object.quaternion.set(...t.rotation);
+      object.updateMatrixWorld(true);
+      const square = `${Math.floor(t.position[0] / CHUNK)} ${Math.floor(t.position[2] / CHUNK)}`;
+      object.traverse((o) => {
+        if (!(o instanceof THREE.Mesh) || Array.isArray(o.material)) return;
+        const key = `${square} ${o.geometry.uuid} ${(o.material as THREE.Material).uuid}`;
+        let g = groups.get(key);
+        if (!g)
+          groups.set(
+            key,
+            (g = {
+              geometry: o.geometry,
+              material: o.material as THREE.Material,
+              matrices: [],
+              cast: o.castShadow,
+              receive: o.receiveShadow,
+            }),
+          );
+        g.matrices.push(o.matrixWorld.clone());
+        o.visible = false;
+      });
+    }
+    for (const g of groups.values()) {
+      const batch = new THREE.InstancedMesh(g.geometry, g.material, g.matrices.length);
+      g.matrices.forEach((m, i) => batch.setMatrixAt(i, m));
+      batch.instanceMatrix.needsUpdate = true;
+      batch.castShadow = g.cast;
+      batch.receiveShadow = g.receive;
+      batch.computeBoundingSphere();
+      scene.add(batch);
+      batches.push(batch);
+    }
+    stillDirty = false;
+    page.container.dataset.batches = String(batches.length);
+  };
+  /** Whether a still piece is no longer where it was batched (moved by the console). */
+  const stillMoved = (world: World) => {
+    for (const [id, was] of still) {
+      const t = world.entities.get(id)?.transform;
+      if (!was || !t) return true;
+      for (let k = 0; k < 3; k++) if (t.position[k] !== was.position[k]) return true;
+      for (let k = 0; k < 4; k++) if (t.rotation[k] !== was.rotation[k]) return true;
+    }
+    return false;
+  };
+
   const createZone = (e: Entity) => {
     if (!e.sensor || !e.transform || zones.has(e.id)) return;
     const [x, y, z] = e.sensor.half;
@@ -327,6 +408,11 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
     scene.add(object);
     meshes.set(e.id, object);
     if (model) instances.set(e.id, model);
+    // (Stage 5m) A still piece of the level: drawn in a batch.
+    if (model && isStill(e)) {
+      still.set(e.id, null);
+      stillDirty = true;
+    }
     if (e.character && !shadows.has(e.id)) {
       const shadow = new THREE.Mesh(shadowShape, shadowMaterial.clone());
       shadow.renderOrder = 1;
@@ -365,6 +451,7 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
     instances.delete(id);
     lastHit.delete(id);
     meshes.delete(id);
+    if (still.delete(id)) stillDirty = true;
     if (!all) return;
     const shadow = shadows.get(id);
     if (shadow) {
@@ -508,6 +595,12 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
         if (!drawn) drawnTurn.set(id, (drawn = target.clone()));
         turning.set(id, turnBody(drawn, target, upAt(world, t.position), time));
         mesh.quaternion.copy(drawn);
+      }
+      // (Stage 5m) The still pieces' batches: again only when one came, went or moved.
+      if (still.size > 0 && (stillDirty || stillMoved(world))) rebatch(world);
+      else if (still.size === 0 && batches.length > 0) {
+        unbatch();
+        page.container.dataset.batches = '0';
       }
       // A character's animations, from its state and how it really moved in its last step (the view
       // reads the world, never writes it).

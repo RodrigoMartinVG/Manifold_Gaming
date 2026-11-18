@@ -108,5 +108,8 @@
  *      (`arms.notice`: calm, suspicious, alerted, searching; its barks `huh` and `calm`), and its brain
  *      goes after them only once alerted; a pebble thrown clatters where it strikes (`pebble`); the
  *      fortress counts a guard alerted as seen. Guards without `aware` (the Dojo's) as in 44
+ *  46  stage 5m: the fortress's four levels, drawn as plans (levelFromPlan), and its intruder counting
+ *      the scrolls it takes (`scroll` zones) and the guards it takes down, for a level's recap; the
+ *      engine, the Dojo, the tower and the wall as in 45
  */
-export const SIMULATION_VERSION = 45;
+export const SIMULATION_VERSION = 46;

@@ -218,6 +218,8 @@ function campaign(
                 ]),
             say('shell.stars', [String(result.stars)]),
             say('shell.falls', [String(result.falls)]),
+            // (Stage 5m) The game's own lines: what else it counted.
+            ...(result.notes ?? []).map(([key, ...values]) => say(key, values)),
           ],
           buttons: [
             { label: say('shell.next'), then: on },

@@ -32,7 +32,8 @@ export const FORTRESS_WORDS = {
     'fortress.tagline': 'Entrá de noche y recuperá la llama de la torre sin que te vean.',
     'fortress.level.1': 'La muralla',
     'fortress.level.2': 'El patio',
-    'fortress.level.3': 'La torre del homenaje',
+    'fortress.level.3': 'Los cuarteles',
+    'fortress.level.4': 'La torre del homenaje',
     'fortress.who.keeper': 'La guardiana',
     'fortress.open.1': 'Mientras subías, se llevaron la llama de lo alto de la torre. Está en la fortaleza.',
     'fortress.open.2': 'La noche es tuya: un guardia ve lo que alumbra un farol. Apagalos, agachate, y que no te oigan.',
@@ -48,6 +49,14 @@ export const FORTRESS_WORDS = {
     'fortress.caught': 'Te atraparon: de vuelta al punto de control',
     'fortress.checkpoint': 'Punto de control',
     'fortress.flame': 'La llama: llevala hasta la salida. Alumbra, y te van a ver',
+    'fortress.scroll': 'Un pergamino robado',
+    'fortress.recap.scrolls': { by: 0, '=0': 'Pergaminos: ninguno de {1}', other: 'Pergaminos: {0} de {1}' },
+    'fortress.recap.downs': {
+      by: 0,
+      '=0': 'No volteaste a nadie',
+      one: 'Volteaste a un guardia',
+      other: 'Volteaste a {0} guardias',
+    },
     'fortress.need': 'Sin la llama no te vas',
     'shell.stars': { by: 0, '=0': 'Te vieron', other: 'Nadie te vio' },
     'shell.falls': { by: 0, '=0': 'No te atraparon', one: 'Te atraparon una vez', other: 'Te atraparon {0} veces' },
@@ -57,7 +66,8 @@ export const FORTRESS_WORDS = {
     'fortress.tagline': 'Get in at night and take back the tower’s flame unseen.',
     'fortress.level.1': 'The outer wall',
     'fortress.level.2': 'The courtyard',
-    'fortress.level.3': 'The keep',
+    'fortress.level.3': 'The barracks',
+    'fortress.level.4': 'The keep',
     'fortress.who.keeper': 'The keeper',
     'fortress.open.1': 'While you climbed, they took the flame from the top of the tower. It is in the fortress.',
     'fortress.open.2': 'The night is yours: a guard sees what a lantern lights. Put them out, crouch, and don’t be heard.',
@@ -73,6 +83,14 @@ export const FORTRESS_WORDS = {
     'fortress.caught': 'caught: back to the checkpoint',
     'fortress.checkpoint': 'checkpoint',
     'fortress.flame': 'the flame: carry it to the way out. It gives light: they will see you',
+    'fortress.scroll': 'a scroll stolen',
+    'fortress.recap.scrolls': { by: 0, '=0': 'Scrolls: none of {1}', other: 'Scrolls: {0} of {1}' },
+    'fortress.recap.downs': {
+      by: 0,
+      '=0': 'You took no one down',
+      one: 'You took a guard down',
+      other: 'You took {0} guards down',
+    },
     'fortress.need': 'not without the flame',
     'shell.stars': { by: 0, '=0': 'Seen', other: 'Unseen' },
     'shell.falls': { by: 0, '=0': 'Never caught', one: 'Caught once', other: 'Caught {0} times' },
@@ -169,17 +187,27 @@ export const FORTRESS: Game = {
   words: FORTRESS_WORDS,
   title: 'fortress.title',
   tagline: 'fortress.tagline',
-  // Its three levels: the dark as cover, wary guards, the flame carried out (decision 0029: the light as
-  // the tool, stealth first). Each with its gold time (s): about 1.3 times its test's run, unseen
-  // (levels.test.ts: 14.2, 21.4 and 17.9 s, waiting for the guards to look away, as anyone must).
+  // Its four levels (stage 5m, decision 0031: longer, with more than one way, places to watch from, scrolls
+  // off the safe way): the outer wall (the dark, a pebble), the courtyard (a blow from behind), the
+  // barracks (waiting while a round goes by), the keep (the flame carried out). Each with its gold time
+  // (s): about 1.3 times its test's run, unseen (levels.test.ts), as anyone who knows it could.
   levels: [
-    { id: 'wall', recipe: 'fortress.level level-1', name: 'fortress.level.1', gold: 19 },
+    { id: 'wall', recipe: 'fortress.level level-1', name: 'fortress.level.1', gold: 32 },
     { id: 'yard', recipe: 'fortress.level level-2', name: 'fortress.level.2', gold: 28 },
-    { id: 'keep', recipe: 'fortress.level level-3', name: 'fortress.level.3', gold: 23 },
+    { id: 'barracks', recipe: 'fortress.level level-3', name: 'fortress.level.3', gold: 59 },
+    { id: 'keep', recipe: 'fortress.level level-4', name: 'fortress.level.4', gold: 60 },
   ],
   done: (_, hero) => {
     const r = hero && run(hero);
-    return r && r.finish >= 0 ? { steps: r.finish - r.start, stars: r.seen === 0 ? 1 : 0, falls: r.caught } : null;
+    if (!r || r.finish < 0) return null;
+    // (Stage 5m) Its recap: the scrolls taken of those the level has (if it has any), the guards taken down.
+    const notes: [string, ...string[]][] = [
+      ...(r.scrollsHere > 0
+        ? [['fortress.recap.scrolls', String(r.scrolls), String(r.scrollsHere)] as [string, ...string[]]]
+        : []),
+      ['fortress.recap.downs', String(r.downs)],
+    ];
+    return { steps: r.finish - r.start, stars: r.seen === 0 ? 1 : 0, falls: r.caught, notes };
   },
   thread: {
     opening: [

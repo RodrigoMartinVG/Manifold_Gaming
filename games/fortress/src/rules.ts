@@ -42,13 +42,16 @@ export const FORTRESS_ZONES: ZoneKinds = {
   relic: {},
   guard: {},
   post: {},
+  // (Stage 5m) A scroll to steal, off the safe way: an objective of one's own.
+  scroll: {},
   ...STEALTH_ZONES,
 };
 
 /**
  * How an intruder is doing on a level: where it started and comes back to, when it started and got
  * out (−1: not yet), how many times it was caught (down) and seen (since 5l: a guard was alerted by it,
- * not glimpsed it), and whether it carries the flame.
+ * not glimpsed it), and whether it carries the flame; (stage 5m) how many scrolls it took of how many the
+ * level has, and how many guards it took down.
  */
 export type Run = {
   spawn: Vec3;
@@ -58,6 +61,9 @@ export type Run = {
   caught: number;
   seen: number;
   relic: boolean;
+  scrolls: number;
+  scrollsHere: number;
+  downs: number;
 };
 const RUN = 'fortress.run';
 export const run = (e: Entity) => component<Run>(e, RUN);
@@ -123,6 +129,9 @@ function intruder(world: World, player: number, at: Vec3, facing: Vec3) {
         caught: 0,
         seen: 0,
         relic: false,
+        scrolls: 0,
+        scrollsHere: [...world.entities.values()].filter((z) => z.sensor?.kind === 'scroll').length,
+        downs: 0,
       } satisfies Run,
       [POUCH]: { ...FORTRESS.pouch } satisfies Pouch,
       [WEAPON]: { kind: 'stick', ready: 0, strike: 0, struck: [] } satisfies Weapon,
@@ -171,6 +180,11 @@ export function createFortress(levels: Readonly<Record<string, Level>>): Cartrid
           zone.appearance = { shape: 'sphere', size: [0.3, 0.3, 0.3], color: 0xffb04a };
           zone.lamp = { radius: FORTRESS.flame.radius, intensity: 1, signal: null, on: true };
         }
+        // A scroll: a small pale roll, turning slowly.
+        if (zone.sensor.kind === 'scroll') {
+          zone.appearance = { shape: 'box', size: [0.12, 0.12, 0.42], color: 0xe8dcb4 };
+          zone.spin = { angularVelocity: [0, 1, 0] };
+        }
         if (zone.sensor.kind === 'item') {
           const kind = zone.sensor.params.kind?.[0] ?? 1;
           zone.appearance = {
@@ -207,6 +221,13 @@ export function createFortress(levels: Readonly<Record<string, Level>>): Cartrid
         if (r && r.finish < 0) r.seen++;
       }
       for (const ev of events) {
+        // (Stage 5m) A guard taken down by an intruder: counted, for the level's recap.
+        if (ev.type === 'down' && ev.from !== null) {
+          const by = world.entities.get(ev.from);
+          const r = by && run(by);
+          if (r && r.finish < 0 && world.entities.get(ev.target)?.brain) r.downs++;
+          continue;
+        }
         if (ev.type !== 'sensorEntered') continue;
         const zone = world.entities.get(ev.sensor);
         const e = world.entities.get(ev.entity);
@@ -221,6 +242,11 @@ export function createFortress(levels: Readonly<Record<string, Level>>): Cartrid
               r.checkpoint = [...zone.transform.position];
               notice(world, e.character!.player, 'fortress.checkpoint');
             }
+            break;
+          case 'scroll':
+            world.removeEntity(zone.id);
+            r.scrolls++;
+            notice(world, e.character!.player, 'fortress.scroll');
             break;
           case 'relic':
             world.removeEntity(zone.id);
