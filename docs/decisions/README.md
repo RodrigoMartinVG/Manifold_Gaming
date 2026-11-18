@@ -37,3 +37,4 @@ Each one has: **context** (what problem there was), **decision**, **consequences
 | [0028](0028-touch-controls.md)                | Touch controls: keyboard, mouse and gamepad until phase 6; a phone is told so                | Accepted                                                                     |
 | [0029](0029-the-three-games.md)               | The three games: one world, one night, three corners                                         | Accepted                                                                     |
 | [0030](0030-the-book.md)                      | The tutorial is the book: the earlier tutorials leave the site, their code stays as material | Accepted                                                                     |
+| [0032](0032-the-forest.md)                    | The forest: one valley, three games that push the engine                                     | Proposed                                                                     |
