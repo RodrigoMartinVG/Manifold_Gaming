@@ -50,4 +50,9 @@ describe('a player’s way through a game (stage 5b)', () => {
     expect(progressFrom(null).best).toEqual({});
     expect(NEW_PROGRESS.best).toEqual({});
   });
+
+  test('raced against someone’s ghost (stage 5d): its best kept, but no level opened by it', () => {
+    const raced = finished(progressFrom(null), LEVELS, 'three', { steps: 600, stars: 1, falls: 0 }, { open: false });
+    expect(raced).toMatchObject({ started: false, reached: 0, best: { three: { steps: 600, stars: 1, falls: 0 } } });
+  });
 });

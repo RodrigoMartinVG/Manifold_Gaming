@@ -28,6 +28,8 @@ const COLORS = [0x93d9c9, 0x4a9fd8, 0xd86a4a, 0x7ac25a, 0xc25ab8];
 function climber(world: World, player: number, at: Vec3, facing: Vec3) {
   const parts = characterParts({ player, facing, color: COLORS[(player - 1) % COLORS.length]! });
   world.createEntity({
+    // (Named, stage 5d: a link's recipe may put it somewhere, `set climber transform.position …`.)
+    name: player === 1 ? 'climber' : `climber_${player}`,
     transform: { position: [...at], rotation: quat.identity() },
     body: parts.body,
     character: {

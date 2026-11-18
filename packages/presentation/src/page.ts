@@ -19,6 +19,12 @@ export interface GamePage {
   readonly stage: Stage;
   /** What is heard goes through it (stage 5b): the sounds' channel and the music's. */
   readonly mixer: Mixer;
+  /**
+   * The ghosts (stage 5d, for a game without a console): the live player's strip since its world was
+   * born, as text; and a strip to race, beside the player from the next world born (a level loaded),
+   * or none.
+   */
+  readonly ghosts: { strip(): string; race(text: string | null): void };
   /** The console, if the game mounts one. */
   readonly console: GameConsole | null;
   /** The session being drawn (it changes on restart, a snapshot load, a replay, a join). */

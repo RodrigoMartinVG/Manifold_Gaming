@@ -1,0 +1,21 @@
+# Manifold replay 40
+# The tower's entrance, played to its goal: a hop, a ledge, a chimney.
+# A reference replay (stage 5d, as the Dojo’s since 2.5a): playing it must end with the hash on its
+# last line. Recorded by games/tower/src/floors.test.ts; recorded again (npm run references) only
+# when the simulation changes on purpose, with SIMULATION_VERSION.
+game tower
+profile rapier-deterministic server 60
+input 6 1 move @0
+input 46 1 move @0 jump
+input 71 1 move @0
+input 114 1 move @0 jump
+input 154 1 move @0
+input 311 1 move @90 jump
+input 337 1 move @90
+input 338 1 move @90 jump
+input 339 1 move @270 jump
+input 364 1 move @270
+input 365 1 move @270 jump
+input 366 1 move @90 jump
+input 388 1 move @0
+end 399 992db3aa

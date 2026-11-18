@@ -1103,63 +1103,99 @@ test('a level without a sky keeps the flat background of before', async ({ page 
 
 // ---------------------------------------------------------------- the games' shell (stage 5b)
 
-/** A floor of the tower (5b's), played with the keys: on forward, a jump at the gap's edge, on to the goal and its panel. */
-async function climbFloor(page: Page) {
-  const z = async () => (await position(page, 'player'))[2] ?? 99;
-  await page.keyboard.down('KeyW');
-  // (Bounds on how long to wait for the world, not measures: drawing on the CPU with a sky, it may go at a
-  // tenth of its speed.)
-  await expect.poll(z, { timeout: 90_000, intervals: [20] }).toBeLessThan(-4.6);
-  // Held (stage 5c: let go at once, the platformer's jump is a short hop), to the goal.
-  await page.keyboard.down('Space');
-  await expect(page.locator('#game')).toHaveAttribute('data-dialog', /: listo$/, { timeout: 90_000 });
-  await page.keyboard.up('Space');
-  await page.keyboard.up('KeyW');
-}
+/**
+ * The tower's goal on a floor, reached at once (stage 5d: its floors are played to the end by
+ * games/tower/src/floors.test.ts; here, the shell around them): a link's recipe, run after each floor's,
+ * puts the climber on the goal a step after the floor is born.
+ */
+const atGoal = (x: number, y: number, z: number) => `recipe=wait+1;set+climber+transform.position+${x}+${y}+${z}`;
 
-test('the tower on the games’ shell: its title, its lines, a floor done and kept; the page again, on from there to the end and its credits', async ({
+test('the tower: its title and credits, its lines, a floor done (its gold time) and kept, and its ghost as a link', async ({
   page,
 }) => {
-  test.setTimeout(300_000);
+  test.setTimeout(120_000);
   const list = errors(page);
   const game = page.locator('#game');
-  await page.goto('jugar/torre/');
+  await page.goto(`jugar/torre/#${atGoal(0, 6.9, -16)}`);
   await expect(game).toHaveAttribute('data-dialog', 'La torre', { timeout: 20_000 });
-  await expect(game).toHaveAttribute('data-sky', '18.75');
+  await expect(game).toHaveAttribute('data-sky', '18.6');
   // Its credits, from the asset lists of what it draws, and the engine's.
   await page.getByRole('button', { name: 'Créditos' }).click();
   await expect(page.locator('.mg-panel')).toContainText('kit.glb: lo hace un guion de este proyecto, art/kit.py');
   await expect(page.locator('.mg-panel')).toContainText('La física: Rapier (licencia Apache-2.0)');
   await page.getByRole('button', { name: 'Volver' }).click();
-  // From the beginning: the thread's two lines, and the first floor.
+  // From the beginning: the thread's two lines, and the first floor, done at once by the link.
   await page.getByRole('button', { name: 'Jugar', exact: true }).click();
   await expect(game).toHaveAttribute('data-dialog', 'La guardiana');
   await page.getByRole('button', { name: 'Seguir' }).click();
   await page.getByRole('button', { name: 'Seguir' }).click();
   await expect(game).toHaveAttribute('data-level', 'floor-1');
-  await expect.poll(async () => (await position(page, 'player'))[2]).toBe(6);
-  await climbFloor(page);
-  await expect(page.locator('.mg-panel')).toContainText('Caídas: 0');
-  const kept = JSON.parse((await game.getAttribute('data-progress'))!);
-  expect(kept).toMatchObject({ version: 1, started: true, reached: 1, best: { 'floor-1': { falls: 0 } } });
-  // The page again: on from where it was.
-  await page.reload();
-  await expect(game).toHaveAttribute('data-dialog', 'La torre', { timeout: 20_000 });
-  await page.getByRole('button', { name: 'Seguir: El primer piso' }).click();
-  await expect(game).toHaveAttribute('data-level', 'floor-2');
-  await expect(game).toHaveAttribute('data-sky', '19.25');
-  await expect.poll(async () => (await position(page, 'player'))[2]).toBe(6);
-  await climbFloor(page);
-  // The last: the thread's last lines, the credits, and the title again, all of it done.
+  await expect(game).toHaveAttribute('data-dialog', 'La entrada: listo', { timeout: 60_000 });
+  await expect(page.locator('.mg-panel')).toContainText('Tiempo de oro: 0:09,0');
+  await expect(page.locator('.mg-panel')).toContainText('¡Mejor que el tiempo de oro!');
+  expect(JSON.parse((await game.getAttribute('data-progress'))!)).toMatchObject({ version: 1, started: true, reached: 1 });
+  // Its ghost, as a link: shown (copied, where the browser lets).
+  await page.getByRole('button', { name: 'Compartir tu fantasma' }).click();
+  await expect(game).toHaveAttribute('data-dialog', 'El enlace de tu fantasma');
+  await expect(game).toHaveAttribute('data-ghost-link', /\/jugar\/torre\/#ghost=/);
   await page.getByRole('button', { name: 'Seguir' }).click();
+  await expect(game).toHaveAttribute('data-level', 'floor-2');
+  await expect(game).toHaveAttribute('data-sky', '19');
+  expect(list).toEqual([]);
+});
+
+test('the tower: a ghost’s link races it on its floor, and opens no floor', async ({ page }) => {
+  test.setTimeout(120_000);
+  const list = errors(page);
+  const game = page.locator('#game');
+  // A run of the first floor, its ghost's link made by the page.
+  await page.goto(`jugar/torre/#${atGoal(0, 6.9, -16)}`);
+  await expect(game).toHaveAttribute('data-dialog', 'La torre', { timeout: 20_000 });
+  await page.getByRole('button', { name: 'Jugar', exact: true }).click();
+  await page.getByRole('button', { name: 'Seguir' }).click();
+  await page.getByRole('button', { name: 'Seguir' }).click();
+  await expect(game).toHaveAttribute('data-dialog', 'La entrada: listo', { timeout: 60_000 });
+  await page.getByRole('button', { name: 'Compartir tu fantasma' }).click();
+  // (Made deflated, a moment later.)
+  await expect(game).toHaveAttribute('data-ghost-link', /#ghost=/);
+  const link = (await game.getAttribute('data-ghost-link'))!;
+  // Someone else (nothing kept): the title offers the race; the floor, with the ghost beside.
+  await page.evaluate(() => localStorage.clear());
+  await page.goto('about:blank');
+  await page.goto(link);
+  await expect(game).toHaveAttribute('data-dialog', 'La torre', { timeout: 20_000 });
+  await page.getByRole('button', { name: 'Correr contra un fantasma: La entrada' }).click();
+  await expect(game).toHaveAttribute('data-level', 'floor-1');
+  await expect.poll(() => game.getAttribute('data-ghost'), { timeout: 20_000 }).toMatch(/^-?\d/);
+  expect(JSON.parse((await game.getAttribute('data-progress'))!).reached).toBe(0);
+  expect(list).toEqual([]);
+});
+
+test('the tower’s end: the top done, the thread’s last lines, the credits, and the title again', async ({ page }) => {
+  test.setTimeout(120_000);
+  const list = errors(page);
+  const game = page.locator('#game');
+  // Three floors already done, kept in this browser.
+  await page.addInitScript(() => {
+    if (!sessionStorage.getItem('kept')) {
+      localStorage.setItem('manifold.tower.progress', JSON.stringify({ version: 1, started: true, reached: 3, best: {} }));
+      sessionStorage.setItem('kept', '1');
+    }
+  });
+  await page.goto(`jugar/torre/#${atGoal(0, 18.9, -33)}`);
+  await expect(game).toHaveAttribute('data-dialog', 'La torre', { timeout: 20_000 });
+  await page.getByRole('button', { name: 'Seguir: La cima' }).click();
+  await expect(game).toHaveAttribute('data-level', 'floor-4');
+  await expect(game).toHaveAttribute('data-sky', '19.7');
+  await expect(game).toHaveAttribute('data-dialog', 'La cima: listo', { timeout: 60_000 });
+  await page.getByRole('button', { name: 'Seguir', exact: true }).click();
   await expect(game).toHaveAttribute('data-dialog', 'La guardiana');
   await page.getByRole('button', { name: 'Seguir' }).click();
   await page.getByRole('button', { name: 'Seguir' }).click();
   await expect(game).toHaveAttribute('data-dialog', 'Créditos');
   await page.getByRole('button', { name: 'Volver' }).click();
   await expect(game).toHaveAttribute('data-dialog', 'La torre');
-  await expect(page.getByRole('button', { name: 'Jugar', exact: true })).toBeVisible();
-  expect(JSON.parse((await game.getAttribute('data-progress'))!).reached).toBe(2);
+  expect(JSON.parse((await game.getAttribute('data-progress'))!).reached).toBe(4);
   expect(list).toEqual([]);
 });
 

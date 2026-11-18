@@ -170,6 +170,8 @@ export function mount(cartridge: Cartridge, container: HTMLElement, o: MountOpti
     container,
     stage,
     mixer,
+    // (The replays piece is made below, with the page: by then it is there.)
+    ghosts: { strip: () => replays.strip(), race: (text) => replays.race(text) },
     get console() {
       return gameConsole;
     },

@@ -1,0 +1,89 @@
+# Manifold level 10
+# The tower's second floor (stage 5d): the third beat, twisted: what moves. A ferry across the void
+# and under a chimney hanging over it (its walls from 1 m up, over the ferry's last 2 m: from the
+# ferry, a jump between them); up it, 2.4 m wide, to a terrace 10 m up; a lift that rises 6 m and
+# comes back, to a terrace 14 m up, the goal. Stars: over the lift's top; on an island a second
+# ferry reaches; on a ledge 3 m over the terrace.
+title The second floor
+spawn 0 1 7
+facing 0 0 -1
+ambient 0.65
+sky 19.35
+
+# The start, a balcony.
+kit floor_4  -2 0 4
+kit floor_4  2 0 4
+kit floor_4  -2 0 8
+kit floor_4  2 0 8
+
+# The ferry: from the balcony's edge to the chimney's mouth, 10 m in 5 s, and back.
+box 0 -0.15 -1   1 0.15 1   move 0 0 -10 5   color #7a5a3a  name ferry
+
+# The chimney, hanging over the ferry's end: its walls from 1 m up to 10; terrace T1, 10 m up.
+kit wall_4  -1.35 1 -14  rotate y 90
+kit wall_2  -1.35 1 -11  rotate y 90
+kit wall_4  -1.35 4 -14  rotate y 90
+kit wall_2  -1.35 4 -11  rotate y 90
+kit wall_4  -1.35 7 -14  rotate y 90
+kit wall_2  -1.35 7 -11  rotate y 90
+kit wall_4  1.35 1 -14  rotate y 90
+kit wall_2  1.35 1 -11  rotate y 90
+kit wall_4  1.35 4 -14  rotate y 90
+kit wall_2  1.35 4 -11  rotate y 90
+kit wall_4  1.35 7 -14  rotate y 90
+kit wall_2  1.35 7 -11  rotate y 90
+kit wall_4  -2 1 -16.15
+kit wall_4  2 1 -16.15
+kit wall_4  -2 4 -16.15
+kit wall_4  2 4 -16.15
+kit wall_4  -2 7 -16.15
+kit wall_4  2 7 -16.15
+kit wall_4  -2 1 -19.85
+kit wall_4  2 1 -19.85
+kit wall_4  -2 4 -19.85
+kit wall_4  2 4 -19.85
+kit wall_4  -2 7 -19.85
+kit wall_4  2 7 -19.85
+kit wall_4  3.85 1 -18  rotate y 90
+kit wall_4  3.85 4 -18  rotate y 90
+kit wall_4  3.85 7 -18  rotate y 90
+kit wall_4  -3.85 1 -18  rotate y 90
+kit wall_4  -3.85 4 -18  rotate y 90
+kit wall_4  -3.85 7 -18  rotate y 90
+kit floor_4  -2 10 -18
+kit floor_4  2 10 -18
+
+# The lift: from 7 m up to 13, in 3 s, and back; terrace T2, the goal, 14 m up.
+box 0 6.85 -22   1 0.15 1   move 0 6 0 3   color #7a5a3a  name lift
+kit wall_4  -2 8 -24.15
+kit wall_4  2 8 -24.15
+kit wall_4  -2 11 -24.15
+kit wall_4  2 11 -24.15
+kit wall_4  -2 8 -27.85
+kit wall_4  2 8 -27.85
+kit wall_4  -2 11 -27.85
+kit wall_4  2 11 -27.85
+kit wall_4  3.85 8 -26  rotate y 90
+kit wall_4  3.85 11 -26  rotate y 90
+kit wall_4  -3.85 8 -26  rotate y 90
+kit wall_4  -3.85 11 -26  rotate y 90
+kit floor_4  -2 14 -26
+kit floor_4  2 14 -26
+
+# The stars' places: an island a second ferry reaches, off T1; a ledge 3 m over T1, on the chimney's outside.
+box 5 9.85 -18   1 0.15 1   move 7 0 0 4   color #7a5a3a  name ferry_2
+kit platform_2  14 9 -18
+kit platform_2  -3 10 -19
+kit platform_2  -3 11 -19
+kit platform_2  -3 12 -19
+lamp 0 12 -18  7 1
+lamp 0 16 -26  7 1
+
+# The land, far below; falling, back to the last checkpoint.
+box 0 -40.5 -10   160 0.5 160   color #3d4a36  name land
+sensor fall  0 -10 -10   80 2 80
+sensor checkpoint  0 10.8 -18    4 0.8 2
+sensor goal        0 14.8 -26    4 0.8 2
+sensor star        0 15.6 -22    0.6 0.6 0.6
+sensor star        14 10.8 -18   0.6 0.8 0.6
+sensor star        -3 13.8 -19   0.6 0.8 0.6

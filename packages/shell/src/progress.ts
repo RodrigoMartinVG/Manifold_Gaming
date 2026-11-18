@@ -30,15 +30,24 @@ export const NEW_PROGRESS: Readonly<Progress> = Object.freeze({
   best: {},
 });
 
-/** The progress after a level was done: the next one open, and its bests kept. */
-export function finished(progress: Progress, levels: readonly string[], level: string, result: LevelResult): Progress {
+/**
+ * The progress after a level was done: the next one open, and its bests kept. (Raced against someone's
+ * ghost from a link, stage 5d, `open` false: its best kept, but no level opened by it.)
+ */
+export function finished(
+  progress: Progress,
+  levels: readonly string[],
+  level: string,
+  result: LevelResult,
+  o: { open?: boolean } = {},
+): Progress {
   const at = levels.indexOf(level);
   if (at < 0) return progress;
   const was = progress.best[level];
   return {
     ...progress,
-    started: true,
-    reached: Math.max(progress.reached, at + 1),
+    started: o.open === false ? progress.started : true,
+    reached: o.open === false ? progress.reached : Math.max(progress.reached, at + 1),
     best: {
       ...progress.best,
       [level]: was

@@ -203,11 +203,25 @@ export function ghostFromText(text: string): Ghost {
 }
 
 /**
- * WHERE A GHOST IS at a step (with its fraction): between its two poses around it, along the line
- * between them, looking by the shorter way round between theirs; its way of moving, the earlier one's.
- * Pose k is at step k × every, the last one at the strip's end if that comes first (where the player
- * ended, between two of the strip's steps; an older strip has none there, and reads as it did). Past
- * its end, its last pose.
+ * WHERE A GHOST IS at a step (with its fraction): along a curve through its poses (stage 5d; before,
+ * the straight line between the two around it), looking by the shorter way round between theirs; its
+ * way of moving, the earlier one's. Pose k is at step k × every, the last one at the strip's end if
+ * that comes first (where the player ended, between two of the strip's steps; an older strip has none
+ * there, and reads as it did). Past its end, its last pose.
+ *
+ * The curve, between poses p₁ (at step t₁) and p₂ (at t₂): a cubic (Hermite's) that passes through
+ * both with the velocity of its neighbours there, m₁ = (p₂ − p₀)/(t₂ − t₀) and m₂ = (p₃ − p₁)/(t₃ − t₁)
+ * (past an end, the pose reflected: p₀ = 2p₁ − p₂). With u = (t − t₁)/h, h = t₂ − t₁,
+ *
+ *     p(u) = (2u³ − 3u² + 1) p₁ + (u³ − 2u² + u) h m₁ + (−2u³ + 3u²) p₂ + (u³ − u²) h m₂.
+ *
+ * Moving at one velocity, it is the straight line (both m are the chord's); a jump's parabola, sampled
+ * at equal steps, it draws exactly (the neighbours' differences are its velocity at the middle pose).
+ * A span longer than any motion covers (`LEAP`: put back at a checkpoint, a teleport) is not a motion:
+ * the ghost is at the first pose for its first half and at the second for the rest (when within it the
+ * leap was, the strip does not say: halfway, at most half a span off), and no curve takes a neighbour
+ * across it (it would swing wide: over a minute of the circuit with its falls, the curve was further
+ * off than the straight lines).
  */
 export function ghostAt(g: Ghost, step: number): GhostPose | null {
   if (g.poses.length === 0) return null;
@@ -217,17 +231,39 @@ export function ghostAt(g: Ghost, step: number): GhostPose | null {
   const i = Math.min(last, Math.floor(s / g.every));
   const a = g.poses[i]!;
   const b = g.poses[Math.min(last, i + 1)]!;
-  const span = when(Math.min(last, i + 1)) - when(i);
-  const u = span > 0 ? Math.min(1, (s - when(i)) / span) : 1;
+  const t1 = when(i);
+  const t2 = when(Math.min(last, i + 1));
+  const h = t2 - t1;
+  const u = h > 0 ? Math.min(1, (s - t1) / h) : 1;
   let turn = b.yaw - a.yaw;
   if (turn > 180) turn -= 360;
   if (turn < -180) turn += 360;
-  return {
-    position: vec3.add(a.position, vec3.scale(vec3.sub(b.position, a.position), u)),
-    yaw: (((a.yaw + turn * u) % 360) + 360) % 360,
-    mode: a.mode,
-  };
+  const yaw = (((a.yaw + turn * u) % 360) + 360) % 360;
+  if (h <= 0) return { position: [...b.position], yaw, mode: a.mode };
+  const far = (p: Vec3, q: Vec3) => vec3.length(vec3.sub(p, q)) > LEAP;
+  if (far(a.position, b.position)) return { position: [...(u < 0.5 ? a.position : b.position)], yaw, mode: a.mode };
+  // The neighbours, and their steps: past an end or a leap, the pose and its step reflected.
+  const p0 = i > 0 ? g.poses[i - 1]!.position : null;
+  const p3 = i + 2 <= last ? g.poses[i + 2]!.position : null;
+  const near0 = p0 !== null && !far(p0, a.position);
+  const near3 = p3 !== null && !far(p3, b.position);
+  const before = near0 ? p0 : vec3.sub(vec3.scale(a.position, 2), b.position);
+  const t0 = near0 ? when(i - 1) : t1 - h;
+  const after = near3 ? p3 : vec3.sub(vec3.scale(b.position, 2), a.position);
+  const t3 = near3 ? when(i + 2) : t2 + h;
+  const m1 = vec3.scale(vec3.sub(b.position, before), 1 / (t2 - t0));
+  const m2 = vec3.scale(vec3.sub(after, a.position), 1 / (t3 - t1));
+  const u2 = u * u;
+  const u3 = u2 * u;
+  const position = vec3.add(
+    vec3.add(vec3.scale(a.position, 2 * u3 - 3 * u2 + 1), vec3.scale(m1, (u3 - 2 * u2 + u) * h)),
+    vec3.add(vec3.scale(b.position, -2 * u3 + 3 * u2), vec3.scale(m2, (u3 - u2) * h)),
+  );
+  return { position, yaw, mode: a.mode };
 }
+
+/** A span between two poses longer than any motion covers in it (m): a leap, not a motion (`ghostAt`). */
+export const LEAP = 3;
 
 /** Where a pose looks, as a direction on the ground (length 1), and its body's turn about +Y. */
 export const ghostFacing = (p: GhostPose): Vec3 => direction(p.yaw);

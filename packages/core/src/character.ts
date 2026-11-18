@@ -296,7 +296,8 @@ export const handsOf = (shape: Shape): number => (shape.kind === 'capsule' ? sha
  * hands (from its center, towards `towards`, as far as its body and 30 cm); and above that face, 10 cm
  * in, a top it could stand on (a ray down from above its hands), at most `window` under its hands
  * (falling, they pass it: a step's fall at least) or 5 cm over them. Where its hands would hold (on
- * the top, 10 cm past the edge) and the wall's way; or null.
+ * the top, 10 cm past the edge) and the wall's way; or null. Only on what stays where it is (stage 5d:
+ * on a lift's edge it hung where the edge had been, in the air, as the lift went on).
  */
 function ledgeAhead(
   world: World,
@@ -314,6 +315,8 @@ function ledgeAhead(
   const from = vec3.add(vec3.add(center, vec3.scale(face.wall, face.distance + 0.1)), vec3.scale(up, hands + above));
   const hit = world.castRay(from, vec3.scale(up, -1), above + window, { skip: e.id, dynamic: false });
   if (!hit || vec3.dot(hit.normal, up) < 0.7 || hit.distance < above - 0.05) return null;
+  const top = world.entities.get(hit.entity);
+  if (!top?.body || top.body.type !== 'fixed' || top.mover || top.mechanism || top.spin) return null;
   return { at: vec3.add(from, vec3.scale(up, -hit.distance)), wall: face.wall, steps: 0, climb: 0 };
 }
 

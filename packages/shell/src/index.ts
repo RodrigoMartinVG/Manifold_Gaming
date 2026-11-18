@@ -1,9 +1,12 @@
-import { recipeFromLink } from '@manifold/commands';
-import { initPhysics, type Cartridge, type Entity, type World } from '@manifold/core';
+import { formatValue, recipeFromLink } from '@manifold/commands';
+import { ghostFromText, initPhysics, registryFor, type Cartridge, type Entity, type World } from '@manifold/core';
 import {
+  GHOST_PREFIX,
   mount,
   mountMusic,
   openDialog,
+  replayFromFragment,
+  replayToFragment,
   storage,
   timeIn,
   type GameButton,
@@ -24,11 +27,15 @@ export { creditsFrom, ENGINE_CREDITS, type AssetEntry, type AssetList, type Cred
 export { finished, NEW_PROGRESS, PROGRESS_VERSION, progressFrom, type LevelResult, type Progress } from './progress';
 export { SHELL_WORDS } from './words';
 
-/** A level of a game: its id (what its progress is kept by), the recipe that builds it, and its name (a key of its words). */
+/**
+ * A level of a game: its id (what its progress is kept by), the recipe that builds it, its name (a key
+ * of its words), and its gold time (s, stage 5d: shown when it is done, the challenge apart).
+ */
 export interface GameLevel {
   id: string;
   recipe: string;
   name: string;
+  gold?: number;
 }
 
 /** A line of the thread (3i's dialogue): who says it and what, keys of the game's words. */
@@ -78,8 +85,17 @@ const wordsOf = (game: Game): Words => ({
  * it took and its best, kept; the next; after the last, the thread's last lines, and the credits. For
  * the browser tests: `data-dialog` (the panel open, by its title), `data-level` (the level playing,
  * by its id) and `data-progress` (what is kept, as it is kept).
+ *
+ * And (stage 5d) the challenge apart: each level's gold time, shown when it is done; and its ghost, as
+ * a link to share from that panel. Opened with one (`#ghost=`), the title offers to race it on its
+ * level (what it keeps is the best, but no level is opened by it). A link's recipe (`#recipe=`) runs
+ * after each level's, for the tests and for whoever makes it (`data-ghost-link`: the link made).
  */
-function campaign(game: Game, start: Progress): (page: GamePage) => Piece {
+function campaign(
+  game: Game,
+  start: Progress,
+  o: { link?: string; race?: { text: string; level: number } },
+): (page: GamePage) => Piece {
   return (page) => {
     const kept = storage(`manifold.${game.id}`);
     const ids = game.levels.map((l) => l.id);
@@ -88,6 +104,8 @@ function campaign(game: Game, start: Progress): (page: GamePage) => Piece {
     let playing: number | null = null;
     /** Whether its end was taken (so it is taken once; a new world, from the menu's "start again", takes it again). */
     let ended = false;
+    /** Whether the level playing is raced against someone's ghost (from a link). */
+    let racing = false;
     const keep = () => {
       kept.write('progress', progress);
       page.container.dataset.progress = JSON.stringify(progress);
@@ -118,25 +136,50 @@ function campaign(game: Game, start: Progress): (page: GamePage) => Piece {
       ];
       openDialog(page, { title: say('shell.credits'), lines, buttons: [{ label: say('shell.back'), then: back }] });
     };
-    const play = (index: number) => {
+    const play = (index: number, race: string | null = null) => {
       playing = index;
       ended = false;
+      racing = race !== null;
+      page.ghosts.race(race);
       page.container.dataset.level = game.levels[index]!.id;
-      page.load(game.levels[index]!.recipe);
+      const recipe = game.levels[index]!.recipe;
+      page.load(o.link ? `${recipe}\n${o.link}` : recipe);
       paused(false);
+    };
+    /** The level's ghost as a link (`#ghost=`), shown, and copied if the browser lets. */
+    const share = async (then: () => void) => {
+      const link = `${location.origin}${location.pathname}#${await replayToFragment(page.ghosts.strip(), GHOST_PREFIX)}`;
+      page.container.dataset.ghostLink = link;
+      let copied = false;
+      try {
+        await navigator.clipboard.writeText(link);
+        copied = true;
+      } catch {
+        // (Not allowed: it is there to copy by hand.)
+      }
+      openDialog(page, {
+        title: say('shell.shared'),
+        lines: [say(copied ? 'shell.copied' : 'shell.copy'), link],
+        buttons: [{ label: say('shell.next'), then }],
+      });
     };
     const title = () => {
       playing = null;
       delete page.container.dataset.level;
       paused(true);
       const next = Math.min(progress.reached, game.levels.length - 1);
-      const buttons =
-        progress.started && progress.reached > 0 && progress.reached < game.levels.length
+      const raceButton = o.race
+        ? [{ label: say('shell.race', [say(game.levels[o.race.level]!.name)]), then: () => play(o.race!.level, o.race!.text) }]
+        : [];
+      const buttons = [
+        ...raceButton,
+        ...(progress.started && progress.reached > 0 && progress.reached < game.levels.length
           ? [
               { label: say('shell.continue', [say(game.levels[next]!.name)]), then: () => play(next) },
               { label: say('shell.again'), then: begin },
             ]
-          : [{ label: say('shell.play'), then: begin }];
+          : [{ label: say('shell.play'), then: begin }]),
+      ];
       openDialog(page, {
         title: say(game.title),
         lines: [say(game.tagline)],
@@ -152,27 +195,35 @@ function campaign(game: Game, start: Progress): (page: GamePage) => Piece {
     };
     const done = (result: LevelResult) => {
       const level = game.levels[playing!]!;
-      progress = finished(progress, ids, level.id, result);
+      progress = finished(progress, ids, level.id, result, { open: !racing });
       keep();
       const last = playing === game.levels.length - 1;
       const time = (steps: number) => timeIn(page.language, steps / 60);
       const best = progress.best[level.id]!;
-      openDialog(page, {
-        title: say('shell.done', [say(level.name)]),
-        lines: [
-          say('shell.time', [time(result.steps)]),
-          ...(best.steps < result.steps ? [say('shell.best', [time(best.steps)])] : []),
-          say('shell.stars', [String(result.stars)]),
-          say('shell.falls', [String(result.falls)]),
-        ],
-        buttons: [
-          {
-            label: say('shell.next'),
-            then: () => (last ? lines(game.thread.ending, () => credits(title)) : play(playing! + 1)),
-          },
-        ],
-        escape: 0,
-      });
+      // On: the next level (after the last, the end); raced from a link, the title.
+      const on = () => (racing ? title() : last ? lines(game.thread.ending, () => credits(title)) : play(playing! + 1));
+      const panel = () =>
+        openDialog(page, {
+          title: say('shell.done', [say(level.name)]),
+          lines: [
+            say('shell.time', [time(result.steps)]),
+            ...(best.steps < result.steps ? [say('shell.best', [time(best.steps)])] : []),
+            ...(level.gold === undefined
+              ? []
+              : [
+                  say('shell.gold', [timeIn(page.language, level.gold)]),
+                  ...(result.steps / 60 <= level.gold ? [say('shell.golden')] : []),
+                ]),
+            say('shell.stars', [String(result.stars)]),
+            say('shell.falls', [String(result.falls)]),
+          ],
+          buttons: [
+            { label: say('shell.next'), then: on },
+            { label: say('shell.share'), then: () => void share(on) },
+          ],
+          escape: 0,
+        });
+      panel();
     };
 
     page.container.dataset.progress = JSON.stringify(progress);
@@ -212,6 +263,33 @@ export async function startGame(container: HTMLElement, game: Game): Promise<Mou
   const recipes: InitialRecipe[] = [{ from: 'the level', text: next.recipe }];
   const fromLink = recipeFromLink(location.hash);
   if (fromLink) recipes.push({ from: "the link's recipe", text: fromLink });
+  // A ghost to race (stage 5d), on the level its strip was born in: the one whose own birth (the values
+  // its recipe changes) is in the strip's, the most of it (the first level, with every value as it
+  // comes, has none, and is the one when no other is).
+  const ghostText = await replayFromFragment(location.hash, GHOST_PREFIX);
+  let race: { text: string; level: number } | undefined;
+  if (ghostText) {
+    try {
+      const born = new Set(ghostFromText(ghostText).birth.split('\n').filter(Boolean));
+      let best = -1;
+      let most = -1;
+      game.levels.forEach((l, k) => {
+        const registry = registryFor(game.cartridge);
+        registry.run(l.recipe, 'recipe');
+        const own = registry
+          .changed()
+          .filter((v) => v.decl.scope !== 'view')
+          .map((v) => `${v.decl.name} ${formatValue(v.value)}`);
+        if (own.every((line) => born.has(line)) && own.length > most) {
+          best = k;
+          most = own.length;
+        }
+      });
+      if (best >= 0) race = { text: ghostText, level: best };
+    } catch {
+      // (A broken strip: no race.)
+    }
+  }
   const music = game.music;
   return mount(game.cartridge, container, {
     recipes,
@@ -222,6 +300,9 @@ export async function startGame(container: HTMLElement, game: Game): Promise<Mou
     ...(game.hud ? { hud: game.hud } : {}),
     ...(game.buttons ? { buttons: game.buttons } : {}),
     ...(game.tools ? { tools: game.tools } : {}),
-    pieces: [campaign(game, progress), ...(music ? [(page: GamePage) => mountMusic(page, music)] : [])],
+    pieces: [
+      campaign(game, progress, { ...(fromLink ? { link: fromLink } : {}), ...(race ? { race } : {}) }),
+      ...(music ? [(page: GamePage) => mountMusic(page, music)] : []),
+    ],
   });
 }

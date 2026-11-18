@@ -87,5 +87,7 @@
  *      gravity, stronger let go and falling, a top falling speed, corner correction (`arc`); down a wall
  *      and off it (`wallJump`, the `slide` mode); a ledge grabbed, hung from and climbed onto (`ledge`,
  *      the `hang` mode). A character without them moves as in 38 to the bit; its state has their fields
+ *  40  stage 5d: a ledge is grabbed only on what stays where it is (on a lift's edge, a character hung
+ *      in the air where the edge had been, as the lift went on)
  */
-export const SIMULATION_VERSION = 39;
+export const SIMULATION_VERSION = 40;

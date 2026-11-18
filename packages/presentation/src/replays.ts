@@ -38,6 +38,10 @@ export interface Replays extends Piece {
   readonly playing: boolean;
   /** A replay or a ghost that came with the page (the game gathered them, from its link), as text. */
   fromPage(o: { replay?: string; ghost?: string }): void;
+  /** The live player's strip since its world was born, as text (stage 5d: a game shares it). */
+  strip(): string;
+  /** A strip to race (its text), from the next world born (stage 5d: a game loads a level after); null, none. */
+  race(text: string | null): void;
 }
 
 /** What replays and ghosts let people do, as data (the site's console reference reads it). */
@@ -183,6 +187,11 @@ export function mountReplays(page: GamePage, match: PageMatch, bodies: Bodies): 
   return {
     get playing() {
       return replaying !== null;
+    },
+    strip: () => ghostToText(stripNow()),
+    race(text) {
+      if (text === null) return clearGhost();
+      startGhost(ghostFromText(text));
     },
     fromPage({ replay, ghost: race }) {
       const use = (text: string | undefined, what: string, then: (r: Replay) => void) => {

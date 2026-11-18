@@ -151,6 +151,7 @@ export {
   GHOST_EVERY,
   GHOST_FORMAT,
   GHOST_HEADER,
+  LEAP,
   yawOf,
   type Ghost,
   type GhostPose,
