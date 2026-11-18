@@ -1,0 +1,23 @@
+{
+  "name": "@manifold/fortress",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The fortress (decision 0029): the action adventure, infiltrated at night to take back the tower's flame. Stealth first: the light as a tool, wary guards. On the games' shell (stage 5f); the dungeons from a seed (3k, @manifold/adventure) are its extra.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./game": "./src/game.ts"
+  },
+  "dependencies": {
+    "@manifold/arms": "0.0.0",
+    "@manifold/character": "0.0.0",
+    "@manifold/common": "0.0.0",
+    "@manifold/core": "0.0.0",
+    "@manifold/kit": "0.0.0",
+    "@manifold/presentation": "0.0.0",
+    "@manifold/shell": "0.0.0"
+  },
+  "scripts": {
+    "check": "tsc -p tsconfig.json"
+  }
+}

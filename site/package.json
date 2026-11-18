@@ -25,6 +25,7 @@
     "@manifold/adventure": "0.0.0",
     "@manifold/character": "0.0.0",
     "@manifold/dojo": "0.0.0",
+    "@manifold/fortress": "0.0.0",
     "@manifold/kit": "0.0.0",
     "@manifold/tower": "0.0.0",
     "astro": "^7.4.10",

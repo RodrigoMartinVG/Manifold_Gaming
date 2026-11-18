@@ -11,7 +11,8 @@ export const GUARD_BRAIN = 'arms.guard';
  * A GUARD (stage 4e, decision 0023): a bot, a character of a player of its own (100, 101…: the session
  * takes its inputs as anyone's), the mannequin in dark red, with health, a stick, eyes (a watcher on its
  * body, looking where it looks: it sees by the light, 3d) and a brain, `arms.guard` (brain.ts), that
- * keeps to a route: the one named, or the level's nearest to where it stands.
+ * keeps to a route: the one named, or the level's nearest to where it stands; or none (`false`, stage
+ * 5f): a wary one then keeps its post, where it stood when it started, facing as it faced.
  */
 export const GUARD = Object.freeze({
   health: 100,
@@ -49,7 +50,8 @@ export function guard(
   world: World,
   at: Vec3,
   facing: Vec3,
-  route: string | null = null,
+  /** Its route's name; `null`, the level's nearest; `false`, none (stage 5f: it keeps its post). */
+  route: string | null | false = null,
   kind: WeaponKind = 'stick',
   /** (Stage 5e) Its wariness, if its game makes it wary (stealth.ts). */
   wary?: Wary,
@@ -83,7 +85,7 @@ export function guard(
     appearance: parts.appearance,
     health: { most: like?.health?.most ?? GUARD.health },
     watcher: { range: GUARD.range, cone: sinCosDegrees(GUARD.degrees / 2)[1], threshold: GUARD.threshold },
-    brain: { name: GUARD_BRAIN, route: route ?? nearest() },
+    brain: { name: GUARD_BRAIN, route: route === false ? null : (route ?? nearest()) },
     game: {
       [WEAPON]: { kind, ready: 0, strike: 0, struck: [] } satisfies Weapon,
       ...(told ? { [GUNNER_KEY]: { ...told } satisfies Gunner } : {}),

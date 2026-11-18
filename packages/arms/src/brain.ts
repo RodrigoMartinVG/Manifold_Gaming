@@ -62,6 +62,12 @@ export interface GuardMemory extends Memory {
   lamps?: Record<string, boolean>;
   relight?: number | null;
   downs?: number[];
+  /**
+   * (Stage 5f, a wary guard with no route) Its post: where it stood when it started, and the way it
+   * faced. Back from looking or searching, it goes there and faces that way again (a guard of 4e with no
+   * route stays where it ended: the Dojo's recorded games keep their hashes).
+   */
+  post?: { at: Vec3; facing: Vec3 } | null;
 }
 
 /** How near a point it must be to have reached it (m, along the ground); within its stick's reach (m, to the other's center). */
@@ -127,7 +133,8 @@ function inSight(world: World, self: Entity, at: Vec3): boolean {
  * THE GUARD'S BRAIN, WARY (stage 5e): what a guard its game made wary (`arms.wary`) adds to the guard's.
  * A lamp it saw lit and now sees put out, it goes to (as to a sound) and lights again; a guard down it
  * sees, it goes to look round; the moment it starts after someone, it shouts (the wary ones near hear
- * it). Without it, the guard's, as in stage 4e: the Dojo's do not change.
+ * it); with no route, it keeps a post (stage 5f). Without it, the guard's, as in stage 4e: the Dojo's do
+ * not change.
  */
 export const guardBrain: Brain = (world, self, memory) => {
   const m = memory as GuardMemory;
@@ -136,6 +143,7 @@ export const guardBrain: Brain = (world, self, memory) => {
   m.lamps ??= {};
   m.downs ??= [];
   m.relight ??= null;
+  m.post ??= self.brain?.route ? null : { at: feetOf(self), facing: [...self.character!.facing] };
   const before = m.mode;
   for (const l of world.entities.values()) {
     if (!l.lamp || !l.transform || !inSight(world, self, l.transform.position)) continue;
@@ -244,7 +252,7 @@ const guardBrain4e: Brain = (world, self, memory) => {
   // the navigation may still be being built then: stage 4.5a found a guard sent into the air.)
   else if (m.mode === 'look') m.goal = ground(m.heard!.at);
   else if (m.mode === 'search') m.goal = m.seen?.at ?? null;
-  else m.goal = route ? route.points[m.waypoint % route.points.length]! : null;
+  else m.goal = route ? route.points[m.waypoint % route.points.length]! : (m.post?.at ?? null);
 
   // With a dart or a bolt (stage 4g), whoever it sees and is near enough it shoots at, standing (after a
   // moment to see them), from its eyes, aiming at their middle; too near, it steps back as it shoots.
@@ -320,7 +328,8 @@ const guardBrain4e: Brain = (world, self, memory) => {
         ][k] as Vec3,
       };
     }
-    return {};
+    // At its post (a wary guard with no route, stage 5f): facing the way it faced.
+    return m.mode === 'patrol' && m.post ? { face: m.post.facing } : {};
   }
 
   // Its way there: planned again when it goes somewhere else, or after a while (not while it waits by a

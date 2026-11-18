@@ -1199,6 +1199,66 @@ test('the tower’s end: the top done, the thread’s last lines, the credits, a
   expect(list).toEqual([]);
 });
 
+/** The fortress's link recipe (stage 5f): its intruder taken somewhere a step after the level is born. */
+const intruderAt = (x: number, y: number, z: number) => `recipe=wait+1;set+intruder+transform.position+${x}+${y}+${z}`;
+
+test('the fortress: its title, its lines, a level done unseen (its gold time) and kept, at night', async ({ page }) => {
+  test.setTimeout(120_000);
+  const list = errors(page);
+  const game = page.locator('#game');
+  await page.goto(`jugar/fortaleza/#${intruderAt(0, 0.9, -20)}`);
+  await expect(game).toHaveAttribute('data-dialog', 'La fortaleza', { timeout: 20_000 });
+  await expect(game).toHaveAttribute('data-sky', '22');
+  await page.getByRole('button', { name: 'Créditos' }).click();
+  await expect(page.locator('.mg-panel')).toContainText('kit.glb: lo hace un guion de este proyecto, art/kit.py');
+  await page.getByRole('button', { name: 'Volver' }).click();
+  await page.getByRole('button', { name: 'Jugar', exact: true }).click();
+  await expect(game).toHaveAttribute('data-dialog', 'La guardiana');
+  await page.getByRole('button', { name: 'Seguir' }).click();
+  await page.getByRole('button', { name: 'Seguir' }).click();
+  await expect(game).toHaveAttribute('data-level', 'wall');
+  await expect(game).toHaveAttribute('data-dialog', 'La muralla: listo', { timeout: 60_000 });
+  await expect(page.locator('.mg-panel')).toContainText('Tiempo de oro: 0:19,0');
+  await expect(page.locator('.mg-panel')).toContainText('Nadie te vio');
+  await expect(page.locator('.mg-panel')).toContainText('No te atraparon');
+  expect(JSON.parse((await game.getAttribute('data-progress'))!)).toMatchObject({ version: 1, started: true, reached: 1 });
+  await page.getByRole('button', { name: 'Seguir', exact: true }).click();
+  await expect(game).toHaveAttribute('data-level', 'yard');
+  expect(list).toEqual([]);
+});
+
+test('the fortress’s end: the flame carried out of the keep, the thread’s last lines, the credits, and the title again', async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  const list = errors(page);
+  const game = page.locator('#game');
+  await page.addInitScript(() => {
+    if (!sessionStorage.getItem('kept')) {
+      localStorage.setItem('manifold.fortress.progress', JSON.stringify({ version: 1, started: true, reached: 2, best: {} }));
+      sessionStorage.setItem('kept', '1');
+    }
+  });
+  // The flame taken (its zone), and out of the postern: the guard at its post sees it carried, lit.
+  await page.goto(
+    'jugar/fortaleza/#recipe=wait+1;set+intruder+transform.position+0.3+0.9+-17.2;wait+3;set+intruder+transform.position+12+0.9+-11',
+  );
+  await expect(game).toHaveAttribute('data-dialog', 'La fortaleza', { timeout: 20_000 });
+  await page.getByRole('button', { name: 'Seguir: La torre del homenaje' }).click();
+  await expect(game).toHaveAttribute('data-level', 'keep');
+  await expect(game).toHaveAttribute('data-dialog', 'La torre del homenaje: listo', { timeout: 60_000 });
+  await expect(page.locator('.mg-panel')).toContainText('Te vieron');
+  await page.getByRole('button', { name: 'Seguir', exact: true }).click();
+  await expect(game).toHaveAttribute('data-dialog', 'La guardiana');
+  await page.getByRole('button', { name: 'Seguir' }).click();
+  await page.getByRole('button', { name: 'Seguir' }).click();
+  await expect(game).toHaveAttribute('data-dialog', 'Créditos');
+  await page.getByRole('button', { name: 'Volver' }).click();
+  await expect(game).toHaveAttribute('data-dialog', 'La fortaleza');
+  expect(JSON.parse((await game.getAttribute('data-progress'))!).reached).toBe(3);
+  expect(list).toEqual([]);
+});
+
 // ---------------------------------------------------------------- on a phone (decision 0028)
 
 test.describe('on a phone', () => {

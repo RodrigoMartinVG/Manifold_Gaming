@@ -1,0 +1,181 @@
+# Manifold level 10
+# The fortress's courtyard (stage 5f): the second level, wary guards. One keeps to its west side, one
+# crosses it; a lantern in its middle; the keep's gate, lit from both sides (crouched, with one of them
+# out, one is not seen; smoke hides who passes). A guard that finds a lamp put out comes to light it
+# again. A smoke by the start, a flare by a wall; crates to hide behind.
+title The courtyard
+spawn 0 1 7
+facing 0 0 -1
+ambient 0.12
+sky 22.0
+
+kit floor_4  -10 0 -30
+kit floor_4  -6 0 -30
+kit floor_4  -2 0 -30
+kit floor_4  2 0 -30
+kit floor_4  6 0 -30
+kit floor_4  10 0 -30
+kit floor_4  -10 0 -26
+kit floor_4  -6 0 -26
+kit floor_4  -2 0 -26
+kit floor_4  2 0 -26
+kit floor_4  6 0 -26
+kit floor_4  10 0 -26
+kit floor_4  -10 0 -22
+kit floor_4  -6 0 -22
+kit floor_4  -2 0 -22
+kit floor_4  2 0 -22
+kit floor_4  6 0 -22
+kit floor_4  10 0 -22
+kit floor_4  -10 0 -18
+kit floor_4  -6 0 -18
+kit floor_4  -2 0 -18
+kit floor_4  2 0 -18
+kit floor_4  6 0 -18
+kit floor_4  10 0 -18
+kit floor_4  -10 0 -14
+kit floor_4  -6 0 -14
+kit floor_4  -2 0 -14
+kit floor_4  2 0 -14
+kit floor_4  6 0 -14
+kit floor_4  10 0 -14
+kit floor_4  -10 0 -10
+kit floor_4  -6 0 -10
+kit floor_4  -2 0 -10
+kit floor_4  2 0 -10
+kit floor_4  6 0 -10
+kit floor_4  10 0 -10
+kit floor_4  -10 0 -6
+kit floor_4  -6 0 -6
+kit floor_4  -2 0 -6
+kit floor_4  2 0 -6
+kit floor_4  6 0 -6
+kit floor_4  10 0 -6
+kit floor_4  -10 0 -2
+kit floor_4  -6 0 -2
+kit floor_4  -2 0 -2
+kit floor_4  2 0 -2
+kit floor_4  6 0 -2
+kit floor_4  10 0 -2
+kit floor_4  -10 0 2
+kit floor_4  -6 0 2
+kit floor_4  -2 0 2
+kit floor_4  2 0 2
+kit floor_4  6 0 2
+kit floor_4  10 0 2
+kit floor_4  -10 0 6
+kit floor_4  -6 0 6
+kit floor_4  -2 0 6
+kit floor_4  2 0 6
+kit floor_4  6 0 6
+kit floor_4  10 0 6
+kit floor_2  -11 0 9
+kit floor_2  -9 0 9
+kit floor_2  -7 0 9
+kit floor_2  -5 0 9
+kit floor_2  -3 0 9
+kit floor_2  -1 0 9
+kit floor_2  1 0 9
+kit floor_2  3 0 9
+kit floor_2  5 0 9
+kit floor_2  7 0 9
+kit floor_2  9 0 9
+kit floor_2  11 0 9
+kit wall_4  -10 0 0.15
+kit wall_4  -6 0 0.15
+kit wall_2  -3 0 0.15
+kit wall_4  -10 3 0.15
+kit wall_4  -6 3 0.15
+kit wall_2  -3 3 0.15
+kit wall_4  4 0 0.15
+kit wall_4  8 0 0.15
+kit wall_2  11 0 0.15
+kit wall_4  4 3 0.15
+kit wall_4  8 3 0.15
+kit wall_2  11 3 0.15
+kit wall_4  -11.85 0 -22  rotate y 90
+kit wall_4  -11.85 0 -18  rotate y 90
+kit wall_4  -11.85 0 -14  rotate y 90
+kit wall_4  -11.85 0 -10  rotate y 90
+kit wall_4  -11.85 0 -6  rotate y 90
+kit wall_4  -11.85 0 -2  rotate y 90
+kit wall_4  -11.85 3 -22  rotate y 90
+kit wall_4  -11.85 3 -18  rotate y 90
+kit wall_4  -11.85 3 -14  rotate y 90
+kit wall_4  -11.85 3 -10  rotate y 90
+kit wall_4  -11.85 3 -6  rotate y 90
+kit wall_4  -11.85 3 -2  rotate y 90
+kit wall_4  11.85 0 -22  rotate y 90
+kit wall_4  11.85 0 -18  rotate y 90
+kit wall_4  11.85 0 -14  rotate y 90
+kit wall_4  11.85 0 -10  rotate y 90
+kit wall_4  11.85 0 -6  rotate y 90
+kit wall_4  11.85 0 -2  rotate y 90
+kit wall_4  11.85 3 -22  rotate y 90
+kit wall_4  11.85 3 -18  rotate y 90
+kit wall_4  11.85 3 -14  rotate y 90
+kit wall_4  11.85 3 -10  rotate y 90
+kit wall_4  11.85 3 -6  rotate y 90
+kit wall_4  11.85 3 -2  rotate y 90
+
+# The keep's front, 9 m high, its gate 2 m wide.
+kit wall_4  -10 0 -24.15
+kit wall_4  -6 0 -24.15
+kit wall_2  -3 0 -24.15
+kit wall_4  -10 3 -24.15
+kit wall_4  -6 3 -24.15
+kit wall_2  -3 3 -24.15
+kit wall_4  -10 6 -24.15
+kit wall_4  -6 6 -24.15
+kit wall_2  -3 6 -24.15
+kit wall_4  4 0 -24.15
+kit wall_4  8 0 -24.15
+kit wall_2  11 0 -24.15
+kit wall_4  4 3 -24.15
+kit wall_4  8 3 -24.15
+kit wall_2  11 3 -24.15
+kit wall_4  4 6 -24.15
+kit wall_4  8 6 -24.15
+kit wall_2  11 6 -24.15
+kit wall_1  -1.5 0 -24.15
+kit wall_1  1.5 0 -24.15
+kit wall_4  0 3 -24.15
+kit wall_4  0 6 -24.15
+
+# Past the gate: the keep's way in, walled.
+kit wall_4  -3.85 0 -30  rotate y 90
+kit wall_4  -3.85 0 -26  rotate y 90
+kit wall_4  -3.85 3 -30  rotate y 90
+kit wall_4  -3.85 3 -26  rotate y 90
+kit wall_4  3.85 0 -30  rotate y 90
+kit wall_4  3.85 0 -26  rotate y 90
+kit wall_4  3.85 3 -30  rotate y 90
+kit wall_4  3.85 3 -26  rotate y 90
+kit wall_4  -2 0 -31.85
+kit wall_4  2 0 -31.85
+kit wall_4  -2 3 -31.85
+kit wall_4  2 3 -31.85
+
+# Crates to hide behind: blocks of the kit, a meter high.
+kit block_1  -5 0 -6
+kit block_1  -4 0 -6
+kit block_1  6 0 -10
+kit block_1  7 0 -10
+kit block_1  -5 0 -19
+kit block_1  5 0 -19
+kit block_1  6 0 -19
+
+lamp 0 2.4 -11   5 1  name lantern_middle
+lamp -2.4 2.4 -23.3  4 1  name lantern_gate_west
+lamp 2.4 2.4 -23.3   4 1  name lantern_gate_east
+
+route along   -8 0 -4  -8 0 -20
+route across  -8 0 -16  8 0 -16
+
+sensor guard       -8 1 -4       0.4 0.8 0.4  rotate y 180
+sensor guard       8 1 -16       0.4 0.8 0.4  rotate y 90
+sensor checkpoint  0 1 -2        2 0.8 1.5
+sensor item        2 1 4         0.4 0.4 0.4  kind 1
+sensor item        10 1 -2       0.4 0.4 0.4  kind 2
+sensor goal        0 1 -28       2 0.8 2
+sensor fall        0 -10 0       80 2 80

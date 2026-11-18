@@ -1,0 +1,61 @@
+# Manifold replay 41
+# The fortress's outer wall, played unseen to its way out: a lantern put out, the dark yard.
+# A reference replay (stage 5f, as the tower’s since 5d): playing it must end with the hash on its
+# last line. Recorded by games/fortress/src/levels.test.ts; recorded again (npm run references) only
+# when the simulation changes on purpose, with SIMULATION_VERSION.
+game fortress
+profile rapier-deterministic server 60
+input 2 100 move @90
+input 50 1 move @352
+input 84 100 move @92
+input 119 1 move @353
+input 127 1 move @353:0.82
+input 128 1 move @353:0.62
+input 129 1 move @346 crouch
+input 160 100 move @91
+input 165 1 move @345 crouch
+input 171 1 move @345:0.96 crouch
+input 172 1 move @345:0.85 crouch
+input 173 1 move @345:0.76 crouch
+input 174 1 move @345:0.67 crouch
+input 175 1 move @345:0.6 crouch
+input 176 1 move @345:0.53 crouch
+input 177 1 use
+input 178 1
+input 179 1 move @322 crouch
+input 186 100
+input 187 100 move @270
+input 188 100 face @246.1
+input 189 100 face @246.2
+input 233 100 move @246
+input 320 100 move @247
+input 350 100 move @247 use
+input 351 100 move @247
+input 359 100 face @90
+input 389 100 face @180
+input 419 100 face @270
+input 427 1 move @323 crouch
+input 449 100 face @0
+input 480 100 move @310
+input 506 1 move @323:0.98 crouch
+input 507 1 move @323:0.88 crouch
+input 508 1 move @323:0.78 crouch
+input 509 1 move @323:0.69 crouch
+input 510 1 move @323:0.61 crouch
+input 511 1 move @323:0.55 crouch
+input 512 1 move @57 crouch
+input 554 100 move @309
+input 555 100
+input 556 100 move @89
+input 619 100 move @90
+input 733 100
+input 734 100 move @270
+input 735 1 move @58 crouch
+input 787 1 move @58:0.96 crouch
+input 788 1 move @58:0.86 crouch
+input 789 1 move @58:0.76 crouch
+input 790 1 move @58:0.68 crouch
+input 791 1 move @58:0.6 crouch
+input 792 1 move @58:0.53 crouch
+input 793 1 move @1
+end 849 a811feba

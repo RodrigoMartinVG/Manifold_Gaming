@@ -17,6 +17,7 @@ import {
   POUCH,
   SMOKE_INPUT,
   FLARE_INPUT,
+  SHOUT_INPUT,
   STEALTH,
   STEALTH_INPUTS,
   STEALTH_ZONES,
@@ -211,5 +212,29 @@ describe('a guard, and its wariness (stage 5e)', () => {
     expect(heard?.heard?.at[0]).toBeCloseTo(0, 0);
     expect(heard?.heard?.at[2]).toBeCloseTo(-5, 0);
     expect(heard?.heard?.at[0]).toBeCloseTo(0, 0);
+  });
+
+  test('a wary guard with no route keeps its post (stage 5f): a shout heard, it goes to look, and comes back to where it stood, facing as it faced', () => {
+    const WARY = { shout: true, relight: true, notice: true };
+    // In the dark (it does not see who shouts): a guard 6 m ahead, its back to it.
+    const { world, me, step, bots } = play(cartridge((w) => guard(w, [0, 0.82, -6], [0, 0, -1], false, 'stick', WARY), 0.05));
+    const g = () => [...world().entities.values()].find((e) => e.brain)!;
+    expect(g().brain!.route).toBeNull();
+    step({ [SHOUT_INPUT]: true });
+    // Out of its way, to the side.
+    world().place(me(), [6, 0.82, 2]);
+    step();
+    expect((bots.memoryOf(g().id) as { mode?: string }).mode).toBe('look');
+    let left = false;
+    for (let i = 0; i < 900; i++) {
+      step();
+      const p = g().transform!.position;
+      if (Math.hypot(p[0], p[2] + 6) > 2) left = true;
+    }
+    const p = g().transform!.position;
+    expect(left).toBe(true);
+    expect(Math.hypot(p[0], p[2] + 6)).toBeLessThan(0.8);
+    expect(g().character!.facing[2]).toBeLessThan(-0.95);
+    expect((bots.memoryOf(g().id) as { mode?: string }).mode).toBe('patrol');
   });
 });
