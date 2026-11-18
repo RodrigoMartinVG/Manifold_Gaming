@@ -1,8 +1,9 @@
 # 0032. The forest: one valley, three games that push the engine
 
-- **Status:** proposed (2026-11-18). The author's direction is settled (a second world before networking, three
-  games, terrain with relief, and a second version where the hero is a fairy who flies); the recommendations below
-  wait for the author's word, as the questions at the end ask.
+- **Status:** accepted (2026-11-18), from the author's answers to eight questions, each asked with a recommendation
+  and its alternatives (at the end): seven took the recommendation, and the valley is large from the start. Proposed
+  the same day: a second world before networking, three games, terrain with relief, and a second version where the
+  hero is a fairy who flies.
 - **Date:** 2026-11-18
 
 ## Context
@@ -49,7 +50,7 @@ pass, which instancing, levels of detail and a shorter shadow radius attack.
   nothing flies or swims through it. The 4.5 audit counts the navigation among what structurally assumes "up" is +Y.
 - The logical light (3d) falls by radius; the guards' cones are vision, not light; nothing reflects it.
 
-## Decision (proposed)
+## Decision
 
 ### A world of its own, before networking
 
@@ -135,7 +136,12 @@ written down now so the first version leaves its seams where they are cheap.
 **The knight and the fairy together,** one on the ground and one in the air, is the forest's natural two-player mode
 (0012 allows one). It needs networking, so it is noted for after phase 6, not built here.
 
-### The valley: terrain with relief, which is ten pieces
+### The valley: terrain with relief, which is eleven pieces
+
+**Its size: about 500 × 500 m from the start** (the author's answer; the recommendation was 240 × 240 m first). The
+demo's clearing, about 110 m in radius, is the valley's heart; around it the old forest's slope, the lake, the ruins,
+and a rim of hills whose cliffs hold the caves. The size moves three costs into F2: the navigation by regions, the view
+loaded by zones, and the weight of a snapshot (pieces 3, 5 and 11).
 
 1. **The shape.** A height field h(i, j) over a grid, a fixed body of Rapier's behind the physics boundary (the core
    does not know Rapier), with `FIX_INTERNAL_EDGES` if F0 shows it changes nothing the four browsers disagree on.
@@ -144,17 +150,20 @@ written down now so the first version leaves its seams where they are cheap.
    arithmetic (noise from an integer hash, no `sin`). The creek's curve is written as data too, for the water and the
    navigation.
 3. **The format.** A `terrain` line in the level (the file, its size, its origin, its cell); `level.export` writes the
-   line back, never the heights. A snapshot keeps a reference to the file and its hash, not its 58,000 heights (241 ×
-   241, about 230 KB as floats), so joining a started match does not carry them.
+   line back, never the heights. A snapshot keeps a reference to the file and its hash, not its 251,001 heights (501 ×
+   501, about 1 MB as floats), so joining a started match does not carry them. The trees' collision goes as one
+   compound body per tree, and F0 measures what Rapier's own snapshot weighs with the whole valley's static collision
+   in it (the citadel's physics was 475 KB, 4.5f).
 4. **The controller on slopes,** with 5a's three measures: the speed asked for against the speed got, uphill,
    downhill and across, at 5°, 10°, 20° and 28°; no lift-off running down a hill; no contact let go of for nothing at
    the cells' edges.
 5. **The navigation.** Walkable where tan θ = |∇h| ≤ tan θ_max: the gym measured walking up 45° and standing still
-   only to 30° (μ = 0.6), and F1 chooses which the grid uses. At 0.5 m, 240 × 240 m are 230,000 cells, and 4.5a builds
-   200 queries a step: about twenty seconds at one query a cell. So the terrain answers for its own cells (it knows h
-   without asking the physics), the rest is sampled as today, and if F0's measure asks for it, the grid is built by
-   regions joined by portals (a hierarchy phase 7's worlds will want too). **One grid per size of body:** a fox's is
-   finer than a stag's.
+   only to 30° (μ = 0.6), and F1 chooses which the grid uses. At 0.5 m, 500 × 500 m are a million cells, and 4.5a
+   builds 200 queries a step: over a minute at one query a cell. So the terrain answers for its own cells (it knows h
+   without asking the physics: computed, not sampled), the rest (the bridge, the rocks, the ruins) is sampled as
+   today, the cells are kept compactly, and **the grid is built by regions joined by portals, from F2 on:** a path
+   across the valley is planned between regions first, then inside the few it crosses (a hierarchy phase 7's worlds
+   will want too). **One grid per size of body:** a fox's is finer than a stag's.
 6. **The camera** against a slope that rises behind the character (3h's sweep, 4.5d's camera).
 7. **The drawing:** patches of terrain with levels of detail whose edges do not crack (skirts or a morph between
    levels), textures blended by slope and height, shadows over a large area (one map that follows the character,
@@ -167,11 +176,16 @@ written down now so the first version leaves its seams where they are cheap.
     w_y = w · ∇h (the kinematic boundary condition), fading with the height above the ground. The gliding currents of
     the canopy come from the terrain itself, not from boxes set by hand; with ∇h stored per cell at load, they are
     dot products, deterministic and without trigonometry. Thermals stay as 3b's current zones.
+11. **What loads by zones is the view's.** The simulation keeps the whole valley, at every step and on every copy: in
+    a networked match two players stand in different places, and the world cannot depend on where anyone stands. What
+    is drawn loads and unloads by distance (terrain patches, ground cover, the trees' detail, sounds); what is far
+    from every character may sleep by a rule of the step (a creature farther than a distance from all of them does
+    not think: deterministic, so replays agree), never by what a camera sees.
 
 ### The base under the three games (view only: no hash, nothing for networking)
 
 - **Quality tiers** (`view.quality`): a **floor**, the author's Iris Plus, which the tests guard, and a **high** tier
-  measured on a reference machine to be chosen. Each tier declares its draw calls, triangles, lights, shadow size and
+  measured on a reference machine chosen in F0 (a dedicated mid-range GPU at hand then). Each tier declares its draw calls, triangles, lights, shadow size and
   radius, ground cover density, levels of detail, post-processing, texture size and resolution scale; the six lights
   stay in both (what is decorative glows by emission and halos, never by a light). This refines 0026: its budget
   becomes the floor's, with numbers measured in F0.
@@ -221,18 +235,18 @@ deterministic across browsers, which nobody has measured. What hangs and is draw
 
 ### Measure before deciding, and the order
 
-| Stage     | What                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Touches the simulation     |
-| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
-| **F0**    | **Measures, no game code.** A budget sweep on the Iris Plus (draw calls and instanced triangles against the frame's time, with six lights; the budget where the curve crosses about 12 ms); the height field in Chromium, Firefox, WebKit and Node (the same hash, its step's cost, contacts with and without `FIX_INTERNAL_EDGES`); 5a's three measures on slopes; the navigation's build over 240 × 240 m; the pendulum beside a joint chain; a swarm of 50 flyers' step | No (rooms in the Dojo)     |
-| **F1**    | The decisions F0's numbers fill: the terrain (format, generator, navigation, caves), the quality tiers (refines 0026)                                                                                                                                                                                                                                                                                                                                                      | No                         |
-| **F2**    | The valley in grey: the height field, the generator, the `terrain` line, water as zones, the last safe place, navigation over terrain and by size of body, the camera on slopes; driven from the south entrance to the spring without teleporting                                                                                                                                                                                                                          | Yes (a version)            |
-| **F3**    | Drawing at scale: the tiers, instancing, ground cover, terrain levels of detail, trees by Geometry Nodes with their collision, KTX2 and meshopt, the atmosphere; the reference picture's series begins                                                                                                                                                                                                                                                                     | No (trees' collision: yes) |
-| **F4**    | The platformer: the canopy                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Yes                        |
-| **F5**    | The adventure, I: the guardians and the creatures, light as a system, purifying, the caves, the companion                                                                                                                                                                                                                                                                                                                                                                  | Yes                        |
-| **F6**    | The adventure, II: the water (swimming, diving, buoyancy) and the mount                                                                                                                                                                                                                                                                                                                                                                                                    | Yes                        |
-| **F7**    | The shooter: swarms, packs, cover in the relief, the light's weapons, the night                                                                                                                                                                                                                                                                                                                                                                                            | Yes                        |
-| **F8**    | The close: frame times on both tiers in five places, bytes and GPU memory, the reference picture's series, the roadmap's table, the book's chapters that now have something to point at                                                                                                                                                                                                                                                                                    | No                         |
-| **F9 on** | The second version, the fairy: its decision first (flight, a second playable body and a character's size as data, the view from the air), then her game on the same valley                                                                                                                                                                                                                                                                                                 | Yes                        |
+| Stage     | What                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Touches the simulation     |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
+| **F0**    | **Measures, no game code.** A budget sweep on the Iris Plus (draw calls and instanced triangles against the frame's time, with six lights; the budget where the curve crosses about 12 ms); the height field in Chromium, Firefox, WebKit and Node (the same hash, its step's cost, contacts with and without `FIX_INTERNAL_EDGES`); 5a's three measures on slopes; the navigation's build over 500 × 500 m, by regions; Rapier's snapshot with the valley's static collision; the pendulum beside a joint chain; a swarm of 50 flyers' step | No (rooms in the Dojo)     |
+| **F1**    | The decisions F0's numbers fill: the terrain (format, generator, navigation, caves), the quality tiers (refines 0026)                                                                                                                                                                                                                                                                                                                                                                                                                        | No                         |
+| **F2**    | The valley in grey: the height field, the generator, the `terrain` line, water as zones, the last safe place, navigation over terrain by regions and portals and by size of body, the view loaded by zones, the camera on slopes; driven from the south entrance to the spring without teleporting                                                                                                                                                                                                                                           | Yes (a version)            |
+| **F3**    | Drawing at scale: the tiers, instancing, ground cover, terrain levels of detail, trees by Geometry Nodes with their collision, KTX2 and meshopt, the atmosphere; the reference picture's series begins                                                                                                                                                                                                                                                                                                                                       | No (trees' collision: yes) |
+| **F4**    | The platformer: the canopy                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Yes                        |
+| **F5**    | The adventure, I: the guardians and the creatures, light as a system, purifying, the caves, the companion                                                                                                                                                                                                                                                                                                                                                                                                                                    | Yes                        |
+| **F6**    | The adventure, II: the water (swimming, diving, buoyancy) and the mount                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Yes                        |
+| **F7**    | The shooter: swarms, packs, cover in the relief, the light's weapons, the night                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Yes                        |
+| **F8**    | The close: frame times on both tiers in five places, bytes and GPU memory, the reference picture's series, the roadmap's table, the book's chapters that now have something to point at                                                                                                                                                                                                                                                                                                                                                      | No                         |
+| **F9 on** | The second version, the fairy: its decision first (flight, a second playable body and a character's size as data, the view from the air), then her game on the same valley                                                                                                                                                                                                                                                                                                                                                                   | Yes                        |
 
 Each stage keeps the project's rules: a decision before code where the tail is long, grey before beautiful, shown in
 the Dojo, checked by tests, the same hash in the four, its report in the Bitácora.
@@ -254,6 +268,10 @@ the Dojo, checked by tests, the same hash in the four, its report in the Bitáco
   twelve times 0017's scale. Its material is spread over the three games instead.
 - **The shooter in the caves.** Closed levels, no sky, no ground cover: the cheapest place to draw, the opposite of
   what the forest is for. The caves stay, in the adventure.
+- **A valley of 240 × 240 m first** (the recommendation; 150 × 150 m was offered too). Cheaper to reach a playable
+  valley, growing only if F0's navigation allowed it. The author chose the large valley: the mount and the fairy's view
+  from above both want room, and the hierarchy and the loading by zones are pieces the forest is for. Their cost moves
+  into F2.
 - **Networking first.** The forest's largest additions are the view's, which networking does not see; its simulation
   pieces each say how they reconcile. Networking first would test it only on levels of boxes.
 - **A smaller knight.** A capsule under 1.6 m asks for an audit of what assumes the mannequin (hit parts, clip
@@ -285,19 +303,28 @@ the Dojo, checked by tests, the same hash in the four, its report in the Bitáco
 - **The risk:** a phase that does not end. Each challenge is measured before it is built, each game closes with its
   demonstration, and each stage is played in grey before it gets art.
 
-## Questions for the author, with the recommended answer
+## The author's answers
 
-1. **The floor:** the Iris Plus stays the floor, and the likeness to the concept image is the high tier's. Which
-   machine measures the high tier?
-2. **Where it goes:** a named phase between 5 and 6, stages F0 to F8, after 0031's stages.
-3. **The valley's size:** 240 × 240 m, a height every meter, first; larger only after F0 measures the navigation.
-4. **The hero:** the engine's character with a new look; small by the world's scale, not by its own.
-5. **The mount:** a younger stag sized to the hero; the giant guardians are not ridden (they are the scene one walks
-   under).
-6. **Water and the mount in:** both in the adventure's second part (F6), the last of its pieces.
-7. **The fairy:** a second version after F8, its own decision then; one game in flight on the same valley, single
-   player, the fairy small in the knight's valley, light as her fuel. The knight and the fairy together, noted for
-   after phase 6.
+Asked one by one on 2026-11-18, each with a recommendation and its alternatives:
+
+1. **The floor:** the Iris Plus, plus a high tier (recommended); the likeness to the concept image is the high
+   tier's. Not taken: only the Iris Plus; a dedicated GPU as the floor, leaving the Iris Plus out.
+2. **The high tier's machine:** chosen in F0, a dedicated mid-range GPU at hand then (recommended); until then its
+   numbers say "measured in F0". Not taken: a machine named now; a multiple of the floor's budget, with no machine.
+3. **Where it goes:** a named phase between 5 and 6, stages F0 to F8, after 0031's stages (recommended). Not taken:
+   renumbering the phases; after networking.
+4. **The valley's size: large from the start, about 500 × 500 m.** The recommendation was 240 × 240 m first, growing
+   after F0; 150 × 150 m, the demo's, was offered too.
+5. **The hero:** the engine's character with a new look, small by the world's scale (recommended). Not taken: a
+   smaller knight; another hero with a body of its own from the start.
+6. **The mount:** a younger stag sized to the hero; the giant guardians are not ridden (recommended). Not taken: the
+   giant guardian; no mount.
+7. **Water and the mount:** both, in the adventure's second part, F6 (recommended). Not taken: the mount earlier, with
+   the creatures (F5); water only; both later.
+8. **The fairy:** a fourth game after F8, with its own decision then; one game in flight on the same valley, single
+   player, the fairy small in the knight's valley, light as her fuel (recommended). Not taken: the fairy replacing the
+   knight in the three games; a second player beside the knight (after phase 6); a companion first, playable later.
+   The knight and the fairy together stays noted for after phase 6.
 
 ## Sources
 
