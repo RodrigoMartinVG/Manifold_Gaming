@@ -72,6 +72,18 @@ export function registryFor(cartridge: Cartridge): Registry<World> {
 }
 
 /**
+ * A LEVEL'S RECIPE WITH NO PAGE (a test, a server, a replay checked headless): without the page's own lines,
+ * the view's (`view.camera steady`), which mean nothing where there is no camera to set and are not declared
+ * there. (Before, a game that put one in its levels dropped it its own way: the wall, by a pattern of its own.)
+ */
+export function withoutView(recipe: string): string {
+  return recipe
+    .split('\n')
+    .filter((line) => !/^\s*view\./.test(line))
+    .join('\n');
+}
+
+/**
  * What the core declares, for every game (each game decides whether to let people touch it): with the
  * cartridge, the building commands know its zones and how its worlds are born (stage 3j).
  */

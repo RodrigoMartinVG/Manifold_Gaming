@@ -1,6 +1,6 @@
 import { vec3, type Vec3 } from '@manifold/common';
 import { ATTACK, EYE } from '@manifold/arms';
-import { BotHost, NO_INPUT, registryFor, Session, type Entity, type PlayerInput } from '@manifold/core';
+import { BotHost, NO_INPUT, registryFor, Session, withoutView, type Entity, type PlayerInput } from '@manifold/core';
 import { WALL } from './game';
 import { attackers, hold } from './rules';
 
@@ -15,8 +15,7 @@ const flat = (a: Vec3, b: Vec3) => Math.hypot(a[0] - b[0], a[2] - b[2]);
 export function levelOf(index: number) {
   const registry = registryFor(WALL.cartridge);
   // (The recipe's view lines are the page's: a headless session has no camera.)
-  const recipe = WALL.levels[index]!.recipe.replace(/^view\..*$/gm, '');
-  const errors = registry.run(recipe, 'recipe').filter((m) => m.level === 'error');
+  const errors = registry.run(withoutView(WALL.levels[index]!.recipe), 'recipe').filter((m) => m.level === 'error');
   if (errors.length) throw new Error(errors.map((m) => m.text).join('; '));
   const session = new Session(WALL.cartridge, { registry });
   const bots = new BotHost();

@@ -6,7 +6,7 @@ import type { Bodies } from './bodies';
 import type { PageMatch } from './match';
 import type { GamePage, Piece } from './page';
 
-export type CameraMode = 'follow' | 'chase' | 'aim' | 'first' | 'free';
+export type CameraMode = 'follow' | 'steady' | 'chase' | 'aim' | 'first' | 'free';
 
 /**
  * Where a character's eyes are above its center, standing (stage 4g: its head's hit part, where a game's
@@ -36,9 +36,9 @@ export const CAMERA_VARIABLES = {
   camera: {
     name: 'view.camera',
     description:
-      "With a character to drive: `follow` follows it as if on a leash: it keeps its distance, and turns little by little when the character goes to a side (dragging turns it around); `chase` goes back behind the character by itself (dragging looks around, and it comes back when you let go: for `controls.scheme tank`); `aim` takes the mouse with a click, the mouse turns the camera and the character looks where the camera looks, walking sideways without turning (a shooter's way; Esc lets the mouse go); `first` is `aim` from the character's own eyes (stage 4g): its body is not drawn, and what it holds is drawn with a field of view of its own; while the character is down, it steps back behind its head, and its body is drawn, falling; `free` leaves the camera where it is. A gamepad's right stick turns it too.",
+      "With a character to drive: `follow` follows it as if on a leash: it keeps its distance, and turns little by little when the character goes to a side (dragging turns it around); `steady` goes along with it without ever turning by itself: it keeps its direction and its distance, so where forward is stays put while the character runs and jumps (a platformer's, for moves that need a held direction: only a drag or the right stick turns it); `chase` goes back behind the character by itself (dragging looks around, and it comes back when you let go: for `controls.scheme tank`); `aim` takes the mouse with a click, the mouse turns the camera and the character looks where the camera looks, walking sideways without turning (a shooter's way; Esc lets the mouse go); `first` is `aim` from the character's own eyes (stage 4g): its body is not drawn, and what it holds is drawn with a field of view of its own; while the character is down, it steps back behind its head, and its body is drawn, falling; `free` leaves the camera where it is. A gamepad's right stick turns it too.",
     scope: 'view',
-    type: { kind: 'option', options: ['follow', 'chase', 'aim', 'first', 'free'] },
+    type: { kind: 'option', options: ['follow', 'steady', 'chase', 'aim', 'first', 'free'] },
     default: 'follow',
   },
   // The player's settings (stage 3i): the menu shows them, and they are kept in the browser.
@@ -156,7 +156,7 @@ const FASTEST = 4 * Math.PI;
 /**
  * THE CAMERA. `fixed` does not move. `orbit` is a lab's: dragging turns it around what it looks at,
  * the wheel (or a pinch) gets closer, the right button (or two fingers) moves it sideways; and with a
- * character to drive, it goes with it in one of four ways (`view.camera`: follow, chase, aim, free).
+ * character to drive, it goes with it in one of these ways (`view.camera`: follow, steady, chase, aim, first, free).
  * A gamepad's right stick turns it too.
  *
  * ITS OWN ORBIT (stage 2.5a). Before, three.js's OrbitControls turned it, and kept a turn of its own
@@ -592,7 +592,12 @@ export function mountCamera(
             lookHeight = THREE.MathUtils.clamp(lookHeight, headHeight - rise, headHeight - fall);
           }
           head.addScaledVector(up, lookHeight - headHeight);
-          const along = camera.position.clone().sub(head);
+          // STEADY (after phase 5: the tower's wall jumps): the leash's direction is the one the camera
+          // already had, from where it looked (`offset`, along the ground), not from where the head is now.
+          // Following, a step to a side turns the camera round the character, and with it where forward
+          // is: a run up a wall and the jump off it, which need a held direction, kept changing under the
+          // player's hand. Steady, the camera goes along with the head and never turns by itself.
+          const along = mode === 'steady' ? offset.clone() : camera.position.clone().sub(head);
           along.addScaledVector(up, -along.dot(up));
           if (along.lengthSq() < 1e-6) along.copy(offset);
           // THE FRONT (stage 4.5d): coming at the camera within FRONT degrees of straight at it, it goes back
@@ -611,7 +616,8 @@ export function mountCamera(
           // world, what the level's author wants seen), in `follow` and `chase` alike: the camera turns,
           // little by little, to look along it, unless it was just turned by hand.
           const untouched = pointers.size === 0 && now - turnedByHand > 600;
-          const suggested = untouched ? viewOf(world, hero.id) : null;
+          // (Steady turns only by hand: not even where a zone suggests looking.)
+          const suggested = untouched && mode !== 'steady' ? viewOf(world, hero.id) : null;
           // Locked on someone (stage 4.5d), behind the character, on the far side from the other, both
           // in sight; chasing, behind where it goes (not where it looks: stage 4.5d), as much as it goes:
           // turning on the spot, or walking backwards, it stays.

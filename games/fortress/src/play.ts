@@ -1,6 +1,6 @@
 import type { Vec3 } from '@manifold/common';
 import { ATTACK, SMOKE_INPUT } from '@manifold/arms';
-import { BotHost, NO_INPUT, registryFor, Session, type Entity, type PlayerInput } from '@manifold/core';
+import { BotHost, NO_INPUT, registryFor, Session, withoutView, type Entity, type PlayerInput } from '@manifold/core';
 import { FORTRESS } from './game';
 import { run, standing } from './rules';
 
@@ -12,7 +12,7 @@ import { run, standing } from './rules';
  */
 export function levelOf(index: number) {
   const registry = registryFor(FORTRESS.cartridge);
-  const errors = registry.run(FORTRESS.levels[index]!.recipe, 'recipe').filter((m) => m.level === 'error');
+  const errors = registry.run(withoutView(FORTRESS.levels[index]!.recipe), 'recipe').filter((m) => m.level === 'error');
   if (errors.length) throw new Error(errors.map((m) => m.text).join('; '));
   const session = new Session(FORTRESS.cartridge, { registry });
   const bots = new BotHost();

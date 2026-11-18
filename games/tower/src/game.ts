@@ -131,11 +131,13 @@ export const TOWER: Game = {
   // Its four floors, the wall jump's four beats (decision 0029): shown, demanded, twisted, mastered;
   // each with its gold time (s), the challenge apart: about 1.3 times its test's run (floors.test.ts:
   // 6.7, 10.5, 21.7 and 23.9 s, the last two waiting for what moves, as anyone must).
+  // The camera steady (after phase 5): it goes along with the climber without turning by itself, so the
+  // direction held for a run up a wall and the jump off it stays the same (`view.camera`, camera.ts).
   levels: [
-    { id: 'floor-1', recipe: 'tower.floor floor-1', name: 'tower.floor.1', gold: 9 },
-    { id: 'floor-2', recipe: 'tower.floor floor-2', name: 'tower.floor.2', gold: 14 },
-    { id: 'floor-3', recipe: 'tower.floor floor-3', name: 'tower.floor.3', gold: 24 },
-    { id: 'floor-4', recipe: 'tower.floor floor-4', name: 'tower.floor.4', gold: 27 },
+    { id: 'floor-1', recipe: 'tower.floor floor-1\nview.camera steady', name: 'tower.floor.1', gold: 9 },
+    { id: 'floor-2', recipe: 'tower.floor floor-2\nview.camera steady', name: 'tower.floor.2', gold: 14 },
+    { id: 'floor-3', recipe: 'tower.floor floor-3\nview.camera steady', name: 'tower.floor.3', gold: 24 },
+    { id: 'floor-4', recipe: 'tower.floor floor-4\nview.camera steady', name: 'tower.floor.4', gold: 27 },
   ],
   done: (_, hero) => {
     const run = hero && runner(hero);

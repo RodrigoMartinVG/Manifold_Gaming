@@ -1171,6 +1171,65 @@ test('the tower: a ghost’s link races it on its floor, and opens no floor', as
   expect(list).toEqual([]);
 });
 
+/** Where a camera looks along the ground: its heading, in radians (0 looking along −Z, the floors' ahead). */
+const heading = (look: number[]) => Math.atan2(-look[0]!, -look[2]!);
+
+test('the camera, steady: running to a side and jumping it does not turn, as following does, so forward stays put', async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  const list = errors(page);
+  // (The course: open ground in front of where the character is born.)
+  await page.goto('jugar/dojo/course/');
+  await expect.poll(() => page.locator('#game').getAttribute('data-player'), { timeout: 20_000 }).toBeTruthy();
+  /** How much the camera turned along the ground while the character ran to its right and jumped. */
+  const turned = async (mode: string) => {
+    await page.keyboard.press('Backquote');
+    await typeInConsole(page, `view.camera ${mode}`, 'camera.reset');
+    await page.keyboard.press('Escape');
+    await settled(page, 'camera');
+    const before = heading(await position(page, 'look'));
+    await page.keyboard.down('KeyD');
+    await afterSteps(page, 50);
+    await page.keyboard.press('Space');
+    await afterSteps(page, 40);
+    await page.keyboard.up('KeyD');
+    await settled(page, 'camera');
+    return Math.abs(heading(await position(page, 'look')) - before);
+  };
+  // Following, a step to a side turns it round the character, and with it where forward is (the tower's
+  // wall jumps, after phase 5); steady, it goes along with the character without turning.
+  expect(await turned('follow')).toBeGreaterThan(0.1);
+  expect(await turned('steady')).toBeLessThan(0.01);
+  expect(list).toEqual([]);
+});
+
+test('the tower’s camera is steady: a run to a side and a jump on its first floor leave forward where it was', async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  const list = errors(page);
+  const game = page.locator('#game');
+  await page.goto('jugar/torre/');
+  await expect(game).toHaveAttribute('data-dialog', 'La torre', { timeout: 20_000 });
+  await page.getByRole('button', { name: 'Jugar', exact: true }).click();
+  await page.getByRole('button', { name: 'Seguir' }).click();
+  await page.getByRole('button', { name: 'Seguir' }).click();
+  await expect(game).toHaveAttribute('data-level', 'floor-1');
+  await settled(page, 'camera');
+  const before = heading(await position(page, 'look'));
+  const from = await position(page, 'player');
+  await page.keyboard.down('KeyD');
+  await afterSteps(page, 50);
+  await page.keyboard.press('Space');
+  await afterSteps(page, 40);
+  await page.keyboard.up('KeyD');
+  await settled(page, 'camera');
+  expect(Math.abs((await position(page, 'player'))[0]! - from[0]!), 'it ran to its right').toBeGreaterThan(0.5);
+  expect(Math.abs(heading(await position(page, 'look')) - before)).toBeLessThan(0.01);
+  expect(list).toEqual([]);
+});
+
 test('the tower’s end: the top done, the thread’s last lines, the credits, and the title again', async ({ page }) => {
   test.setTimeout(120_000);
   const list = errors(page);

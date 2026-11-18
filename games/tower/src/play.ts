@@ -1,5 +1,5 @@
 import type { Vec3 } from '@manifold/common';
-import { NO_INPUT, registryFor, Session, type Entity, type PlayerInput } from '@manifold/core';
+import { NO_INPUT, registryFor, Session, withoutView, type Entity, type PlayerInput } from '@manifold/core';
 import { TOWER } from './game';
 import { runner } from './rules';
 
@@ -12,7 +12,7 @@ const STAND = 0.82;
  */
 export function floorOf(index: number) {
   const registry = registryFor(TOWER.cartridge);
-  const errors = registry.run(TOWER.levels[index]!.recipe, 'recipe').filter((m) => m.level === 'error');
+  const errors = registry.run(withoutView(TOWER.levels[index]!.recipe), 'recipe').filter((m) => m.level === 'error');
   if (errors.length) throw new Error(errors.map((m) => m.text).join('; '));
   const session = new Session(TOWER.cartridge, { registry });
   const me = (): Entity => [...session.world.entities.values()].find((e) => e.character?.player === 1)!;

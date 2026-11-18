@@ -22,6 +22,7 @@ export {
   declareCore,
   playRecipe,
   registryFor,
+  withoutView,
   type InputChange,
   type SessionOptions,
   type SessionSave,
