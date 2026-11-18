@@ -1,6 +1,7 @@
 import { quat, sinCosDegrees, vec3, type Vec3 } from '@manifold/common';
 import { characterParts } from '@manifold/character';
 import { component, type Entity, type World } from '@manifold/core';
+import { WARY, type Wary } from './stealth';
 import { WEAPON, type Weapon, type WeaponKind } from './weapons';
 
 /** The guard's brain's name (stage 4e's `dojo.guard`, the games' since 5e): what its entities say, and its host's table. */
@@ -44,7 +45,15 @@ export const GUNNER_KEY = 'arms.gunner';
 export const gunnerOf = (e: Entity): Readonly<Gunner> => component<Gunner>(e, GUNNER_KEY) ?? GUNNER;
 export const guardsOf = (world: World) => [...world.entities.values()].filter((e) => e.brain?.name === GUARD_BRAIN);
 
-export function guard(world: World, at: Vec3, facing: Vec3, route: string | null = null, kind: WeaponKind = 'stick'): Entity {
+export function guard(
+  world: World,
+  at: Vec3,
+  facing: Vec3,
+  route: string | null = null,
+  kind: WeaponKind = 'stick',
+  /** (Stage 5e) Its wariness, if its game makes it wary (stealth.ts). */
+  wary?: Wary,
+): Entity {
   const guards = guardsOf(world);
   // (A new guard fights as those already there, if a room told them how: stage 4.5a.)
   const like = guards[0];
@@ -78,6 +87,7 @@ export function guard(world: World, at: Vec3, facing: Vec3, route: string | null
     game: {
       [WEAPON]: { kind, ready: 0, strike: 0, struck: [] } satisfies Weapon,
       ...(told ? { [GUNNER_KEY]: { ...told } satisfies Gunner } : {}),
+      ...(wary ? { [WARY]: { ...wary } satisfies Wary } : {}),
     },
   });
 }

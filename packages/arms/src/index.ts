@@ -22,3 +22,19 @@ export {
 } from './weapons';
 export { GUARD, GUARD_BRAIN, guard, guardsOf, GUNNER, GUNNER_KEY, gunnerOf, type Gunner } from './guard';
 export { ARMS_BRAINS, type GuardMemory } from './brain';
+export {
+  FLARE_INPUT,
+  POUCH,
+  pouch,
+  SHOUT_INPUT,
+  SMOKE_INPUT,
+  STEALTH,
+  STEALTH_INPUTS,
+  STEALTH_ZONES,
+  stealth,
+  stealthDamage,
+  WARY,
+  wary,
+  type Pouch,
+  type Wary,
+} from './stealth';

@@ -131,6 +131,12 @@ export function mountAudio(page: GamePage): Piece {
         ring(out, at, 45, 0.9, 0.7, 'sine', 30);
         burst(out, at, 900, 0.5, 0.9, 1.1);
         break;
+      case 'shout':
+        // (Stage 5e) A guard's call: two short voiced tones, falling, and breath.
+        ring(out, at, 240, 0.12, 0.22, 'sawtooth', 200);
+        ring(out, at + 0.24, 210, 0.12, 0.3, 'sawtooth', 170);
+        burst(out, at, 1400, 1.5, 0.08, 0.4);
+        break;
     }
     made++;
     page.container.dataset.sounds = String(made);

@@ -3,6 +3,7 @@ import { vec3, type Vec3 } from '@manifold/common';
 import { CHARACTER_GAP, eyeHeightOf, type Brain, type Entity, type Memory, type PlayerInput, type World } from '@manifold/core';
 import { gunnerOf, GUARD_BRAIN } from './guard';
 import { ATTACK, weapon } from './weapons';
+import { SHOUT_INPUT, STEALTH, wary } from './stealth';
 
 /**
  * THE GUARD'S BRAIN (stage 4e, decision 0023): it runs where the match is hosted, once, and asks for
@@ -57,6 +58,10 @@ export interface GuardMemory extends Memory {
    * else or a while has passed (in the citadel a guard asked every step, for a sound behind a shut gate).
    */
   nowhere?: { to: Vec3; tick: number } | null;
+  /** (Stage 5e, a wary guard) Each lamp it saw, by id, and whether it was lit; the one it goes to light again; the guards down it found. */
+  lamps?: Record<string, boolean>;
+  relight?: number | null;
+  downs?: number[];
 }
 
 /** How near a point it must be to have reached it (m, along the ground); within its stick's reach (m, to the other's center). */
@@ -101,7 +106,69 @@ function groundAt(world: World, at: Vec3, self: Entity): number | null {
 const isPlayer = (e: Entity | undefined): e is Entity =>
   e !== undefined && !!e.character && !e.brain && e.character.player >= 1 && (e.health?.down ?? -1) < 0;
 
+/**
+ * WHETHER A GUARD SEES A POINT (stage 5e): within its eyes' range and field of view, nothing in the way
+ * (what is there itself, a lamp's body, within half a meter of it, does not count).
+ */
+function inSight(world: World, self: Entity, at: Vec3): boolean {
+  const w = self.watcher;
+  if (!w || !self.transform || !self.character || !self.body) return false;
+  const eye = vec3.add(self.transform.position, [0, eyeHeightOf(self.character, self.body), 0]);
+  const to = vec3.sub(at, eye);
+  const d = vec3.length(to);
+  if (d > w.range || d < 1e-6) return d < 1e-6;
+  const dir = vec3.scale(to, 1 / d);
+  if (vec3.dot(dir, self.character.facing) < w.cone) return false;
+  const hit = world.castRay(eye, dir, d, { skip: self.id, characters: false });
+  return !hit || hit.distance > d - 0.5;
+}
+
+/**
+ * THE GUARD'S BRAIN, WARY (stage 5e): what a guard its game made wary (`arms.wary`) adds to the guard's.
+ * A lamp it saw lit and now sees put out, it goes to (as to a sound) and lights again; a guard down it
+ * sees, it goes to look round; the moment it starts after someone, it shouts (the wary ones near hear
+ * it). Without it, the guard's, as in stage 4e: the Dojo's do not change.
+ */
 export const guardBrain: Brain = (world, self, memory) => {
+  const m = memory as GuardMemory;
+  const w = wary(self);
+  if (!w || (self.health?.down ?? -1) >= 0 || !self.transform) return guardBrain4e(world, self, memory);
+  m.lamps ??= {};
+  m.downs ??= [];
+  m.relight ??= null;
+  const before = m.mode;
+  for (const l of world.entities.values()) {
+    if (!l.lamp || !l.transform || !inSight(world, self, l.transform.position)) continue;
+    const was = m.lamps[String(l.id)];
+    if (w.relight && was === true && l.lamp.out && !l.breakable?.broken && m.relight === null) {
+      m.relight = l.id;
+      m.heard = { at: [...l.transform.position], tick: world.tick };
+    }
+    m.lamps[String(l.id)] = l.lamp.on;
+  }
+  if (w.notice)
+    for (const g of world.entities.values()) {
+      if (g === self || !g.brain || (g.health?.down ?? -1) < 0 || !g.transform || m.downs.includes(g.id)) continue;
+      if (!inSight(world, self, g.transform.position)) continue;
+      m.downs.push(g.id);
+      m.heard = { at: [...g.transform.position], tick: world.tick };
+    }
+  const input = guardBrain4e(world, self, memory);
+  // At the lamp it goes to light again (not while it is after someone): a hand on it.
+  const lamp = m.relight === null ? undefined : world.entities.get(m.relight);
+  if (lamp?.transform && lamp.lamp && m.mode !== 'chase') {
+    const to = vec3.sub(lamp.transform.position, self.transform.position);
+    if (Math.hypot(to[0], to[2]) <= STEALTH.lamp - 0.3 && world.tick - m.used > 2) {
+      m.used = world.tick;
+      m.relight = null;
+      return { ...input, use: true };
+    }
+  } else if (!lamp?.lamp?.out) m.relight = null;
+  return w.shout && m.mode === 'chase' && before !== 'chase' ? { ...input, [SHOUT_INPUT]: true } : input;
+};
+
+/** The guard's brain, as stage 4e made it. */
+const guardBrain4e: Brain = (world, self, memory) => {
   const m = memory as GuardMemory;
   if (m.mode === undefined)
     Object.assign(m, {
@@ -139,7 +206,8 @@ export const guardBrain: Brain = (world, self, memory) => {
   const working = (m.plan?.changes.length ?? 0) > 0 || world.tick - m.used < 60;
   for (const ev of world.stepEvents) {
     if (ev.type !== 'sound' || ev.source === self.id) continue;
-    if (world.entities.get(ev.source)?.brain) continue;
+    // (Another guard's sounds it does not mind; a wary one, its shout: stage 5e.)
+    if (world.entities.get(ev.source)?.brain && !(ev.sound === 'shout' && wary(self))) continue;
     const mechanism = ev.sound === 'door' || ev.sound === 'lift';
     if (mechanism && (working || vec3.length(vec3.sub(ev.at, center)) < 3)) continue;
     if (vec3.length(vec3.sub(ev.at, center)) <= ev.radius) m.heard = { at: [...ev.at], tick: world.tick };

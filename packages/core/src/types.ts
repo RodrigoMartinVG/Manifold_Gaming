@@ -79,6 +79,8 @@ export interface Lamp {
   intensity: number;
   signal: string | null;
   on: boolean;
+  /** Put out by a hand (stage 5e), and lit again by one: meanwhile it gives no light, whatever its signal. */
+  out?: boolean;
 }
 
 /**
@@ -724,7 +726,7 @@ export type Event =
    */
   | {
       type: 'sound';
-      sound: 'step' | 'land' | 'hit' | 'door' | 'lift' | 'break' | 'blast';
+      sound: 'step' | 'land' | 'hit' | 'door' | 'lift' | 'break' | 'blast' | 'shout';
       source: EntityId;
       at: Vec3;
       surface: string | null;

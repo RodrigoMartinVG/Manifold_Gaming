@@ -1127,7 +1127,8 @@ export class World {
    */
   private illuminate() {
     for (const e of this.entities.values())
-      if (e.lamp) e.lamp.on = !e.breakable?.broken && (e.lamp.signal === null || this.signal(e.lamp.signal) !== 0);
+      // (Stage 5e: put out by a hand, it gives no light until a hand lights it again.)
+      if (e.lamp) e.lamp.on = !e.breakable?.broken && !e.lamp.out && (e.lamp.signal === null || this.signal(e.lamp.signal) !== 0);
     const lamps = this.lampsOn();
     const fogs = this.attenuators();
     const characters: Entity[] = [];
