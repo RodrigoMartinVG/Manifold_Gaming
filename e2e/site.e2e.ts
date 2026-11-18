@@ -453,6 +453,7 @@ const VIEW_VALUES: Record<string, string> = {
   'view.calm': 'on',
   'view.fov': '75',
   'view.crosshair': 'off',
+  'view.shake': 'off',
   'view.subtitles': 'on',
   'view.hud': 'off',
   'view.sky': '20.5',

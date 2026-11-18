@@ -38,6 +38,8 @@ export const CONSOLE_ES: Readonly<Record<string, string>> = {
     'una marca chica en el medio de la pantalla al apuntar (`view.camera aim` o `first`, etapa 4.5a): adonde va un disparo desde los ojos',
   'view.calm':
     'menos movimiento de la cámara, para quien se marea: no sigue girando después de un arrastre, y vuelve atrás del personaje más despacio',
+  'view.shake':
+    'un golpe recibido, o una explosión cerca, sacude la vista (etapa 5i): un momento, más cuanto más fuerte; apagado, la vista queda quieta, para quien se marea',
   'view.subtitles': 'subtítulos de los sonidos: cada sonido cerca de la cámara, escrito abajo, con una flecha hacia donde vino',
   'view.sky':
     'la hora que muestra el cielo en esta página, de 0 a 24 (etapa 5a): `view.sky 6` un amanecer, `view.sky 20.5` la hora azul, `view.sky 0` una noche con estrellas; solo el dibujo (cuánta luz hay sigue siendo la del nivel); −1, la hora del nivel',
