@@ -37,7 +37,7 @@ export function mountProbe(page: GamePage, match: PageMatch): Piece {
       // What the last frame cost the GPU (stage 3d: the budgets for what is drawn): its draw calls and
       // its triangles, as three.js counts them; on every frame with what is drawn, so that a test that
       // waits for the one finds the other (two numbers three.js keeps anyway).
-      const drawn = page.stage.renderer.info.render;
+      const drawn = page.stage.drawn;
       data.draws = String(drawn.calls);
       data.triangles = String(drawn.triangles);
       if (++frames % 10 !== 0) return;

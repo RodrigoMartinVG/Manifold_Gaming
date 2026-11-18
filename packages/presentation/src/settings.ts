@@ -30,6 +30,8 @@ export const SETTINGS: readonly Setting[] = [
   { name: 'view.crosshair', say: 'settings.crosshair', control: { kind: 'toggle' } },
   // (Stage 5i, decision 0031: comfort.)
   { name: 'view.shake', say: 'settings.shake', control: { kind: 'toggle' } },
+  // (Stage 5j.)
+  { name: 'view.glow', say: 'settings.glow', control: { kind: 'toggle' } },
 ];
 
 /**

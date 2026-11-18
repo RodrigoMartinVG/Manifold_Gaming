@@ -1,6 +1,55 @@
 import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { VignetteShader } from 'three/addons/shaders/VignetteShader.js';
 import type { Stage } from './page';
 import { skyAt, type Rgb } from './sky';
+
+/**
+ * THE ATMOSPHERE'S NUMBERS (stage 5j, decision 0031; the research's "make it feel dark, don't make it
+ * dark"): at full night, a cool fill of at least this much, a moonlight for silhouettes, the fog's
+ * near and far (m), the exposure; by day, the fog farther. The glow: how strong, how wide, and from
+ * how bright (what gives light: lamps, the flame, flashes, the sun's disc).
+ */
+export const ATMOSPHERE = Object.freeze({
+  nightFill: 0.5,
+  coolFill: 0x8fa6d8,
+  moonlight: 0.45,
+  fog: { day: [60, 180], night: [18, 85] } as const,
+  exposure: { day: 1, night: 1.15 } as const,
+  glow: { strength: 0.55, radius: 0.45, threshold: 0.82 } as const,
+  vignette: { offset: 1, darkness: 1.1 } as const,
+});
+
+/**
+ * THE SCENE'S PASS, COUNTED (stage 5j): three counts what each `render` draws and starts again at the next;
+ * with passes after the scene, the last count was the last pass's (one triangle over the screen). This
+ * pass keeps what the scene alone cost, for the budgets (the counts are reset by the stage, once a frame).
+ */
+class CountedRenderPass extends RenderPass {
+  counted = { calls: 0, triangles: 0 };
+  override render(...args: Parameters<RenderPass['render']>) {
+    super.render(...args);
+    const info = args[0].info.render;
+    this.counted = { calls: info.calls, triangles: info.triangles };
+  }
+}
+
+/** Whether the glow is drawn (stage 5j): a setting, on as it comes; off for looks, or a slow machine. */
+export const GLOW_VARIABLE = {
+  name: 'view.glow',
+  description:
+    "A glow over the finished image (stage 5j): what gives light (lamps, the flame, flashes) glows round it, and the screen's edges darken a little. Off, it is drawn plainer, and faster on a slow machine.",
+  scope: 'view',
+  type: { kind: 'boolean' },
+  default: true,
+} as const;
+
+/** How much it is night at an hour's sky, from the sun's height (0 by day, 1 with the sun 15° below). */
+export const nightOf = (sunUp: number) => Math.max(0, Math.min(1, -sunUp * 4));
 
 /** The sky's dome (m): inside the camera's far plane (200), wherever the camera goes. */
 const DOME = 150;
@@ -131,6 +180,22 @@ export function createStage(container: HTMLElement): Stage {
   const sun = new THREE.DirectionalLight(0xfff2e0, 1.8);
   sun.position.set(4, 8, 3);
   scene.add(sun);
+  // (Stage 5j) The moonlight: always there (the scene's lights never change in number), lit only by the
+  // atmosphere at night.
+  const moonlight = new THREE.DirectionalLight(0x9fb4e8, 0);
+  scene.add(moonlight);
+  // One fog and one cool color, changed in place: the light changes with the day, every frame in a cycle.
+  const fog = new THREE.Fog(0x000000, ATMOSPHERE.fog.day[0], ATMOSPHERE.fog.day[1]);
+  const cool = new THREE.Color(ATMOSPHERE.coolFill);
+  let atmosphere = false;
+  let glowOn = true;
+  let composer: EffectComposer | null = null;
+  let bloom: UnrealBloomPass | null = null;
+  let vignette: ShaderPass | null = null;
+  let scenePass: CountedRenderPass | null = null;
+  let drawn = { calls: 0, triangles: 0 };
+  // (The counts, reset once a frame by the stage, not by each pass: stage 5j.)
+  renderer.info.autoReset = false;
   // Without a sky, the background darkens with them: a dark room is dark all round, not only on what it lights.
   const night = new THREE.Color(0x07080b);
 
@@ -166,6 +231,11 @@ export function createStage(container: HTMLElement): Stage {
   const rgb = (c: THREE.Color, v: Rgb) => c.setRGB(v[0], v[1], v[2], THREE.SRGBColorSpace);
   /** The lights and the background, from the day's light and the sky's hour. */
   const light = () => {
+    scene.fog = null;
+    moonlight.intensity = 0;
+    renderer.toneMapping = atmosphere ? THREE.ACESFilmicToneMapping : THREE.NoToneMapping;
+    renderer.toneMappingExposure = 1;
+    delete container.dataset.fog;
     if (hour === null) {
       dome.visible = false;
       scene.background = (scene.background instanceof THREE.Color ? scene.background : flat.clone()).copy(night).lerp(flat, day);
@@ -197,12 +267,46 @@ export function createStage(container: HTMLElement): Stage {
     rgb(sun.color, look.key.color);
     sun.position.set(look.key.from[0] * 10, look.key.from[1] * 10, look.key.from[2] * 10);
     sun.intensity = 1.8 * day * look.key.share;
+    if (!atmosphere) return;
+    // (Stage 5j) Dark, and readable: the fill does not go below a floor at night, turned cool; the moon
+    // lights silhouettes; fog of the horizon's color, nearer at night; the exposure a little up.
+    const n = nightOf(look.sun[1]);
+    fill.intensity = Math.max(fill.intensity, ATMOSPHERE.nightFill * n);
+    fill.color.lerp(cool, 0.6 * n);
+    moonlight.position.set(look.moon[0] * 10, Math.max(0.2, look.moon[1]) * 10, look.moon[2] * 10);
+    moonlight.intensity = ATMOSPHERE.moonlight * n * (0.4 + 0.6 * look.moonGlow);
+    rgb(fog.color, look.horizon).lerp(night, 0.4 * n);
+    fog.near = ATMOSPHERE.fog.day[0] + (ATMOSPHERE.fog.night[0] - ATMOSPHERE.fog.day[0]) * n;
+    fog.far = ATMOSPHERE.fog.day[1] + (ATMOSPHERE.fog.night[1] - ATMOSPHERE.fog.day[1]) * n;
+    scene.fog = fog;
+    container.dataset.fog = `${fog.near.toFixed(0)} ${fog.far.toFixed(0)}`;
+    renderer.toneMappingExposure = ATMOSPHERE.exposure.day + (ATMOSPHERE.exposure.night - ATMOSPHERE.exposure.day) * n;
+  };
+  /** The finished image's passes (stage 5j): made the first time the atmosphere is on. */
+  const passes = () => {
+    if (composer) return composer;
+    composer = new EffectComposer(renderer);
+    scenePass = new CountedRenderPass(scene, camera);
+    composer.addPass(scenePass);
+    const size = renderer.getSize(new THREE.Vector2());
+    const g = ATMOSPHERE.glow;
+    bloom = new UnrealBloomPass(size, g.strength, g.radius, g.threshold);
+    bloom.enabled = glowOn;
+    composer.addPass(bloom);
+    vignette = new ShaderPass(VignetteShader);
+    vignette.uniforms.offset!.value = ATMOSPHERE.vignette.offset;
+    vignette.uniforms.darkness!.value = ATMOSPHERE.vignette.darkness;
+    composer.addPass(vignette);
+    composer.addPass(new OutputPass());
+    composer.setSize(size.x, size.y);
+    return composer;
   };
 
   const fitSize = () => {
     const width = Math.max(1, container.clientWidth);
     const height = Math.max(1, container.clientHeight);
     renderer.setSize(width, height);
+    composer?.setSize(width, height);
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
   };
@@ -228,18 +332,44 @@ export function createStage(container: HTMLElement): Stage {
       container.dataset.sky = h === null ? 'none' : String(h);
       light();
     },
+    atmosphere(on) {
+      if (on === atmosphere) return;
+      atmosphere = on;
+      container.dataset.atmosphere = on ? 'on' : 'off';
+      if (on) passes();
+      container.dataset.glow = on && glowOn ? 'on' : 'off';
+      light();
+    },
+    glow(on) {
+      glowOn = on;
+      if (bloom) bloom.enabled = on;
+      container.dataset.glow = on ? 'on' : 'off';
+    },
     render() {
       const start = performance.now();
       camera.getWorldPosition(dome.position);
-      renderer.render(scene, camera);
+      renderer.info.reset();
+      if (atmosphere && composer && scenePass) {
+        composer.render();
+        drawn = scenePass.counted;
+      } else {
+        renderer.render(scene, camera);
+        drawn = { calls: renderer.info.render.calls, triangles: renderer.info.render.triangles };
+      }
       // A moving average over about 30 frames: one frame's time jitters too much to read.
       renderMs += (performance.now() - start - renderMs) / 30;
     },
     get renderMs() {
       return renderMs;
     },
+    get drawn() {
+      return drawn;
+    },
     stop() {
       observer.disconnect();
+      bloom?.dispose();
+      vignette?.dispose();
+      composer?.dispose();
       dome.geometry.dispose();
       dome.material.dispose();
       renderer.dispose();

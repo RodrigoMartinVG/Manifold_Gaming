@@ -61,6 +61,7 @@ export const ENGINE_WORDS = {
     'settings.calm': 'Menos movimiento de la cámara',
     'settings.fov': 'Campo de visión (grados, de arriba abajo)',
     'settings.shake': 'Sacudir la vista con los golpes',
+    'settings.glow': 'Brillo en lo que da luz',
     'settings.crosshair': 'Mira al apuntar',
     'settings.saved': 'Se guardan en este navegador.',
     'touch.needs':
@@ -121,6 +122,7 @@ export const ENGINE_WORDS = {
     'settings.calm': 'Less camera motion',
     'settings.fov': 'Field of view (degrees, top to bottom)',
     'settings.shake': 'Shake the view when hit',
+    'settings.glow': 'Glow on what gives light',
     'settings.crosshair': 'Crosshair while aiming',
     'settings.saved': 'They are kept in this browser.',
     'touch.needs':

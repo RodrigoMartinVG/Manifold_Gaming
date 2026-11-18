@@ -26,3 +26,5 @@ export {
   type WordTable,
   type Words,
 } from './words';
+export { ambienceAt, mountAmbience, type AmbienceLayers } from './ambience';
+export { ATMOSPHERE, GLOW_VARIABLE, nightOf } from './stage';

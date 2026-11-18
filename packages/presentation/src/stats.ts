@@ -69,7 +69,7 @@ export function mountStats(page: GamePage, match: PageMatch): Piece {
         `step ${world.tick}${match.paused ? ' (paused)' : ''}`,
         `hash ${hex(stateHash(world))}`,
         `${world.entities.size} entities · ${world.physics.bodyCount} bodies · ${perSecond} fps`,
-        `physics ${msPerStep.toFixed(2)} ms per step · drawing ${page.stage.renderMs.toFixed(2)} ms per frame (${page.stage.renderer.info.render.calls} draws)`,
+        `physics ${msPerStep.toFixed(2)} ms per step · drawing ${page.stage.renderMs.toFixed(2)} ms per frame (${page.stage.drawn.calls} draws)`,
         `${where} · player ${match.me} · ${match.checks} hash checks${match.desyncs ? ` · ${match.desyncs} DESYNCS` : ''}`,
         match.timescale !== 1 ? `timescale ${match.timescale}×` : '',
       ]

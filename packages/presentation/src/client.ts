@@ -15,8 +15,9 @@ import type { Frame, GamePage, Piece } from './page';
 import { mountPlayerControls, type GameButton } from './player';
 import { mountProbe } from './probe';
 import { mountReplays } from './replays';
-import { createStage } from './stage';
+import { createStage, GLOW_VARIABLE } from './stage';
 import { mountStats } from './stats';
+import { mountAmbience } from './ambience';
 import { mountAudio } from './audio';
 import { createMixer } from './mixer';
 import { mountDebris } from './debris';
@@ -52,6 +53,8 @@ export interface MountOptions {
    * (`view.camera`). `fixed` (the default) does not move.
    */
   camera?: 'orbit' | 'fixed';
+  /** (Stage 5j) A game's atmosphere: fog, a readable night, tone mapping, glow (stage.ts), and the background sounds. */
+  atmosphere?: boolean;
   /** A replay to play when the world is born (its text): the world is born like it, and at the end it is checked. */
   replay?: string;
   /** A replay to race (its text): it runs as a ghost, next to the live player. */
@@ -258,8 +261,13 @@ export function mount(cartridge: Cartridge, container: HTMLElement, o: MountOpti
     mountProbe(page, match),
     ...(o.hud ? [mountHud(page, o.hud)] : []),
     mountMenu(page, match, { blocked: () => gameConsole?.isOpen ?? false }),
+    ...(o.atmosphere ? [mountAmbience(page)] : []),
     ...(o.pieces ?? []).map((make) => make(page)),
   );
+  if (o.atmosphere) {
+    stage.atmosphere(true);
+    page.registry.declareVariable({ ...GLOW_VARIABLE, onChange: (v) => stage.glow(v === true) });
+  }
   // The player's settings (stage 3i), once every piece declared its variables: before any recipe.
   pieces.push(mountSettings(page));
 

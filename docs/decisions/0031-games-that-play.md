@@ -2,7 +2,9 @@
 
 - **Status:** accepted (2026-11-18): "hagamos todo y sigamos tus recomendaciones". The stages 5i to 5n in the
   proposed order, with the recommended answer to each question (below). The tower's camera, the one concrete bug, was
-  fixed first (commit `e6af334`).
+  fixed first (commit `e6af334`). After 5j the author asked for better explosions and sounds, for the walk's
+  sway in first person, and for a better calibrated jump ("quizás sea la gravedad"): a stage of its own, the new
+  5k, and the later ones one letter on (5l to 5o).
 - **Date:** 2026-11-18
 
 ## Context
@@ -138,20 +140,26 @@ by section (the wall walk, the gatehouse, the towers) to close the gate before t
 | ----- | --------------------------------------------------------------------------------------------------- | ------------------------------ |
 | 5i    | The wall's bots made fair, and the weapons' feel (hit reactions, impacts, flash, kick)              | Yes: the bots' aim (a version) |
 | 5j    | The shared atmosphere: night lighting, post-processing, sound beds, footsteps, music layers         | No                             |
-| 5k    | The fortress's readability: light gem, noise rings, awareness that fills, guards' signs, the pebble | Yes: awareness (a version)     |
-| 5l    | The fortress's levels rebuilt: longer, loops, vantage points, optional objectives                   | Levels only                    |
-| 5m    | The wall's levels: keys, doors, secrets, enemy roles, new weapons and pickups                       | Yes: new enemies, weapons      |
-| 5n    | The tower: contact, forgiveness, longer floors, the finale                                          | Forgiveness (a version)        |
+| 5k    | (The author's, after 5j) Explosions and sounds far better; the walk's sway; the jump calibrated     | Yes: the jump (a version)      |
+| 5l    | The fortress's readability: light gem, noise rings, awareness that fills, guards' signs, the pebble | Yes: awareness (a version)     |
+| 5m    | The fortress's levels rebuilt: longer, loops, vantage points, optional objectives                   | Levels only                    |
+| 5n    | The wall's levels: keys, doors, secrets, enemy roles, new weapons and pickups                       | Yes: new enemies, weapons      |
+| 5o    | The tower: contact, forgiveness, longer floors, the finale                                          | Forgiveness (a version)        |
 
 Each stage keeps the project's rules: deterministic simulation, reference replays recorded again where the
 simulation changes (with `SIMULATION_VERSION` raised, today 42), its tests, its report.
+
+As it went (5j): footsteps by surface were already there (stage 3f), from every character and in space; the music's
+layers depend on each game, so they go with its stage: tiers by the guards' awareness (5l), combat (5n), a layer per
+floor (5o).
 
 ## The author's answers
 
 The author took every recommendation (2026-11-18):
 
 1. **The order:** the wall's bots and weapon feel first (5i), then the shared atmosphere (5j), the fortress's
-   readability (5k) and levels (5l), the wall's levels (5m), the tower (5n).
+   readability (5k) and levels (5l), the wall's levels (5m), the tower (5n). (Since 5j, one letter on: the author's
+   5k came in first.)
 2. **The shooter's thread:** the dawn stays, as progression: the attackers broke in, and the defender takes the wall
    back section by section to close the gate before the sun rises.
 3. **Seen in the fortress:** a chase one escapes and hides from, the genre's norm; the takedown from behind stays, and

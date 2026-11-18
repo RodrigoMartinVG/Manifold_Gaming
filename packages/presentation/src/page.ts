@@ -70,12 +70,26 @@ export interface Stage {
    * of before, darkening with the ambient.
    */
   sky(hour: number | null): void;
+  /**
+   * THE ATMOSPHERE (stage 5j, decision 0031), for a game's page (a lab's stays as it is): with a sky,
+   * fog of the horizon's color, nearer at night; a night that feels dark and stays readable (a cool
+   * fill that does not go below a floor, a weak moonlight for silhouettes); tone mapping; and, unless
+   * `glow` turns it off, a glow on what gives light and a vignette, over the finished image.
+   */
+  atmosphere(on: boolean): void;
+  /** The glow over the finished image (stage 5j): a setting, for looks or for a slow machine. */
+  glow(on: boolean): void;
   render(): void;
   /**
    * What drawing costs the page itself (stage 4.5f): the milliseconds `render` took, averaged over the
    * last frames (the draw calls handed to the GPU, not the GPU's own time, which the page cannot see).
    */
   readonly renderMs: number;
+  /**
+   * What the last frame's scene cost the GPU (stage 3d's budgets): its draw calls and triangles, the
+   * scene's own (stage 5j: not the passes over the finished image, which would hide what a level draws).
+   */
+  readonly drawn: { readonly calls: number; readonly triangles: number };
   stop(): void;
 }
 

@@ -295,6 +295,8 @@ export async function startGame(container: HTMLElement, game: Game): Promise<Mou
     recipes,
     console: false,
     camera: 'orbit',
+    // (Stage 5j, decision 0031) The games' atmosphere: fog, a readable night, glow, background sounds.
+    atmosphere: true,
     words: wordsOf(game),
     ...(game.models ? { models: game.models } : {}),
     ...(game.hud ? { hud: game.hud } : {}),
