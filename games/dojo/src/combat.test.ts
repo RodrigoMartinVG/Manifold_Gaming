@@ -91,25 +91,25 @@ describe('the Dojo’s weapons (stage 4c)', () => {
 
   test('picked up walking into its rack; the dart: at once, where it aims, 25 points (50 on the head), and its tracer', () => {
     const { step, events, hero, dummy, session } = armed('dart', [-3, 1, 2], [-1, 0, 0]);
-    step({ face: [-1, 0, 0], pitch: BODY, 'dojo.attack': true });
+    step({ face: [-1, 0, 0], pitch: BODY, 'arms.attack': true });
     expect(hurts(events)).toEqual([{ type: 'hurt', target: dummy.id, from: hero.id, part: 'body', kind: 'dart', amount: 25 }]);
     const shot = events.find((e) => e.type === 'shot');
     expect(shot).toMatchObject({ type: 'shot', from: hero.id, hit: dummy.id, kind: 'dart' });
     // Held, it does not fire again; pressed again before it is ready (12 steps), nothing.
-    for (let i = 0; i < 5; i++) step({ face: [-1, 0, 0], pitch: BODY, 'dojo.attack': true });
+    for (let i = 0; i < 5; i++) step({ face: [-1, 0, 0], pitch: BODY, 'arms.attack': true });
     step({ face: [-1, 0, 0] });
-    step({ face: [-1, 0, 0], pitch: BODY, 'dojo.attack': true });
+    step({ face: [-1, 0, 0], pitch: BODY, 'arms.attack': true });
     expect(hurts(events)).toHaveLength(1);
     // Level from the eyes, at the head (0.62 m above the center, 5 m away): double.
     for (let i = 0; i < 20; i++) step({ face: [-1, 0, 0], pitch: 0 });
-    step({ face: [-1, 0, 0], pitch: 0, 'dojo.attack': true });
+    step({ face: [-1, 0, 0], pitch: 0, 'arms.attack': true });
     expect(hurts(events).at(-1)).toMatchObject({ part: 'head', amount: 50 });
     session.world.dispose();
   });
 
   test('the bolt: it flies, and strikes the dummy; at the pane 2 cm thin, it stops, and the dummy behind it is not touched', () => {
     const { step, events, dummy, hero, session } = armed('bolt', [-3, 1, 2], [-1, 0, 0]);
-    step({ face: [-1, 0, 0], pitch: BODY, 'dojo.attack': true });
+    step({ face: [-1, 0, 0], pitch: BODY, 'arms.attack': true });
     expect([...session.world.entities.values()].some((e) => e.projectile)).toBe(true);
     for (let i = 0; i < 10; i++) step({ face: [-1, 0, 0] });
     expect(hurts(events)).toMatchObject([{ target: dummy.id, kind: 'bolt', amount: 35 }]);
@@ -118,7 +118,7 @@ describe('the Dojo’s weapons (stage 4c)', () => {
     expect(behind.transform!.position[2]).toBeCloseTo(-5, 1);
     session.world.place(hero, [-8, 1, 1]);
     for (let i = 0; i < 30; i++) step({ face: [0, 0, -1] });
-    step({ face: [0, 0, -1], 'dojo.attack': true });
+    step({ face: [0, 0, -1], 'arms.attack': true });
     for (let i = 0; i < 20; i++) step({ face: [0, 0, -1] });
     expect(behind.health!.points).toBe(100);
     expect(events.filter((e) => e.type === 'impact').at(-1)).toMatchObject({
@@ -130,12 +130,12 @@ describe('the Dojo’s weapons (stage 4c)', () => {
 
   test('the stick: its tip sweeps in front over its steps; the dummy beside it is hit once a strike, 30 points', () => {
     const { step, events, dummy, session } = armed('stick', [-7, 1, 2], [-1, 0, 0]);
-    step({ face: [-1, 0, 0], 'dojo.attack': true });
+    step({ face: [-1, 0, 0], 'arms.attack': true });
     for (let i = 0; i < 20; i++) step({ face: [-1, 0, 0] });
     expect(hurts(events)).toMatchObject([{ target: dummy.id, kind: 'stick', amount: 30 }]);
     // Another strike, once ready: once more.
     for (let i = 0; i < 10; i++) step({ face: [-1, 0, 0] });
-    step({ face: [-1, 0, 0], 'dojo.attack': true });
+    step({ face: [-1, 0, 0], 'arms.attack': true });
     for (let i = 0; i < 20; i++) step({ face: [-1, 0, 0] });
     expect(hurts(events)).toHaveLength(2);
     session.world.dispose();
@@ -156,7 +156,7 @@ describe('the Dojo’s weapons (stage 4c)', () => {
         step({ face: [0, 0, -1] });
       }
       session.setInput(2, { move: [1, 0, 0] });
-      step({ face: [0, 0, -1], pitch: -0.07, 'dojo.attack': true, back });
+      step({ face: [0, 0, -1], pitch: -0.07, 'arms.attack': true, back });
       const ahead = runner.transform!.position[0] - -3;
       const hit = hurts(events).filter((h) => h.target === runner.id);
       session.world.dispose();

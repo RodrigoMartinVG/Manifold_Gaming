@@ -219,6 +219,8 @@ export default defineConfig(
                 '!@manifold/bots',
                 // (The games' shell, stage 5b: what they share is the engine's.)
                 '!@manifold/shell',
+                // (What fights, stage 5e: the weapons and the guards, out of the Dojo's rules.)
+                '!@manifold/arms',
               ],
               message: 'A game imports the engine, never another game (decision 0003).',
             },

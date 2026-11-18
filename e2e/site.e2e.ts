@@ -1650,7 +1650,7 @@ test('a guard in the keep (stage 4e): `bots` says what it does; `possess guard` 
   await typeInConsole(page, 'bots');
   const log = page.locator('.mg-console-log');
   await expect(log).toContainText('guard (entity');
-  await expect(log).toContainText('dojo.guard on yard');
+  await expect(log).toContainText('arms.guard on yard');
   // It heard the lift take you up: it is looking.
   await expect(log).toContainText(/look|chase|search/);
   // Its body, with the keys: the camera goes with it, and S walks it.

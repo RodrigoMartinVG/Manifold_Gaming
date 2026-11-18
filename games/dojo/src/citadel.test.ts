@@ -70,7 +70,7 @@ function citadel() {
         face: towards(eye(), g.transform!.position),
         pitch: Math.atan2(to[1], Math.hypot(to[0], to[2])) / (Math.PI / 2),
       };
-      raw({ ...aim, 'dojo.attack': session.world.tick >= weapon(me())!.ready && i % 2 === 0 });
+      raw({ ...aim, 'arms.attack': session.world.tick >= weapon(me())!.ready && i % 2 === 0 });
     }
     if ((g.health!.down ?? -1) < 0) throw new Error(`shooting at ${at().map((n) => n.toFixed(2))}: the guard is still up`);
   };

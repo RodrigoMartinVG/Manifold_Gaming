@@ -1,4 +1,4 @@
-import { DOJO_BRAINS } from './guard';
+import { ARMS_BRAINS } from '@manifold/arms';
 import { LEVELS } from './levels';
 import { createDojo } from './rules';
 
@@ -7,4 +7,4 @@ import { createDojo } from './rules';
  * ones in `games/dojo/levels/`, found by Vite when the site and the tests are built. Elsewhere (the
  * browser tests, which replay in Node; later, a server) the rules get the same files read from disk.
  */
-export const DojoCartridge = createDojo(LEVELS, DOJO_BRAINS);
+export const DojoCartridge = createDojo(LEVELS, ARMS_BRAINS);

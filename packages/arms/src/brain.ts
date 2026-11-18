@@ -1,7 +1,8 @@
 import { cellAt, findPath, inZone, navOf, type Step } from '@manifold/bots';
 import { vec3, type Vec3 } from '@manifold/common';
 import { CHARACTER_GAP, eyeHeightOf, type Brain, type Entity, type Memory, type PlayerInput, type World } from '@manifold/core';
-import { gunnerOf, weapon } from './rules';
+import { gunnerOf, GUARD_BRAIN } from './guard';
+import { ATTACK, weapon } from './weapons';
 
 /**
  * THE GUARD'S BRAIN (stage 4e, decision 0023): it runs where the match is hosted, once, and asks for
@@ -202,7 +203,7 @@ export const guardBrain: Brain = (world, self, memory) => {
       const fire = ready && world.tick - m.shot >= every;
       if (fire) m.shot = world.tick;
       const back: Vec3 = along < CLOSE ? [-face[0], 0, -face[2]] : [0, 0, 0];
-      return { face, pitch, move: back, ...(fire ? { 'dojo.attack': true } : {}) };
+      return { face, pitch, move: back, ...(fire ? { [ATTACK]: true } : {}) };
     }
   } else if (world.tick - (m.seen?.tick ?? -Infinity) > GLIMPSE) {
     // Out of sight for more than a moment, it will take its time to see them again. (A step lost
@@ -218,7 +219,7 @@ export const guardBrain: Brain = (world, self, memory) => {
     const face = toward(center, target.transform!.position);
     if ((weapon(target)?.strike ?? 0) > 0) return { face, block: true };
     m.swing = !m.swing;
-    return { face, 'dojo.attack': m.swing };
+    return { face, [ATTACK]: m.swing };
   }
   if (!m.goal) return {};
 
@@ -334,5 +335,5 @@ function follow(world: World, self: Entity, m: GuardMemory, feet: Vec3): PlayerI
   }
 }
 
-/** The Dojo's brains (stage 4e), by name, for whoever hosts its matches. */
-export const DOJO_BRAINS: Readonly<Record<string, Brain>> = { 'dojo.guard': guardBrain };
+/** The games' brains (stage 4e; the Dojo's until 5e), by name, for whoever hosts their matches. */
+export const ARMS_BRAINS: Readonly<Record<string, Brain>> = { [GUARD_BRAIN]: guardBrain };

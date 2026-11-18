@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, test } from 'vitest';
 import type { Vec3 } from '@manifold/common';
 import { BotHost, initPhysics, registryFor, Session, type Entity, type Event, type PlayerInput } from '@manifold/core';
 import { DojoCartridge } from './cartridge';
-import type { GuardMemory } from './guard';
+import type { GuardMemory } from '@manifold/arms';
 import { ROOMS } from './rooms';
 
 beforeAll(initPhysics);

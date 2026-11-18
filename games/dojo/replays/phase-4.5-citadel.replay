@@ -1,4 +1,4 @@
-# Manifold replay 40
+# Manifold replay 41
 game dojo
 profile rapier-deterministic server 60
 birth seed 45
@@ -150,7 +150,7 @@ input 631 100 move @179 run
 input 631 101 move @143
 input 632 100 move @184 run
 input 633 100 move @190 run
-input 633 1 face @347.8 pitch -0.039 dojo.attack
+input 633 1 face @347.8 pitch -0.039 arms.attack
 input 634 100 move @196 run
 input 634 1 face @347.9 pitch -0.04
 input 635 100 move @203 run
@@ -174,7 +174,7 @@ input 644 1 face @345.8 pitch -0.045
 input 645 1 face @345.6 pitch -0.046
 input 646 1 face @345.4 pitch -0.047
 input 647 101 move @146
-input 647 1 face @345.2 pitch -0.047 dojo.attack
+input 647 1 face @345.2 pitch -0.047 arms.attack
 input 648 1 face @344.9 pitch -0.048
 input 649 1 face @344.7 pitch -0.049
 input 650 1 face @344.5 pitch -0.05
@@ -190,7 +190,7 @@ input 658 101 move @148
 input 658 1 face @342.3 pitch -0.056
 input 659 1 face @341.9 pitch -0.057
 input 660 1 face @341.6 pitch -0.058
-input 661 1 face @341.3 pitch -0.059 dojo.attack
+input 661 1 face @341.3 pitch -0.059 arms.attack
 input 662 100 move @181 run
 input 662 1 face @340.9 pitch -0.06
 input 663 1 face @340.5 pitch -0.062
@@ -210,7 +210,7 @@ input 673 1 face @335.9 pitch -0.075
 input 674 100 move @157 run
 input 674 1 face @335.6 pitch -0.077
 input 675 101 move @151
-input 675 1 face @335.5 pitch -0.079 dojo.attack
+input 675 1 face @335.5 pitch -0.079 arms.attack
 input 676 100
 input 676 1 move @348
 input 680 101 move @152
@@ -380,25 +380,25 @@ input 2116 100 move @141
 input 2120 100 move @142
 input 2123 100 move @143
 input 2132 101 move @172
-input 2166 1 face @351.1 pitch 0.073 dojo.attack
+input 2166 1 face @351.1 pitch 0.073 arms.attack
 input 2167 101 move @172 run
 input 2167 1 face @351.1 pitch 0.072
 input 2169 1 face @351.1 pitch 0.071
 input 2172 101 move @171 run
 input 2172 1 face @351 pitch 0.071
 input 2179 1 face @351 pitch 0.07
-input 2180 1 face @351 pitch 0.07 dojo.attack
+input 2180 1 face @351 pitch 0.07 arms.attack
 input 2181 1 face @351 pitch 0.07
 input 2186 1 face @351 pitch 0.069
 input 2192 1 face @351 pitch 0.068
-input 2194 1 face @351 pitch 0.068 dojo.attack
+input 2194 1 face @351 pitch 0.068 arms.attack
 input 2195 1 face @351 pitch 0.068
 input 2197 1 face @351 pitch 0.067
 input 2200 1 face @351 pitch 0.066
 input 2202 1 face @351 pitch 0.065
 input 2205 1 face @351 pitch 0.064
 input 2207 1 face @351 pitch 0.063
-input 2208 1 face @351 pitch 0.062 dojo.attack
+input 2208 1 face @351 pitch 0.062 arms.attack
 input 2209 101
 input 2209 1
 input 2210 1 move @32
@@ -429,4 +429,4 @@ input 2785 1 move @0
 input 2809 101 move @350
 input 2810 101 move @353
 input 2951 1
-end 2955 e1f8ba2a
+end 2955 7a31137e

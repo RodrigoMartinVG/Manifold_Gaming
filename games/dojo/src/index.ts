@@ -1,4 +1,5 @@
 import { recipeFromLink } from '@manifold/commands';
+import { ATTACK } from '@manifold/arms';
 import { initPhysics } from '@manifold/core';
 import { GHOST_PREFIX, mount, REPLAY_PREFIX, replayFromFragment, type InitialRecipe, type Mount } from '@manifold/presentation';
 import { DojoCartridge } from './cartridge';
@@ -53,7 +54,7 @@ export async function startDojo(container: HTMLElement, o: DojoOptions = {}): Pr
     buttons: [
       { action: 'dojo.throw', keys: ['KeyF'], pad: 2 },
       // (A click, while `view.camera aim` holds the mouse: `Mouse0`.)
-      { action: 'dojo.attack', keys: ['KeyX', 'Mouse0'], pad: 5 },
+      { action: ATTACK, keys: ['KeyX', 'Mouse0'], pad: 5 },
     ],
     // Its models, by the name its appearances give (stage 2e).
     models: { ...CHARACTER_MODELS, ...KIT_MODELS, 'dojo.door': door, 'dojo.lamp': lamp },

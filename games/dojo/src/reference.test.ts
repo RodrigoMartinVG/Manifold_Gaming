@@ -334,9 +334,9 @@ describe('the reference replays of phase 4, growing with it', () => {
       // dart from 5 m, at once; a bolt from there, that flies; the stick beside it.
       // (From the eyes, stage 4g: 5 m from the dummy, wherever the balls left it, aimed down at its middle, 7°.)
       { lines: ['dojo.goto -6.5 1 8.2'], steps: 20 },
-      { lines: fiveFrom, steps: 60, drive: (s) => ({ face: [0, 0, -1], pitch: -0.08, 'dojo.attack': s === 40 }) },
+      { lines: fiveFrom, steps: 60, drive: (s) => ({ face: [0, 0, -1], pitch: -0.08, 'arms.attack': s === 40 }) },
       { lines: ['dojo.goto -5 1 8.6'], steps: 20 },
-      { lines: fiveFrom, steps: 60, drive: (s) => ({ face: [0, 0, -1], pitch: -0.08, 'dojo.attack': s === 40 }) },
+      { lines: fiveFrom, steps: 60, drive: (s) => ({ face: [0, 0, -1], pitch: -0.08, 'arms.attack': s === 40 }) },
       { lines: ['dojo.goto -3.5 1 8.2'], steps: 20 },
       // (Beside it, a meter on its +Z side, wherever it stands: away from the balls.)
       {
@@ -345,7 +345,7 @@ describe('the reference replays of phase 4, growing with it', () => {
           return [`dojo.goto ${x.toFixed(2)} 1 ${(z + 1).toFixed(2)}`];
         },
         steps: 60,
-        drive: (s) => ({ face: [0, 0, -1], 'dojo.attack': s === 40 }),
+        drive: (s) => ({ face: [0, 0, -1], 'arms.attack': s === 40 }),
       },
       // From the far end towards the lamp: standing, then (from the dark again) crouched.
       { lines: ['dojo.goto 5 1 9.5'], steps: 150, drive: () => ({ move: [0, 0, -1] }) },

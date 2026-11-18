@@ -64,7 +64,7 @@ describe('the arena (stage 4g)', () => {
     // spread (9 cm at 5 m) stays on it and off the shoulders (they are wide, and reach up beside it).
     const head = vec3.add(dummy.transform!.position, [0, 0.66, 0]);
     for (let i = 0; i < 40; i++) step(aimAt(hero, head));
-    step({ ...aimAt(hero, head), 'dojo.attack': true });
+    step({ ...aimAt(hero, head), 'arms.attack': true });
     expect(events.filter((e) => e.type === 'hurt').at(-1)).toMatchObject({ target: dummy.id, part: 'head' });
     session.world.dispose();
   });
@@ -86,7 +86,7 @@ describe('the arena (stage 4g)', () => {
     session.world.place(hero, [-3, 1, 2]);
     const from = (input: PlayerInput) => {
       for (let i = 0; i < 30; i++) step(input);
-      step({ ...input, 'dojo.attack': true });
+      step({ ...input, 'arms.attack': true });
       const shot = events.filter((e) => e.type === 'shot').at(-1);
       return shot && shot.type === 'shot' ? shot.start[1] - hero.transform!.position[1] : NaN;
     };
@@ -128,7 +128,7 @@ describe('the arena (stage 4g)', () => {
       const aim = aimAt(h, g.transform!.position);
       const ready = world().tick >= weapon(h)!.ready;
       if (d > 12) step({ move: toward(h.transform!.position, g.transform!.position), ...aim });
-      else step({ ...aim, 'dojo.attack': ready && i % 2 === 0 });
+      else step({ ...aim, 'arms.attack': ready && i % 2 === 0 });
     }
     const hurts = events.flatMap((e) => (e.type === 'hurt' ? [e] : []));
     const byHero = hurts.filter((h) => h.from === hero().id && h.kind === 'dart');

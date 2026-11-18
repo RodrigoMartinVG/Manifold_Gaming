@@ -15,6 +15,7 @@
     "./rules": "./src/rules.ts"
   },
   "dependencies": {
+    "@manifold/arms": "0.0.0",
     "@manifold/bots": "0.0.0",
     "@manifold/character": "0.0.0",
     "@manifold/commands": "0.0.0",

@@ -89,5 +89,9 @@
  *      the `hang` mode). A character without them moves as in 38 to the bit; its state has their fields
  *  40  stage 5d: a ledge is grabbed only on what stays where it is (on a lift's edge, a character hung
  *      in the air where the edge had been, as the lift went on)
+ *  41  stage 5e: the weapons and the guards are the games' (`@manifold/arms`), out of the Dojo's rules:
+ *      their state named `arms.weapon`, `arms.fuse`, `arms.thrown`, `arms.gunner`, the attack
+ *      `arms.attack`, the guard's brain `arms.guard`. The same behavior to the bit (the old replays,
+ *      their names put back, give their old hashes)
  */
-export const SIMULATION_VERSION = 40;
+export const SIMULATION_VERSION = 41;

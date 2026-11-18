@@ -77,7 +77,7 @@ describe('the duel (stage 4f)', () => {
       const swinging = (weapon(g)?.strike ?? 0) > 0;
       if (swinging) step({ block: true });
       else if (d > 1.3) step({ ahead: 1 });
-      else step({ 'dojo.attack': i % 2 === 0 });
+      else step({ 'arms.attack': i % 2 === 0 });
       if (h.character!.mode === 'block') blocked++;
     }
     expect(guard().health!.down).toBeGreaterThanOrEqual(0);
