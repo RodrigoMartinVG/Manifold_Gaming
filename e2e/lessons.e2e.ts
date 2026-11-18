@@ -125,3 +125,42 @@ test('chapter 2: the point that travels, three attempts, and the canvas’s half
   await expect.poll(() => number(p, 'by more than one level')).toBeGreaterThan(0);
   expect(await value(p, 'lines joined')).toBe('0');
 });
+
+test('chapter 3: which side, inside, two neighbours and three corners', async ({ page }) => {
+  await page.goto('tutorial/dibujar/03-triangulos/');
+  // A (2, 6), B (10, 2), P (7, 7): the ways (8, −4) and (5, 1) give 28, twice the triangle's 14.
+  let f = await reach(page, 0);
+  await expect.poll(() => value(f, 'dx₁·dy₂ − dy₁·dx₂')).toBe('28');
+  expect(await value(f, 'side')).toBe('positive');
+  expect(await value(f, 'area of the triangle ABP')).toBe('14');
+
+  // The triangle (3, 2), (20, 5), (8, 14): 95 pixels (one centre on an edge, counted), 204 asked; without the box, 384.
+  f = await reach(page, 1);
+  await expect.poll(() => value(f, 'pixels painted')).toBe('95');
+  expect(await value(f, 'pixels asked')).toBe('204');
+  await toggle(f, 'only the box round it');
+  await expect.poll(() => value(f, 'pixels asked')).toBe('384');
+  expect(await value(f, 'pixels painted')).toBe('95');
+
+  // Two neighbours: the twelve centres on the diagonal, twice, never, or once each.
+  f = await reach(page, 2);
+  await expect.poll(() => value(f, 'pixels painted twice')).toBe('0');
+  expect(await value(f, 'pixels painted by neither')).toBe('0');
+  await set(f, 'rule', '≥ 0 (both take it)');
+  await expect.poll(() => value(f, 'pixels painted twice')).toBe('12');
+  await set(f, 'rule', '> 0 (neither takes it)');
+  await expect.poll(() => value(f, 'pixels painted by neither')).toBe('12');
+  // The canvas, the same colour twice: its seam's pixels never whole.
+  expect(await number(f, 'the canvas: seam pixels not whole')).toBeGreaterThan(0);
+
+  // Three corners: P (12, 10)'s weights, adding up to one.
+  f = await reach(page, 3);
+  await expect.poll(() => value(f, 'weight of A (red)')).toBe('0.346');
+  expect(await value(f, 'weight of B (green)')).toBe('0.308');
+  expect(await value(f, 'weight of C (blue)')).toBe('0.346');
+  expect(await value(f, 'their sum')).toBe('1');
+
+  // The project runs, and differs from the canvas by more than its gradient's dither (edges, seam, window).
+  const p = await reach(page, 4);
+  await expect.poll(() => number(p, 'by more than one level')).toBeGreaterThan(0);
+});

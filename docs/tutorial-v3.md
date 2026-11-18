@@ -205,8 +205,9 @@ in space. _Play at the end:_ walking the yard at dusk, collecting glowing sphere
 3. **Triángulos.** We want solid shapes. _By hand:_ which side of a line a point is on (a signed area, a 2×2
    determinant), a pixel inside a triangle by three signs, only in the box around it; barycentric coordinates to blend
    the corners' colours; the rule that leaves neither gaps nor doubled pixels between neighbours. _With the canvas:_
-   `fill`, compared pixel by pixel. Mathematics: the determinant as a signed area, barycentric coordinates. Play: a
-   mosaic; the triangle with three coloured corners that every graphics card draws first.
+   `fill`, compared pixel by pixel, and its seam where two triangles touch. Mathematics: the determinant as a signed
+   area (proved), barycentric coordinates (P as the corners mixed, proved in a margin). Play: hills of two triangles
+   that share an edge with no seam, and a stained-glass window with a colour at each corner.
 4. **Girar y mover.** We want shapes that turn and travel. The loop arrives: erase, update, draw, and the time between
    frames. _By hand:_ turning by sine and cosine (where the axes go), shifting, scaling. _With the canvas:_ `rotate`,
    `translate`, `scale`. Breaks: moved and then turned, it orbits instead of spinning; speed counted per frame runs
@@ -481,6 +482,8 @@ The 49-chapter syllabus was read chapter by chapter against what each one uses a
   (50, 51).
 
 ## 8. How we get there
+
+The working state, chapter by chapter, and the recipe for writing the next one: [tutorial-roadmap.md](tutorial-roadmap.md).
 
 1. **This document,** read and corrected by the author.
 2. **A prototype: chapters 1 and 2.** The first (_Un punto en la pantalla_, _¿Está delante?_) was read on

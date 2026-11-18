@@ -92,7 +92,14 @@ test('each section has its own sidebar, and previous/next never leave it', async
   await page.goto('tutorial/dibujar/01-la-pantalla/');
   await expect(page.locator('.pagination-links a[rel="prev"]')).toHaveAttribute('href', /\/tutorial\/$/);
   await expect(page.locator('.pagination-links a[rel="next"]')).toHaveAttribute('href', /\/tutorial\/dibujar\/02-lineas\/$/);
-  await page.goto('tutorial/dibujar/02-lineas/');
+  // (The last chapter written: the highest number of the book's last part with chapters.)
+  const parts = readdirSync(join(DOCS, 'tutorial'), { withFileTypes: true }).filter((d) => d.isDirectory());
+  const last = parts
+    .flatMap((d) => readdirSync(join(DOCS, 'tutorial', d.name)).map((f) => `${d.name}/${f.replace(/\.mdx$/, '')}`))
+    .filter((c) => /\/\d+-/.test(c))
+    .sort((a, b) => Number(/\/(\d+)-/.exec(a)![1]) - Number(/\/(\d+)-/.exec(b)![1]))
+    .at(-1)!;
+  await page.goto(`tutorial/${last}/`);
   await expect(page.locator('.pagination-links a[rel="next"]')).toHaveCount(0);
   await page.goto('bitacora/etapa-0/');
   await expect(page.locator('.pagination-links a[rel="prev"]')).toHaveAttribute('href', /\/bitacora\/$/);
