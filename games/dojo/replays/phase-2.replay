@@ -1,4 +1,4 @@
-# Manifold replay 46
+# Manifold replay 47
 # Phase 2: the course with every capability: a checkpoint, falls, three stars, the goal, both platforms.
 # A reference replay (stage 2.5a): playing it must end with the hash on its last line. A refactor
 # keeps it bit for bit. Recorded by games/dojo/src/reference.test.ts; recorded again (npm run

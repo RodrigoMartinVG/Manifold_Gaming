@@ -328,6 +328,17 @@ export function fired(kit: Kit, out: AudioNode, at: number, kind: string) {
         delay: 0.02,
       });
       break;
+    case 'repeater':
+      // (Stage 5n) The dart's, lighter and shorter: it fires ten a second.
+      noise(kit, out, at, { filter: 'highpass', from: 2400, gain: 0.45, attack: 0.0005, decay: 0.01 });
+      noise(kit, out, at, { from: near(kit, 1500, 0.1), q: 1.2, gain: 0.35, decay: 0.04 });
+      tone(kit, out, at, { from: near(kit, 180, 0.08), to: 90, gain: 0.3, decay: 0.05, grit: true });
+      break;
+    case 'orb':
+      // (Stage 5n) An attacker's orb leaving: a hum that rises, and a crackle.
+      tone(kit, out, at, { wave: 'sawtooth', from: 140, to: 420, sweep: 0.35, gain: 0.12, attack: 0.03, decay: 0.4 });
+      noise(kit, out, at, { noise: 'pink', from: 1800, to: 3200, q: 2, gain: 0.15, attack: 0.02, decay: 0.3 });
+      break;
     default:
       // The stick, a grenade, smoke, a flare: a whoosh, rising and falling.
       noise(kit, out, at, {

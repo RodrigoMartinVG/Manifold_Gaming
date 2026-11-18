@@ -1,0 +1,105 @@
+# Manifold level 10
+# The gatehouse (stage 5n, decision 0031): the wall's second section, at five. A hall of pillars, two
+# casters at its far end (their orbs are slow: step out of them) and two sentries; west, a room with the
+# repeater, a closet behind it (a button); east, a room with the blue key and a caster. The blue door,
+# north: a courtyard of crates, those who come when one walks in, the red key in its far corner. The red
+# door: the way on. Drawn as a plan (plans/level-2.plan).
+title The gatehouse
+spawn 0 1 1
+facing 0 0 -1
+ambient 0.26
+sky 5.0
+
+plan -20 -40
+########################################
+#......................................#
+#......................................#
+#......................................#
+#......................................#
+#......................................#
+###################..###################
+#......................................#
+#......................................#
+#......................................#
+#...............................c......#
+#.................cc...................#
+#......................................#
+#......................................#
+#...........cc.........................#
+#......................................#
+#.....c..................cc............#
+#......................................#
+#......................................#
+#......................................#
+###################..###################
+#......#........................#......#
+#......#........................#......#
+#......#........................#......#
+#......#........................#......#
+#......#........................#......#
+#......#.....o...o....o...o.....#......#
+#......#........................#......#
+#......#........................#......#
+#......................................#
+#......................................#
+#......#........................#......#
+#####..#........................#......#
+#...#..#........................#......#
+#......#.....o...o....o...o.....#......#
+#......#........................#......#
+#...#..#........................#......#
+#...#..#........................#......#
+##################....##################
+#......................................#
+#......................................#
+#......................................#
+#......................................#
+########################################
+end
+
+signal never
+signal key_red
+signal key_blue
+signal at_blue  zone blue_front
+signal at_red  zone red_front
+signal blue_both  all key_blue at_blue
+signal red_both  all key_red at_red
+signal blue_open  latch blue_both never
+signal red_open  latch red_both never
+signal secret_pressed  used secret_button
+signal secret_open  latch secret_pressed never
+box 0 1.5 -19.5  1 1.5 0.15  door -1 0 0 y 90 1 blue_open  color #3a6ab0  name blue_door
+box 0 1.5 -33.5  1 1.5 0.15  door -1 0 0 y 90 1 red_open  color #b04a3a  name red_door
+box -15.5 1.5 -5  0.15 1.5 1  door 0 0 1 y 90 1 secret_open  color #6a645c  name secret_door
+
+lamp 0 2.6 -1.4  4 1  name lamp_start
+lamp -5 2.6 -10  5 1  name lamp_hall_west
+lamp 4 2.6 -16  5 1  name lamp_hall_east
+lamp -16 2.6 -14  4 0.9  name lamp_west
+lamp 16 2.6 -14  4 0.9  name lamp_east
+lamp 0 2.6 -27  6 1  name lamp_court
+lamp 0 2.6 -37  4 1  name lamp_way
+
+sensor area        0 1 -17.5     1.5 0.8 1.5  name blue_front
+sensor area        0 1 -31.5     1.5 0.8 1.5  name red_front
+sensor area        -13.5 1 -6.5  0.5 0.8 0.5  name secret_button
+sensor checkpoint  0 1 0         2 0.8 1
+sensor checkpoint  0 1 -22.5     2 0.8 1.5
+sensor weapon      -17 0.5 -16   0.4 0.5 0.4  kind 7
+sensor key         17 1 -17      0.3 0.6 0.3  color 2
+sensor key         -17 1 -31     0.3 0.6 0.3  color 1
+sensor health      -17 1 -11     0.3 0.4 0.3  amount 25
+sensor health      16 1 -6       0.3 0.4 0.3  amount 25
+sensor ammo        5 1 -3.5      0.3 0.4 0.3  kind 1  amount 40
+sensor ammo        14 1 -32      0.3 0.4 0.3  kind 2  amount 12
+sensor armor       -17.5 1 -4.5  0.4 0.6 0.4  amount 50
+sensor secret      -17.5 1 -6    1 0.8 1
+sensor attackers   0 1 -17       0.4 0.8 0.4  wave 0  count 2  role 2  rotate y 180
+sensor attackers   -8 1 -12      0.4 0.8 0.4  wave 0  count 1  role 1  rotate y 90
+sensor attackers   8 1 -12       0.4 0.8 0.4  wave 0  count 1  role 1  rotate y -90
+sensor attackers   16 1 -14      0.4 0.8 0.4  wave 0  count 1  role 2  rotate y 90
+sensor trigger     0 1 -21.5     2 0.8 1  wave 1
+sensor attackers   -10 1 -30     0.4 0.8 0.4  wave 1  count 2  role 1
+sensor attackers   10 1 -30      0.4 0.8 0.4  wave 1  count 1  role 2
+sensor goal        0 1 -38       2 0.8 1
+sensor fall        0 -10 0       80 2 80

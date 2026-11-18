@@ -1,5 +1,5 @@
 """
-THE GAMES' WEAPONS (stage 5g, decision 0015): the six weapons of `@manifold/arms`, one model, made by
+THE GAMES' WEAPONS (stage 5g, decision 0015; two more in 5n): the weapons of `@manifold/arms`, one model each, made by
 this script, run by Blender without a screen (`npm run art:weapons`), never by hand. It writes
 `packages/arms/assets/weapons.glb`.
 
@@ -118,6 +118,9 @@ SIZES = {
     "grenade": (0.14, 0.14, 0.14),
     "shotgun": (0.07, 0.13, 0.76),
     "launcher": (0.17, 0.19, 0.96),
+    # (Stage 5n)
+    "repeater": (0.06, 0.15, 0.42),
+    "orb": (0.42, 0.1, 0.56),
 }
 
 made = {}
@@ -202,6 +205,34 @@ made["launcher"] = joined(
         box((0.03, 0.07, 0.04), (0, -0.06, -0.2), LEATHER),
         box((0.03, 0.07, 0.04), (0, -0.06, 0.1), LEATHER),
         box((0.02, 0.04, 0.08), (0.06, 0.06, -0.05), METAL),
+    ],
+)
+
+# (Stage 5n) The repeater: a compact dart gun, a drum of darts on top, a short barrel, its grip.
+s = SIZES["repeater"]
+made["repeater"] = joined(
+    "repeater",
+    [
+        box((0.05, 0.05, 0.3), (0, 0.02, -0.02), METAL),
+        tube(0.012, 0.1, (0, 0.03, 0.16), METAL, 8),
+        tube(0.026, 0.05, (0, 0.046, 0.02), LEATHER, 10),
+        box((0.04, 0.08, 0.05), (0, -0.035, -0.11), LEATHER),
+        box((0.012, 0.03, 0.07), (0, -0.01, -0.04), METAL),
+    ],
+)
+# The attackers' orb caster: a stock, two prongs across at the front, and the orb held between them.
+s = SIZES["orb"]
+bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1, radius=0.04, location=at(0, 0.0, 0.22))
+glass = bpy.context.active_object
+glass.data.materials.append(METAL)
+made["orb"] = joined(
+    "orb",
+    [
+        box((0.05, 0.05, 0.5), (0, -0.02, -0.03), WOOD),
+        box((0.36, 0.03, 0.03), (0, 0.0, 0.16), METAL),
+        box((0.03, 0.03, 0.1), (0.165, 0.0, 0.22), METAL),
+        box((0.03, 0.03, 0.1), (-0.165, 0.0, 0.22), METAL),
+        glass,
     ],
 )
 

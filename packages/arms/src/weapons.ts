@@ -94,10 +94,88 @@ export const WEAPONS = Object.freeze({
   shotgun: { damage: 12, pellets: 8, reach: 30, spread: 6, every: 60 },
   /** (Stage 5g) A rocket at 25 m/s for 4 s; where it strikes, a blast of 3.5 m: 90 at its center, less to its edge. */
   launcher: { damage: 90, speed: 25, radius: 0.08, life: 240, blast: 3.5, strength: 900, every: 50 },
+  /**
+   * (Stage 5n, decision 0031: "something rapid") The repeater: darts ten a second, each 12, within 2.5
+   * degrees: what the dart does, poured; it empties a pouch of darts quickly.
+   */
+  repeater: { damage: 12, reach: 50, spread: 2.5, every: 6 },
+  /**
+   * (Stage 5n) The orb, an attacker's: a glowing ball at 11 m/s (the research: an enemy's projectile 0.6 to
+   * 1.2 times the player's run, 7.5 m/s: seen coming, and stepped out of), 16 where it strikes.
+   */
+  orb: { damage: 16, speed: 11, radius: 0.18, life: 300, every: 75 },
 });
 export type WeaponKind = keyof typeof WEAPONS;
-/** A `weapon` zone's `kind`: 1, 2, 3, 4; (stage 5g) 5, 6. */
-export const WEAPON_KINDS: readonly WeaponKind[] = ['dart', 'bolt', 'stick', 'grenade', 'shotgun', 'launcher'];
+/** A `weapon` zone's `kind`: 1, 2, 3, 4; (stage 5g) 5, 6; (stage 5n) 7, the repeater; 8, the orb. */
+export const WEAPON_KINDS: readonly WeaponKind[] = ['dart', 'bolt', 'stick', 'grenade', 'shotgun', 'launcher', 'repeater', 'orb'];
+
+/**
+ * (Stage 5n) AMMUNITION, for whoever carries an arsenal: what each weapon fires (the stick nothing), how
+ * much a rack of it gives, and how much of each one carries at most.
+ */
+export type AmmoKind = 'darts' | 'shells' | 'bolts' | 'rockets' | 'grenades';
+export const AMMO_OF: Readonly<Partial<Record<WeaponKind, AmmoKind>>> = Object.freeze({
+  dart: 'darts',
+  repeater: 'darts',
+  shotgun: 'shells',
+  bolt: 'bolts',
+  launcher: 'rockets',
+  grenade: 'grenades',
+});
+export const AMMO_GIVEN: Readonly<Partial<Record<WeaponKind, number>>> = Object.freeze({
+  dart: 30,
+  repeater: 60,
+  shotgun: 8,
+  bolt: 10,
+  launcher: 4,
+  grenade: 3,
+});
+export const AMMO_MOST: Readonly<Record<AmmoKind, number>> = Object.freeze({
+  darts: 200,
+  shells: 40,
+  bolts: 40,
+  rockets: 16,
+  grenades: 8,
+});
+
+/**
+ * (Stage 5n) AN ARSENAL: the weapons a character owns (its `arms.weapon` the one in its hands) and its
+ * ammunition. Only a character that has one (the wall's defender) keeps more than one weapon, spends
+ * ammunition, and uses up the racks it takes; the rest (the Dojo's, the guards) as before. Its slots, in
+ * order (the keys 1 to 7): the stick, the dart, the shotgun, the repeater, the bolt, the launcher, the
+ * grenade.
+ */
+export type Arsenal = { owned: WeaponKind[]; ammo: Record<AmmoKind, number> };
+export const ARSENAL = 'arms.arsenal';
+export const arsenal = (e: Entity) => component<Arsenal>(e, ARSENAL);
+export const SLOTS: readonly WeaponKind[] = ['stick', 'dart', 'shotgun', 'repeater', 'bolt', 'launcher', 'grenade'];
+export const SLOT_INPUTS: readonly InputAction[] = SLOTS.map((kind, k) => ({
+  name: `arms.slot${k + 1}`,
+  kind: 'button' as const,
+  description: `the character takes its ${kind} in its hands, if it owns one (stage 5n: an arsenal)`,
+}));
+/**
+ * (Stage 5n) What an arsenal takes up when what it holds is empty, as Doom does: the first it owns with
+ * ammunition of these, and the stick last (it needs none). Never the launcher or a grenade by itself: at
+ * arm's length they are one's own end.
+ */
+const FALLBACK: readonly WeaponKind[] = ['shotgun', 'repeater', 'dart', 'bolt', 'stick'];
+export function fallbackOf(a: Arsenal): WeaponKind | null {
+  for (const kind of FALLBACK) {
+    const ammo = AMMO_OF[kind];
+    if (a.owned.includes(kind) && (!ammo || a.ammo[ammo] > 0)) return kind;
+  }
+  return null;
+}
+
+/** How much a character with an arsenal takes of an ammunition (at most what it can carry); what it took. */
+export function giveAmmo(e: Entity, kind: AmmoKind, amount: number): number {
+  const a = arsenal(e);
+  if (!a) return 0;
+  const took = Math.max(0, Math.min(amount, AMMO_MOST[kind] - a.ammo[kind]));
+  a.ammo[kind] += took;
+  return took;
+}
 
 /** A grenade's fuse (stage 4f): the steps left, and who threw it. */
 type Fuse = { steps: number; by: number };
@@ -134,7 +212,22 @@ export function arms(world: World, events: readonly Event[]) {
     const zone = world.entities.get(ev.sensor);
     const carried = world.entities.get(ev.entity);
     const w = carried && weapon(carried);
-    if (zone?.sensor?.kind === 'weapon' && w) w.kind = WEAPON_KINDS[(zone.sensor.params.kind?.[0] ?? 1) - 1] ?? 'dart';
+    if (zone?.sensor?.kind !== 'weapon' || !w) continue;
+    const kind = WEAPON_KINDS[(zone.sensor.params.kind?.[0] ?? 1) - 1] ?? 'dart';
+    const a = arsenal(carried);
+    if (!a) {
+      w.kind = kind;
+      continue;
+    }
+    // (Stage 5n) An arsenal: the weapon kept (in its hands, if it is new), its ammunition, the rack used up.
+    if (!a.owned.includes(kind)) {
+      a.owned.push(kind);
+      w.kind = kind;
+      w.ready = Math.max(w.ready, world.tick + 18);
+    }
+    const ammo = AMMO_OF[kind];
+    if (ammo) giveAmmo(carried, ammo, AMMO_GIVEN[kind] ?? 0);
+    world.removeEntity(zone.id);
   }
   for (const e of world.entities.values()) {
     const w = weapon(e);
@@ -162,13 +255,37 @@ export function arms(world: World, events: readonly Event[]) {
         radius: READY_HEARD,
       });
     } else if (!lifting && raised(e)) delete e.game![RAISED];
+    // (Stage 5n) An arsenal: a slot's key takes that weapon in its hands (a third of a second to raise it).
+    const a = arsenal(e);
+    if (a)
+      SLOTS.forEach((kind, k) => {
+        if (kind !== w.kind && a.owned.includes(kind) && pressed(world, c.player, `arms.slot${k + 1}`)) {
+          w.kind = kind;
+          w.strike = 0;
+          w.ready = Math.max(w.ready, world.tick + 18);
+        }
+      });
     if (!pressed(world, c.player, ATTACK) || world.tick < w.ready) continue;
+    // (Stage 5n) With an arsenal, what fires spends its ammunition; with none left, it does not fire: it
+    // takes up the best it has with some (`fallbackOf`).
+    const spends = a ? AMMO_OF[w.kind] : undefined;
+    if (spends) {
+      if (a!.ammo[spends] <= 0) {
+        const next = fallbackOf(a!);
+        if (next && next !== w.kind) {
+          w.kind = next;
+          w.ready = Math.max(w.ready, world.tick + 18);
+        }
+        continue;
+      }
+      a!.ammo[spends]--;
+    }
     // (Stage 5g) For the eyes and the ears: the weapon used, from where, which way.
     const thrown = w.kind === 'grenade' || w.kind === 'stick';
     world.emit({ type: 'fired', from: e.id, at: thrown ? chest : eye, direction: [...ahead], kind: w.kind });
-    if (w.kind === 'dart' || w.kind === 'shotgun') {
+    if (w.kind === 'dart' || w.kind === 'shotgun' || w.kind === 'repeater') {
       // A ray at once; the shotgun's pellets, each its own direction from the one shot's dice.
-      const gun = w.kind === 'dart' ? { ...WEAPONS.dart, pellets: 1 } : WEAPONS.shotgun;
+      const gun = w.kind === 'shotgun' ? WEAPONS.shotgun : { ...WEAPONS[w.kind], pellets: 1 };
       const dice = shotDice(world, c.player);
       for (let k = 0; k < gun.pellets; k++) {
         const direction = spread(ahead, up, gun.spread, dice);
@@ -185,9 +302,8 @@ export function arms(world: World, events: readonly Event[]) {
         });
       }
       w.ready = world.tick + gun.every;
-    } else if (w.kind === 'bolt' || w.kind === 'launcher') {
-      const bolt = w.kind === 'bolt';
-      const p = bolt ? WEAPONS.bolt : WEAPONS.launcher;
+    } else if (w.kind === 'bolt' || w.kind === 'launcher' || w.kind === 'orb') {
+      const p = WEAPONS[w.kind];
       world.createEntity({
         transform: { position: startOf(world, e, eye, ahead, 0.4, p.radius), rotation: quat.identity() },
         projectile: {
@@ -195,14 +311,17 @@ export function arms(world: World, events: readonly Event[]) {
           velocity: vec3.scale(ahead, p.speed),
           radius: p.radius,
           // (A rocket's damage is its blast's: `rockets`.)
-          damage: bolt ? WEAPONS.bolt.damage : 0,
-          kind: w.kind === 'bolt' ? 'bolt' : 'rocket',
+          damage: w.kind === 'launcher' ? 0 : p.damage,
+          kind: w.kind === 'launcher' ? 'rocket' : w.kind,
           gravity: false,
           life: p.life,
         },
-        appearance: bolt
-          ? { shape: 'sphere', size: [0.12, 0.12, 0.12], color: 0xff7050 }
-          : { shape: 'sphere', size: [0.2, 0.2, 0.2], color: 0xffa040 },
+        appearance:
+          w.kind === 'bolt'
+            ? { shape: 'sphere', size: [0.12, 0.12, 0.12], color: 0xff7050 }
+            : w.kind === 'orb'
+              ? { shape: 'sphere', size: [0.36, 0.36, 0.36], color: 0x8ff0ff }
+              : { shape: 'sphere', size: [0.2, 0.2, 0.2], color: 0xffa040 },
       });
       w.ready = world.tick + p.every;
     } else if (w.kind === 'grenade') {

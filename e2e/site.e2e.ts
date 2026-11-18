@@ -1373,15 +1373,14 @@ test('the fortress, in the dark: the gem says hidden, and a guard that glimpses 
 });
 
 /**
- * The wall's link recipe (stage 5h): every attacker down at once, a little after each of the first level's
- * three waves comes in (the first 3 s in; each next 4 s after the last is down).
+ * The wall's link recipe (stage 5h; levels to advance through since 5n): every attacker standing down at once,
+ * and the defender at the first level's way out.
  */
-const allDown = 'recipe=wait+200;wall.down;wait+260;wall.down;wait+260;wall.down';
+const allDown = 'recipe=wait+30;wall.down;wait+5;set+defender+transform.position+0+0.9+-34.5';
 
-test('the wall: its title, in first person, a level held (its waves, its gold time) and kept, at dawn’s edge', async ({
+test('the wall: its title, in first person, a level done (its gold time, its recap) and kept, at dawn’s edge', async ({
   page,
 }) => {
-  // (Twelve seconds of play, its waves' own pauses: a page without a screen takes a minute or more.)
   test.setTimeout(240_000);
   const list = errors(page);
   const game = page.locator('#game');
@@ -1395,14 +1394,19 @@ test('the wall: its title, in first person, a level held (its waves, its gold ti
   await expect(game).toHaveAttribute('data-dialog', 'La guardiana');
   await page.getByRole('button', { name: 'Seguir' }).click();
   await page.getByRole('button', { name: 'Seguir' }).click();
-  await expect(game).toHaveAttribute('data-level', 'yard');
+  await expect(game).toHaveAttribute('data-level', 'walk');
   await expect(page.locator('.mg-crosshair')).toBeVisible();
-  await expect(game).toHaveAttribute('data-dialog', 'El patio: listo', { timeout: 200_000 });
-  await expect(page.locator('.mg-panel')).toContainText('Tiempo de oro: 0:28,0');
+  // (Stage 5n) Its HUD: the weapon in its hands and its darts.
+  await expect(page.locator('.mg-hud')).toContainText('saeta 40');
+  await expect(game).toHaveAttribute('data-dialog', 'El adarve: listo', { timeout: 200_000 });
+  await expect(page.locator('.mg-panel')).toContainText('Tiempo de oro: 0:53,0');
   await expect(page.locator('.mg-panel')).toContainText('Sin caer');
+  // Its recap: the secret not found; the attackers it brought down (the command's are not its own).
+  await expect(page.locator('.mg-panel')).toContainText('Secretos: ninguno de 1');
+  await expect(page.locator('.mg-panel')).toContainText('Atacantes: 0 de 8');
   expect(JSON.parse((await game.getAttribute('data-progress'))!)).toMatchObject({ version: 1, started: true, reached: 1 });
   await page.getByRole('button', { name: 'Seguir', exact: true }).click();
-  await expect(game).toHaveAttribute('data-level', 'gates');
+  await expect(game).toHaveAttribute('data-level', 'gatehouse');
   expect(list).toEqual([]);
 });
 
@@ -1412,15 +1416,17 @@ test('the wall’s attackers are fair: each raises its weapon, seen and heard, b
   test.setTimeout(240_000);
   const list = errors(page);
   const game = page.locator('#game');
-  await page.goto('jugar/muralla/');
+  // A step up the stair, within the sentries' range (stage 5n: a fair gunner fires only within it, and a
+  // page drawn without a GPU takes some ten steps a second: from the start they would take minutes).
+  await page.goto('jugar/muralla/#recipe=wait+1;set+defender+transform.position+0+0.9+-2.5');
   await expect(game).toHaveAttribute('data-dialog', 'La muralla', { timeout: 20_000 });
   await page.getByRole('button', { name: 'Jugar', exact: true }).click();
   await page.getByRole('button', { name: 'Seguir' }).click();
   await page.getByRole('button', { name: 'Seguir' }).click();
-  await expect(game).toHaveAttribute('data-level', 'yard');
-  // Standing where it was born, the defender only watches: the attackers come through the gate, and each
+  await expect(game).toHaveAttribute('data-level', 'walk');
+  // There, the defender only watches: the courtyard's sentries see it through the stair's opening, and each
   // raises its weapon (a glint, `data-readies`; and its sound, heard and in subtitles) before the first hit.
-  await expect.poll(() => game.getAttribute('data-hurt').then(Number), { timeout: 150_000 }).toBeGreaterThan(0);
+  await expect.poll(() => game.getAttribute('data-hurt').then(Number), { timeout: 200_000 }).toBeGreaterThan(0);
   expect(Number(await game.getAttribute('data-readies')), 'warned before the first hit').toBeGreaterThan(0);
   // The hit shook the view (a trauma that decays in under a second: it was there).
   expect(await game.getAttribute('data-trauma')).not.toBeNull();
@@ -1516,8 +1522,12 @@ test('the walk’s sway (stage 5k): in first person the eyes dip with each step 
     await page.keyboard.up('KeyS');
     return Math.max(...heights) - Math.min(...heights);
   };
+  const pitchBefore = (await position(page, 'look'))[1]!;
   expect(await swayWalking()).toBeGreaterThan(0.02);
   expect(Number(await game.getAttribute('data-bob'))).toBeGreaterThan(2);
+  // Walking ahead, the mouse still, where it looks up or down stays (the sway's dips once stayed in the
+  // camera, frame after frame, and the aim rose by itself: the author found it).
+  expect(Math.abs((await position(page, 'look'))[1]! - pitchBefore)).toBeLessThan(0.01);
   // A jump, and the eyes sink a few centimeters as it lands.
   await page.keyboard.press('Space');
   await expect.poll(() => game.getAttribute('data-dip').then(Number), { timeout: 10_000 }).toBeGreaterThan(2);

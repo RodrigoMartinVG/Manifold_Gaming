@@ -21,7 +21,7 @@ type Sound = Extract<Event, { type: 'sound' }>;
  * How far a weapon used (stage 5g: `fired`) is heard (m), by its kind: what fires loudly, far; what is
  * swung or thrown, near. Only the view's (its sound, its subtitle): the world's sounds are its own.
  */
-const FIRED_HEARD: Readonly<Record<string, number>> = { dart: 30, bolt: 20, shotgun: 45, launcher: 40 };
+const FIRED_HEARD: Readonly<Record<string, number>> = { dart: 30, bolt: 20, shotgun: 45, launcher: 40, repeater: 30, orb: 25 };
 export const firedHeard = (kind: string) => FIRED_HEARD[kind] ?? 8;
 
 /**

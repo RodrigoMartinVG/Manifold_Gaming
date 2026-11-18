@@ -111,5 +111,9 @@
  *  46  stage 5m: the fortress's four levels, drawn as plans (levelFromPlan), and its intruder counting
  *      the scrolls it takes (`scroll` zones) and the guards it takes down, for a level's recap; the
  *      engine, the Dojo, the tower and the wall as in 45
+ *  47  stage 5n: an arsenal (`arms.arsenal`: weapons kept, ammunition spent, racks taken once, slots,
+ *      the best with ammunition when empty); the repeater and the orb; the wall's levels to advance
+ *      through (keys that turn on the signals doors read, health, armor, ammunition, secrets, groups
+ *      called in by triggers, roles); a guard fires an orb as a dart. What has no arsenal as in 46
  */
-export const SIMULATION_VERSION = 46;
+export const SIMULATION_VERSION = 47;

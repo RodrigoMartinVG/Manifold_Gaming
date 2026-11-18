@@ -1,1081 +1,675 @@
-# Manifold replay 46
-# The wall at dawn, held: three waves, shotguns among them.
+# Manifold replay 47
+# The towers, played to their way out: the crossbow, a secret, the yellow key.
 # A reference replay (stage 5h, as the tower’s since 5d): playing it must end with the hash on its
 # last line. Recorded by games/wall/src/levels.test.ts; recorded again (npm run references) only
 # when the simulation changes on purpose, with SIMULATION_VERSION.
 game wall
 profile rapier-deterministic server 60
 birth wall.level level-3
-input 1 1 move @0
-input 43 1 move @0:0.97
-input 44 1 move @0:0.72
-input 45 1
-input 181 1 face @356.7 pitch -0.006 arms.attack
-input 182 100 move @179
-input 182 101 move @188
-input 182 102 move @177
-input 182 103 move @180
-input 182 1 face @356.7 pitch -0.006
-input 183 1 face @356.7 pitch -0.006 arms.attack
-input 184 1 face @356.7 pitch -0.006
-input 185 1 face @356.7 pitch -0.006 arms.attack
-input 186 1 face @356.7 pitch -0.006
-input 187 1 face @356.7 pitch -0.007 arms.attack
-input 188 1 face @356.7 pitch -0.007
-input 189 1 face @356.7 pitch -0.007 arms.attack
-input 190 1 face @356.7 pitch -0.008
-input 191 1 face @356.7 pitch -0.008 arms.attack
-input 192 1 face @356.7 pitch -0.009
-input 193 1 face @356.7 pitch -0.009 arms.attack
-input 194 1 face @356.7 pitch -0.009
-input 195 1 face @356.6 pitch -0.009 arms.attack
-input 196 1 face @356.6 pitch -0.009
-input 197 1 face @356.6 pitch -0.009 arms.attack
-input 198 1 face @356.6 pitch -0.009
-input 199 1 face @356.5 pitch -0.009 arms.attack
-input 200 1 face @356.5 pitch -0.009
-input 201 1 face @356.5 pitch -0.009 arms.attack
-input 202 1 face @356.4 pitch -0.009
-input 203 1 face @356.4 pitch -0.009 arms.attack
-input 204 1 face @356.4 pitch -0.009
-input 205 1 face @356.4 pitch -0.009 arms.attack
-input 206 101 move @176 run
-input 206 1 face @356.3 pitch -0.009
-input 207 1 face @356.3 pitch -0.009 arms.attack
-input 208 1 face @356.3 pitch -0.009
-input 209 1 face @356.3 pitch -0.009 arms.attack
-input 211 1 face @356.3 pitch -0.009
-input 212 1 face @356.3 pitch -0.01 arms.attack
-input 213 1 face @356.3 pitch -0.01
-input 214 1 face @356.3 pitch -0.01 arms.attack
-input 215 1 face @356.3 pitch -0.01
-input 216 1 face @356.3 pitch -0.01 arms.attack
-input 217 1 face @356.3 pitch -0.01
-input 218 1 face @356.3 pitch -0.01 arms.attack
-input 219 101
-input 219 1 face @4.8 pitch -0.01
-input 220 1 face @4.8 pitch -0.01 arms.attack
-input 221 1 face @4.8 pitch -0.01
-input 222 1 face @4.8 pitch -0.01 arms.attack
-input 223 1 face @4.8 pitch -0.01
-input 224 1 face @4.9 pitch -0.01 arms.attack
-input 226 1 face @4.9 pitch -0.01
-input 227 1 face @4.9 pitch -0.01 arms.attack
-input 228 1 face @4.9 pitch -0.01
-input 229 1 face @5 pitch -0.01 arms.attack
-input 230 1 face @5 pitch -0.01
-input 231 1 face @5 pitch -0.01 arms.attack
-input 232 1 face @5 pitch -0.01
-input 233 1 face @5 pitch -0.01 arms.attack
-input 234 1 face @5.1 pitch -0.01
-input 235 1 face @5.1 pitch -0.01 arms.attack
-input 236 1 face @5.1 pitch -0.01
-input 237 1 face @5.1 pitch -0.01 arms.attack
-input 238 1 face @5.1 pitch -0.01
-input 239 1 face @5.2 pitch -0.01 arms.attack
-input 241 1 face @5.2 pitch -0.01
-input 242 1 face @5.2 pitch -0.01 arms.attack
-input 243 1 face @5.2 pitch -0.01
-input 244 1 face @5.3 pitch -0.01 arms.attack
-input 245 102 move @185 run
-input 245 1 face @5.3 pitch -0.01
-input 246 1 face @5.3 pitch -0.01 arms.attack
-input 247 1 face @5.3 pitch -0.01
-input 248 1 face @5.3 pitch -0.01 arms.attack
-input 249 1 face @5.3 pitch -0.01
-input 250 1 face @5.3 pitch -0.01 arms.attack
-input 251 1 face @5.3 pitch -0.01
-input 252 1 face @5.3 pitch -0.011 arms.attack
-input 253 1 face @5.3 pitch -0.011
-input 254 1 face @5.3 pitch -0.011 arms.attack
-input 256 1 face @5.3 pitch -0.011
-input 257 1 face @5.3 pitch -0.011 arms.attack
-input 258 1 face @5.3 pitch -0.011
-input 259 1 face @5.3 pitch -0.011 arms.attack
-input 260 1 face @5.3 pitch -0.011
-input 261 1 face @5.3 pitch -0.011 arms.attack
-input 262 1 face @5.3 pitch -0.011
-input 263 1 face @5.4 pitch -0.011 arms.attack
-input 264 1 face @5.4 pitch -0.011
-input 265 1 face @5.4 pitch -0.011 arms.attack
-input 266 100 move @180
-input 266 1 face @5.4 pitch -0.011
-input 267 1 face @5.4 pitch -0.011 arms.attack
-input 268 1 face @5.4 pitch -0.011
-input 269 1 face @5.4 pitch -0.011 arms.attack
-input 271 1 face @5.4 pitch -0.011
-input 272 1 face @5.4 pitch -0.012 arms.attack
-input 273 1 face @5.4 pitch -0.012
-input 274 1 face @5.4 pitch -0.012 arms.attack
-input 275 1 face @5.4 pitch -0.012
-input 276 1 face @5.4 pitch -0.012 arms.attack
-input 277 1 face @5.4 pitch -0.012
-input 278 1 face @5.4 pitch -0.012 arms.attack
-input 279 1 face @5.4 pitch -0.012
-input 280 1 face @5.4 pitch -0.012 arms.attack
-input 281 1 face @5.4 pitch -0.012
-input 282 1 face @5.4 pitch -0.012 arms.attack
-input 283 1 face @5.4 pitch -0.012
-input 284 1 face @5.4 pitch -0.012 arms.attack
-input 285 100 move @169
-input 285 103 move @174
-input 286 1 face @5.4 pitch -0.012
-input 287 1 face @5.4 pitch -0.012 arms.attack
-input 288 100
-input 288 1 face @5.4 pitch -0.013
-input 289 100 move @196
-input 289 1 face @5.4 pitch -0.013 arms.attack
-input 290 102 move @186 run
-input 290 1 face @5.4 pitch -0.013
-input 291 1 face @5.4 pitch -0.013 arms.attack
-input 292 1 face @5.4 pitch -0.013
-input 293 1 face @5.4 pitch -0.013 arms.attack
-input 294 1 face @5.4 pitch -0.013
-input 295 1 face @5.4 pitch -0.013 arms.attack
-input 296 1 face @5.4 pitch -0.013
-input 297 1 face @5.4 pitch -0.013 arms.attack
-input 298 1 face @5.4 pitch -0.013
-input 299 1 face @5.4 pitch -0.013 arms.attack
-input 301 1 face @5.4 pitch -0.013
-input 302 103
-input 302 1 face @5.4 pitch -0.014 arms.attack
-input 303 103 move @180
-input 303 1 face @5.4 pitch -0.014
-input 304 1 face @5.4 pitch -0.014 arms.attack
-input 305 1 face @5.4 pitch -0.014
-input 306 1 face @5.4 pitch -0.014 arms.attack
-input 307 1 face @5.4 pitch -0.014
-input 308 1 face @5.4 pitch -0.014 arms.attack
-input 309 1 face @5.4 pitch -0.014
-input 310 1 face @5.4 pitch -0.014 arms.attack
-input 311 1 face @5.4 pitch -0.014
-input 312 1 face @5.4 pitch -0.014 arms.attack
-input 313 1 face @5.4 pitch -0.014
-input 314 1 face @5.4 pitch -0.014 arms.attack
-input 315 1 face @5.4 pitch -0.015 arms.attack
-input 316 1 face @5.4 pitch -0.015
-input 317 1 face @5.4 pitch -0.015 arms.attack
-input 318 1 face @5.4 pitch -0.015
-input 319 1 face @5.4 pitch -0.015 arms.attack
-input 320 1 face @5.4 pitch -0.015
-input 321 1 face @5.4 pitch -0.015 arms.attack
-input 322 102
-input 322 1 face @351.3 pitch -0.013
-input 323 1 face @351.2 pitch -0.013 arms.attack
-input 324 1 face @351.2 pitch -0.013
-input 325 1 face @351 pitch -0.013 arms.attack
-input 326 1 face @351 pitch -0.013
-input 327 1 face @350.9 pitch -0.013 arms.attack
-input 328 1 face @0.3 pitch -0.013
-input 329 1 face @350.7 pitch -0.013 arms.attack
-input 331 1 face @350.6 pitch -0.013
-input 332 1 face @350.5 pitch -0.013 arms.attack
-input 333 1 face @350.4 pitch -0.013
-input 334 1 face @350.4 pitch -0.013 arms.attack
-input 335 1 face @350.2 pitch -0.013
-input 336 1 face @350.2 pitch -0.013 arms.attack
-input 337 1 face @350.1 pitch -0.013
-input 338 1 face @350 pitch -0.013 arms.attack
-input 339 1 face @350 pitch -0.013
-input 340 1 face @349.8 pitch -0.013 arms.attack
-input 341 1 face @349.8 pitch -0.013
-input 342 1 face @349.6 pitch -0.013 arms.attack
-input 343 1 face @349.6 pitch -0.013
-input 344 1 face @349.5 pitch -0.013 arms.attack
-input 345 1 face @349.4 pitch -0.014 arms.attack
-input 346 1 face @349.4 pitch -0.014
-input 347 1 face @349.2 pitch -0.014 arms.attack
-input 348 100 move @171 run
-input 348 1 face @349.2 pitch -0.014
-input 349 1 face @349.1 pitch -0.014 arms.attack
-input 350 1 face @349 pitch -0.014
-input 351 1 face @349 pitch -0.014 arms.attack
-input 352 1 face @349 pitch -0.014
-input 353 1 face @349 pitch -0.014 arms.attack
-input 354 1 face @349 pitch -0.014
-input 355 1 face @348.9 pitch -0.014 arms.attack
-input 356 1 face @348.9 pitch -0.014
-input 357 1 face @348.9 pitch -0.014 arms.attack
-input 358 1 face @348.9 pitch -0.014
-input 359 1 face @348.9 pitch -0.014 arms.attack
-input 360 1 face @348.9 pitch -0.015 arms.attack
-input 361 1 face @348.9 pitch -0.015
-input 362 1 face @348.9 pitch -0.015 arms.attack
-input 363 1 face @348.8 pitch -0.015
-input 364 1 face @348.8 pitch -0.015 arms.attack
-input 365 1 face @348.8 pitch -0.015
-input 366 1 face @348.8 pitch -0.015 arms.attack
-input 367 1 face @348.8 pitch -0.015
-input 368 1 face @348.8 pitch -0.015 arms.attack
-input 369 1 face @348.8 pitch -0.015
-input 370 1 face @348.7 pitch -0.015 arms.attack
-input 371 1 face @348.7 pitch -0.016
-input 372 1 face @348.7 pitch -0.016 arms.attack
-input 373 1 face @348.7 pitch -0.016
-input 374 1 face @348.7 pitch -0.016 arms.attack
-input 376 1 face @348.7 pitch -0.016
-input 377 1 face @348.6 pitch -0.016 arms.attack
-input 378 1 face @348.6 pitch -0.016
-input 379 1 face @348.6 pitch -0.016 arms.attack
-input 380 1 face @348.6 pitch -0.017
-input 381 100 face @168.5 pitch -0.022
-input 381 1 face @348.6 pitch -0.017 arms.attack
-input 382 1 face @348.6 pitch -0.017
-input 383 1 face @348.5 pitch -0.017 arms.attack
-input 384 1 face @348.5 pitch -0.017
-input 385 1 face @348.5 pitch -0.017 arms.attack
-input 386 100 face @168.5 pitch -0.023
-input 386 1 face @348.5 pitch -0.017
-input 387 1 face @348.5 pitch -0.017 arms.attack
-input 388 1 face @348.5 pitch -0.017
-input 389 1 face @348.5 pitch -0.017 arms.attack
-input 391 1 face @348.5 pitch -0.017
-input 392 1 face @348.5 pitch -0.017 arms.attack
-input 393 1 face @348.5 pitch -0.017
-input 394 1 face @348.5 pitch -0.017 arms.attack
-input 395 1 face @348.5 pitch -0.017
-input 396 1 face @348.5 pitch -0.017 arms.attack
-input 397 100 face @168.5 pitch -0.023 arms.ready
-input 397 1 face @348.5 pitch -0.017
-input 398 1 face @348.5 pitch -0.017 arms.attack
-input 399 100 face @168.5 pitch -0.023
-input 399 1 face @348.5 pitch -0.017
-input 400 1 face @348.5 pitch -0.017 arms.attack
-input 401 1 face @348.5 pitch -0.017
-input 402 1 face @348.5 pitch -0.017 arms.attack
-input 403 1 face @348.5 pitch -0.017
-input 404 1 face @348.5 pitch -0.017 arms.attack
-input 406 1 face @348.5 pitch -0.017
-input 407 1 face @348.5 pitch -0.017 arms.attack
-input 408 1 face @348.5 pitch -0.017
-input 409 1 face @348.5 pitch -0.017 arms.attack
-input 410 1 face @348.5 pitch -0.017
-input 411 1 face @348.5 pitch -0.017 arms.attack
-input 412 100
-input 412 1 face @0.5 pitch -0.017
-input 413 1 face @0.5 pitch -0.017 arms.attack
-input 414 1 face @0.5 pitch -0.017
-input 415 1 face @0.5 pitch -0.017 arms.attack
-input 416 1 face @0.5 pitch -0.017
-input 417 1 face @0.5 pitch -0.017 arms.attack
-input 418 1 face @0.5 pitch -0.017
-input 419 103 move @179
-input 419 1 face @0.5 pitch -0.018 arms.attack
-input 421 1 face @0.5 pitch -0.018
-input 422 1 face @0.5 pitch -0.018 arms.attack
-input 423 1 face @0.5 pitch -0.018
-input 424 1 face @0.5 pitch -0.018 arms.attack
-input 425 103 move @167 run
-input 425 1 face @0.5 pitch -0.018
-input 426 1 face @0.5 pitch -0.018 arms.attack
-input 427 1 face @0.5 pitch -0.018
-input 428 1 face @0.7 pitch -0.018 arms.attack
-input 429 1 face @0.7 pitch -0.018
-input 430 1 face @0.9 pitch -0.019 arms.attack
-input 431 1 face @0.9 pitch -0.019
-input 432 1 face @1.1 pitch -0.019 arms.attack
-input 433 1 face @1.2 pitch -0.019
-input 434 1 face @1.3 pitch -0.019 arms.attack
-input 435 1 face @1.4 pitch -0.019 arms.attack
-input 436 1 face @1.6 pitch -0.02
-input 437 1 face @1.6 pitch -0.02 arms.attack
-input 438 1 face @1.8 pitch -0.02
-input 439 1 face @1.9 pitch -0.02 arms.attack
-input 440 1 face @2 pitch -0.02
-input 441 1 face @2.2 pitch -0.02 arms.attack
-input 442 1 face @2.3 pitch -0.02
-input 443 1 face @2.4 pitch -0.021 arms.attack
-input 444 1 face @2.6 pitch -0.021
-input 445 1 face @2.7 pitch -0.021 arms.attack
-input 446 1 face @2.8 pitch -0.021
-input 447 1 face @3 pitch -0.021 arms.attack
-input 448 1 face @3.1 pitch -0.021
-input 449 1 face @3.3 pitch -0.022 arms.attack
-input 450 1 face @3.4 pitch -0.022 arms.attack
-input 451 1 face @3.6 pitch -0.022
-input 452 1 face @3.7 pitch -0.022 arms.attack
-input 453 1 face @3.9 pitch -0.023
-input 454 1 face @4 pitch -0.023 arms.attack
-input 455 103 move @166 run
-input 455 1 face @4.2 pitch -0.023
-input 456 1 face @4.4 pitch -0.023 arms.attack
-input 457 1 face @4.5 pitch -0.023
-input 458 1 face @4.7 pitch -0.024 arms.attack
-input 459 1 face @4.9 pitch -0.024
-input 460 1 face @5.1 pitch -0.024 arms.attack
-input 461 1 face @5.3 pitch -0.024
-input 462 1 face @5.5 pitch -0.024 arms.attack
-input 463 1 face @5.7 pitch -0.025
-input 464 1 face @5.9 pitch -0.025 arms.attack
-input 465 1 face @6.1 pitch -0.025 arms.attack
-input 466 1 face @6.3 pitch -0.025
-input 467 1 face @6.5 pitch -0.026 arms.attack
-input 468 1 face @6.7 pitch -0.026
-input 469 1 face @6.9 pitch -0.026 arms.attack
-input 470 1 face @7.2 pitch -0.027
-input 471 1 face @7.4 pitch -0.027 arms.attack
-input 472 1 face @7.6 pitch -0.027
-input 473 1 face @7.9 pitch -0.027 arms.attack
-input 474 1 face @8.1 pitch -0.028
-input 475 1 face @8.4 pitch -0.028 arms.attack
-input 476 103
-input 476 1
-input 716 1 face @3.3 pitch -0.006 arms.attack
-input 717 100 move @178
-input 717 101 move @186
-input 717 102 move @178
-input 717 103 move @171
-input 717 104 move @179
-input 717 1 face @3.3 pitch -0.006
-input 718 1 face @356.7 pitch -0.006 arms.attack
-input 719 1 face @356.7 pitch -0.006
-input 720 1 face @356.7 pitch -0.006 arms.attack
-input 721 1 face @356.7 pitch -0.006
-input 722 1 face @356.7 pitch -0.007 arms.attack
-input 723 1 face @356.7 pitch -0.007
-input 724 1 face @356.7 pitch -0.007 arms.attack
-input 725 1 face @356.7 pitch -0.008
-input 726 1 face @356.7 pitch -0.008 arms.attack
-input 727 1 face @356.7 pitch -0.009
-input 728 1 face @356.7 pitch -0.009 arms.attack
-input 729 1 face @356.7 pitch -0.009
-input 730 1 face @356.7 pitch -0.009 arms.attack
-input 731 1 face @356.6 pitch -0.009
-input 732 1 face @356.6 pitch -0.009 arms.attack
-input 733 1 face @356.6 pitch -0.009
-input 734 1 face @356.6 pitch -0.009 arms.attack
-input 736 1 face @356.5 pitch -0.009
-input 737 1 face @356.5 pitch -0.009 arms.attack
-input 738 1 face @356.5 pitch -0.009
-input 739 1 face @356.5 pitch -0.009 arms.attack
-input 740 1 face @356.4 pitch -0.009
-input 741 1 face @356.4 pitch -0.009 arms.attack
-input 742 1 face @356.4 pitch -0.009
-input 743 1 face @356.4 pitch -0.009 arms.attack
-input 744 1 face @356.3 pitch -0.009
-input 745 1 face @356.3 pitch -0.009 arms.attack
-input 746 1 face @356.3 pitch -0.009
-input 747 1 face @356.3 pitch -0.009 arms.attack
-input 748 1 face @356.3 pitch -0.009
-input 749 1 face @356.2 pitch -0.01 arms.attack
-input 751 1 face @356.2 pitch -0.01
-input 752 1 face @356.2 pitch -0.01 arms.attack
-input 753 1 face @356.1 pitch -0.01
-input 754 1 face @356.1 pitch -0.01 arms.attack
-input 755 101 move @179 run
-input 755 1 face @356.1 pitch -0.01
-input 756 1 face @356.1 pitch -0.01 arms.attack
-input 757 1 face @356.1 pitch -0.01
-input 758 1 face @356 pitch -0.01 arms.attack
-input 759 1 face @356 pitch -0.01
-input 760 1 face @356 pitch -0.01 arms.attack
-input 761 1 face @356 pitch -0.01
-input 762 1 face @356 pitch -0.01 arms.attack
-input 763 1 face @356 pitch -0.01
-input 764 1 face @356 pitch -0.01 arms.attack
-input 766 1 face @355.9 pitch -0.01
-input 767 1 face @355.9 pitch -0.01 arms.attack
-input 768 1 face @355.9 pitch -0.01
-input 769 1 face @355.9 pitch -0.01 arms.attack
-input 770 1 face @355.9 pitch -0.01
-input 771 1 face @355.9 pitch -0.01 arms.attack
-input 772 1 face @355.9 pitch -0.01
-input 773 1 face @355.8 pitch -0.01 arms.attack
-input 774 1 face @355.8 pitch -0.01
-input 775 1 face @355.8 pitch -0.01 arms.attack
-input 776 1 face @355.8 pitch -0.011
-input 777 1 face @355.8 pitch -0.011 arms.attack
-input 778 1 face @355.8 pitch -0.011
-input 779 1 face @355.8 pitch -0.011 arms.attack
-input 780 1 face @355.7 pitch -0.011 arms.attack
-input 781 1 face @355.7 pitch -0.011
-input 782 1 face @355.7 pitch -0.011 arms.attack
-input 783 1 face @355.7 pitch -0.011
-input 784 1 face @355.7 pitch -0.011 arms.attack
-input 785 1 face @355.7 pitch -0.011
-input 786 1 face @355.7 pitch -0.011 arms.attack
-input 787 1 face @355.6 pitch -0.011
-input 788 1 face @355.6 pitch -0.011 arms.attack
-input 789 1 face @355.6 pitch -0.011
-input 790 102 move @179
-input 790 1 face @355.6 pitch -0.011 arms.attack
-input 791 1 face @355.6 pitch -0.011
-input 792 1 face @355.6 pitch -0.011 arms.attack
-input 793 1 face @355.5 pitch -0.011
-input 794 1 face @355.5 pitch -0.011 arms.attack
-input 795 100 move @177
-input 796 1 face @355.5 pitch -0.012
-input 797 1 face @355.5 pitch -0.012 arms.attack
-input 798 1 face @355.5 pitch -0.012
-input 799 1 face @355.4 pitch -0.012 arms.attack
-input 800 1 face @355.4 pitch -0.012
-input 801 1 face @355.4 pitch -0.012 arms.attack
-input 802 1 face @355.4 pitch -0.012
-input 803 1 face @355.4 pitch -0.012 arms.attack
-input 804 104 move @178
-input 804 1 face @355.3 pitch -0.012
-input 805 1 face @355.3 pitch -0.012 arms.attack
-input 806 1 face @355.3 pitch -0.012
-input 807 1 face @355.3 pitch -0.012 arms.attack
-input 808 1 face @355.3 pitch -0.012
-input 809 1 face @355.3 pitch -0.012 arms.attack
-input 810 1 face @355.2 pitch -0.012 arms.attack
-input 811 1 face @355.2 pitch -0.012
-input 812 1 face @355.2 pitch -0.012 arms.attack
-input 813 1 face @355.2 pitch -0.013
-input 814 103 move @170
-input 814 1 face @355.2 pitch -0.013 arms.attack
-input 815 1 face @355.1 pitch -0.013
-input 816 1 face @355.1 pitch -0.013 arms.attack
-input 817 1 face @355.1 pitch -0.013
-input 818 1 face @355.1 pitch -0.013 arms.attack
-input 819 101
-input 819 1 face @7 pitch -0.011
-input 820 1 face @7 pitch -0.011 arms.attack
-input 821 1 face @7 pitch -0.011
-input 822 104
-input 822 1 face @7.1 pitch -0.012 arms.attack
-input 823 104 move @165
-input 823 1 face @7.1 pitch -0.012
-input 824 100
-input 824 1 face @7.1 pitch -0.012 arms.attack
-input 825 100 move @196
-input 825 1 face @7.2 pitch -0.012 arms.attack
-input 826 1 face @7.3 pitch -0.012
-input 827 1 face @7.3 pitch -0.012 arms.attack
-input 828 1 face @7.4 pitch -0.012
-input 829 1 face @7.4 pitch -0.012 arms.attack
-input 830 103
-input 830 1 face @7.6 pitch -0.012
-input 831 103 move @165
-input 831 1 face @7.6 pitch -0.012 arms.attack
-input 832 1 face @7.6 pitch -0.012
-input 833 1 face @7.8 pitch -0.012 arms.attack
-input 834 1 face @7.8 pitch -0.012
-input 835 1 face @7.8 pitch -0.012 arms.attack
-input 836 1 face @8 pitch -0.012
-input 837 102
-input 837 1 face @8 pitch -0.012 arms.attack
-input 838 102 move @180
-input 838 1 face @8 pitch -0.012
-input 839 1 face @8.2 pitch -0.012 arms.attack
-input 841 1 face @8.2 pitch -0.012
-input 842 1 face @8.4 pitch -0.012 arms.attack
-input 843 1 face @8.4 pitch -0.012
-input 844 1 face @8.5 pitch -0.012 arms.attack
-input 845 104 move @173 run
-input 845 1 face @8.5 pitch -0.012
-input 846 1 face @8.6 pitch -0.012 arms.attack
-input 847 1 face @8.7 pitch -0.012
-input 848 1 face @8.8 pitch -0.012 arms.attack
-input 849 1 face @8.8 pitch -0.012
-input 850 1 face @9 pitch -0.013 arms.attack
-input 851 1 face @9 pitch -0.013
-input 852 1 face @9.1 pitch -0.013 arms.attack
-input 853 1 face @9.2 pitch -0.013
-input 854 1 face @9.3 pitch -0.013 arms.attack
-input 856 1 face @9.5 pitch -0.013
-input 857 1 face @9.5 pitch -0.013 arms.attack
-input 858 1 face @9.7 pitch -0.013
-input 859 1 face @9.7 pitch -0.013 arms.attack
-input 860 1 face @9.8 pitch -0.013
-input 861 1 face @9.9 pitch -0.013 arms.attack
-input 862 1 face @10 pitch -0.013
-input 863 104 move @174 run
-input 863 1 face @10.1 pitch -0.013 arms.attack
-input 864 1 face @10.2 pitch -0.013
-input 865 1 face @10.2 pitch -0.014 arms.attack
-input 866 1 face @10.4 pitch -0.014
-input 867 1 face @10.4 pitch -0.014 arms.attack
-input 868 1 face @10.6 pitch -0.014
-input 869 1 face @10.6 pitch -0.014 arms.attack
-input 870 1 face @10.8 pitch -0.014 arms.attack
-input 871 1 face @10.8 pitch -0.014
-input 872 1 face @11 pitch -0.014 arms.attack
-input 873 1 face @11 pitch -0.014
-input 874 1 face @11.2 pitch -0.014 arms.attack
-input 875 1 face @11.2 pitch -0.014
-input 876 1 face @11.4 pitch -0.014 arms.attack
-input 877 1 face @11.4 pitch -0.014
-input 878 1 face @11.6 pitch -0.015 arms.attack
-input 879 1 face @11.6 pitch -0.015
-input 880 1 face @11.8 pitch -0.015 arms.attack
-input 881 1 face @11.8 pitch -0.015
-input 882 1 face @12 pitch -0.015 arms.attack
-input 883 104
-input 883 1 face @349.5 pitch -0.014
-input 884 1 face @349.5 pitch -0.014 arms.attack
-input 885 1 face @349.3 pitch -0.014 arms.attack
-input 886 1 face @349.3 pitch -0.014
-input 887 1 face @349.2 pitch -0.014 arms.attack
-input 888 1 face @349.1 pitch -0.014
-input 889 1 face @349 pitch -0.014 arms.attack
-input 890 1 face @348.9 pitch -0.014
-input 891 1 face @348.9 pitch -0.014 arms.attack
-input 892 100 move @171 run
-input 892 103 move @189 run
-input 892 1 face @348.7 pitch -0.014
-input 893 1 face @348.7 pitch -0.014 arms.attack
-input 894 1 face @348.6 pitch -0.014
-input 895 1 face @348.6 pitch -0.014 arms.attack
-input 896 1 face @348.6 pitch -0.014
-input 897 1 face @348.5 pitch -0.014 arms.attack
-input 898 1 face @348.5 pitch -0.014
-input 899 1 face @348.5 pitch -0.015 arms.attack
-input 901 1 face @348.5 pitch -0.015
-input 902 1 face @348.5 pitch -0.015 arms.attack
-input 903 1 face @348.4 pitch -0.015
-input 904 1 face @348.4 pitch -0.015 arms.attack
-input 905 1 face @348.4 pitch -0.015
-input 906 1 face @348.4 pitch -0.015 arms.attack
-input 907 1 face @348.4 pitch -0.015
-input 908 1 face @348.4 pitch -0.015 arms.attack
-input 909 1 face @348.3 pitch -0.016
-input 910 1 face @348.3 pitch -0.016 arms.attack
-input 911 103 move @188 run
-input 911 1 face @348.3 pitch -0.016
-input 912 1 face @348.3 pitch -0.016 arms.attack
-input 913 1 face @348.3 pitch -0.016
-input 914 1 face @348.3 pitch -0.016 arms.attack
-input 915 1 face @348.2 pitch -0.016 arms.attack
-input 916 1 face @348.2 pitch -0.016
-input 917 1 face @348.2 pitch -0.016 arms.attack
-input 918 1 face @348.2 pitch -0.016
-input 919 1 face @348.2 pitch -0.016 arms.attack
-input 920 100 face @168.1 pitch -0.022 arms.ready
-input 920 1 face @348.1 pitch -0.017
-input 921 1 face @348.1 pitch -0.017 arms.attack
-input 922 100 face @168.1 pitch -0.022
-input 922 1 face @348.1 pitch -0.017
-input 923 1 face @348.1 pitch -0.017 arms.attack
-input 924 1 face @348.1 pitch -0.017
-input 925 100 face @168.1 pitch -0.023
-input 925 1 face @348.1 pitch -0.017 arms.attack
-input 926 1 face @348.1 pitch -0.017
-input 927 1 face @348.1 pitch -0.017 arms.attack
-input 928 1 face @348.1 pitch -0.017
-input 929 1 face @348.1 pitch -0.017 arms.attack
-input 931 1 face @11 pitch -0.017
-input 932 1 face @11 pitch -0.017 arms.attack
-input 933 1 face @11 pitch -0.017
-input 934 1 face @11.1 pitch -0.018 arms.attack
-input 935 1 face @11.1 pitch -0.018
-input 936 1 face @11.1 pitch -0.018 arms.attack
-input 937 1 face @11.1 pitch -0.018
-input 938 1 face @11.2 pitch -0.018 arms.attack
-input 939 103 face @191.2 pitch -0.024
-input 939 1 face @11.2 pitch -0.018
-input 940 1 face @11.2 pitch -0.018 arms.attack
-input 941 1 face @11.2 pitch -0.018
-input 942 103 face @191.2 pitch -0.025
-input 942 1 face @11.2 pitch -0.019 arms.attack
-input 943 103 face @191.3 pitch -0.025
-input 943 1 face @11.3 pitch -0.019
-input 944 1 face @11.3 pitch -0.019 arms.attack
-input 946 100 face @168.1 pitch -0.023 arms.ready
-input 946 1 face @11.3 pitch -0.019
-input 947 1 face @11.3 pitch -0.019 arms.attack
-input 948 1 face @11.3 pitch -0.019
-input 949 1 face @11.3 pitch -0.019 arms.attack
-input 950 1 face @11.3 pitch -0.019
-input 951 1 face @11.3 pitch -0.019 arms.attack
-input 952 1 face @11.3 pitch -0.019
-input 953 1 face @11.3 pitch -0.019 arms.attack
-input 954 1 face @11.3 pitch -0.019
-input 955 1 face @11.3 pitch -0.019 arms.attack
-input 956 1 face @11.3 pitch -0.019
-input 957 1 face @11.3 pitch -0.019 arms.attack
-input 958 1 face @11.3 pitch -0.019
-input 959 1 face @11.3 pitch -0.019 arms.attack
-input 961 1 face @11.3 pitch -0.019
-input 962 1 face @11.3 pitch -0.019 arms.attack
-input 963 1 face @11.3 pitch -0.019
-input 964 1 face @11.3 pitch -0.019 arms.attack
-input 965 100 face @166.2 pitch -0.023 arms.attack
-input 965 1 face @11.3 pitch -0.019
-input 966 100 face @168 pitch -0.023
-input 966 1 face @11.3 pitch -0.019 arms.attack
-input 967 1 face @11.3 pitch -0.019
-input 968 1 face @11.3 pitch -0.019 arms.attack
-input 969 1 face @11.3 pitch -0.019
-input 970 1 face @0.8 pitch -0.019 arms.attack
-input 971 1 face @0.8 pitch -0.019
-input 972 1 face @0.8 pitch -0.019 arms.attack
-input 973 102 move @166 run
-input 973 1 face @0.8 pitch -0.019
-input 974 1 face @0.8 pitch -0.019 arms.attack
-input 975 1 face @1 pitch -0.019 arms.attack
-input 976 1 face @1 pitch -0.02
-input 977 1 face @1.2 pitch -0.02 arms.attack
-input 978 1 face @1.2 pitch -0.02
-input 979 1 face @1.4 pitch -0.02 arms.attack
-input 980 1 face @1.5 pitch -0.02
-input 981 1 face @1.7 pitch -0.02 arms.attack
-input 982 1 face @1.8 pitch -0.02
-input 983 1 face @1.9 pitch -0.021 arms.attack
-input 984 103 face @191.3 pitch -0.025 arms.ready
-input 984 1 face @2.1 pitch -0.021
-input 985 1 face @2.2 pitch -0.021 arms.attack
-input 986 1 face @2.4 pitch -0.021
-input 987 1 face @2.5 pitch -0.021 arms.attack
-input 988 1 face @2.7 pitch -0.022
-input 989 1 face @2.8 pitch -0.022 arms.attack
-input 990 1 face @3 pitch -0.022 arms.attack
-input 991 1 face @3.1 pitch -0.022
-input 992 1 face @3.3 pitch -0.022 arms.attack
-input 993 1 face @3.4 pitch -0.023
-input 994 1 face @3.6 pitch -0.023 arms.attack
-input 995 1 face @3.8 pitch -0.023
-input 996 102 move @165 run
-input 996 1 face @3.9 pitch -0.023 arms.attack
-input 997 1 face @4.1 pitch -0.023
-input 998 1 face @4.3 pitch -0.024 arms.attack
-input 999 1 face @4.5 pitch -0.024
-input 1000 1 face @4.7 pitch -0.024 arms.attack
-input 1001 1 face @4.9 pitch -0.024
-input 1002 1 face @5.1 pitch -0.024 arms.attack
-input 1003 103 face @188 pitch -0.02 arms.attack
-input 1003 1 face @5.3 pitch -0.025
-input 1004 103 face @191.3 pitch -0.025
-input 1004 1 face @5.5 pitch -0.025 arms.attack
-input 1005 1 face @5.7 pitch -0.025 arms.attack
-input 1006 1 face @5.9 pitch -0.025
-input 1007 1 face @6.1 pitch -0.026 arms.attack
-input 1008 1 face @6.3 pitch -0.026
-input 1009 1 face @6.6 pitch -0.026 arms.attack
-input 1010 1 face @6.8 pitch -0.026
-input 1011 1 face @7 pitch -0.027 arms.attack
-input 1012 102
-input 1012 1 face @11.3 pitch -0.019
-input 1013 100 face @168 pitch -0.023 arms.ready
-input 1013 1 face @11.3 pitch -0.019 arms.attack
-input 1014 1 face @11.3 pitch -0.019
-input 1015 1 face @11.3 pitch -0.019 arms.attack
-input 1016 1 face @11.3 pitch -0.019
-input 1017 1 face @11.3 pitch -0.019 arms.attack
-input 1018 1 face @11.3 pitch -0.019
-input 1019 1 face @11.3 pitch -0.019 arms.attack
-input 1021 1 face @11.3 pitch -0.019
-input 1022 1 face @11.3 pitch -0.019 arms.attack
-input 1023 1 face @11.3 pitch -0.019
-input 1024 1 face @11.3 pitch -0.019 arms.attack
-input 1025 103
-input 1025 1 face @348 pitch -0.017
-input 1026 1 face @348 pitch -0.017 arms.attack
-input 1027 1 face @348 pitch -0.017
-input 1028 1 face @348 pitch -0.017 arms.attack
-input 1029 1 face @348 pitch -0.017
-input 1030 1 face @348 pitch -0.017 arms.attack
-input 1031 1 face @348 pitch -0.017
-input 1032 100 face @168.1 pitch -0.021 arms.attack
-input 1032 1 face @348 pitch -0.017 arms.attack
-input 1033 100 face @168.1 pitch -0.023
-input 1033 1 face @348 pitch -0.017
-input 1034 1 face @348 pitch -0.017 arms.attack
-input 1036 1 face @348 pitch -0.017
-input 1037 1 face @348 pitch -0.017 arms.attack
-input 1038 1 face @348 pitch -0.017
-input 1039 1 face @348 pitch -0.017 arms.attack
-input 1040 1 face @348 pitch -0.017
-input 1041 1 face @348 pitch -0.017 arms.attack
-input 1042 1 face @348 pitch -0.017
-input 1043 1 face @348 pitch -0.017 arms.attack
-input 1044 1 face @348 pitch -0.017
-input 1045 1 face @348 pitch -0.017 arms.attack
-input 1046 1 face @348 pitch -0.017
-input 1047 1 face @348 pitch -0.017 arms.attack
-input 1048 1 face @348 pitch -0.017
-input 1049 1 face @348 pitch -0.017 arms.attack
-input 1050 100
-input 1050 1
-input 1290 1 face @3.3 pitch -0.006 arms.attack
-input 1291 100 move @178
-input 1291 101 move @186
-input 1291 102 move @175
-input 1291 103 move @182
-input 1291 104 move @180 run
-input 1291 105 move @179
-input 1291 1 face @3.3 pitch -0.006
-input 1292 1 face @3.3 pitch -0.006 arms.attack
-input 1293 1 face @3.3 pitch -0.006
-input 1294 1 face @3.3 pitch -0.006 arms.attack
-input 1295 1 face @3.3 pitch -0.006
-input 1296 1 face @3.3 pitch -0.007 arms.attack
-input 1297 1 face @3.3 pitch -0.007
-input 1298 1 face @3.3 pitch -0.007 arms.attack
-input 1299 1 face @3.3 pitch -0.008
-input 1300 1 face @3.3 pitch -0.008 arms.attack
-input 1301 1 face @3.3 pitch -0.009
-input 1302 1 face @3.3 pitch -0.009 arms.attack
-input 1303 1 face @3.3 pitch -0.009
-input 1304 1 face @3.3 pitch -0.009 arms.attack
-input 1306 1 face @3.3 pitch -0.009
-input 1307 1 face @3.3 pitch -0.009 arms.attack
-input 1308 1 face @3.3 pitch -0.009
-input 1309 1 face @3.3 pitch -0.009 arms.attack
-input 1310 1 face @3.3 pitch -0.009
-input 1311 1 face @3.4 pitch -0.009 arms.attack
-input 1312 1 face @3.4 pitch -0.009
-input 1313 1 face @3.4 pitch -0.009 arms.attack
-input 1314 1 face @3.4 pitch -0.009
-input 1315 1 face @3.4 pitch -0.009 arms.attack
-input 1316 1 face @3.4 pitch -0.01
-input 1317 1 face @3.4 pitch -0.01 arms.attack
-input 1318 1 face @3.4 pitch -0.01
-input 1319 1 face @3.5 pitch -0.01 arms.attack
-input 1321 1 face @3.5 pitch -0.01
-input 1322 1 face @3.5 pitch -0.01 arms.attack
-input 1323 1 face @3.5 pitch -0.01
-input 1324 1 face @3.5 pitch -0.01 arms.attack
-input 1325 1 face @3.5 pitch -0.01
-input 1326 1 face @3.6 pitch -0.01 arms.attack
-input 1327 1 face @3.6 pitch -0.01
-input 1328 1 face @3.6 pitch -0.01 arms.attack
-input 1329 104
-input 1329 1 face @356 pitch -0.01
-input 1330 1 face @356 pitch -0.01 arms.attack
-input 1331 1 face @356 pitch -0.01
-input 1332 1 face @356 pitch -0.01 arms.attack
-input 1333 1 face @356 pitch -0.01
-input 1334 1 face @356 pitch -0.01 arms.attack
-input 1335 1 face @355.9 pitch -0.01 arms.attack
-input 1336 1 face @355.9 pitch -0.01
-input 1337 1 face @355.9 pitch -0.01 arms.attack
-input 1338 1 face @355.9 pitch -0.01
-input 1339 1 face @355.8 pitch -0.01 arms.attack
-input 1340 1 face @355.8 pitch -0.01
-input 1341 1 face @355.8 pitch -0.01 arms.attack
-input 1342 101 move @178 run
-input 1342 1 face @355.8 pitch -0.01
-input 1343 1 face @355.8 pitch -0.01 arms.attack
-input 1344 1 face @355.7 pitch -0.01
-input 1345 1 face @355.7 pitch -0.01 arms.attack
-input 1346 1 face @355.7 pitch -0.01
-input 1347 1 face @355.7 pitch -0.01 arms.attack
-input 1348 1 face @355.7 pitch -0.01
-input 1349 1 face @355.7 pitch -0.01 arms.attack
-input 1351 1 face @355.7 pitch -0.01
-input 1352 1 face @355.7 pitch -0.01 arms.attack
-input 1353 1 face @355.6 pitch -0.01
-input 1354 1 face @355.6 pitch -0.01 arms.attack
-input 1355 1 face @355.6 pitch -0.01
-input 1356 1 face @355.6 pitch -0.011 arms.attack
-input 1357 1 face @355.6 pitch -0.011
-input 1358 1 face @355.6 pitch -0.011 arms.attack
-input 1359 1 face @355.6 pitch -0.011
-input 1360 1 face @355.6 pitch -0.011 arms.attack
-input 1361 1 face @355.6 pitch -0.011
-input 1362 1 face @355.5 pitch -0.011 arms.attack
-input 1363 1 face @355.5 pitch -0.011
-input 1364 1 face @355.5 pitch -0.011 arms.attack
-input 1366 1 face @355.5 pitch -0.011
-input 1367 1 face @355.5 pitch -0.011 arms.attack
-input 1368 1 face @355.5 pitch -0.011
-input 1369 100 move @177
-input 1369 1 face @355.5 pitch -0.011 arms.attack
-input 1370 1 face @355.4 pitch -0.011
-input 1371 1 face @355.4 pitch -0.011 arms.attack
-input 1372 1 face @355.4 pitch -0.011
-input 1373 1 face @355.4 pitch -0.011 arms.attack
-input 1374 102 move @174
-input 1374 1 face @355.4 pitch -0.011
-input 1375 1 face @355.4 pitch -0.011 arms.attack
-input 1376 1 face @355.4 pitch -0.012
-input 1377 1 face @355.4 pitch -0.012 arms.attack
-input 1378 1 face @355.3 pitch -0.012
-input 1379 1 face @355.3 pitch -0.012 arms.attack
-input 1381 1 face @355.3 pitch -0.012
-input 1382 1 face @355.3 pitch -0.012 arms.attack
-input 1383 1 face @355.3 pitch -0.012
-input 1384 102 move @172
-input 1384 103 move @181
-input 1384 1 face @355.3 pitch -0.012 arms.attack
-input 1385 1 face @355.3 pitch -0.012
-input 1386 1 face @355.2 pitch -0.012 arms.attack
-input 1387 1 face @355.2 pitch -0.012
-input 1388 1 face @355.2 pitch -0.012 arms.attack
-input 1389 1 face @355.2 pitch -0.012
-input 1390 1 face @355.2 pitch -0.012 arms.attack
-input 1391 1 face @355.2 pitch -0.012
-input 1392 1 face @355.1 pitch -0.013 arms.attack
-input 1393 1 face @355.1 pitch -0.013
-input 1394 1 face @355.1 pitch -0.013 arms.attack
-input 1396 1 face @355.1 pitch -0.013
-input 1397 1 face @355.1 pitch -0.013 arms.attack
-input 1398 100
-input 1398 105
-input 1398 1 face @355.1 pitch -0.013
-input 1399 100 move @196
-input 1399 105 move @165
-input 1399 1 face @355 pitch -0.013 arms.attack
-input 1400 1 face @355 pitch -0.013
-input 1401 1 face @355 pitch -0.013 arms.attack
-input 1402 1 face @355 pitch -0.013
-input 1403 1 face @355 pitch -0.013 arms.attack
-input 1404 1 face @355 pitch -0.013
-input 1405 1 face @354.9 pitch -0.013 arms.attack
-input 1406 1 face @354.9 pitch -0.013
-input 1407 1 face @354.9 pitch -0.014 arms.attack
-input 1408 1 face @354.9 pitch -0.014
-input 1409 103
-input 1409 1 face @354.9 pitch -0.014 arms.attack
-input 1410 103 move @180
-input 1410 1 face @354.8 pitch -0.014 arms.attack
-input 1411 1 face @354.8 pitch -0.014
-input 1412 1 face @354.8 pitch -0.014 arms.attack
-input 1413 1 face @354.8 pitch -0.014
-input 1414 1 face @354.8 pitch -0.014 arms.attack
-input 1415 1 face @354.8 pitch -0.014
-input 1416 1 face @354.7 pitch -0.014 arms.attack
-input 1417 102
-input 1417 1 face @354.7 pitch -0.014
-input 1418 102 move @180
-input 1418 1 face @354.7 pitch -0.014 arms.attack
-input 1419 101
-input 1419 1 face @352.5 pitch -0.012
-input 1420 1 face @352.5 pitch -0.012 arms.attack
-input 1421 1 face @352.4 pitch -0.012
-input 1422 1 face @352.3 pitch -0.012 arms.attack
-input 1423 1 face @352.3 pitch -0.012
-input 1424 1 face @352.1 pitch -0.012 arms.attack
-input 1426 1 face @352 pitch -0.012
-input 1427 1 face @352 pitch -0.012 arms.attack
-input 1428 1 face @351.8 pitch -0.013
-input 1429 1 face @351.8 pitch -0.013 arms.attack
-input 1430 1 face @351.7 pitch -0.013
-input 1431 1 face @351.7 pitch -0.013 arms.attack
-input 1432 1 face @351.5 pitch -0.013
-input 1433 1 face @351.5 pitch -0.013 arms.attack
-input 1434 1 face @351.4 pitch -0.013
-input 1435 1 face @351.4 pitch -0.013 arms.attack
-input 1436 1 face @351.2 pitch -0.013
-input 1437 1 face @9.8 pitch -0.013 arms.attack
-input 1438 1 face @9.8 pitch -0.013
-input 1439 1 face @9.9 pitch -0.013 arms.attack
-input 1440 1 face @10 pitch -0.013 arms.attack
-input 1441 1 face @10.1 pitch -0.013
-input 1442 1 face @10.1 pitch -0.013 arms.attack
-input 1443 1 face @10.3 pitch -0.013
-input 1444 1 face @10.3 pitch -0.013 arms.attack
-input 1445 105 move @187 run
-input 1445 1 face @10.4 pitch -0.013
-input 1446 1 face @350.5 pitch -0.013 arms.attack
-input 1447 1 face @350.4 pitch -0.013
-input 1448 1 face @10.6 pitch -0.013 arms.attack
-input 1449 1 face @10.6 pitch -0.013
-input 1450 1 face @10.6 pitch -0.013 arms.attack
-input 1451 1 face @10.6 pitch -0.014
-input 1452 1 face @10.6 pitch -0.014 arms.attack
-input 1453 1 face @10.6 pitch -0.014
-input 1454 1 face @10.7 pitch -0.014 arms.attack
-input 1456 1 face @10.7 pitch -0.014
-input 1457 1 face @10.7 pitch -0.014 arms.attack
-input 1458 1 face @10.8 pitch -0.014
-input 1459 1 face @10.8 pitch -0.014 arms.attack
-input 1460 1 face @10.8 pitch -0.014
-input 1461 1 face @10.8 pitch -0.014 arms.attack
-input 1462 1 face @10.8 pitch -0.014
-input 1463 1 face @10.9 pitch -0.015 arms.attack
-input 1464 1 face @10.9 pitch -0.015
-input 1465 1 face @10.9 pitch -0.015 arms.attack
-input 1466 100 move @171 run
-input 1466 1 face @10.9 pitch -0.015
-input 1467 1 face @11 pitch -0.015 arms.attack
-input 1468 1 face @11 pitch -0.015
-input 1469 1 face @11 pitch -0.015 arms.attack
-input 1471 1 face @11.1 pitch -0.015
-input 1472 1 face @11.1 pitch -0.015 arms.attack
-input 1473 1 face @11.1 pitch -0.015
-input 1474 1 face @11.1 pitch -0.016 arms.attack
-input 1475 1 face @11.2 pitch -0.016
-input 1476 1 face @11.2 pitch -0.016 arms.attack
-input 1477 1 face @11.2 pitch -0.016
-input 1478 1 face @11.3 pitch -0.016 arms.attack
-input 1479 1 face @11.3 pitch -0.016
-input 1480 1 face @11.3 pitch -0.016 arms.attack
-input 1481 105 move @188 run
-input 1481 1 face @11.3 pitch -0.016
-input 1482 1 face @11.4 pitch -0.016 arms.attack
-input 1483 1 face @11.4 pitch -0.017
-input 1484 105 face @191.5 pitch -0.022
-input 1484 1 face @11.4 pitch -0.017 arms.attack
-input 1486 1 face @11.5 pitch -0.017
-input 1487 1 face @11.5 pitch -0.017 arms.attack
-input 1488 1 face @11.5 pitch -0.017
-input 1489 1 face @11.5 pitch -0.017 arms.attack
-input 1490 1 face @11.5 pitch -0.017
-input 1491 105 face @191.5 pitch -0.023
-input 1491 1 face @11.5 pitch -0.017 arms.attack
-input 1492 1 face @11.5 pitch -0.017
-input 1493 1 face @11.5 pitch -0.017 arms.attack
-input 1494 100 face @168.1 pitch -0.022 arms.ready
-input 1494 1 face @11.5 pitch -0.017
-input 1495 1 face @11.5 pitch -0.017 arms.attack
-input 1496 105
-input 1496 1 face @348.1 pitch -0.017
-input 1497 1 face @348.1 pitch -0.017 arms.attack
-input 1498 1 face @348.1 pitch -0.017
-input 1499 100 face @168.1 pitch -0.023 arms.ready
-input 1499 1 face @348.1 pitch -0.017 arms.attack
-input 1501 1 face @348.1 pitch -0.017
-input 1502 1 face @348.1 pitch -0.017 arms.attack
-input 1503 1 face @348.1 pitch -0.017
-input 1504 1 face @348.1 pitch -0.017 arms.attack
-input 1505 1 face @348.1 pitch -0.017
-input 1506 1 face @348.1 pitch -0.017 arms.attack
-input 1507 1 face @348.1 pitch -0.017
-input 1508 1 face @348.1 pitch -0.017 arms.attack
-input 1509 100 face @168.1 pitch -0.023
-input 1509 1 face @348.1 pitch -0.017
-input 1510 1 face @348.1 pitch -0.017 arms.attack
-input 1511 1 face @348.1 pitch -0.017
-input 1512 1 face @348.1 pitch -0.017 arms.attack
-input 1513 1 face @348.1 pitch -0.017
-input 1514 1 face @348.1 pitch -0.017 arms.attack
-input 1516 1 face @348.1 pitch -0.017
-input 1517 1 face @348.1 pitch -0.017 arms.attack
-input 1518 1 face @348.1 pitch -0.017
-input 1519 1 face @348.1 pitch -0.017 arms.attack
-input 1520 1 face @348.1 pitch -0.017
-input 1521 1 face @0.8 pitch -0.017 arms.attack
-input 1522 103 move @169 run
-input 1522 1 face @0.8 pitch -0.017
-input 1523 1 face @0.8 pitch -0.017 arms.attack
-input 1524 1 face @0.9 pitch -0.017
-input 1525 102 move @179
-input 1525 1 face @0.9 pitch -0.018 arms.attack
-input 1526 1 face @1.1 pitch -0.018
-input 1527 1 face @1.1 pitch -0.018 arms.attack
-input 1528 1 face @1.2 pitch -0.018
-input 1529 1 face @1.3 pitch -0.018 arms.attack
-input 1530 1 face @1.4 pitch -0.018 arms.attack
-input 1531 1 face @1.5 pitch -0.018
-input 1532 1 face @1.6 pitch -0.019 arms.attack
-input 1533 100 face @168.1 pitch -0.023 arms.ready
-input 1533 1 face @1.7 pitch -0.019
-input 1534 1 face @1.8 pitch -0.019 arms.attack
-input 1535 1 face @1.9 pitch -0.019
-input 1536 1 face @2 pitch -0.019 arms.attack
-input 1537 1 face @2.1 pitch -0.019
-input 1538 1 face @2.2 pitch -0.019 arms.attack
-input 1539 1 face @2.3 pitch -0.02
-input 1540 1 face @2.4 pitch -0.02 arms.attack
-input 1541 1 face @2.6 pitch -0.02
-input 1542 1 face @2.6 pitch -0.02 arms.attack
-input 1543 1 face @2.8 pitch -0.02
-input 1544 1 face @2.9 pitch -0.02 arms.attack
-input 1545 1 face @3 pitch -0.021 arms.attack
-input 1546 1 face @3.1 pitch -0.021
-input 1547 1 face @3.3 pitch -0.021 arms.attack
-input 1548 1 face @3.3 pitch -0.021
-input 1549 1 face @3.5 pitch -0.021 arms.attack
-input 1550 1 face @3.6 pitch -0.021
-input 1551 1 face @3.8 pitch -0.021 arms.attack
-input 1552 100 face @164.5 pitch -0.03 arms.attack
-input 1552 1 face @3.9 pitch -0.022
-input 1553 100 face @168 pitch -0.023
-input 1553 1 face @4 pitch -0.022 arms.attack
-input 1554 1 face @4.2 pitch -0.022
-input 1555 1 face @4.3 pitch -0.022 arms.attack
-input 1556 1 face @4.5 pitch -0.023
-input 1557 1 face @4.6 pitch -0.023 arms.attack
-input 1558 1 face @4.8 pitch -0.023
-input 1559 1 face @4.9 pitch -0.023 arms.attack
-input 1560 103
-input 1560 1 face @0.7 pitch -0.02 arms.attack
-input 1561 1 face @0.7 pitch -0.02
-input 1562 1 face @0.7 pitch -0.02 arms.attack
-input 1563 1 face @0.7 pitch -0.02
-input 1564 1 face @0.7 pitch -0.02 arms.attack
-input 1565 1 face @0.7 pitch -0.02
-input 1566 1 face @0.7 pitch -0.02 arms.attack
-input 1567 1 face @0.7 pitch -0.02
-input 1568 1 face @0.7 pitch -0.021 arms.attack
-input 1569 1 face @0.7 pitch -0.021
-input 1570 1 face @0.7 pitch -0.021 arms.attack
-input 1571 1 face @0.7 pitch -0.021
-input 1572 1 face @0.7 pitch -0.021 arms.attack
-input 1573 102 move @162 run
-input 1573 1 face @0.7 pitch -0.021
-input 1574 1 face @0.8 pitch -0.021 arms.attack
-input 1575 1 face @0.9 pitch -0.021 arms.attack
-input 1576 1 face @1 pitch -0.022
-input 1577 1 face @1.2 pitch -0.022 arms.attack
-input 1578 1 face @1.4 pitch -0.022
-input 1579 1 face @1.5 pitch -0.022 arms.attack
-input 1580 1 face @1.7 pitch -0.022
-input 1581 1 face @1.9 pitch -0.023 arms.attack
-input 1582 1 face @2.1 pitch -0.023
-input 1583 1 face @2.3 pitch -0.023 arms.attack
-input 1584 1 face @2.5 pitch -0.023
-input 1585 1 face @2.7 pitch -0.023 arms.attack
-input 1586 1 face @2.9 pitch -0.024
-input 1587 1 face @3.1 pitch -0.024 arms.attack
-input 1588 1 face @3.1 pitch -0.024
-input 1589 102 move @161 run
-input 1589 1 face @2.9 pitch -0.024 arms.attack
-input 1590 102 move @160 run
-input 1590 1 face @2.8 pitch -0.024 arms.attack
-input 1591 1 face @2.8 pitch -0.024
-input 1592 1 face @2.8 pitch -0.025 arms.attack
-input 1593 102 move @159 run
-input 1593 1 face @2.8 pitch -0.025
-input 1594 1 face @3.1 pitch -0.025 arms.attack
-input 1595 1 face @3.4 pitch -0.025
-input 1596 1 face @3.8 pitch -0.025 arms.attack
-input 1597 100 face @168 pitch -0.023 arms.ready
-input 1597 1 face @4 pitch -0.026
-input 1598 1 face @4.3 pitch -0.026 arms.attack
-input 1599 1 face @4.6 pitch -0.026
-input 1600 1 face @4.8 pitch -0.026 arms.attack
-input 1601 1 face @5.1 pitch -0.027
-input 1602 1 face @5.4 pitch -0.027 arms.attack
-input 1603 1 face @5.7 pitch -0.027
-input 1604 1 face @6 pitch -0.028 arms.attack
-input 1605 1 face @6.3 pitch -0.028 arms.attack
-input 1606 1 face @6.6 pitch -0.028
-input 1607 1 face @6.9 pitch -0.028 arms.attack
-input 1608 1 face @7.2 pitch -0.029
-input 1609 1 face @7.6 pitch -0.029 arms.attack
-input 1610 1 face @7.9 pitch -0.029
-input 1611 1 face @8.2 pitch -0.03 arms.attack
-input 1612 102
-input 1612 1 face @348 pitch -0.017
-input 1613 1 face @348 pitch -0.017 arms.attack
-input 1614 1 face @348 pitch -0.017
-input 1615 1 face @348 pitch -0.017 arms.attack
-input 1616 100 face @167.4 pitch -0.016 arms.attack
-input 1616 1 face @348 pitch -0.017
-input 1617 100 face @168 pitch -0.023
-input 1617 1 face @348 pitch -0.017 arms.attack
-input 1618 1 face @348 pitch -0.017
-input 1619 1 face @348 pitch -0.017 arms.attack
-input 1621 1 face @348 pitch -0.017
-input 1622 1 face @348 pitch -0.017 arms.attack
-input 1623 1 face @348 pitch -0.017
-input 1624 1 face @348 pitch -0.017 arms.attack
-input 1625 1 face @348 pitch -0.017
-input 1626 1 face @348 pitch -0.017 arms.attack
-input 1627 1 face @348 pitch -0.017
-input 1628 1 face @348 pitch -0.017 arms.attack
-input 1629 1 face @348 pitch -0.017
-input 1630 1 face @348 pitch -0.017 arms.attack
-input 1631 1 face @348 pitch -0.017
-input 1632 1 face @348 pitch -0.017 arms.attack
-input 1633 1 face @348 pitch -0.017
-input 1634 1 face @348 pitch -0.017 arms.attack
-input 1636 1 face @348 pitch -0.017
-input 1637 1 face @348 pitch -0.017 arms.attack
-input 1638 1 face @348 pitch -0.017
-input 1639 1 face @348 pitch -0.017 arms.attack
-input 1640 1 face @348 pitch -0.017
-input 1641 1 face @348 pitch -0.017 arms.attack
-input 1642 1 face @348 pitch -0.017
-input 1643 1 face @348 pitch -0.017 arms.attack
-input 1644 1 face @348 pitch -0.017
-input 1645 1 face @348 pitch -0.017 arms.attack
-input 1646 1 face @348 pitch -0.017
-input 1647 1 face @348 pitch -0.017 arms.attack
-input 1648 1 face @348 pitch -0.017
-input 1649 1 face @348 pitch -0.017 arms.attack
-end 1649 ff4913da
+input 1 1 face @1.6 pitch -0.014 arms.attack
+input 2 100 move @182 run
+input 2 101 move @178 run
+input 2 102 move @195 run
+input 2 1 face @1.6 pitch -0.013
+input 3 1 face @1.6 pitch -0.013 arms.attack
+input 4 1 face @1.6 pitch -0.013
+input 5 1 face @1.6 pitch -0.012 arms.attack
+input 6 1 face @1.6 pitch -0.012
+input 7 1 face @1.6 pitch -0.011 arms.attack
+input 8 1 face @1.6 pitch -0.011
+input 9 1 face @1.6 pitch -0.011 arms.attack
+input 10 1 face @1.6 pitch -0.012
+input 11 1 face @1.6 pitch -0.013 arms.attack
+input 12 1 face @1.6 pitch -0.014
+input 13 1 face @1.6 pitch -0.014 arms.attack
+input 14 1 face @1.6 pitch -0.014
+input 15 1 face @1.6 pitch -0.014 arms.attack
+input 16 1 face @1.6 pitch -0.014
+input 17 1 face @14.6 pitch -0.013 arms.attack
+input 18 1 face @14.6 pitch -0.013
+input 19 1 face @14.6 pitch -0.013 arms.attack
+input 20 1 face @14.6 pitch -0.013
+input 21 1 face @14.6 pitch -0.013 arms.attack
+input 22 1 face @14.6 pitch -0.013
+input 23 1 face @14.6 pitch -0.013 arms.attack
+input 24 1 face @14.6 pitch -0.013
+input 25 1 face @14.6 pitch -0.013 arms.attack
+input 26 1 face @14.6 pitch -0.013
+input 27 1 face @14.6 pitch -0.013 arms.attack
+input 28 1 face @14.6 pitch -0.013
+input 29 1 face @14.6 pitch -0.013 arms.attack
+input 30 1 face @14.6 pitch -0.014
+input 31 1 face @14.6 pitch -0.014 arms.attack
+input 32 1 face @14.6 pitch -0.014
+input 33 1 face @14.6 pitch -0.014 arms.attack
+input 34 1 face @14.6 pitch -0.014
+input 35 1 face @14.6 pitch -0.014 arms.attack
+input 36 1 face @14.6 pitch -0.014
+input 37 1 face @14.6 pitch -0.014 arms.attack
+input 38 1 face @14.6 pitch -0.014
+input 39 1 face @14.6 pitch -0.014 arms.attack
+input 40 1 face @14.6 pitch -0.014
+input 41 1 face @14.6 pitch -0.014 arms.attack
+input 42 1 face @14.6 pitch -0.014
+input 43 1 face @14.6 pitch -0.014 arms.attack
+input 44 1 face @14.6 pitch -0.014
+input 45 1 face @14.6 pitch -0.014 arms.attack
+input 46 1 face @14.6 pitch -0.014
+input 47 1 face @14.6 pitch -0.014 arms.attack
+input 48 1 face @14.6 pitch -0.015
+input 49 1 face @14.6 pitch -0.015 arms.attack
+input 50 102
+input 50 1 move @0
+input 68 100 move @181 run
+input 68 101 move @179 run
+input 109 1
+input 165 100 move @43 run
+input 165 101 move @316 run
+input 169 100 move @44 run
+input 169 1 move @315
+input 170 101 move @315 run
+input 171 100 move @123 run
+input 171 101 move @238 run
+input 172 100 move @126 run
+input 172 101 move @235 run
+input 173 100 move @128 run
+input 173 101 move @232 run
+input 174 100 move @131 run
+input 174 101 move @230 run
+input 175 100 move @133 run
+input 175 101 move @227 run
+input 176 100 move @135 run
+input 176 101 move @225 run
+input 177 100 move @137 run
+input 177 101 move @223 run
+input 178 100 move @139 run
+input 178 101 move @221 run
+input 179 100 move @141 run
+input 179 101 face @175.3 pitch -0.024
+input 179 1 face @357.5 pitch -0.019 arms.attack
+input 180 100 face @184 pitch -0.024
+input 180 101 face @175.2 pitch -0.024
+input 180 1 face @357.3 pitch -0.019
+input 181 100 face @184.4 pitch -0.025
+input 181 1 face @357.3 pitch -0.019 arms.attack
+input 182 100 face @184.8 pitch -0.025
+input 182 101 face @175.2 pitch -0.025
+input 182 1 face @357.2 pitch -0.019
+input 183 100 face @185.3 pitch -0.025
+input 183 101 face @175.5 pitch -0.025
+input 183 1 face @357.1 pitch -0.019 arms.attack
+input 184 100 face @185.8 pitch -0.025
+input 184 101 face @175.7 pitch -0.025
+input 184 1 face @357.1 pitch -0.019
+input 185 100 face @186.2 pitch -0.025
+input 185 101 face @176 pitch -0.025
+input 185 1 face @357 pitch -0.019 arms.attack
+input 186 100 face @186.5 pitch -0.025
+input 186 101 face @176.2 pitch -0.025
+input 186 1 face @357 pitch -0.019
+input 187 100 face @186.7 pitch -0.025
+input 187 101 face @176.4 pitch -0.025
+input 187 1 face @7.3 pitch -0.019 arms.attack
+input 188 100 face @186.9 pitch -0.025
+input 188 101 face @176.5 pitch -0.025
+input 188 1 face @7.3 pitch -0.019
+input 189 101 face @176.6 pitch -0.025
+input 189 1 face @7.3 pitch -0.019 arms.attack
+input 190 100 face @187.1 pitch -0.025
+input 190 101 face @176.7 pitch -0.025
+input 190 1 face @7.3 pitch -0.019
+input 191 1 face @7.3 pitch -0.019 arms.attack
+input 192 100
+input 192 101 face @176.8 pitch -0.025
+input 192 1 face @357 pitch -0.019
+input 193 1 face @357 pitch -0.019 arms.attack
+input 194 1 face @357 pitch -0.019
+input 195 101 face @176.9 pitch -0.026
+input 195 1 face @357 pitch -0.019 arms.attack
+input 196 1 face @357 pitch -0.019
+input 197 1 face @357 pitch -0.019 arms.attack
+input 198 1 face @357 pitch -0.019
+input 199 1 face @357 pitch -0.019 arms.attack
+input 200 1 face @357 pitch -0.019
+input 201 1 face @357 pitch -0.019 arms.attack
+input 202 1 face @357 pitch -0.019
+input 203 1 face @357 pitch -0.019 arms.attack
+input 204 101
+input 204 1 move @315
+input 263 1 move @316
+input 269 1 move @317
+input 274 1 move @318
+input 280 1 move @319
+input 286 1 move @320
+input 291 1 move @321
+input 330 1 move @322
+input 437 103 face @95.6 pitch -0.058
+input 437 1 face @269.6 pitch -0.048
+input 438 103 face @95.3 pitch -0.058
+input 438 1 face @269.2 pitch -0.048 arms.attack
+input 439 103 face @94.7 pitch -0.058
+input 439 1 face @268.8 pitch -0.048
+input 440 103 face @94 pitch -0.059
+input 440 1 face @268.6 pitch -0.048 arms.attack
+input 441 103 face @93.1 pitch -0.06
+input 441 1 face @268.4 pitch -0.049
+input 442 103 face @92.2 pitch -0.061
+input 442 1 face @268.4 pitch -0.049 arms.attack
+input 443 103 face @91.4 pitch -0.061
+input 443 1 face @268.4 pitch -0.049
+input 444 103 face @90.7 pitch -0.062
+input 444 1 face @268.4 pitch -0.049 arms.attack
+input 445 103 face @90.2 pitch -0.063
+input 445 1 face @268.4 pitch -0.049
+input 446 103 face @89.8 pitch -0.063
+input 446 1 face @268.4 pitch -0.049 arms.attack
+input 447 103 face @89.4 pitch -0.063
+input 447 1 face @268.4 pitch -0.049
+input 448 103 face @89.2 pitch -0.063
+input 448 1 face @268.4 pitch -0.049 arms.attack
+input 449 103 face @89 pitch -0.063
+input 449 1 face @268.4 pitch -0.049
+input 450 103 face @88.9 pitch -0.064
+input 450 1 face @268.4 pitch -0.049 arms.attack
+input 451 103
+input 451 1 move @322
+input 464 1 move @274
+input 466 1 move @272
+input 494 1 move @271
+input 496 1
+input 556 1 move @226
+input 631 1 move @93
+input 633 1 move @92
+input 635 1 move @91
+input 637 1 move @90
+input 663 1 move @89
+input 686 1 move @335
+input 689 1 move @334
+input 703 1 move @333
+input 806 1 move @76
+input 808 1 move @78
+input 810 1 move @80
+input 814 1 move @81
+input 847 1 use
+input 848 1
+input 919 1 move @16
+input 941 1 move @17
+input 946 1 move @2
+input 966 1 move @95
+input 967 1 move @97
+input 968 1 move @98
+input 969 1 move @100
+input 971 1 move @102
+input 978 1 move @103
+input 993 1 move @103:0.98
+input 994 1 move @103:0.74
+input 995 1 move @103:0.54
+input 996 1 move @103:0.38
+input 997 1 move @302
+input 1001 1 move @301
+input 1015 1 move @300
+input 1020 1 move @300:0.98
+input 1021 1 move @300:0.74
+input 1022 1 move @300:0.54
+input 1023 1 move @300:0.38
+input 1024 1 move @189
+input 1030 1 move @188
+input 1050 1 move @187
+input 1052 1 move @186
+input 1066 1 move @185
+input 1071 1 move @151
+input 1079 1 move @150
+input 1148 1 move @91
+input 1484 1 move @90
+input 1519 1 face @297.5 pitch -0.012 arms.attack
+input 1520 1 face @297.5 pitch -0.012
+input 1521 1 face @297.3 pitch -0.012 arms.attack
+input 1522 1 face @297.3 pitch -0.013
+input 1523 1 face @297.3 pitch -0.013 arms.attack
+input 1524 1 face @297.3 pitch -0.014
+input 1525 1 face @297.3 pitch -0.014 arms.attack
+input 1526 1 face @297.3 pitch -0.015
+input 1527 1 face @297.3 pitch -0.016 arms.attack
+input 1528 1 face @297.3 pitch -0.017
+input 1529 1 face @297.3 pitch -0.018 arms.attack
+input 1530 1 face @297.3 pitch -0.02
+input 1531 101 move @131 run
+input 1531 1 face @297.3 pitch -0.02 arms.attack
+input 1532 1 face @297.3 pitch -0.02
+input 1533 1 face @297.3 pitch -0.02 arms.attack
+input 1534 1 face @297.2 pitch -0.02
+input 1535 1 face @297.2 pitch -0.02 arms.attack
+input 1536 1 face @297.1 pitch -0.02
+input 1537 1 face @297 pitch -0.02 arms.attack
+input 1538 1 face @296.9 pitch -0.02
+input 1539 1 face @296.8 pitch -0.02 arms.attack
+input 1540 1 face @296.7 pitch -0.02
+input 1541 1 face @296.5 pitch -0.021 arms.attack
+input 1542 1 face @296.4 pitch -0.021
+input 1543 1 face @296.2 pitch -0.021 arms.attack
+input 1544 1 face @296.1 pitch -0.021
+input 1545 1 face @295.9 pitch -0.021 arms.attack
+input 1546 1 face @295.8 pitch -0.022
+input 1547 1 face @295.6 pitch -0.022 arms.attack
+input 1548 1 face @295.4 pitch -0.022
+input 1549 1 face @295.2 pitch -0.022 arms.attack
+input 1550 1 face @295.1 pitch -0.023
+input 1551 1 face @294.9 pitch -0.023 arms.attack
+input 1552 1 face @294.7 pitch -0.023
+input 1553 1 face @294.5 pitch -0.023 arms.attack
+input 1554 1 face @294.3 pitch -0.024
+input 1555 1 face @294.1 pitch -0.024 arms.attack
+input 1556 1 face @293.9 pitch -0.024
+input 1557 1 face @293.7 pitch -0.024 arms.attack
+input 1558 1 face @293.5 pitch -0.025
+input 1559 1 face @293.3 pitch -0.025 arms.attack
+input 1560 1 face @293.1 pitch -0.025
+input 1561 1 face @292.8 pitch -0.026 arms.attack
+input 1562 1 face @292.6 pitch -0.026
+input 1563 1 face @292.4 pitch -0.026 arms.attack
+input 1564 1 face @292.1 pitch -0.027
+input 1565 1 face @291.9 pitch -0.027 arms.attack
+input 1566 1 face @291.6 pitch -0.027
+input 1567 1 face @291.4 pitch -0.027 arms.attack
+input 1568 1 face @291.1 pitch -0.028
+input 1569 1 face @290.8 pitch -0.028 arms.attack
+input 1570 1 face @290.5 pitch -0.029
+input 1571 1 face @290.2 pitch -0.029 arms.attack
+input 1572 1 face @289.9 pitch -0.03
+input 1573 1 face @289.6 pitch -0.03 arms.attack
+input 1574 1 face @289.3 pitch -0.03
+input 1575 1 face @289 pitch -0.031 arms.attack
+input 1576 101 move @132 run
+input 1576 1 face @288.6 pitch -0.031
+input 1577 1 face @288.3 pitch -0.032 arms.attack
+input 1578 1 face @287.9 pitch -0.032
+input 1579 1 face @287.5 pitch -0.033 arms.attack
+input 1580 1 face @287.1 pitch -0.033
+input 1581 1 face @286.7 pitch -0.034 arms.attack
+input 1582 1 face @286.3 pitch -0.034
+input 1583 1 face @285.9 pitch -0.035 arms.attack
+input 1584 1 face @285.4 pitch -0.035
+input 1585 1 face @285 pitch -0.036 arms.attack
+input 1586 1 face @284.5 pitch -0.036
+input 1587 1 face @284 pitch -0.037 arms.attack
+input 1588 1 face @283.5 pitch -0.038
+input 1589 1 face @283 pitch -0.038 arms.attack
+input 1590 1 face @282.4 pitch -0.039
+input 1591 1 face @281.9 pitch -0.04 arms.attack
+input 1592 1 face @281.3 pitch -0.04
+input 1593 1 face @280.7 pitch -0.041 arms.attack
+input 1594 1 face @280 pitch -0.042
+input 1595 1 face @279.4 pitch -0.042 arms.attack
+input 1596 1 face @278.7 pitch -0.043
+input 1597 1 face @278 pitch -0.044 arms.attack
+input 1598 1 face @277.3 pitch -0.045
+input 1599 1 face @276.6 pitch -0.046 arms.attack
+input 1600 1 face @275.8 pitch -0.047
+input 1601 1 face @275 pitch -0.047 arms.attack
+input 1602 101 move @96 run
+input 1602 1 face @274.1 pitch -0.048
+input 1603 1 face @273.4 pitch -0.049 arms.attack
+input 1604 1 face @272.7 pitch -0.05
+input 1605 101 move @95 run
+input 1605 1 face @272.2 pitch -0.052 arms.attack
+input 1606 1 face @271.7 pitch -0.053
+input 1607 101 move @94 run
+input 1607 1 face @271.4 pitch -0.054 arms.attack
+input 1608 1 face @271.2 pitch -0.056
+input 1609 1 face @271.1 pitch -0.057 arms.attack
+input 1610 1 face @271.1 pitch -0.059
+input 1611 1 face @270.9 pitch -0.061 arms.attack
+input 1612 1 face @270.9 pitch -0.062
+input 1613 1 face @270.7 pitch -0.064 arms.attack
+input 1614 1 face @270.7 pitch -0.067
+input 1615 1 face @270.5 pitch -0.069 arms.attack
+input 1616 1 face @270.4 pitch -0.071
+input 1617 1 face @270.2 pitch -0.074 arms.attack
+input 1618 1 face @270.1 pitch -0.077
+input 1619 1 face @269.9 pitch -0.08 arms.attack
+input 1620 1 face @269.7 pitch -0.083
+input 1621 1 face @269.6 pitch -0.087 arms.attack
+input 1622 1 face @269.4 pitch -0.091
+input 1623 1 face @269.1 pitch -0.095 arms.attack
+input 1624 1 face @268.9 pitch -0.1
+input 1625 1 face @268.6 pitch -0.104 arms.attack
+input 1626 1 face @268.3 pitch -0.111
+input 1627 1 face @268 pitch -0.117 arms.attack
+input 1628 1 face @267.6 pitch -0.124
+input 1629 1 face @267.2 pitch -0.132 arms.attack
+input 1630 1 face @266.7 pitch -0.141
+input 1631 1 face @266.1 pitch -0.152 arms.attack
+input 1632 1 face @265.5 pitch -0.164
+input 1633 1 face @264.7 pitch -0.178 arms.attack
+input 1634 101 face @83.8 arms.attack
+input 1634 1 face @263.8 pitch -0.195
+input 1635 101 face @82.7
+input 1635 1 face @262.7 pitch -0.212 arms.attack
+input 1636 101 face @81.6 arms.attack
+input 1636 1 face @261.6 pitch -0.231
+input 1637 101 face @80.4
+input 1637 1 face @260.4 pitch -0.251 arms.attack
+input 1638 101 face @79.2 arms.attack
+input 1638 1 face @259.2 pitch -0.27
+input 1639 101 face @78
+input 1639 1 face @258 pitch -0.289 arms.attack
+input 1640 101 face @76.8 arms.attack
+input 1640 1 face @256.8 pitch -0.307
+input 1641 101
+input 1641 1 face @295.3 pitch -0.018 arms.attack
+input 1642 1 face @295.3 pitch -0.018
+input 1643 1 face @295.3 pitch -0.018 arms.attack
+input 1644 1 face @295.3 pitch -0.018
+input 1645 1 face @295.3 pitch -0.018 arms.attack
+input 1646 1 face @295.3 pitch -0.018
+input 1647 1 face @295.3 pitch -0.018 arms.attack
+input 1648 1 face @295.3 pitch -0.018
+input 1649 1 face @295.3 pitch -0.018 arms.attack
+input 1650 1 face @295.3 pitch -0.018
+input 1651 1 face @295.3 pitch -0.018 arms.attack
+input 1652 1 face @295.3 pitch -0.018
+input 1653 1 face @295.3 pitch -0.018 arms.attack
+input 1654 1 face @295.3 pitch -0.018
+input 1655 1 face @295.3 pitch -0.018 arms.attack
+input 1656 1 face @295.3 pitch -0.018
+input 1657 1 face @295.3 pitch -0.018 arms.attack
+input 1658 1 face @295.3 pitch -0.018
+input 1659 1 face @295.3 pitch -0.018 arms.attack
+input 1660 1 face @295.3 pitch -0.018
+input 1661 1 face @295.3 pitch -0.018 arms.attack
+input 1662 1 face @295.3 pitch -0.018
+input 1663 1 face @295.3 pitch -0.018 arms.attack
+input 1664 1 face @295.3 pitch -0.018
+input 1665 1 face @295.3 pitch -0.018 arms.attack
+input 1666 1 face @295.3 pitch -0.018
+input 1667 1 face @295.3 pitch -0.018 arms.attack
+input 1668 1 face @295.3 pitch -0.018
+input 1669 1 face @295.3 pitch -0.018 arms.attack
+input 1670 1 face @295.3 pitch -0.018
+input 1671 1 face @295.3 pitch -0.018 arms.attack
+input 1672 100 move @127 run
+input 1672 1 face @295.3 pitch -0.018
+input 1673 1 face @295.3 pitch -0.018 arms.attack
+input 1674 1 face @295.3 pitch -0.018
+input 1675 1 face @295.3 pitch -0.018 arms.attack
+input 1676 1 face @295.3 pitch -0.018
+input 1677 1 face @295.2 pitch -0.019 arms.attack
+input 1678 1 face @295.2 pitch -0.019
+input 1679 1 face @295 pitch -0.019 arms.attack
+input 1680 1 face @295 pitch -0.019
+input 1681 1 face @294.9 pitch -0.019 arms.attack
+input 1682 1 face @294.8 pitch -0.019
+input 1683 1 face @294.6 pitch -0.019 arms.attack
+input 1684 1 face @294.6 pitch -0.02
+input 1685 1 face @294.4 pitch -0.02 arms.attack
+input 1686 1 face @294.3 pitch -0.02
+input 1687 1 face @294.1 pitch -0.02 arms.attack
+input 1688 1 face @294.1 pitch -0.02
+input 1689 1 face @293.9 pitch -0.02 arms.attack
+input 1690 1 face @293.7 pitch -0.021
+input 1691 1 face @293.7 pitch -0.021 arms.attack
+input 1692 1 face @293.5 pitch -0.021
+input 1693 1 face @293.3 pitch -0.021 arms.attack
+input 1694 1 face @293.2 pitch -0.022
+input 1695 1 face @293 pitch -0.022 arms.attack
+input 1696 1 face @292.9 pitch -0.022
+input 1697 1 face @292.7 pitch -0.022 arms.attack
+input 1698 1 face @292.6 pitch -0.023
+input 1699 1 face @292.4 pitch -0.023 arms.attack
+input 1700 1 face @292.2 pitch -0.023
+input 1701 1 face @292.1 pitch -0.023 arms.attack
+input 1702 1 face @291.9 pitch -0.024
+input 1703 1 face @291.7 pitch -0.024 arms.attack
+input 1704 1 face @291.5 pitch -0.024
+input 1705 1 face @291.3 pitch -0.024 arms.attack
+input 1706 1 face @291.1 pitch -0.025
+input 1707 1 face @290.9 pitch -0.025 arms.attack
+input 1708 1 face @290.7 pitch -0.025
+input 1709 1 face @290.5 pitch -0.026 arms.attack
+input 1710 1 face @290.3 pitch -0.026
+input 1711 1 face @290.1 pitch -0.026 arms.attack
+input 1712 1 face @289.9 pitch -0.027
+input 1713 1 face @289.7 pitch -0.027 arms.attack
+input 1714 1 face @289.4 pitch -0.027
+input 1715 1 face @289.2 pitch -0.028 arms.attack
+input 1716 1 face @288.9 pitch -0.028
+input 1717 1 face @288.7 pitch -0.028 arms.attack
+input 1718 1 face @288.4 pitch -0.029
+input 1719 1 face @288.2 pitch -0.029 arms.attack
+input 1720 1 face @287.9 pitch -0.03
+input 1721 1 face @287.6 pitch -0.03 arms.attack
+input 1722 1 face @287.3 pitch -0.03
+input 1723 1 face @287 pitch -0.031 arms.attack
+input 1724 1 face @286.7 pitch -0.031
+input 1725 1 face @286.4 pitch -0.032 arms.attack
+input 1726 1 face @286.1 pitch -0.032
+input 1727 100 move @128 run
+input 1727 1 face @285.7 pitch -0.033 arms.attack
+input 1728 1 face @285.4 pitch -0.033
+input 1729 1 face @285 pitch -0.034 arms.attack
+input 1730 1 face @284.6 pitch -0.034
+input 1731 1 face @284.2 pitch -0.035 arms.attack
+input 1732 1 face @283.8 pitch -0.035
+input 1733 1 face @283.4 pitch -0.036 arms.attack
+input 1734 1 face @283 pitch -0.036
+input 1735 1 face @282.5 pitch -0.037 arms.attack
+input 1736 1 face @282 pitch -0.038
+input 1737 1 face @281.5 pitch -0.038 arms.attack
+input 1738 1 face @281 pitch -0.039
+input 1739 1 face @280.5 pitch -0.04 arms.attack
+input 1740 1 face @280 pitch -0.041
+input 1741 1 face @279.4 pitch -0.041 arms.attack
+input 1742 1 face @278.9 pitch -0.042
+input 1743 1 face @278.3 pitch -0.043 arms.attack
+input 1744 1 face @277.6 pitch -0.044
+input 1745 1 face @277 pitch -0.044 arms.attack
+input 1746 1 face @276.3 pitch -0.045
+input 1747 1 face @275.6 pitch -0.046 arms.attack
+input 1748 1 face @274.9 pitch -0.047
+input 1749 100 move @96 run
+input 1749 1 face @274.1 pitch -0.048 arms.attack
+input 1750 1 face @273.5 pitch -0.049
+input 1751 1 face @272.9 pitch -0.05 arms.attack
+input 1752 100 move @95 run
+input 1752 1 face @272.4 pitch -0.051
+input 1753 1 face @272.1 pitch -0.053 arms.attack
+input 1754 1 face @271.9 pitch -0.054
+input 1755 1 face @271.7 pitch -0.055 arms.attack
+input 1756 1 face @271.7 pitch -0.057
+input 1757 1 face @271.6 pitch -0.059 arms.attack
+input 1758 1 face @271.4 pitch -0.061
+input 1759 1 face @271.4 pitch -0.062 arms.attack
+input 1760 1 face @271.2 pitch -0.064
+input 1761 1 face @271.1 pitch -0.067 arms.attack
+input 1762 1 face @271 pitch -0.069
+input 1763 1 face @270.8 pitch -0.071 arms.attack
+input 1764 1 face @270.7 pitch -0.074
+input 1765 1 face @270.5 pitch -0.077 arms.attack
+input 1766 1 face @270.3 pitch -0.08
+input 1767 1 face @270.1 pitch -0.083 arms.attack
+input 1768 100 move @94 run
+input 1768 1 face @269.9 pitch -0.086
+input 1769 1 face @269.7 pitch -0.091 arms.attack
+input 1770 1 face @269.5 pitch -0.095
+input 1771 1 face @269.3 pitch -0.099 arms.attack
+input 1772 1 face @269 pitch -0.105
+input 1773 1 face @268.8 pitch -0.11 arms.attack
+input 1774 1 face @268.4 pitch -0.117
+input 1775 1 face @268.1 pitch -0.123 arms.attack
+input 1776 1 face @267.7 pitch -0.132
+input 1777 1 face @267.2 pitch -0.141 arms.attack
+input 1778 1 face @266.7 pitch -0.151
+input 1779 1 face @266.1 pitch -0.164 arms.attack
+input 1780 1 face @265.4 pitch -0.177
+input 1781 100
+input 1781 1 move @90
+input 1790 1
+input 1880 1 move @54
+input 1947 1 move @246
+input 1956 1 move @245
+input 2045 1 move @300
+input 2201 1 move @299
+input 2243 1
+input 2333 1 move @359
+input 2376 1 face @3.6 pitch -0.019 arms.attack
+input 2377 1 face @3.6 pitch -0.02
+input 2378 1 face @3.6 pitch -0.02 arms.attack
+input 2379 1 face @3.6 pitch -0.021
+input 2380 1 face @3.6 pitch -0.022 arms.attack
+input 2381 1 face @3.6 pitch -0.023
+input 2382 1 face @3.6 pitch -0.024 arms.attack
+input 2383 1 face @3.6 pitch -0.025
+input 2384 101 move @182 run
+input 2384 1 face @3.6 pitch -0.026 arms.attack
+input 2385 1 face @3.6 pitch -0.028
+input 2386 1 face @3.6 pitch -0.03 arms.attack
+input 2387 1 face @3.6 pitch -0.032
+input 2388 1 face @3.6 pitch -0.032 arms.attack
+input 2389 1 face @3.6 pitch -0.032
+input 2390 1 face @3.6 pitch -0.033 arms.attack
+input 2391 1 face @3.7 pitch -0.033
+input 2392 1 face @3.7 pitch -0.033 arms.attack
+input 2393 1 face @3.7 pitch -0.034
+input 2394 1 face @3.7 pitch -0.034 arms.attack
+input 2395 1 face @3.7 pitch -0.035
+input 2396 1 face @3.8 pitch -0.035 arms.attack
+input 2397 1 face @3.8 pitch -0.036
+input 2398 1 face @3.8 pitch -0.037 arms.attack
+input 2399 1 face @3.9 pitch -0.037
+input 2400 1 face @3.9 pitch -0.038 arms.attack
+input 2401 1 face @3.9 pitch -0.039
+input 2402 1 face @4 pitch -0.039 arms.attack
+input 2403 1 face @4 pitch -0.04
+input 2404 1 face @4.1 pitch -0.041 arms.attack
+input 2405 1 face @4.1 pitch -0.042
+input 2406 1 face @4.2 pitch -0.043 arms.attack
+input 2407 1 face @4.2 pitch -0.044
+input 2408 1 face @4.3 pitch -0.045 arms.attack
+input 2409 1 face @4.3 pitch -0.046
+input 2410 1 face @4.4 pitch -0.047 arms.attack
+input 2411 1 face @4.4 pitch -0.048
+input 2412 1 face @4.5 pitch -0.049 arms.attack
+input 2413 1 face @4.6 pitch -0.05
+input 2414 1 face @4.6 pitch -0.052 arms.attack
+input 2415 1 face @4.7 pitch -0.053
+input 2416 1 face @4.8 pitch -0.054 arms.attack
+input 2417 1 face @4.8 pitch -0.056
+input 2418 1 face @5 pitch -0.058 arms.attack
+input 2419 1 face @5 pitch -0.059
+input 2420 1 face @5.2 pitch -0.061 arms.attack
+input 2421 101
+input 2421 1 face @356.3 pitch -0.032
+input 2422 1 face @356.3 pitch -0.032 arms.attack
+input 2423 1 face @356.3 pitch -0.032
+input 2424 1 face @356.3 pitch -0.032 arms.attack
+input 2425 1 face @356.3 pitch -0.032
+input 2426 1 face @356.3 pitch -0.032 arms.attack
+input 2427 1 face @356.3 pitch -0.032
+input 2428 1 face @356.3 pitch -0.032 arms.attack
+input 2429 1 face @356.3 pitch -0.032
+input 2430 1 face @356.3 pitch -0.032 arms.attack
+input 2431 1 face @356.3 pitch -0.032
+input 2432 1 face @356.3 pitch -0.032 arms.attack
+input 2433 1 face @356.3 pitch -0.032
+input 2434 1 face @356.3 pitch -0.032 arms.attack
+input 2435 1 face @356.3 pitch -0.032
+input 2436 1 face @356.3 pitch -0.032 arms.attack
+input 2437 1 face @356.3 pitch -0.032
+input 2438 1 face @356.3 pitch -0.032 arms.attack
+input 2439 1 face @356.3 pitch -0.032
+input 2440 1 face @356.3 pitch -0.032 arms.attack
+input 2441 1 face @356.3 pitch -0.032
+input 2442 1 face @356.3 pitch -0.032 arms.attack
+input 2443 1 face @356.3 pitch -0.032
+input 2444 100 move @175 run
+input 2444 1 face @356.3 pitch -0.032 arms.attack
+input 2445 1 face @356.3 pitch -0.032
+input 2446 1 face @356.3 pitch -0.032 arms.attack
+input 2447 1 face @356.3 pitch -0.032
+input 2448 1 face @356.3 pitch -0.033 arms.attack
+input 2449 1 face @356.3 pitch -0.033
+input 2450 1 face @356.3 pitch -0.033 arms.attack
+input 2451 1 face @356.3 pitch -0.033
+input 2452 1 face @356.3 pitch -0.034 arms.attack
+input 2453 1 face @356.3 pitch -0.034
+input 2454 1 face @356.3 pitch -0.035 arms.attack
+input 2455 1 face @356.4 pitch -0.036
+input 2456 1 face @356.4 pitch -0.036 arms.attack
+input 2457 1 face @356.4 pitch -0.037
+input 2458 1 face @356.4 pitch -0.038 arms.attack
+input 2459 1 face @356.5 pitch -0.038
+input 2460 1 face @356.5 pitch -0.039 arms.attack
+input 2461 1 face @356.5 pitch -0.04
+input 2462 1 face @356.6 pitch -0.041 arms.attack
+input 2463 1 face @356.6 pitch -0.041
+input 2464 1 face @356.6 pitch -0.042 arms.attack
+input 2465 1 face @356.7 pitch -0.043
+input 2466 1 face @356.7 pitch -0.044 arms.attack
+input 2467 1 face @356.8 pitch -0.045
+input 2468 1 face @356.8 pitch -0.046 arms.attack
+input 2469 1 face @356.8 pitch -0.047
+input 2470 1 face @356.9 pitch -0.048 arms.attack
+input 2471 1 face @356.9 pitch -0.05
+input 2472 1 face @357 pitch -0.051 arms.attack
+input 2473 1 face @357 pitch -0.052
+input 2474 1 face @357.1 pitch -0.054 arms.attack
+input 2475 1 face @357.2 pitch -0.055
+input 2476 1 face @357.2 pitch -0.057 arms.attack
+input 2477 1 face @357.3 pitch -0.058
+input 2478 1 face @357.4 pitch -0.06 arms.attack
+input 2479 1 face @357.4 pitch -0.062
+input 2480 1 face @357.6 pitch -0.064 arms.attack
+input 2481 100
+input 2481 1 face @47.6 pitch -0.028
+input 2482 1 face @47.6 pitch -0.028 arms.attack
+input 2483 1 face @47.6 pitch -0.028
+input 2484 1 face @47.6 pitch -0.028 arms.attack
+input 2485 1 face @47.6 pitch -0.028
+input 2486 1 face @47.6 pitch -0.028 arms.attack
+input 2487 1 face @47.6 pitch -0.028
+input 2488 1 face @47.6 pitch -0.028 arms.attack
+input 2489 1 face @47.6 pitch -0.028
+input 2490 1 face @47.6 pitch -0.028 arms.attack
+input 2491 1 face @47.6 pitch -0.028
+input 2492 1 face @47.6 pitch -0.028 arms.attack
+input 2493 1 face @47.6 pitch -0.028
+input 2494 1 face @47.6 pitch -0.028 arms.attack
+input 2495 1 face @47.6 pitch -0.028
+input 2496 1 face @47.6 pitch -0.028 arms.attack
+input 2497 1 face @47.6 pitch -0.028
+input 2498 1 face @47.6 pitch -0.028 arms.attack
+input 2499 1 face @47.6 pitch -0.028
+input 2500 1 face @47.6 pitch -0.028 arms.attack
+input 2501 1 face @47.6 pitch -0.028
+input 2502 1 face @47.6 pitch -0.028 arms.attack
+input 2503 1 face @47.6 pitch -0.028
+input 2504 1 face @47.6 pitch -0.028 arms.attack
+input 2505 1 face @47.6 pitch -0.028
+input 2506 1 face @47.6 pitch -0.028 arms.attack
+input 2507 1 face @47.6 pitch -0.028
+input 2508 1 face @47.6 pitch -0.028 arms.attack
+input 2509 1 face @47.6 pitch -0.028
+input 2510 1 face @47.6 pitch -0.028 arms.attack
+input 2511 1 face @47.6 pitch -0.028
+input 2512 1 face @47.6 pitch -0.028 arms.attack
+input 2513 1 face @47.6 pitch -0.028
+input 2514 1 face @47.6 pitch -0.028 arms.attack
+input 2515 102 move @227 run
+input 2515 1 face @47.6 pitch -0.028
+input 2516 102 face @227.6 pitch -0.036
+input 2516 1 face @47.6 pitch -0.028 arms.attack
+input 2517 1 face @47.6 pitch -0.028
+input 2518 1 face @47.6 pitch -0.028 arms.attack
+input 2519 1 face @47.6 pitch -0.028
+input 2520 1 face @47.6 pitch -0.028 arms.attack
+input 2521 1 face @47.6 pitch -0.028
+input 2522 1 face @47.6 pitch -0.028 arms.attack
+input 2523 1 face @47.6 pitch -0.028
+input 2524 1 face @47.6 pitch -0.028 arms.attack
+input 2525 1 face @47.6 pitch -0.028
+input 2526 1 face @47.6 pitch -0.028 arms.attack
+input 2527 102
+input 2527 1 move @0
+input 2543 1
+input 2633 1 move @0
+end 2763 cdee3824

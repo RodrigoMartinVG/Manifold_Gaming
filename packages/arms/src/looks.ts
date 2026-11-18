@@ -26,6 +26,9 @@ export const WEAPON_LOOKS: Readonly<Record<WeaponKind, WeaponLook>> = Object.fre
   grenade: { size: [0.14, 0.14, 0.14], color: 0x4a6a3a, grips: [0.07], lift: 0, model: weaponModel('grenade') },
   shotgun: { size: [0.07, 0.13, 0.76], color: 0x5a4a3a, grips: [0.18, 0.5], lift: 0, model: weaponModel('shotgun') },
   launcher: { size: [0.17, 0.19, 0.96], color: 0x56603a, grips: [0.28, 0.58], lift: 0, model: weaponModel('launcher') },
+  // (Stage 5n) The repeater, and the attackers' orb caster.
+  repeater: { size: [0.06, 0.15, 0.42], color: 0x7a8ea8, grips: [0.1, 0.28], lift: 0, model: weaponModel('repeater') },
+  orb: { size: [0.42, 0.1, 0.56], color: 0x5a8a9a, grips: [0.18, 0.36], lift: 0, model: weaponModel('orb') },
 });
 
 /**

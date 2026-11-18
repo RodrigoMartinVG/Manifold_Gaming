@@ -47,6 +47,9 @@ export const FEEL: Readonly<Record<string, { flash: number; kick: number }>> = O
   bolt: { flash: 0.1, kick: 2 },
   shotgun: { flash: 0.34, kick: 6 },
   launcher: { flash: 0.28, kick: 4.5 },
+  // (Stage 5n) Quick and light; the orb's, an attacker's, has no flash (it glows itself).
+  repeater: { flash: 0.12, kick: 0.7 },
+  orb: { flash: 0, kick: 0 },
   stick: { flash: 0, kick: 0 },
   grenade: { flash: 0, kick: 0.6 },
   smoke: { flash: 0, kick: 0.6 },

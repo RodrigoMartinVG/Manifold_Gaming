@@ -1,9 +1,10 @@
 import { beforeAll, describe, expect, test } from 'vitest';
 import { initPhysics, NO_INPUT, type Entity, type Event, type PlayerInput } from '@manifold/core';
+import { arsenal, ATTACK, SLOTS, weapon } from '@manifold/arms';
 import { missingKeys, notesBetween } from '@manifold/presentation';
 import { WALL, WALL_THEME, WALL_WORDS } from './game';
 import { levelOf } from './play';
-import { attackers, paceOf, WALL as RULES } from './rules';
+import { attackers, paceOf, ROLES, WALL as RULES } from './rules';
 
 beforeAll(initPhysics);
 
@@ -28,52 +29,119 @@ function jumpOf(f: { me(): Entity; at(): readonly number[]; step(input?: PlayerI
 }
 
 describe('the wall, on the games’ shell (stage 5h)', () => {
-  test('its waves: the first a few seconds in; the next a few seconds after the last attacker is down, the defender’s health back; after the last, held', () => {
+  test('a key opens its door (stage 5n): taken, its signal on; before the door, it opens, and stays open', () => {
     const f = levelOf(0);
-    let said: string[] = [];
-    const steps = (n: number) => {
-      for (let i = 0; i < n; i++) {
-        f.step();
-        said = [...said, ...notices(f.session.world.stepEvents)];
-      }
-    };
-    steps(RULES.first * 60 - 2);
-    expect([f.h().wave, attackers(f.world()).length]).toEqual([0, 0]);
-    steps(3);
-    expect(f.h().wave).toBe(1);
-    expect(attackers(f.world()).length).toBe(2);
-    expect(said).toContain('wall.wave');
-    // Hurt, and every attacker down: the next wave later, its health back.
-    f.world().hurt(f.me().id, 40);
-    f.session.registry.run('wall.down', 'console');
-    steps(2);
-    expect(attackers(f.world()).length).toBe(0);
-    steps(RULES.between * 60 + 2);
-    expect(f.h().wave).toBe(2);
-    expect(f.me().health!.points).toBe(f.me().health!.most);
-    for (let w = 2; w <= f.h().waves; w++) {
-      f.session.registry.run('wall.down', 'console');
-      steps(RULES.between * 60 + 4);
+    f.step();
+    const door = () => f.world().named('red_door')!;
+    const closed = [...door().transform!.rotation];
+    // Before the door without the key: it stays shut.
+    f.world().place(f.me(), [0, 0.82, -19.5]);
+    for (let i = 0; i < 90; i++) f.step();
+    expect(door().transform!.rotation).toEqual(closed);
+    // The key, its notice; before the door again: it opens; gone from before it, it stays open.
+    const said: string[] = [];
+    f.world().place(f.me(), [-15, 0.82, -31]);
+    for (let i = 0; i < 3; i++) {
+      f.step();
+      said.push(...notices(f.world().stepEvents));
     }
-    expect(f.done()).toBe(true);
-    expect(said).toContain('wall.held');
+    expect([f.h().keys, f.world().signal('key_red')]).toEqual([1, 1]);
+    expect(said).toContain('wall.key');
+    f.world().place(f.me(), [0, 0.82, -19.5]);
+    for (let i = 0; i < 90; i++) f.step();
+    expect(door().transform!.rotation).not.toEqual(closed);
+    f.world().place(f.me(), [0, 0.82, -5]);
+    for (let i = 0; i < 90; i++) f.step();
+    expect(door().transform!.rotation).not.toEqual(closed);
+    f.session.world.dispose();
+  });
+
+  test('what is taken (stage 5n): health up to the most, armor that takes half of each hit, ammunition up to what one carries, a weapon’s rack once', () => {
+    const f = levelOf(0);
+    f.step();
+    // Hurt, then the storeroom's health: 25 back, never past the most.
+    f.world().hurt(f.me().id, 40);
+    f.world().place(f.me(), [16.5, 0.82, -18]);
+    f.step();
+    expect(f.me().health!.points).toBe(85);
+    // The secret alcove's armor: 50; a hit of 20 takes 10 from it and 10 from the health.
+    f.world().place(f.me(), [-10, 0.82, 0.5]);
+    f.step();
+    expect(f.h().armor).toBe(50);
+    f.world().hurt(f.me().id, 20);
+    expect([f.h().armor, f.me().health!.points]).toEqual([40, 75]);
+    // The shotgun's rack: the shotgun kept, in its hands, 8 shells; the rack gone.
+    f.world().place(f.me(), [-12.5, 0.82, -6]);
+    f.step();
+    const a = arsenal(f.me())!;
+    expect([a.owned, weapon(f.me())!.kind, a.ammo.shells]).toEqual([['stick', 'dart', 'shotgun'], 'shotgun', 8]);
+    expect([...f.world().entities.values()].some((e) => e.sensor?.kind === 'weapon')).toBe(false);
+    f.session.world.dispose();
+  });
+
+  test('the arsenal (stage 5n): a slot’s key takes that weapon; what fires spends its ammunition; empty, the best with some', () => {
+    const f = levelOf(0);
+    f.step();
+    const a = arsenal(f.me())!;
+    f.take(1);
+    expect(weapon(f.me())!.kind).toBe('stick');
+    f.take(3);
+    expect(weapon(f.me())!.kind).toBe('stick'); // no shotgun yet: the slot is empty
+    f.take(2);
+    expect(weapon(f.me())!.kind).toBe('dart');
+    const darts = a.ammo.darts;
+    f.step({ [ATTACK]: true });
+    f.step();
+    expect(a.ammo.darts).toBe(darts - 1);
+    // Out of darts: a press takes up the stick (the best it owns with what it needs).
+    a.ammo.darts = 0;
+    for (let i = 0; i < 20; i++) f.step();
+    f.step({ [ATTACK]: true });
+    f.step();
+    expect(weapon(f.me())!.kind).toBe('stick');
+    f.session.world.dispose();
+  });
+
+  test('a group called in once (stage 5n): walking into its trigger, its attackers come, of their role', () => {
+    const f = levelOf(3);
+    f.step();
+    const before = attackers(f.world()).length;
+    f.world().place(f.me(), [0, 0.82, -33]);
+    f.step();
+    f.step();
+    const come = attackers(f.world()).length - before;
+    expect(come).toBe(3);
+    // Of their roles: two who charge (sticks, 80, 9 m/s) and a brute (a shotgun, 300).
+    const called = attackers(f.world()).slice(-3);
+    expect(called.map((e) => [weapon(e)!.kind, e.health!.most]).sort()).toEqual([
+      ['shotgun', 300],
+      ['stick', 80],
+      ['stick', 80],
+    ]);
+    expect(called.find((e) => weapon(e)!.kind === 'stick')!.character!.movement.walk.run).toBe(ROLES[3].run);
+    // Again, nothing more: the trigger is used.
+    f.world().place(f.me(), [0, 0.82, -30]);
+    f.step();
+    f.world().place(f.me(), [0, 0.82, -33]);
+    f.step();
+    expect(attackers(f.world()).length - before).toBeLessThanOrEqual(3);
     f.session.world.dispose();
   });
 
   test('down, the defender is back at its checkpoint three seconds later, on its feet, the time counted', () => {
     const f = levelOf(0);
     f.step();
-    f.world().place(f.me(), [6, 0.82, -6]);
+    f.world().place(f.me(), [0, 0.82, -1]);
     f.step();
     f.world().hurt(f.me().id, 1000);
     for (let i = 0; i < RULES.back * 60 + 2; i++) f.step();
     expect(f.me().health!.down).toBe(-1);
-    expect(Math.hypot(f.at()[0]!, f.at()[2]! - 7)).toBeLessThan(0.1);
+    expect(Math.hypot(f.at()[0]!, f.at()[2]!)).toBeLessThan(0.1);
     expect(f.h().downs).toBe(1);
     f.session.world.dispose();
   });
 
-  test('a rising pace, fair: quicker each wave, a warning before every shot, two at once at most', () => {
+  test('a rising pace, fair: quicker each level, a warning before every shot, two at once at most', () => {
     for (let p = 1; p < 12; p++) {
       const [a, b] = [paceOf(p - 1), paceOf(p)];
       expect(b.see).toBeLessThanOrEqual(a.see);
@@ -101,14 +169,18 @@ describe('the wall, on the games’ shell (stage 5h)', () => {
       WALL.tagline,
       ...WALL.levels.map((l) => l.name),
       ...[...WALL.thread.opening, ...WALL.thread.ending].flatMap((l) => [l.who, l.say]),
-      'wall.wave',
       'wall.down',
-      'wall.held',
+      'wall.out',
+      'wall.key',
+      'wall.secret',
+      'wall.recap.secrets',
+      'wall.recap.felled',
+      ...SLOTS.map((k) => `wall.weapon.${k}`),
     ];
     for (const key of named) expect(WALL_WORDS.es, key).toHaveProperty([key]);
   });
 
-  test('its music, sparse (decision 0027): waiting, a note begins on fewer than a fifth of the beats; fighting, on a third at most; quiet once held', () => {
+  test('its music, sparse (decision 0027): waiting, a note begins on fewer than a fifth of the beats; fighting, on a third at most; quiet once out', () => {
     const beats = WALL_THEME.tempo;
     const share = (mood: string) => new Set(notesBetween(WALL_THEME, mood, 0, beats).map((n) => n.beat)).size / beats;
     expect(share('wait')).toBeGreaterThan(0);

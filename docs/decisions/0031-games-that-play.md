@@ -170,6 +170,13 @@ levels of this size are hundreds of pieces; and, for them to stay within decisio
 level's still pieces drawn as instances by squares of 16 m (one batch for a whole level drew all its triangles from
 anywhere: 46,000 of the 50,000).
 
+As it went (5n): keys and doors are the level's data (a key turns on a signal; the door reads it with the zone before
+it, `all`, and stays open, `latch`), so the game only turns the key's signal on; the arsenal is opt-in in
+`@manifold/arms` (only a character that has one keeps several weapons and spends ammunition), so the Dojo's and the
+fortress's replays keep their hashes. The repeater and the orb have models of their own (art/weapons.py, headless).
+On the author's word mid-stage, the walk's sway puts its dips back before the camera places the eyes again (they
+stayed, and the aim rose).
+
 ## The author's answers
 
 The author took every recommendation (2026-11-18):

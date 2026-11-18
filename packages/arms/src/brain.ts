@@ -396,16 +396,18 @@ const guardBrain4e = (world: World, self: Entity, memory: Memory, after?: readon
   // With a dart or a bolt (stage 4g), whoever it sees and is near enough it shoots at, standing (after a
   // moment to see them), from its eyes, aiming at their middle; too near, it steps back as it shoots.
   const kind = weapon(self)?.kind;
-  if (target && (kind === 'dart' || kind === 'bolt' || kind === 'shotgun')) {
+  // (Stage 5n: and the orb, an attacker's.)
+  if (target && (kind === 'dart' || kind === 'bolt' || kind === 'shotgun' || kind === 'orb')) {
     const gunner = gunnerOf(self);
     const { see, every, aim: follow } = gunner;
     // (Stage 5h) With a shotgun, only near: its pellets spread (at ten meters one or two strike).
     const range = kind === 'shotgun' ? Math.min(gunner.range, SHOTGUN_RANGE) : gunner.range;
     // (Stage 5i) A fair gunner: within its range, it raises its weapon and shoots as `fairShot` says.
-    if (gunner.fair) {
-      const shot = fairShot(world, self, m, target, gunner, gunner.fair, range);
-      if (shot) return shot;
-    }
+    // (Stage 5n) A fair gunner fires only as `fairShot` says: out of its range there, it goes after them. (It
+    // fell through to the shots below, whose range is measured from a smoothed aim: at the edge, 18 m, the
+    // wall walk's start, one fired with no weapon raised.)
+    const fair = gunner.fair ? fairShot(world, self, m, target, gunner, gunner.fair, range) : null;
+    if (fair) return fair;
     const p = target.transform!.position;
     if (m.sighted < 0 || !m.aim) {
       m.sighted = world.tick;
@@ -418,7 +420,7 @@ const guardBrain4e = (world: World, self: Entity, memory: Memory, after?: readon
     ]);
     const to = vec3.sub(aim, [center[0], center[1] + eyeHeightOf(c, self.body!), center[2]]);
     const along = Math.hypot(to[0], to[2]);
-    if (along <= range) {
+    if (along <= range && !gunner.fair) {
       const face = toward(center, aim);
       const pitch = (Math.atan2(to[1], along) * 180) / Math.PI / 90;
       // (Hit a moment ago, it is on its guard: it does not take its time to see them.)

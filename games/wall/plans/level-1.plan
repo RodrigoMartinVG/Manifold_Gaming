@@ -1,0 +1,89 @@
+# Manifold level 10
+# The wall walk (stage 5n, decision 0031): the wall's first section, at half past four. From the stair's
+# foot into a courtyard of crates, three sentries at its far end; west, a corridor to a tower room, the red
+# key in it and two more; a shotgun in a niche on the way. The guardhouse's red door, north: past it, the
+# hall to the next section, and those who wait in it. East, a storeroom. In the start's west wall, a
+# button hides a door (a shade lighter than the wall): armor. Drawn as a plan (plans/level-1.plan).
+title The wall walk
+spawn 0 1 1
+facing 0 0 -1
+ambient 0.22
+sky 4.5
+
+plan -20 -36
+########################################
+#........#.............................#
+#........#.............................#
+#........#.............................#
+#........#.............................#
+#........#.............................#
+#........#.............................#
+#........#.............................#
+#........#.............................#
+#........#.............................#
+#........#.............................#
+######..##.............................#
+#........#.............................#
+#........#.............................#
+#.....#############..###################
+#.....#................................#
+#.....#..........................#######
+#.....#..........................#.....#
+#.....#..........................#.....#
+#.....#..........................#.....#
+#.....#..........................#.....#
+#.....#....c................c....#.....#
+#.....#................................#
+#.....#...........ccc..................#
+#.....#..........................#.....#
+#.....#..........................#.....#
+#................................#.....#
+#................................#.....#
+#.....#.......cc.........cc......#.....#
+#.....#..........................#######
+#.....#................................#
+#.....#................................#
+#.....#................................#
+##################....##################
+#############..........................#
+#...........#..........................#
+#......................................#
+#......................................#
+#############..........................#
+########################################
+end
+
+signal never
+signal key_red
+signal at_red  zone red_front
+signal red_both  all key_red at_red
+signal red_open  latch red_both never
+signal secret_pressed  used secret_button
+signal secret_open  latch secret_pressed never
+box 0 1.5 -21.5  1 1.5 0.15  door -1 0 0 y 90 1 red_open  color #b04a3a  name red_door
+box -7.5 1.5 1  0.15 1.5 1  door 0 0 -1 y 90 1 secret_open  color #6a645c  name secret_door
+
+lamp 0 2.6 -1  5 1  name lamp_start
+lamp -6 2.6 -14  5 1  name lamp_yard_west
+lamp 7 2.6 -18  5 1  name lamp_yard_east
+lamp -15 2.6 -30  5 1  name lamp_tower
+lamp 0 2.6 -28  6 1  name lamp_hall
+lamp 16.5 2.6 -13  4 0.8  name lamp_store
+
+sensor area        0 1 -19.5     1.5 0.8 1.5  name red_front
+sensor area        -6.5 1 2.5    0.5 0.8 0.5  name secret_button
+sensor checkpoint  0 1 0         2 0.8 1.5
+sensor checkpoint  -12 1 -18     1.5 0.8 1.5
+sensor weapon      -12.5 0.5 -6  0.4 0.5 0.4  kind 5
+sensor key         -15 1 -31     0.3 0.6 0.3  color 1
+sensor health      16.5 1 -18    0.3 0.4 0.3  amount 25
+sensor ammo        16.5 1 -8     0.3 0.4 0.3  kind 2  amount 12
+sensor ammo        -17 1 -6      0.3 0.4 0.3  kind 1  amount 30
+sensor armor       -10 1 0.5     0.4 0.6 0.4  amount 50
+sensor secret      -10 1 1.5     1 0.8 1
+sensor attackers   0 1 -17       0.4 0.8 0.4  wave 0  count 3  role 1  rotate y 180
+sensor attackers   -15 1 -28     0.4 0.8 0.4  wave 0  count 2  role 1  rotate y 180
+sensor trigger     0 1 -23.5     2 0.8 1  wave 1
+sensor attackers   0 1 -33       0.4 0.8 0.4  wave 1  count 3  role 1
+sensor goal        0 1 -34.5     2 0.8 1
+sensor fall        0 -10 0       80 2 80

@@ -55,8 +55,10 @@ export function levelOf(index: number) {
       .filter((t) => clear(t.chest))
       .sort((a, b) => flat(a.chest, at()) - flat(b.chest, at()))[0];
   /** Fighting for `steps` (or until held): aiming at the nearest in sight and firing as often as it can, moving `move`. */
+  // (Pressed one step, let go the next: a shot is a press. Kept from one call to the next, so fighting a
+  // step at a time still fires every other step.)
+  let pressed = false;
   const fight = (steps: number, move: Vec3 = [0, 0, 0]) => {
-    let pressed = false;
     for (let i = 0; i < steps && !done(); i++) {
       const t = target();
       if (!t || (me().health?.down ?? -1) >= 0) {
@@ -81,5 +83,44 @@ export function levelOf(index: number) {
     }
     return false;
   };
-  return { session, bots, world, me, at, h, done, step, fight, walkTo, target };
+  /**
+   * (Stage 5n) Fighting where it stands until no attacker has been in sight for `calm` steps (or `most`
+   * steps went by): a room cleared.
+   */
+  const clear_ = (calm = 60, most = 1800) => {
+    let quiet = 0;
+    for (let i = 0; i < most && quiet < calm && !done(); i++) {
+      if (target()) quiet = 0;
+      else quiet++;
+      fight(1);
+    }
+    return quiet >= calm;
+  };
+  /** (Stage 5n) Walking to a place, fighting whoever comes in sight on the way (it stops to fight). */
+  const pushTo = (x: number, z: number, near = 0.3, most = 1800) => {
+    for (let i = 0; i < most && !done(); i++) {
+      if (target()) {
+        fight(1);
+        continue;
+      }
+      const dx = x - at()[0]!;
+      const dz = z - at()[2]!;
+      const d = Math.hypot(dx, dz);
+      if (d < near) return true;
+      const k = Math.min(1, d / 0.3);
+      step({ move: [(dx / d) * k, 0, (dz / d) * k] });
+    }
+    return false;
+  };
+  /** (Stage 5n) A weapon of its arsenal in its hands, by its slot (1 to 7). */
+  const take = (slot: number) => {
+    step({ [`arms.slot${slot}`]: true });
+    for (let i = 0; i < 20; i++) step();
+  };
+  /** (Stage 5n) A hand where it stands (a hidden button). */
+  const use = () => {
+    step({ use: true });
+    step();
+  };
+  return { session, bots, world, me, at, h, done, step, fight, walkTo, target, clear: clear_, pushTo, take, use };
 }

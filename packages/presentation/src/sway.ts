@@ -71,7 +71,7 @@ export function dipAt(t: number, speed: number): number {
  * eyes are lowest exactly when a step is heard. Running, more; crouched, less; in the air, it fades.
  * Landing, the eyes sink (by how fast it came down) and come back. Walking to the side, it leans into
  * it. What it holds swings with the steps and trails a turn. A setting turns it off (`view.bob`), and
- * so does `view.calm`. For the browser tests: `data-bob` (the deepest dip of the walk so far, cm) and
+ * so does `view.calm`. For the browser tests: `data-bob` (how deep the walk dips at a step, the most so far, cm) and
  * `data-dip` (the deepest landing so far, cm).
  */
 export function mountSway(page: GamePage, bodies: Bodies): Piece {
@@ -97,6 +97,14 @@ export function mountSway(page: GamePage, bodies: Bodies): Piece {
   const right = new THREE.Vector3();
   const up = new THREE.Vector3();
   const look = new THREE.Vector3();
+  /**
+   * How far it moved the eyes this frame: put back as the next frame begins (`beforeSteps`, before the camera
+   * places them: all of this frame, its drawing and what reads it, has them moved). The camera starts each frame from
+   * where it left the eyes (taking back only its own move to them), so a dip left in place became where the
+   * camera was, and it looked up at its target a little more each frame: walking ahead, the aim rose by
+   * itself (the author found it).
+   */
+  const moved = new THREE.Vector3();
 
   return {
     welcome() {
@@ -140,9 +148,14 @@ export function mountSway(page: GamePage, bodies: Bodies): Piece {
       // Landing.
       landed += dt;
       const dip = dipAt(landed, landSpeed);
-      camera.position.addScaledVector(up, sway.up + dip).addScaledVector(right, sway.side);
+      moved
+        .copy(up)
+        .multiplyScalar(sway.up + dip)
+        .addScaledVector(right, sway.side);
+      camera.position.add(moved);
       camera.rotateZ(THREE.MathUtils.degToRad(-sway.roll - lean));
-      deepestBob = Math.max(deepestBob, -sway.up);
+      // (How deep the walk dips at a step, by how much it sways now: not the dip a frame happened to draw.)
+      deepestBob = Math.max(deepestBob, amount * SWAY.bob);
       deepestDip = Math.max(deepestDip, -dip);
       page.container.dataset.bob = (100 * deepestBob).toFixed(1);
       page.container.dataset.dip = (100 * deepestDip).toFixed(1);
@@ -162,6 +175,11 @@ export function mountSway(page: GamePage, bodies: Bodies): Piece {
       lastLook.copy(look);
       looked = true;
       holding.viewSway.set(sway.hold.side + trail.x, sway.hold.up + trail.y + 0.3 * dip, 0);
+    },
+    beforeSteps() {
+      // The eyes back where the camera left them (the turn it put on them, the camera sets anew each frame).
+      camera.position.sub(moved);
+      moved.set(0, 0, 0);
     },
   };
 }
