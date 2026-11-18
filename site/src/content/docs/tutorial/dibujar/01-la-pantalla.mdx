@@ -1,0 +1,316 @@
+---
+title: 'La pantalla'
+description: 'Qué es un píxel, cómo se guarda una pantalla en memoria, y cómo se pinta a mano: un rectángulo, un círculo y su borde suave, comparados con los que pinta el canvas del navegador. Al final, un cielo de noche pintado píxel por píxel.'
+sidebar:
+  order: 1
+---
+
+import LiveCode from '../../../../components/LiveCode.astro';
+import Margen from '../../../../components/Margen.astro';
+import Consigna from '../../../../components/Consigna.astro';
+
+Todo lo que vas a construir en este libro (un mundo, las cosas que se mueven en él, la noche, una muralla que se defiende hasta el alba) termina en el mismo lugar: una grilla de puntitos de luz. Antes de mover, de chocar o de pensar, hay que poder encender uno. En este capítulo pintamos píxeles a mano, uno por uno, y los comparamos con los que pinta el navegador con sus propias funciones.
+
+**Dónde estamos.** Parte I, Dibujar: el primer paso. De cada cuadro de un juego, lo último que pasa es dibujarlo; acá empieza esa última caja, por su pieza más chica.
+
+Al terminar vas a tener un cielo de noche pintado por tu código, píxel por píxel: un degradé, setenta estrellas, una luna de borde suave y la torre recortada contra el cielo. Al lado, el mismo cielo pintado por el canvas del navegador, con un divisor para compararlos y una lupa para mirarlos de cerca.
+
+![El proyecto del capítulo 1: un cielo de noche de 160 por 90 píxeles, agrandado para que se vea cada uno, con estrellas, la torre negra con una ventana encendida y la luna. Un divisor vertical separa el cielo pintado por nuestro código, a la izquierda, del pintado por el canvas, a la derecha.](../../../../assets/libro/cap1.png)
+
+## Tres luces
+
+Acercate mucho a una pantalla (con una lupa, o con la cámara del teléfono) y la imagen se deshace en una grilla de cuadraditos. Cada uno es un **píxel**, y cada píxel son, en realidad, tres luces chiquitas: una roja, una verde y una azul. Desde donde estás no las distinguís: el ojo las suma y ves un solo color.
+
+Cada luz tiene un brillo, y la computadora lo guarda como un número del $0$ (apagada) al $255$ (todo lo que da). Un color son tres números: rojo, verde y azul, en ese orden.
+
+<LiveCode lesson="libro/pixel" figure caption="Mové las tres luces: lo que ves es su suma, y de cerca son tres." />
+
+Las luces se suman, no se mezclan como pinturas: rojo y verde encendidos dan amarillo, no marrón; las tres al máximo dan blanco, y las tres apagadas, negro.
+
+**Antes de moverlo:** ¿qué color esperás de $(255, 255, 0)$? ¿Y de $(128, 128, 128)$? Probalo en la figura.
+
+<details>
+<summary>La respuesta</summary>
+
+$(255, 255, 0)$ es amarillo: rojo y verde a pleno, azul apagado. $(128, 128, 128)$ es un gris medio: las tres luces iguales, a la mitad. Cuando las tres son iguales el color es siempre un gris, más claro cuanto más alto el número.
+
+</details>
+
+¿Por qué justo $255$? Porque cada brillo se guarda en un **byte**, ocho dígitos binarios, y con ocho dígitos hay $2^8 = 256$ números distintos: del $0$ al $255$. Tres bytes por píxel dan $256 \cdot 256 \cdot 256 = 16\,777\,216$ colores. La figura también los muestra como los escribe CSS (`rgb(229, 192, 123)`) y en hexadecimal (`#e5c07b`): dos cifras de base $16$ por luz, porque $16 \cdot 16 = 256$.
+
+<Margen kind="sabe" title="Más de ocho bits">
+  Ocho bits por luz es lo de todos los días, no un límite de la física. Las pantallas de alto rango dinámico (HDR) usan diez o
+  doce, y los motores calculan la luz con números de coma flotante, que pueden pasar de "todo lo que da": recién al final se
+  aprietan dentro de $0$ a $255$. Lo vamos a necesitar en la Parte VII.
+</Margen>
+
+## Dónde está cada píxel
+
+Para pintar uno hay que poder nombrarlo, y se nombra con dos números: su columna $x$ y su fila $y$. En una pantalla se cuentan desde la **esquina de arriba a la izquierda**: $x$ crece hacia la derecha, como siempre, pero $y$ crece **hacia abajo**, al revés que en el plano de la escuela. Es la herencia de las pantallas viejas, que barrían la imagen renglón por renglón desde arriba, como se lee.
+
+Cada píxel es un cuadradito de lado $1$: el píxel $(x, y)$ va desde el punto $(x, y)$ hasta el $(x + 1, y + 1)$, y su **centro** es $(x + \tfrac12, y + \tfrac12)$. Ese medio va a importar dentro de un rato.
+
+En la memoria, en cambio, no hay filas: hay una sola tira larga de números. Los píxeles van uno detrás de otro, fila por fila, y cada uno ocupa **cuatro** números: rojo, verde, azul y uno más, la opacidad (para nosotros siempre $255$, opaco del todo). ¿En qué lugar de la tira está el píxel $(x, y)$? Antes que él hay $y$ filas enteras, de $\text{ancho}$ píxeles cada una, y en su propia fila, $x$ píxeles más. Es el píxel número
+
+$$
+y \cdot \text{ancho} + x,
+$$
+
+y como cada uno ocupa cuatro números, su rojo está en el lugar $4\,(y \cdot \text{ancho} + x)$, su verde en el siguiente, y así.
+
+<LiveCode
+  lesson="libro/memory"
+  figure
+  caption="Tocá un píxel: la tira de abajo muestra dónde vive en la memoria, y el panel hace la cuenta."
+/>
+
+Tocá distintos píxeles de la figura: el recuadro de la tira de abajo se mueve con ellos, y el panel hace la cuenta.
+
+**Probá sin la figura:** en una imagen de $160$ píxeles de ancho, ¿dónde está el rojo del píxel $(10, 2)$? Y al revés: ¿de qué píxel es el número que está en el lugar $1000$, y de qué luz?
+
+<details>
+<summary>Las respuestas</summary>
+
+El píxel $(10, 2)$ es el número $2 \cdot 160 + 10 = 330$, y su rojo está en $4 \cdot 330 = 1320$.
+
+Al revés: $1000 = 4 \cdot 250$, así que es el primer número del píxel $250$, su rojo. Y $250 = 1 \cdot 160 + 90$: fila $1$, columna $90$. Es el rojo del píxel $(90, 1)$. Dividir con resto deshace la cuenta.
+
+</details>
+
+<Margen kind="motores" title="Filas al revés">
+  La placa de video también guarda la imagen como una tira de números, pero OpenGL, y con él WebGL, cuenta las filas de **abajo
+  hacia arriba**. Leer los píxeles de un canvas de WebGL devuelve la imagen dada vuelta, y quien la guarda en un archivo tiene que
+  invertir las filas. Es la misma grilla, con el origen en otra esquina.
+</Margen>
+
+## Pintar a mano
+
+Ya podemos escribir nuestra pantalla: una tira de números y una función que pinta un píxel.
+
+```ts
+const pixels = new Uint8ClampedArray(ancho * alto * 4); // cuatro números por píxel
+
+function setPixel(x: number, y: number, c: Colour) {
+  const i = 4 * (y * ancho + x);
+  pixels[i] = c[0]; // rojo
+  pixels[i + 1] = c[1]; // verde
+  pixels[i + 2] = c[2]; // azul
+}
+```
+
+Con eso, un **rectángulo** son dos `for`: recorremos los píxeles de la zona y pintamos cada uno cuyo centro cae adentro. El canvas del navegador tiene su propia función para lo mismo:
+
+```ts
+ctx.fillStyle = 'rgb(229, 192, 123)';
+ctx.fillRect(x, y, ancho, alto);
+```
+
+La figura los pone lado a lado, en una pantalla chica de $24 \times 16$ píxeles agrandada para que se vea cada uno. El panel cuenta cuántos píxeles difieren.
+
+<LiveCode
+  lesson="libro/rect"
+  figure
+  aspect="4 / 3"
+  caption="Arriba el nuestro, abajo el del canvas. Arrastrá las esquinas, o llevá x a 4,5."
+/>
+
+Con las esquinas en números enteros, los dos pintan exactamente lo mismo: cero píxeles distintos. Ahora llevá `x` a $4{,}5$. El canvas pinta los bordes a medias, con un color entre el de la figura y el del fondo; el nuestro tiene que decidir, y decide por el centro: la columna $4$ entera, la $14$ nada.
+
+**Antes de probarlo:** con `x` en $4{,}5$, ancho $10$ y alto $7$, ¿cuántos píxeles van a diferir?
+
+<details>
+<summary>La respuesta</summary>
+
+El rectángulo va de $x = 4{,}5$ a $x = 14{,}5$. El canvas cubre las columnas $4$ y $14$ por la mitad y las pinta a media intensidad. El nuestro pinta la $4$ entera (su centro, $4{,}5$, está adentro) y no pinta la $14$ (su centro, $14{,}5$, ya no). Difieren esas dos columnas de $7$ píxeles: $14$ en total.
+
+</details>
+
+Es la primera diferencia entre las dos formas, y la idea de todo el capítulo: **un píxel puede estar cubierto en parte**. El canvas pinta cada uno en la medida en que la figura lo cubre; el nuestro, por ahora, pregunta sí o no.
+
+## Un círculo
+
+Un círculo de centro $C$ y radio $r$ son los puntos que están a distancia a lo sumo $r$ de $C$. Para pintarlo, entonces, pintamos cada píxel cuyo centro $P$ está a lo sumo a $r$ de $C$. Falta saber medir esa distancia.
+
+Entre $C$ y $P$ hay un camino en diagonal. Si caminamos primero en horizontal, $dx = P_x - C_x$, y después en vertical, $dy = P_y - C_y$, los tres tramos forman un triángulo rectángulo, y la distancia es su lado más largo. La cuenta es la de **Pitágoras**: en un triángulo rectángulo de catetos $a$ y $b$ y lado largo $c$,
+
+$$
+a^2 + b^2 = c^2.
+$$
+
+Miremos por qué. Tomemos un cuadrado de lado $a + b$ y pongamos adentro cuatro copias del triángulo, una en cada esquina, girándolas de a un cuarto de vuelta, como en el dibujo. Lo que queda en el medio tiene cuatro lados de largo $c$, los lados largos de los triángulos, y sus esquinas son rectas. En cada una, sobre un lado del cuadrado grande, se juntan tres ángulos: uno agudo de un triángulo, la esquina del medio y el otro agudo del triángulo vecino. Los tres forman una línea recta, $180^\circ$, y los dos agudos de un triángulo rectángulo suman $90^\circ$; a la esquina del medio le quedan $90^\circ$. Es un cuadrado de lado $c$.
+
+<figure style="margin: 1.5rem 0; text-align: center">
+  <svg
+    viewBox="0 0 220 220"
+    width="220"
+    height="220"
+    role="img"
+    aria-label="Un cuadrado de lado a más b con cuatro triángulos rectángulos en las esquinas y un cuadrado inclinado de lado c en el medio"
+  >
+    <rect x="10" y="10" width="200" height="200" fill="none" stroke="currentColor" stroke-width="2" />
+    <polygon points="10,10 70,10 10,150" fill="rgba(97,175,239,0.35)" stroke="currentColor" />
+    <polygon points="70,10 210,10 210,70" fill="rgba(97,175,239,0.35)" stroke="currentColor" />
+    <polygon points="210,70 210,210 150,210" fill="rgba(97,175,239,0.35)" stroke="currentColor" />
+    <polygon points="150,210 10,210 10,150" fill="rgba(97,175,239,0.35)" stroke="currentColor" />
+    <polygon points="70,10 210,70 150,210 10,150" fill="rgba(229,192,123,0.3)" stroke="currentColor" stroke-width="2" />
+    <text x="40" y="8" font-size="13" fill="currentColor" text-anchor="middle">
+      a
+    </text>
+    <text x="140" y="8" font-size="13" fill="currentColor" text-anchor="middle">
+      b
+    </text>
+    <text x="110" y="115" font-size="15" fill="currentColor" text-anchor="middle">
+      c²
+    </text>
+    <text x="118" y="44" font-size="13" fill="currentColor">
+      c
+    </text>
+  </svg>
+  <figcaption style="font-size: 0.85em; opacity: 0.8">
+    El cuadrado grande, de lado a + b: cuatro triángulos y un cuadrado de lado c.
+  </figcaption>
+</figure>
+
+Ahora contemos el área del cuadrado grande de dos maneras. Por su lado, es $(a + b)^2 = a^2 + 2ab + b^2$. Por sus partes, son cuatro triángulos de área $\tfrac12 ab$ cada uno, más el cuadrado del medio: $2ab + c^2$. Las dos cuentas miden lo mismo, así que $a^2 + 2ab + b^2 = 2ab + c^2$, y sacando $2ab$ de los dos lados queda $a^2 + b^2 = c^2$.
+
+La distancia entre $C$ y $P$ es entonces $d = \sqrt{dx^2 + dy^2}$. Y para saber si un píxel va adentro ni siquiera hace falta la raíz: como $d$ y $r$ no son negativos, $d \le r$ es lo mismo que $d^2 \le r^2$.
+
+```ts
+const dx = x + 0.5 - cx; // del centro del círculo al centro del píxel
+const dy = y + 0.5 - cy;
+if (dx * dx + dy * dy <= r * r) setPixel(x, y, color);
+```
+
+<LiveCode
+  lesson="libro/inside"
+  figure
+  caption="Pasá el puntero por los píxeles del borde: cada uno, con su triángulo y su cuenta."
+/>
+
+Pasá el puntero por los píxeles del borde: el panel muestra la cuenta de cada uno, y la figura su triángulo. Con el centro en $(10, 7)$ y $r = 5$, el píxel $(13, 10)$ tiene su centro en $(13{,}5;\ 10{,}5)$: $dx = dy = 3{,}5$ y $d = \sqrt{24{,}5} \approx 4{,}95$, adentro por poco. El de al lado, $(14, 10)$, da $dx = 4{,}5$ y $d = \sqrt{32{,}5} \approx 5{,}70$: afuera. En total se pintan $80$ píxeles, cerca del área del círculo, $\pi \cdot 5^2 \approx 78{,}5$.
+
+Ahora marcá _test the corner, not the centre_: preguntar por la esquina de cada píxel en vez de por su centro. El disco entero se corre medio píxel hacia abajo y a la derecha, y deja de estar centrado donde dijimos. Por eso el medio de $(x + \tfrac12, y + \tfrac12)$ importaba.
+
+## Bordes con escalones
+
+Pongamos nuestro círculo al lado del que pinta el canvas, con `arc`:
+
+<LiveCode
+  lesson="libro/edges"
+  figure
+  aspect="4 / 3"
+  caption="Subí los puntos por píxel: el borde se suaviza, y las dos últimas filas del panel miden contra el área de verdad."
+/>
+
+Con un solo punto por píxel (lo que hicimos hasta ahora), el borde del nuestro sale en escalones: cada píxel está o no está. El del canvas sale suave, porque, igual que con el rectángulo corrido, pinta cada píxel del borde **en la medida en que el círculo lo cubre**. El estándar del canvas no dice cómo medirlo, y cada navegador lo hace a su manera, pero todos hacen eso.
+
+Podemos hacer lo mismo. En vez de preguntarle solo al centro, repartimos $n \times n$ puntos parejos dentro del píxel y contamos cuántos caen adentro. Si caen $k$, el círculo cubre más o menos una fracción $a = k / n^2$ del píxel, y lo pintamos con esa mezcla del color del círculo y el del fondo:
+
+$$
+\text{color} = (1 - a) \cdot \text{fondo} + a \cdot \text{luna}.
+$$
+
+Con $a = 0$ queda el fondo; con $a = 1$, la luna; y en el medio, una mezcla con pesos que suman uno. Esa cuenta, mezclar dos cosas con pesos $1 - a$ y $a$, va a ser la idea central del capítulo que viene.
+
+Subí _samples per side_ en la figura y mirá cómo se suaviza el borde. Con $n \times n$ puntos la fracción solo puede valer $0, \tfrac{1}{n^2}, \tfrac{2}{n^2}, \ldots, 1$: hay $n^2 + 1$ tonos posibles para un píxel del borde, $2$ con un punto, $17$ con $4 \times 4$, $65$ con $8 \times 8$.
+
+Y mirá la diferencia más grande con el canvas (en Chrome): $108$ niveles con un punto, $54$ con $2 \times 2$, $27$ con $4 \times 4$... y con $8 \times 8$ vuelve a subir, a $37$. ¿Más puntos y peor? Las dos filas de abajo del panel lo explican: comparan cada dibujo con el **área de verdad** (medida con $128 \times 128$ puntos por píxel). El nuestro se equivoca a lo sumo en $73$ niveles con un punto, y después en $26$, $12$ y $6$ con $2$, $4$ y $8$ puntos por lado: a la mitad cada vez que $n$ se duplica, como promete la demostración del margen. El canvas de Chrome, en cambio, se equivoca hasta en $35$: él también aproxima, a su manera, más rápido. Con $8 \times 8$ puntos, el nuestro está más cerca de la verdad que el del canvas, y por eso más lejos del canvas. **La biblioteca no es la verdad; es otra aproximación**, y comparar con ella sirve para entender qué hace, no para copiarla.
+
+<Margen kind="demostracion" title="¿Cuánto se equivoca?">
+  Partamos el píxel en $n \times n$ cuadraditos, uno por punto. Un cuadradito que el borde no corta está entero adentro o entero
+  afuera, y su punto acierta. Solo puede equivocarse uno que el borde corta, y en a lo sumo su área, $1/n^2$. Si el borde es una
+  línea recta, al cruzar el píxel corta a lo sumo $n - 1$ líneas verticales de la cuadrícula y $n - 1$ horizontales, y cada vez
+  que corta una pasa a un cuadradito nuevo: atraviesa a lo sumo $2n - 1$. El error en la fracción es entonces menor que
+  $(2n - 1)/n^2 < 2/n$. Un arco de círculo corta cada línea a lo sumo dos veces, así que su error es a lo sumo el doble: con $n$
+  puntos por lado, el error baja como $1/n$.
+</Margen>
+
+<Margen kind="motores" title="Bordes suaves en la placa">
+  La placa de video hace lo mismo con los bordes de los triángulos: mide varios puntos por píxel (cuatro u ocho, en general) y
+  pinta según cuántos quedan adentro. Se llama _multisampling_ (MSAA). En three.js se pide al crear el dibujante:
+  `new THREE.WebGLRenderer({ antialias: true })`.
+</Margen>
+
+<Margen kind="manifold" title="La mitad de los píxeles">
+  Manifold pide ese `antialias: true`, y además dibuja a resolución $1\times$, aunque la pantalla sea de alta densidad: en una de
+  $2\times$, cada píxel de CSS son cuatro de la pantalla, y una placa integrada sufre con el cuádruple de trabajo. Una pantalla de
+  $1920 \times 1080$ a $2\times$ son más de ocho millones de píxeles, $33$ megabytes por cuadro, sesenta veces por segundo
+  ([`packages/presentation/src/stage.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/presentation/src/stage.ts)).
+</Margen>
+
+## Un cielo de noche
+
+Ahora todo junto, y esta vez el código es **tuyo**: lo que este capítulo explicó, para leerlo, cambiarlo y romperlo.
+
+- **`main.ts`** pinta el cielo dos veces, una con nuestras funciones (`paintOurs`) y otra con las del canvas (`paintTheirs`), y compara los dos dibujos.
+- **`screen.ts`** es nuestra pantalla: la tira de números, `setPixel`, la mezcla `mix`, el degradé, el rectángulo por los centros y el círculo con $n \times n$ puntos por píxel.
+- **`sky.ts`** es el cielo como datos: los colores de arriba y de abajo, las estrellas, la luna y los rectángulos de la torre. Solo números; lo que dibuja los lee.
+
+Al final de las pestañas, en cursiva, hay dos **herramientas del libro**: `herramientas/view.ts`, que agranda las dos imágenes y pone el divisor y la lupa, y `herramientas/random.ts`, el azar con semilla que hace que las estrellas sean siempre las mismas (el capítulo 25 lo explica, y ahí lo escribís vos). Hacen funcionar el ejemplo, pero no son la lección: no hace falta leerlas, y no se editan.
+
+El degradé del cielo es la misma mezcla de antes, fila por fila: cada fila mezcla el color de arriba con el de abajo según qué tan abajo está su centro, $t = (y + \tfrac12)/\text{alto}$.
+
+<Consigna>
+
+1. **Mirá primero.** Arrastrá el divisor, pasá la lupa por el borde de la luna y tocá un píxel cualquiera: el panel muestra sus tres números en los dos dibujos.
+2. **Agrandá la luna.** En `sky.ts`, cambiá `r: 9.4` por `r: 16`, y corré (▶ Ejecutar, o Ctrl + Enter). Crece en los dos dibujos, porque los dos leen los mismos datos.
+3. **Antes de correrlo, adiviná.** En `main.ts`, cambiá el `'samples per side': 4` del principio por `1`. ¿La fila _largest difference_ del panel va a subir o bajar?
+4. **Rompelo a propósito.** En `screen.ts`, dentro de `fillCircle`, mezclá la mitad: `mixPixel(s, i, j, c, (hits / (n * n)) * 0.5)`. ¿Qué le va a pasar a la luna?
+
+<details>
+<summary>Las respuestas</summary>
+
+3\. Sube, a unos $109$ niveles en Chrome: con un solo punto por píxel el borde de la luna vuelve a los escalones, y el del canvas sigue suave.
+
+4\. Queda translúcida: cada píxel mezcla solo la mitad de lo que el círculo lo cubre, y hasta el centro, cubierto del todo, queda mitad luna y mitad cielo.
+
+</details>
+
+Si algo se rompe de más, ↺ Restaurar vuelve al código del libro.
+
+</Consigna>
+
+<LiveCode project="libro/01-la-pantalla" follow />
+
+El panel dice que difieren unos $6\,400$ píxeles de $14\,400$, casi la mitad del cielo. Pero en la fila de abajo, _by more than one level_, quedan apenas $60$ o $70$: casi todas las diferencias son de **un solo nivel**, y están en el degradé. Tocá dos píxeles vecinos del cielo del canvas: en la misma fila, uno puede ser $(16, 18, 42)$ y el de al lado $(15, 17, 41)$. Chrome le agrega al degradé un ruido de un nivel, a propósito (se llama _dithering_): el rojo del cielo va de $8$ arriba a $52$ abajo, $44$ niveles para $90$ filas, así que cada nivel ocupa unas dos filas, y sin ese ruido se verían franjas. El nuestro no lo hace, y si mirás con atención, las franjas se ven. Con la vista _differences_, lo negro es donde coinciden y lo más brillante es donde más difieren: el ruido del degradé apenas se ve, y el borde de la luna se enciende. (Otros navegadores pueden no agregar ese ruido; los números de este párrafo son los de Chrome.)
+
+<Margen kind="manifold" title="El mismo ruido en otro cielo">
+  El cielo de las partidas de Manifold no es una imagen: lo pinta la placa de video, píxel por píxel, con un programa chico (un
+  _shader_), y también le suma a cada píxel medio nivel de ruido. El comentario del código da la misma razón que Chrome: un
+  degradé de ocho bits tan suave mostraría franjas
+  ([`packages/presentation/src/stage.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/presentation/src/stage.ts)).
+  Ese cielo, con sus estrellas, lo escribimos en el capítulo 54.
+</Margen>
+
+## Lo que tenemos
+
+Una pantalla propia, en memoria, y la manera de pintarla: un píxel, un rectángulo, un círculo de borde suave, un degradé. Y dos ideas que van a volver todo el libro: un píxel se pregunta por su **centro**, y un píxel cubierto en parte se pinta con una **mezcla** de pesos $1 - a$ y $a$. La primera vuelve en el capítulo 3, cuando rellenemos triángulos; la segunda, ya en el próximo, donde mezclar dos puntos va a dibujar una línea.
+
+### Retos
+
+**1. Cuarto creciente.** Hacé que la luna sea una medialuna: pintá cada punto que está dentro del círculo de la luna pero **fuera** de otro círculo del mismo radio, corrido un poco hacia la izquierda. ¿Qué tiene que pasar? Una medialuna con los dos bordes suaves si contás puntos en los dos círculos.
+
+<details>
+<summary>Una pista</summary>
+
+En `fillCircle`, cada punto se cuenta si $d^2 \le r^2$. Para la medialuna, contalo si está dentro del primero y su distancia al centro del segundo es mayor que $r$.
+
+</details>
+
+**2. Un halo.** Rodeá la luna de un aro tenue: los puntos con $r_1 \le d \le r_2$, mezclados con poca intensidad (un $a$ máximo de $0{,}3$, por ejemplo). ¿Qué tiene que pasar? Un anillo claro alrededor de la luna, que el canvas no tiene: el divisor muestra el halo de un solo lado.
+
+<details>
+<summary>Una pista</summary>
+
+La misma cuenta de puntos, con la condición del aro, y la fracción multiplicada por $0{,}3$ antes de mezclar.
+
+</details>
+
+**3. Una ventana más.** Agregá a la torre de `sky.ts` otra ventana encendida. ¿Qué tiene que pasar? Aparece en los dos dibujos sin tocar nada más: los dos leen los mismos datos.
+
+<details>
+<summary>Una pista</summary>
+
+Es un `Block` más en la lista `TOWER`, con el color de la otra ventana.
+
+</details>

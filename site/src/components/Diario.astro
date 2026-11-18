@@ -1,0 +1,48 @@
+---
+/**
+ * FROM THE ENGINE'S LOG (the book, docs/tutorial-v3.md): a true story of building Manifold, where it meets the
+ * chapter's idea, with a link to its report. (The label is the site's text, in Spanish.)
+ */
+interface Props {
+  title: string;
+  /** The report it comes from: its address in the Bitácora. */
+  report?: string;
+}
+const { title, report } = Astro.props;
+---
+
+<aside class="mg-diario not-content">
+  <p class="mg-diario-label">Diario del motor</p>
+  <p class="mg-diario-title">{title}</p>
+  <div class="mg-diario-body sl-markdown-content"><slot /></div>
+  {report && <p class="mg-diario-link"><a href={report}>El informe →</a></p>}
+</aside>
+
+<style is:global>
+  .mg-diario {
+    margin: 1.6rem 0;
+    padding: 0.9rem 1.1rem 0.7rem;
+    border: 1px solid color-mix(in srgb, var(--mg-bronze, #c99050) 45%, transparent);
+    border-left: 4px solid var(--mg-bronze, #c99050);
+    border-radius: 0.5rem;
+    background: color-mix(in srgb, var(--mg-bronze, #c99050) 10%, transparent);
+  }
+  .mg-diario-label {
+    margin: 0;
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--mg-bronze, #c99050);
+  }
+  .mg-diario-title {
+    margin: 0.15rem 0 0.4rem;
+    font-weight: 600;
+  }
+  .mg-diario-link {
+    margin: 0.4rem 0 0;
+    font-size: 0.85rem;
+  }
+  .mg-diario-link a {
+    color: var(--sl-color-text-accent);
+  }
+</style>

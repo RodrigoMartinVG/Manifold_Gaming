@@ -1,6 +1,7 @@
 # 0021. A new tutorial: one project that grows, and the math when the game asks for it
 
 - **Status:** proposed (it is accepted with its pilot; it replaces the structure of [0013](0013-a-deeper-tutorial.md) and keeps [0007](0007-executable-tutorial.md)'s live examples and [0011](0011-languages.md)'s languages)
+- **Superseded** by [0030](0030-the-book.md) (2026-11-18): the tutorial is the book; this one's pages left the site, its code stays as material
 - **Date:** 2026-11-16
 
 ## Context

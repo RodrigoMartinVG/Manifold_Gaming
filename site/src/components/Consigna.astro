@@ -1,0 +1,42 @@
+---
+/**
+ * A CONSIGNA, right before the code the reader is to touch (the book, docs/tutorial-v3.md §4): what to change, what
+ * to expect before running it, and where to see what happened. The code it points at is the reader's own, which the
+ * text has introduced; a figure never has one, because a figure is not there to be read. (The label is the site's
+ * text, in Spanish.)
+ */
+interface Props {
+  /** The label over it ("Manos al código" if not said). */
+  title?: string;
+}
+const { title = 'Manos al código' } = Astro.props;
+---
+
+<aside class="mg-consigna not-content">
+  <p class="mg-consigna-label">{title}</p>
+  <div class="mg-consigna-body sl-markdown-content"><slot /></div>
+</aside>
+
+<style is:global>
+  .mg-consigna {
+    margin: 1.6rem 0 1rem;
+    padding: 0.9rem 1.1rem 0.7rem;
+    border: 1px solid color-mix(in srgb, var(--sl-color-text-accent) 40%, transparent);
+    border-left: 4px solid var(--sl-color-text-accent);
+    border-radius: 0.5rem;
+    background: color-mix(in srgb, var(--sl-color-text-accent) 8%, transparent);
+  }
+  .mg-consigna-label {
+    margin: 0 0 0.35rem;
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--sl-color-text-accent);
+  }
+  .mg-consigna-label::before {
+    content: '✎ ';
+  }
+  .mg-consigna-body > :first-child {
+    margin-top: 0;
+  }
+</style>

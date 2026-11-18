@@ -1,7 +1,40 @@
-import { defineConfig } from 'vitest/config';
+import { existsSync, readdirSync } from 'node:fs';
+import { dirname, join, relative, resolve } from 'node:path';
+import { defineConfig, type Plugin } from 'vitest/config';
+import { projectOf, stepsOf } from './site/src/course';
+
+/**
+ * A STEP OF THE TUTORIAL'S PROJECT keeps only the files it changed (site/src/course.ts): the `./screen` its
+ * `line.ts` imports may live in an earlier step. The reader's project is put together from every step up to
+ * this one; so is a step's test: an import a step's folder does not have resolves to the latest earlier step
+ * of the same project that has it.
+ */
+function courseSteps(): Plugin {
+  const course = resolve('site/src/course');
+  const files = (folder: string): string[] =>
+    readdirSync(folder, { withFileTypes: true }).flatMap((e) =>
+      e.isDirectory() ? files(join(folder, e.name)) : e.name.endsWith('.ts') ? [join(folder, e.name)] : [],
+    );
+  return {
+    name: 'course-steps',
+    enforce: 'pre',
+    resolveId(source, importer) {
+      if (!importer || !source.startsWith('./') || !importer.startsWith(course)) return null;
+      const step = /^([^/]+\/[^/]+)\//.exec(relative(course, importer))?.[1];
+      if (!step) return null;
+      const name = relative(join(course, step), join(dirname(importer), source)) + (source.endsWith('.ts') ? '' : '.ts');
+      if (existsSync(join(course, step, name))) return null;
+      const steps = stepsOf(files(course)).filter((s) => projectOf(s) === projectOf(step));
+      for (let i = steps.indexOf(step) - 1; i >= 0; i--)
+        if (existsSync(join(course, steps[i]!, name))) return join(course, steps[i]!, name);
+      return null;
+    },
+  };
+}
 
 /** The headless tests: `*.test.ts` files next to the code they test (decision 0001). */
 export default defineConfig({
+  plugins: [courseSteps()],
   // Models (stage 2e): files to serve or read as they are, not modules.
   assetsInclude: ['**/*.glb'],
   test: {

@@ -17,11 +17,11 @@ sidebar:
   - `show.gravity`: el campo de gravedad, como flechas.
 - **Rapier en los ejemplos en vivo**, el mismo que usa el motor. Pesa 4,4 MB (1,7 MB comprimido), porque su WebAssembly viaja adentro. Por eso el ejecutor de ejemplos ahora baja solo las librerías que importa cada lección: las de la etapa 0 no lo esperan.
 - **Las cinco lecciones de la fase 1**, que se debían desde la 1a:
-  1. [Un motor de física](../../tutorial/archivo/etapa-1/00-motor-de-fisica/);
-  2. [Un personaje](../../tutorial/archivo/etapa-1/02-un-personaje/);
-  3. [Repeticiones y fantasmas](../../tutorial/archivo/etapa-1/05-repeticiones/);
-  4. [Instantáneas](../../tutorial/archivo/etapa-1/06-instantaneas/);
-  5. [Un servidor y un cliente](../../tutorial/archivo/etapa-1/07-servidor-y-cliente/).
+  1. [Un motor de física](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/7707772/site/src/content/docs/tutorial/archivo/etapa-1/00-motor-de-fisica.mdx);
+  2. [Un personaje](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/7707772/site/src/content/docs/tutorial/archivo/etapa-1/02-un-personaje.mdx);
+  3. [Repeticiones y fantasmas](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/7707772/site/src/content/docs/tutorial/archivo/etapa-1/05-repeticiones.mdx);
+  4. [Instantáneas](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/7707772/site/src/content/docs/tutorial/archivo/etapa-1/06-instantaneas.mdx);
+  5. [Un servidor y un cliente](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/7707772/site/src/content/docs/tutorial/archivo/etapa-1/07-servidor-y-cliente.mdx).
 
 ## Hallazgos
 

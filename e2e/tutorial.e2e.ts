@@ -11,10 +11,7 @@ import { join, relative } from 'node:path';
  */
 const DOCS = join(import.meta.dirname, '..', 'site', 'src', 'content', 'docs');
 
-/** Tutorial pages that are not lessons: they have no examples to run. */
-const NOT_LESSONS = new Set(['tutorial/archivo/glosario/', 'tutorial/archivo/patrones/']);
-
-/** The tutorial's pages with examples, as addresses: `tutorial/parte-1/01-coordenadas/`, the archive's... */
+/** The tutorial's chapters, as addresses: `tutorial/dibujar/01-la-pantalla/`... (the book, decision 0030). */
 function tutorialLessons(): string[] {
   const pages: string[] = [];
   const walk = (folder: string) => {
@@ -30,8 +27,8 @@ function tutorialLessons(): string[] {
     }
   };
   walk(join(DOCS, 'tutorial'));
-  // (The tutorial's introductions, its own and each part's, have no example; the archived one's has.)
-  return pages.filter((p) => !NOT_LESSONS.has(p) && !/^tutorial\/(parte-\d+\/)?$/.test(p)).sort();
+  // (The book's first page, the map and the syllabus, has no example.)
+  return pages.filter((p) => p !== 'tutorial/').sort();
 }
 
 /**
@@ -40,7 +37,15 @@ function tutorialLessons(): string[] {
  * passed before). One that does not animate has to write to the console.
  */
 async function runAndWait(example: Locator) {
-  await example.locator('.lc-run').click();
+  // (A figure in the book shows only what it draws, and starts when it comes on screen; if it does not, its cover.)
+  if (await example.getAttribute('data-figure')) {
+    await example.locator('.lc-result').scrollIntoViewIfNeeded();
+    try {
+      await expect(example).toHaveAttribute('data-state', 'running', { timeout: 3000 });
+    } catch {
+      await example.locator('.lc-cover').click();
+    }
+  } else await example.locator('.lc-run').click();
   // Chrome gives no frames to a cross-origin iframe that is off screen.
   await example.locator('.lc-result').scrollIntoViewIfNeeded();
   await expect(example).toHaveAttribute('data-state', 'running');
@@ -82,60 +87,103 @@ for (const lesson of tutorialLessons()) {
   });
 }
 
-test('a lesson only fetches the libraries it imports: Rapier (4 MB) only where it is used', async ({ page }) => {
+/** A chapter's project: the example with its code in an editor (not a figure, whose code is a click away). */
+const projectOf = (page: Page) => page.locator('.live-code:not([data-figure])').first();
+
+test('a page only fetches the libraries it imports: chapter 1, in the plane, never three.js nor Rapier (4 MB)', async ({
+  page,
+}) => {
   const fetched: string[] = [];
   page.on('request', (r) => {
     if (r.url().includes('/vendor/')) fetched.push(r.url().split('/vendor/')[1]!);
   });
-  await page.goto('tutorial/archivo/etapa-0/03-paso-fijo/');
+  await page.goto('tutorial/dibujar/01-la-pantalla/');
   await runAndWait(page.locator('.live-code').first());
-  expect(fetched).toContain('three.js');
+  // The figures' kit in the plane, and the panel it needs (vendor.mjs wrote that it needs it).
+  expect(fetched).toContain('lab-plane.js');
+  expect(fetched).toContain('lil-gui.js');
+  expect(fetched).not.toContain('three.js');
   expect(fetched).not.toContain('rapier.js');
-  await page.goto('tutorial/archivo/etapa-1/00-motor-de-fisica/');
-  await runAndWait(page.locator('.live-code').first());
-  expect(fetched).toContain('rapier.js');
 });
 
-test('pages that moved still answer at their old addresses: the archive, stage 1’s renames, the pilot', async ({
+test('every address the earlier tutorials had lands on the book’s first page, with the site’s base', async ({
   page,
   baseURL,
 }) => {
-  for (const [old, now] of [
-    // The old tutorial, archived (decision 0021)...
-    ['tutorial/etapa-0/01-primer-cubo/', 'tutorial/archivo/etapa-0/01-primer-cubo/'],
-    ['tutorial/glosario/', 'tutorial/archivo/glosario/'],
+  for (const old of [
+    // The first tutorial, archived (decision 0021), at its archive's address and at the one it had before...
+    'tutorial/archivo/etapa-0/01-primer-cubo/',
+    'tutorial/etapa-0/01-primer-cubo/',
+    'tutorial/archivo/',
+    'tutorial/glosario/',
     // ...with stage 1's lessons that took other places in the deeper pass (decision 0013)...
-    ['tutorial/etapa-1/01-un-personaje/', 'tutorial/archivo/etapa-1/02-un-personaje/'],
-    ['tutorial/etapa-1/02-repeticiones/', 'tutorial/archivo/etapa-1/05-repeticiones/'],
-    ['tutorial/etapa-1/03-instantaneas/', 'tutorial/archivo/etapa-1/06-instantaneas/'],
-    ['tutorial/etapa-1/04-servidor-y-cliente/', 'tutorial/archivo/etapa-1/07-servidor-y-cliente/'],
-    // ...and the new tutorial's pilot, which lived apart.
-    ['tutorial-nuevo/parte-1/04-vectores/', 'tutorial/parte-1/04-vectores/'],
-  ] as const) {
+    'tutorial/etapa-1/02-repeticiones/',
+    // ...the second one, its pages and its pilot...
+    'tutorial/parte-1/04-vectores/',
+    'tutorial/notacion/',
+    'tutorial-nuevo/parte-1/04-vectores/',
+  ]) {
     await page.goto(old);
     // The whole address, with the site's base: a redirect without it leaves the site.
-    await expect(page).toHaveURL(`${baseURL}${now}`);
-    await expect(page.locator('h1')).toBeVisible();
+    await expect(page, old).toHaveURL(`${baseURL}tutorial/`);
+    await expect(page.locator('h1')).toHaveText('Construir un mundo');
   }
-  // An archived page says so, and where the new tutorial starts.
-  await expect(page.locator('.sl-banner')).toHaveCount(0);
-  await page.goto('tutorial/archivo/etapa-0/01-primer-cubo/');
-  await expect(page.locator('.sl-banner')).toContainText('tutorial anterior');
-  await expect(page.locator('.sl-banner a')).toHaveAttribute('href', /\/tutorial\/$/);
 });
 
-test('the glossary and the patterns are not lessons: they have no examples', async ({ page }) => {
-  for (const p of NOT_LESSONS) {
-    await page.goto(p);
-    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-    await expect(page.locator('.live-code')).toHaveCount(0);
+test('the tutorial’s first page is the book’s: its map and its syllabus, no example, and the way to chapter 1', async ({
+  page,
+}) => {
+  await page.goto('tutorial/');
+  await expect(page.locator('h1')).toHaveText('Construir un mundo');
+  await expect(page.locator('.live-code')).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'El temario' })).toBeVisible();
+  await page.getByRole('link', { name: 'La pantalla' }).first().click();
+  await expect(page.locator('h1')).toHaveText('La pantalla');
+});
+
+test('a figure is to look at, not to read: no code, a caption; the project’s tools are last, read-only, and say so', async ({
+  page,
+}) => {
+  // (docs/tutorial-v3.md §4: a figure, the reader's code after its consigna, and the book's tools apart.)
+  await page.goto('tutorial/dibujar/01-la-pantalla/');
+  const figures = page.locator('.live-code[data-figure]');
+  expect(await figures.count()).toBe(5);
+  for (let i = 0; i < 5; i++) {
+    const figure = figures.nth(i);
+    await expect(figure.locator('.lc-editor')).toBeHidden();
+    await expect(figure.locator('.lc-bar')).toBeHidden();
+    await expect(figure.locator('.lc-caption')).toBeVisible();
+    await expect(figure.locator('.lc-source')).toHaveAttribute('href', /\/site\/src\/lessons\/libro\//);
   }
+  await expect(figures.first().locator('.lc-caption')).toContainText('Mové las tres luces');
+
+  // The project: the consigna before it; the reader's files first, the book's tools last.
+  const project = projectOf(page);
+  await expect(page.locator('.mg-consigna')).toHaveCount(1);
+  const tabs = project.locator('.lc-tabs button');
+  expect(await tabs.allTextContents()).toEqual([
+    'main.ts',
+    'screen.ts',
+    'sky.ts',
+    'herramientas/random.ts',
+    'herramientas/view.ts',
+  ]);
+  const note = project.locator('.lc-tool-note');
+  await expect(note).toBeHidden();
+  await tabs.last().click();
+  await expect(tabs.last()).toHaveClass(/lc-tool/);
+  await expect(note).toBeVisible();
+  // Read-only: the editor does not take what is typed.
+  await expect(project.locator('.cm-content')).toHaveAttribute('contenteditable', 'false');
+  await tabs.first().click();
+  await expect(note).toBeHidden();
+  await expect(project.locator('.cm-content')).toHaveAttribute('contenteditable', 'true');
 });
 
 test('editing the code and running it; an error shows up with its file and its line', async ({ page }) => {
-  // (The archived tutorial's introduction: its example prints "hello 1".)
-  await page.goto('tutorial/archivo/');
-  const example = page.locator('.live-code').first();
+  // (Chapter 1's project: its main.ts writes how big the sky is.)
+  await page.goto('tutorial/dibujar/01-la-pantalla/');
+  const example = projectOf(page);
   await typeCode(page, example, "console.log('edited in the test', { x: 1.23456789 });");
   await example.locator('.lc-run').click();
   await expect(example.locator('.lc-console')).toContainText('edited in the test {"x":1.2346}');
@@ -148,13 +196,13 @@ test('editing the code and running it; an error shows up with its file and its l
   // ↺ Restaurar (reset) brings back the original code, which works.
   await example.locator('.lc-reset').click();
   await runAndWait(example);
-  await expect(example.locator('.lc-console')).toContainText('hello 1');
+  await expect(example.locator('.lc-console')).toContainText('A sky of 160 × 90 pixels');
 });
 
 test('full screen: the code and what it draws, side by side, without restarting the example', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
-  await page.goto('tutorial/archivo/etapa-0/01-primer-cubo/');
-  const example = page.locator('.live-code').first();
+  await page.goto('tutorial/dibujar/01-la-pantalla/');
+  const example = projectOf(page);
   await runAndWait(example);
   // If the iframe moved in the page, the browser would reload it: its navigations are counted.
   let reloads = 0;
@@ -169,9 +217,8 @@ test('full screen: the code and what it draws, side by side, without restarting 
   expect(editor.x + editor.width).toBeLessThanOrEqual(result.x);
   expect(result.x + result.width).toBeGreaterThan(1270);
   expect(result.height).toBeGreaterThan(650);
-  // It keeps drawing, and it is the same example as before.
-  const frames = Number(await example.getAttribute('data-frames'));
-  await expect.poll(async () => Number(await example.getAttribute('data-frames'))).toBeGreaterThan(frames + 20);
+  // It is the same example as before, still running (the sky draws when something changes: no frames to count).
+  await expect(example).toHaveAttribute('data-state', 'running');
   expect(reloads).toBe(0);
 
   // The divider, with the keyboard: twice → it gives the code 10 % more.
@@ -191,8 +238,8 @@ test('full screen: the code and what it draws, side by side, without restarting 
 
 test('without full screen (like on the iPhone), the example takes the window, and Esc brings it back', async ({ page }) => {
   await page.addInitScript(() => Object.defineProperty(Document.prototype, 'fullscreenEnabled', { get: () => false }));
-  await page.goto('tutorial/archivo/etapa-0/01-primer-cubo/');
-  const example = page.locator('.live-code').first();
+  await page.goto('tutorial/dibujar/01-la-pantalla/');
+  const example = projectOf(page);
   await example.locator('.lc-expand').click();
   await expect(example).toHaveAttribute('data-expanded', 'window');
   const box = (await example.boundingBox())!;
@@ -204,11 +251,12 @@ test('without full screen (like on the iPhone), the example takes the window, an
 
 test('the side panels hide and are remembered, and the example uses the width that is left', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto('tutorial/archivo/etapa-0/03-paso-fijo/');
-  const example = page.locator('.live-code').first();
+  await page.goto('tutorial/dibujar/01-la-pantalla/');
+  const example = projectOf(page);
   const sidebar = page.locator('header .mg-panels .mg-panel[data-panel="sidebar"]');
   const toc = page.locator('header .mg-panels .mg-panel[data-panel="toc"]');
-  const column = (await page.locator('.sl-markdown-content').boundingBox())!.width;
+  // (The page's text column, Starlight's; a note in the margin opens one of its own inside it.)
+  const column = (await page.locator('.sl-container > .sl-markdown-content').boundingBox())!.width;
   expect((await example.boundingBox())!.width).toBeLessThan(column + 40);
 
   await sidebar.click();
@@ -224,7 +272,7 @@ test('the side panels hide and are remembered, and the example uses the width th
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(1440);
 
   // On another page they are still hidden (it is remembered), until they are shown again.
-  await page.goto('tutorial/archivo/etapa-0/01-primer-cubo/');
+  await page.goto('tutorial/dibujar/02-lineas/');
   await expect(page.locator('.sidebar-pane')).toBeHidden();
   await expect(sidebar).toHaveAttribute('aria-pressed', 'false');
   await sidebar.click();

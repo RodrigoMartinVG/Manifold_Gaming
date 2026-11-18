@@ -1,6 +1,6 @@
 {
   "extends": "astro/tsconfigs/strict",
-  "compilerOptions": { "paths": { "lab": ["./src/lab/index.ts"] } },
+  "compilerOptions": { "paths": { "lab": ["./src/lab/index.ts"], "lab/plane": ["./src/lab/plane/index.ts"] } },
   "include": [".astro/types.d.ts", "**/*"],
   "exclude": ["dist", "public/vendor", "src/course"]
 }

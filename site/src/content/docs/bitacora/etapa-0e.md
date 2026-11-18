@@ -24,7 +24,7 @@ Como todavía nadie usa nada de esto, se cambió **todo de una vez, sin dejar na
 Y para que el inglés no sea una barrera en el tutorial:
 
 - **La primera vez que aparece un término, va con su nombre en inglés al lado:** una malla (_mesh_), un cuadro (_frame_), una semilla (_seed_). Las seis lecciones se repasaron con esa regla, y sus referencias al código usan los nombres nuevos.
-- **Un [glosario](../../tutorial/archivo/glosario/)** junta cada término con su nombre en inglés y con el que se usa en el código y en la consola, más la lista completa de los nombres de la consola.
+- **Un [glosario](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/7707772/site/src/content/docs/tutorial/archivo/glosario.mdx)** junta cada término con su nombre en inglés y con el que se usa en el código y en la consola, más la lista completa de los nombres de la consola.
 - **La introducción del tutorial** explica por qué el código está en inglés, y la página del [proyecto](../../proyecto/) cuenta la regla de los idiomas.
 
 ### Los nombres que cambiaron

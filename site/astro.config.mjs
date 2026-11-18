@@ -3,7 +3,6 @@ import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
-import { fileURLToPath } from 'node:url';
 import { redirects } from './src/redirects.mjs';
 
 /**
@@ -22,9 +21,9 @@ export default defineConfig({
   markdown: { remarkPlugins: [remarkMath], rehypePlugins: [rehypeKatex] },
   // Models (stage 2e: the Dojo's mannequin): served as files, by their address.
   vite: { assetsInclude: ['**/*.glb'] },
-  // Addresses that moved, so old links still arrive: the old tutorial, archived; stage 1's lessons that
-  // took other places; the new tutorial's pilot (src/redirects.mjs, which the tests read too).
-  redirects: redirects(BASE, fileURLToPath(new URL('./src/content/docs', import.meta.url))),
+  // Addresses that moved, so old links still arrive: every page of the earlier tutorials lands on the book's
+  // first page (src/redirects.mjs).
+  redirects: redirects(BASE),
   integrations: [
     starlight({
       title: 'Manifold Gaming',
@@ -75,45 +74,13 @@ export default defineConfig({
             },
           ],
         },
-        // The tutorial (decision 0021): the pages before part 1, then the parts; the old tutorial, archived,
-        // closed at the end, with its stages, its glossary and its patterns.
+        // The tutorial is the book (docs/tutorial-v3.md; decision 0030): its first page, then its parts, each one
+        // a folder of chapters numbered through the whole book.
         {
           label: 'Tutorial',
           items: [
-            { label: 'Empezar aquí', link: '/tutorial/' },
-            { label: 'TypeScript para quien sabe JavaScript', link: '/tutorial/typescript/' },
-            { label: 'La notación', link: '/tutorial/notacion/' },
-            { label: 'Parte 1: El espacio', items: [{ autogenerate: { directory: 'tutorial/parte-1' } }] },
-            {
-              label: 'El tutorial anterior (archivado)',
-              collapsed: true,
-              items: [
-                { label: 'Presentación', link: '/tutorial/archivo/' },
-                {
-                  label: 'Etapa 0: cimientos',
-                  collapsed: true,
-                  items: [{ autogenerate: { directory: 'tutorial/archivo/etapa-0' } }],
-                },
-                {
-                  label: 'Etapa 1: física y un personaje',
-                  collapsed: true,
-                  items: [{ autogenerate: { directory: 'tutorial/archivo/etapa-1' } }],
-                },
-                {
-                  label: 'Etapa 2: capacidades',
-                  collapsed: true,
-                  items: [{ autogenerate: { directory: 'tutorial/archivo/etapa-2' } }],
-                },
-                {
-                  label: 'Etapa 3: un mundo que responde',
-                  collapsed: true,
-                  items: [{ autogenerate: { directory: 'tutorial/archivo/etapa-3' } }],
-                },
-                { label: 'Glosario', link: '/tutorial/archivo/glosario/' },
-                // The design patterns the lessons use, gathered like the glossary gathers the words (0013).
-                { label: 'Patrones', link: '/tutorial/archivo/patrones/' },
-              ],
-            },
+            { label: 'Construir un mundo', link: '/tutorial/' },
+            { label: 'Parte I. Dibujar', items: [{ autogenerate: { directory: 'tutorial/dibujar' } }] },
           ],
         },
         { label: 'Bitácora', items: [{ autogenerate: { directory: 'bitacora' } }] },

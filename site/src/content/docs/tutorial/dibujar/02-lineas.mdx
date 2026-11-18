@@ -1,0 +1,224 @@
+---
+title: 'Líneas'
+description: 'Cómo se dibuja una línea con píxeles: el punto que viaja de A a B, tres intentos (dos con agujeros), cuántos pasos hacen falta y por qué alcanzan, y el medio píxel de la línea del canvas. Al final, constelaciones sobre el cielo del capítulo 1.'
+sidebar:
+  order: 2
+---
+
+import LiveCode from '../../../../components/LiveCode.astro';
+import Margen from '../../../../components/Margen.astro';
+import Consigna from '../../../../components/Consigna.astro';
+
+El cielo del capítulo anterior tiene setenta estrellas sueltas. Queremos unir algunas con líneas, como en los mapas del cielo. Con el canvas son tres llamadas:
+
+```ts
+ctx.moveTo(ax, ay);
+ctx.lineTo(bx, by);
+ctx.stroke();
+```
+
+Pero una línea, en matemática, no tiene ancho: pasa entre los píxeles, rozando unos y cortando otros. ¿Cuáles hay que encender? En este capítulo lo decidimos nosotros, nos equivocamos dos veces de maneras que se ven, y terminamos con una línea sin agujeros que usa la menor cantidad posible de píxeles.
+
+**Dónde estamos.** Parte I, Dibujar: el segundo paso. Ya podemos pintar un píxel; ahora, muchos en fila.
+
+Al terminar vas a tener tres constelaciones sobre el cielo, dibujadas con tus líneas y con las del canvas, y vas a poder unir tus propias estrellas tocándolas.
+
+![El proyecto del capítulo 2: el cielo del capítulo 1 con tres constelaciones unidas por líneas azules de un píxel. A la izquierda del divisor, las líneas de nuestro código, en escalones de píxeles enteros; a la derecha, las del canvas, con los bordes suavizados.](../../../../assets/libro/cap2.png)
+
+## Entre dos puntos
+
+Empecemos por algo más chico que una línea: un punto que viaja de $A$ a $B$. Para llegar de $A$ a $B$ hay que avanzar $dx = B_x - A_x$ en horizontal y $dy = B_y - A_y$ en vertical. Si hacemos solo una parte $t$ del camino (la mitad, $t = \tfrac12$; un cuarto, $t = \tfrac14$), llegamos a
+
+$$
+P(t) = A + t\,(B - A) = (1 - t)\,A + t\,B,
+$$
+
+una cuenta que se hace coordenada por coordenada: $P_x = (1 - t)\,A_x + t\,B_x$, y lo mismo con $y$. Con $t = 0$ estamos en $A$; con $t = 1$, en $B$.
+
+<LiveCode
+  lesson="libro/lerp"
+  figure
+  caption="Mové t, o arrastrá A y B: P viaja por la recta, y los dos triángulos guardan la proporción."
+/>
+
+¿Por qué $P$ cae justo sobre el segmento, y no un poco al costado? Porque avanzó $t\,dx$ en horizontal y $t\,dy$ en vertical: la misma proporción que el camino entero. Mirá los dos triángulos de la figura. El grande va de $A$ a $B$, con catetos $dx$ y $dy$; el chico va de $A$ a $P$, con catetos $t\,dx$ y $t\,dy$. Los dos tienen un ángulo recto y sus catetos en la misma proporción, así que son **semejantes**: tienen los mismos ángulos. En particular, el ángulo en $A$ es el mismo, y entonces $P$ está sobre la recta que va de $A$ a $B$. Y como su distancia a $A$ es $t$ veces la de $B$, para $t$ entre $0$ y $1$ está entre los dos.
+
+Mové `t` fuera de ese rango: con $t$ negativo el punto sale por detrás de $A$; con $t > 1$, sigue de largo después de $B$. La fórmula describe la recta entera, y el segmento es la parte con $0 \le t \le 1$.
+
+Los pesos $1 - t$ y $t$ suman uno: $P$ es un **promedio pesado** de $A$ y $B$. Es la misma cuenta que mezclaba el color de la luna con el del cielo en el capítulo anterior, ahora con puntos. Tiene nombre en todos los motores: **interpolación lineal**, o `lerp`.
+
+<Margen kind="manifold" title="Entre dos pasos">
+  Cada cosa que Manifold dibuja está entre dos pasos de su simulación: la pantalla muestra más cuadros por segundo que pasos da el
+  mundo, y cada cuerpo se dibuja en el punto que viaja de donde estaba en el paso anterior a donde está ahora, con $t$ igual a la
+  parte del paso que ya pasó: `before.position` y su `lerp` hacia la posición nueva, con peso `alpha`
+  ([`packages/presentation/src/bodies.ts`](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/main/packages/presentation/src/bodies.ts)).
+  Por qué el mundo da pasos fijos, en el capítulo 17; cómo se interpola un giro (con `slerp`), en el 23.
+</Margen>
+
+**Probá sin la figura:** con $A = (2, 3)$ y $B = (10, 7)$, ¿dónde está el punto medio? ¿Y el que está a un cuarto del camino? ¿Y $P(1{,}5)$?
+
+<details>
+<summary>Las respuestas</summary>
+
+El punto medio, $t = \tfrac12$: $(\tfrac12 \cdot 2 + \tfrac12 \cdot 10,\ \tfrac12 \cdot 3 + \tfrac12 \cdot 7) = (6, 5)$.
+
+A un cuarto, $t = \tfrac14$: $(\tfrac34 \cdot 2 + \tfrac14 \cdot 10,\ \tfrac34 \cdot 3 + \tfrac14 \cdot 7) = (4, 4)$.
+
+$P(1{,}5) = (-0{,}5 \cdot 2 + 1{,}5 \cdot 10,\ -0{,}5 \cdot 3 + 1{,}5 \cdot 7) = (14, 9)$: medio camino más allá de $B$. Uno de los pesos es negativo, y ya no es un promedio, pero la cuenta sigue valiendo.
+
+</details>
+
+## Primer intento: una por columna
+
+Con el punto que viaja, una línea parece fácil: recorremos las columnas de la de $A$ a la de $B$, y en cada una calculamos a qué altura pasa la línea por el centro de la columna y pintamos ese píxel.
+
+```ts
+for (let x = Math.floor(A.x); x <= Math.floor(B.x); x++) {
+  const t = (x + 0.5 - A.x) / (B.x - A.x); // qué parte del camino es esta columna
+  setPixel(x, Math.floor(A.y + t * (B.y - A.y)), color);
+}
+```
+
+<LiveCode
+  lesson="libro/attempts"
+  figure
+  caption="Probá los tres intentos. Arrastrá A y B, y llevá B a la izquierda de A, o justo debajo."
+/>
+
+Con la línea de la figura, de $(3, 2)$ a $(8, 13)$, se rompe. Son seis columnas, y entonces seis píxeles, para once filas: entre uno y el siguiente la línea baja más de una fila y quedan **agujeros** (la figura los marca en rojo). Arrastrá $B$ para que la línea quede más acostada que $45^\circ$: los agujeros desaparecen, porque entre una columna y la siguiente la línea sube o baja menos de una fila.
+
+Y hay dos roturas más. Llevá $B$ a la izquierda de $A$: el `for` va de una columna mayor a una menor y no da ni una vuelta; no se pinta nada. Ponela justo debajo de $A$: $B_x - A_x$ es cero, $t$ sale de dividir por cero, y tampoco se pinta nada.
+
+**Antes de probarlo:** pasá a _one per row_, una por fila. ¿Para qué líneas va a andar bien, y para cuáles va a tener agujeros?
+
+<details>
+<summary>La respuesta</summary>
+
+Es el mismo intento dado vuelta: anda con las líneas más empinadas que $45^\circ$, como la de la figura (doce píxeles, ninguno de más ni de menos), y se agujerea con las acostadas. Y no pinta nada si $B$ está más arriba que $A$, o a la misma altura.
+
+</details>
+
+## Cuántos pasos
+
+Cada intento falla por lo mismo: da tantos pasos como columnas, o como filas, sin mirar cuál de las dos hace falta. Usemos el punto que viaja, con tantos pasos como el **lado más largo**:
+
+$$
+n = \max(|dx|, |dy|), \qquad P_k = P\!\left(\tfrac{k}{n}\right) \quad \text{para } k = 0, 1, \ldots, n,
+$$
+
+y pintemos el píxel que contiene a cada $P_k$. Para la línea de la figura, $n = \max(5, 11) = 11$: doce puntos, doce píxeles. Este método tiene nombre, **DDA** (por _digital differential analyzer_), y hace dos cosas bien, que podemos demostrar.
+
+**No deja agujeros.** De un punto al siguiente, la $x$ avanza $|dx| / n \le 1$ y la $y$ avanza $|dy| / n \le 1$, porque $n$ es el mayor de los dos. Y si dos números $u$ y $v$ están a distancia a lo sumo $1$, sus pisos (la parte entera, que dice en qué píxel caen) también: como $\lfloor u \rfloor \le u < \lfloor u \rfloor + 1$, y lo mismo con $v$,
+
+$$
+\lfloor u \rfloor - \lfloor v \rfloor < u - (v - 1) = (u - v) + 1 \le 2,
+$$
+
+y siendo un entero menor que $2$, es a lo sumo $1$; cambiando los papeles de $u$ y $v$, tampoco es menor que $-1$. Así que dos puntos seguidos caen en píxeles que se tocan, al menos por una esquina.
+
+**No usa ni uno de más.** Cualquier cadena de píxeles que se tocan y va del píxel de $A$ al de $B$ avanza a lo sumo una columna y una fila por píxel. Para cubrir las $\max(|dx|, |dy|)$ columnas o filas del lado más largo necesita al menos $n$ saltos, es decir, $n + 1$ píxeles. Los nuestros son justo $n + 1$.
+
+Pasá la figura a _as many as the longer side_ y mové $A$ y $B$ por todos lados, también a la izquierda y en vertical: ningún agujero, nunca.
+
+<Margen kind="sabe" title="Bresenham">
+  El algoritmo clásico de líneas es el de Jack Bresenham, que lo escribió en IBM en 1962 para un trazador de papel. Elige los
+  mismos píxeles que el nuestro, salvo en los empates (cuando la línea pasa justo por el borde entre dos), pero solo con sumas y
+  comparaciones de enteros, sin una sola división ni número con coma. En las máquinas de entonces era la diferencia entre poder
+  dibujar y no.
+</Margen>
+
+## La línea del canvas
+
+Comparemos con `lineTo`. El canvas no elige un píxel por paso: trata la línea como una **banda** de un píxel de ancho, centrada en ella, y pinta cada píxel en la medida en que la banda lo cubre, como pintaba el borde del círculo.
+
+<LiveCode
+  lesson="libro/half"
+  figure
+  aspect="4 / 3"
+  caption="Arriba la línea del canvas, abajo la nuestra. Mové la línea de a cuarto de píxel."
+/>
+
+Con la línea en $y = 4$, la banda va de $3{,}5$ a $4{,}5$: cubre la mitad de la fila $3$ y la mitad de la fila $4$, y salen **dos filas grises** en vez de una clara. Llevá la línea a $y = 4{,}5$: la banda va de $4$ a $5$, cubre la fila $4$ entera, y el canvas y el nuestro coinciden píxel por píxel.
+
+Es el centro del píxel otra vez, $(x + \tfrac12, y + \tfrac12)$, del lado del canvas: para que una línea horizontal o vertical le salga nítida, hay que pasarla por los centros de los píxeles. Por eso las estrellas del proyecto se unen por sus centros. En diagonal, en cambio, el canvas igual pinta a medias los píxeles que la banda corta en parte, y el nuestro no: es la misma diferencia del borde del círculo, y en el proyecto se ve con la lupa.
+
+<Margen kind="motores" title="Líneas en la placa">
+  La placa de video también dibuja líneas, pero con poca ayuda: en WebGL casi todos los navegadores solo dibujan líneas de un
+  píxel de ancho, pidas el ancho que pidas. La documentación de three.js lo advierte en su `LineBasicMaterial`: el ancho de línea
+  va a ser siempre $1$. Para líneas gruesas, three.js tiene en sus ejemplos `Line2`, que dibuja cada tramo como dos triángulos.
+</Margen>
+
+## Polígonos
+
+Una línea quebrada son puntos unidos en orden, cada uno con el siguiente; si además el último se une con el primero, la figura se **cierra** y es un polígono. En el canvas, `closePath` hace esa última línea. En el nuestro es un `for` sobre los puntos:
+
+```ts
+for (let k = 0; k + 1 < puntos.length; k++) drawLine(s, puntos[k], puntos[k + 1], color);
+if (cerrada) drawLine(s, puntos[puntos.length - 1], puntos[0], color);
+```
+
+Un polígono cerrado tiene un adentro, y pintarlo entero es otra historia: la del capítulo que viene.
+
+## Constelaciones
+
+Tu código suma dos archivos al del capítulo 1 y cambia `main.ts`; las pestañas nuevas son las de este capítulo:
+
+- **`line.ts`**: `lerp`, la línea con tantos pasos como el lado más largo, y la línea quebrada.
+- **`constellations.ts`**: tres constelaciones como datos, con sus estrellas en centros de píxel, y si se cierran.
+- **`main.ts`**: el cielo de antes, con las constelaciones dibujadas por nuestras líneas y por las del canvas. Tocar una estrella y después otra las une con una línea, de las dos formas.
+
+`screen.ts` y `sky.ts` siguen como en el capítulo 1, y las herramientas del libro (la vista y el azar) siguen al final, en cursiva.
+
+<Consigna>
+
+1. **Uní tus estrellas.** Tocá una estrella y después otra, y pasá la lupa por tu línea: del lado nuestro, una escalera de píxeles enteros; del lado del canvas, la misma escalera con los píxeles de los costados a medias.
+2. **Sumá una estrella.** En `constellations.ts`, agregale a _the Kite_ un quinto punto, por ejemplo `{ x: 146.5, y: 64.5 }` entre el tercero y el cuarto, y corré.
+3. **Antes de correrlo, adiviná.** En `line.ts`, cambiá la cantidad de pasos por la del primer intento, una por columna: `const n = Math.abs(b.x - a.x);`. ¿Qué tramos se van a agujerear?
+
+<details>
+<summary>La respuesta</summary>
+
+Los más empinados que $45^\circ$, donde la línea baja más filas de las que avanza columnas (con las constelaciones como venían): el segundo tramo de _the Ladder_, que baja $11$ filas en $4$ columnas; tres de los cuatro lados de _the Kite_; y, apenas, el segundo tramo de _the Bow_, que baja $8$ filas en $7$ columnas y deja un solo agujero. Los acostados quedan enteros, y el lado de _the Kite_ que va justo a $45^\circ$ también. Tus propias líneas, las del paso 1, se agujerean igual si son empinadas.
+
+</details>
+
+Si algo se rompe de más, ↺ Restaurar vuelve al código del libro.
+
+</Consigna>
+
+<LiveCode project="libro/02-lineas" follow />
+
+Con la vista _differences_ se ve que casi todas las diferencias están en las líneas en diagonal y en el borde de la luna.
+
+## Lo que tenemos
+
+Una línea sin agujeros, en cualquier dirección y con la menor cantidad de píxeles, y la cuenta en la que se apoya: el punto que viaja, $(1 - t)\,A + t\,B$. Esa cuenta va a estar en todo el libro. En el capítulo 3, un punto dentro de un triángulo va a ser un promedio pesado de sus tres esquinas; en la Parte II, una posición que cambia con el tiempo; en la Parte III, un rayo que sale de un punto en una dirección es la misma recta, $A + t\,(B - A)$, con $t$ desde cero hasta donde choque.
+
+### Retos
+
+**1. Una línea punteada.** Hacé que `drawLine` pinte de a tramos: cuatro píxeles sí, cuatro no. ¿Qué tiene que pasar? Las constelaciones punteadas, con tramos del mismo largo en cualquier dirección... ¿o no? Medí: en diagonal, cuatro pasos son más largos que en horizontal.
+
+<details>
+<summary>Una pista</summary>
+
+Con el número de paso $k$: pintá solo si $\lfloor k / 4 \rfloor$ es par. En diagonal a $45^\circ$, cada paso avanza $\sqrt{2}$ en vez de $1$ (Pitágoras), y los tramos salen un $41\,\%$ más largos.
+
+</details>
+
+**2. Una línea más gruesa.** Hacé una de dos píxeles de ancho, pintando en cada paso también el píxel de al lado. ¿Qué tiene que pasar? Si la línea es más acostada que empinada, el vecino que conviene es el de abajo; si es más empinada, el de al lado. Con el vecino equivocado, la línea sale más angosta en un sentido que en el otro.
+
+<details>
+<summary>Una pista</summary>
+
+Si $|dx| \ge |dy|$, el paso avanza de a una columna: el vecino es $(x, y + 1)$. Si no, avanza de a una fila: el vecino es $(x + 1, y)$.
+
+</details>
+
+**3. Una estrella de cinco puntas.** Agregá una constelación de cinco estrellas unidas saltando de a dos (la primera con la tercera, la tercera con la quinta...) y cerrada. ¿Qué tiene que pasar? Una estrella de cinco puntas, con un pentágono hueco en el medio.
+
+<details>
+<summary>Una pista</summary>
+
+Si las cinco estrellas están en orden alrededor de un centro, el orden de unión es $0, 2, 4, 1, 3$ y vuelta al $0$: es `closed: true` con las estrellas en ese orden.
+
+</details>

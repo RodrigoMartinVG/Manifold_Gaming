@@ -21,9 +21,23 @@ interface Props {
   project?: string;
   /** Start by itself when it shows up on screen (each lesson's first example). */
   autorun?: boolean;
+  /**
+   * A figure in the middle of the text (the book, docs/tutorial-v3.md §4): something to look at and touch, never
+   * code to read. Only what it draws, starting by itself, with its caption; how it is made, a quiet link at its foot.
+   * The code the reader reads and changes is a project's (not a figure), introduced by the text and its consigna.
+   */
+  figure?: boolean;
+  /** (A figure) What to look at, under it, after its number: "Figura 3. Llevá x a 4,5…". */
+  caption?: string;
+  /** (The book) Alive while it is in front of the reader: it starts when it comes on screen, stopping the one before. A figure always follows. */
+  follow?: boolean;
+  /** The drawing's shape, width / height: `16 / 9` if not said; a figure with two pictures one over the other wants `4 / 3`. */
+  aspect?: string;
 }
 
-const { lesson, project, autorun = false } = Astro.props;
+const { lesson, project, figure = false, aspect, caption } = Astro.props;
+const autorun = figure || (Astro.props.autorun ?? false);
+const follow = figure || (Astro.props.follow ?? false);
 const all = import.meta.glob<string>('../lessons/**/*.ts', { query: '?raw', import: 'default', eager: true });
 const course = import.meta.glob<string>('../course/**/*.ts', { query: '?raw', import: 'default', eager: true });
 let files: { name: string; code: string; changed?: boolean }[];
@@ -52,12 +66,31 @@ const animates = files.some((f) => f.code.includes('requestAnimationFrame'));
   data-base={import.meta.env.BASE_URL}
   data-autorun={autorun ? '1' : undefined}
   data-animates={animates ? '1' : undefined}
+  data-figure={figure ? '1' : undefined}
+  data-follow={follow ? '1' : undefined}
   data-state="stopped"
+  style={aspect ? `--lc-aspect: ${aspect}` : undefined}
 >
   <!-- First what is seen (the reader finds it without scrolling), then the code. -->
   <div class="lc-result">
     <button type="button" class="lc-cover">▶ Ejecutar</button>
   </div>
+  {
+    figure && (
+      <p class="lc-caption">
+        {caption}
+        <a
+          class="lc-source"
+          href={`https://github.com/RodrigoMartinVG/Manifold_Gaming/tree/main/site/src/lessons/${lesson}`}
+          target="_blank"
+          rel="noopener"
+          title="El código de esta figura: no es parte de la lección"
+        >
+          cómo está hecha ↗
+        </a>
+      </p>
+    )
+  }
   <div class="lc-console" hidden></div>
   <div class="lc-bar">
     <div class="lc-tabs" role="tablist" aria-label="Archivos de la lección"></div>
@@ -82,6 +115,10 @@ const animates = files.some((f) => f.code.includes('requestAnimationFrame'));
       <button type="button" class="lc-run" title="Ejecutar (Ctrl o ⌘ + Enter)">▶ Ejecutar</button>
     </div>
   </div>
+  <p class="lc-tool-note" hidden>
+    Herramienta del libro: hace funcionar el ejemplo, pero no es parte de la lección. No hace falta leerla ahora, y no se
+    edita; tu código está en las otras pestañas.
+  </p>
   <div class="lc-editor"></div>
   <!-- Side by side only: the line between the code and the result, which can be dragged. -->
   <div
@@ -181,7 +218,7 @@ const animates = files.some((f) => f.code.includes('requestAnimationFrame'));
   }
   .live-code .lc-result {
     position: relative;
-    aspect-ratio: 16 / 9;
+    aspect-ratio: var(--lc-aspect, 16 / 9);
     background: radial-gradient(ellipse 70% 70% at 50% 55%, #1b1813, #15120f 60%, #0e0c0a);
   }
   .live-code .lc-result iframe {
@@ -335,6 +372,50 @@ const animates = files.some((f) => f.code.includes('requestAnimationFrame'));
     .live-code .lc-expand .lc-label {
       display: none;
     }
+  }
+  /* A figure in the text (the book): only what it draws, and its caption. No code: it is not there to be read. */
+  .live-code[data-figure] :is(.lc-bar, .lc-editor, .lc-divider, .lc-console, .lc-tool-note) {
+    display: none !important;
+  }
+  /* Its number, counted down the page: "Figura 1.", "Figura 2."... */
+  .sl-markdown-content {
+    counter-reset: lc-figura;
+  }
+  /* (The frame is dark in the site's light and dark themes alike: its own colours, as the tabs' and the console's.) */
+  .live-code .lc-caption {
+    margin: 0;
+    padding: 0.55rem 0.8rem 0.65rem;
+    font-size: 0.875rem;
+    line-height: 1.45;
+    text-align: left;
+    color: #c9bca7;
+    background: linear-gradient(180deg, #25201b, #1d1915);
+  }
+  .live-code .lc-caption::before {
+    counter-increment: lc-figura;
+    content: 'Figura ' counter(lc-figura) '. ';
+    font-weight: 600;
+    color: #f3e9d8;
+  }
+  .live-code .lc-source {
+    margin-left: 0.5em;
+    font-size: 0.8em;
+    color: #cfa66c;
+    white-space: nowrap;
+  }
+  /* A tool of the book's (a project's `herramientas/`): its tab apart, and a note over it when it is open. */
+  .live-code .lc-tabs button.lc-tool {
+    font-style: italic;
+    opacity: 0.7;
+  }
+  .live-code .lc-tool-note {
+    margin: 0;
+    padding: 0.5rem 0.8rem;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    color: #ead5b0;
+    background: #2a2118;
+    border-left: 3px solid #cfa66c;
   }
 </style>
 

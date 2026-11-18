@@ -31,13 +31,21 @@ export function stepsOf(paths: readonly string[]): string[] {
 }
 
 /**
+ * Which project a step belongs to: the second version's parts (`parte-1/…`, `parte-2/…`) are one project, a
+ * story through its parts; the book (the third version, docs/tutorial-v3.md) is another (`libro/…`). A step
+ * inherits only from the steps of its own project.
+ */
+export const projectOf = (step: string) => (step.startsWith('parte-') ? 'partes' : step.split('/')[0]!);
+
+/**
  * A step's project: the latest version of every file up to `step`. `main.ts` first, then what this
  * step changed, then the rest. Throws for a step that does not exist (a misspelt lesson fails the build).
  */
 export function projectAt(sources: Readonly<Record<string, string>>, step: string): ProjectFile[] {
-  const steps = stepsOf(Object.keys(sources));
+  const all = stepsOf(Object.keys(sources));
+  if (!all.includes(step)) throw new Error(`The project has no step "${step}" (in src/course/; steps: ${all.join(', ')})`);
+  const steps = all.filter((s) => projectOf(s) === projectOf(step));
   const upTo = steps.indexOf(step);
-  if (upTo < 0) throw new Error(`The project has no step "${step}" (in src/course/; steps: ${steps.join(', ')})`);
   const latest = new Map<string, ProjectFile>();
   for (const s of steps.slice(0, upTo + 1))
     for (const [path, code] of Object.entries(sources)) {
@@ -45,6 +53,9 @@ export function projectAt(sources: Readonly<Record<string, string>>, step: strin
       if (p?.step === s) latest.set(p.name, { name: p.name, code, changed: s === step });
     }
   if (!latest.has('main.ts')) throw new Error(`The project at "${step}" has no main.ts`);
-  const rank = (f: ProjectFile) => (f.name === 'main.ts' ? 0 : f.changed ? 1 : 2);
+  // main.ts first, then what this step changed, then the rest of the reader's code, and the book's tools last
+  // (`herramientas/`: they make the example work, they are not the lesson; docs/tutorial-v3.md §4).
+  const tool = (f: ProjectFile) => f.name.startsWith('herramientas/');
+  const rank = (f: ProjectFile) => (f.name === 'main.ts' ? 0 : tool(f) ? 3 : f.changed ? 1 : 2);
   return [...latest.values()].sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name));
 }

@@ -17,9 +17,12 @@ export async function reports(): Promise<Page[]> {
   return all.sort((a, b) => order(b) - order(a));
 }
 
-/** The tutorial's lessons, in order: the parts' numbered lessons (not their introductions, nor the archive). */
+/**
+ * The tutorial's chapters, in order: the book's (docs/tutorial-v3.md), each in its part's folder and numbered
+ * through the whole book (`tutorial/dibujar/01-la-pantalla`), so their number orders them.
+ */
 export async function lessons(): Promise<Page[]> {
-  const all = await getCollection('docs', (p) => /^tutorial\/parte-\d+\/\d+/.test(p.id));
-  const key = (p: Page) => p.id.replace(/\d+/g, (n) => n.padStart(3, '0')); // parte-10 after parte-9
-  return all.sort((a, b) => key(a).localeCompare(key(b)));
+  const all = await getCollection('docs', (p) => /^tutorial\/[a-z-]+\/\d+/.test(p.id));
+  const number = (p: Page) => Number(/\/(\d+)-/.exec(p.id)![1]);
+  return all.sort((a, b) => number(a) - number(b));
 }

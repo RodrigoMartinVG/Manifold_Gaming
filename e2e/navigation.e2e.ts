@@ -31,9 +31,8 @@ const pagesBySection: [string, string | null][] = [
   ['jugar/dojo/', 'jugar'],
   ['jugar/consola/', 'jugar'],
   ['tutorial/', 'tutorial'],
-  ['tutorial/parte-1/01-coordenadas/', 'tutorial'],
-  ['tutorial/archivo/etapa-0/01-primer-cubo/', 'tutorial'],
-  ['tutorial/archivo/glosario/', 'tutorial'],
+  ['tutorial/dibujar/01-la-pantalla/', 'tutorial'],
+  ['tutorial/dibujar/02-lineas/', 'tutorial'],
   ['bitacora/', 'bitacora'],
   ['bitacora/etapa-0e/', 'bitacora'],
   ['proyecto/', 'proyecto'],
@@ -67,8 +66,8 @@ test('on a phone, the sections are in a bar at the bottom, also on the home page
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('La Bitácora');
   await expect(page.locator('nav.mg-tabbar a[aria-current]')).toHaveText('Bitácora');
 
-  // At the end of a lesson, previous/next stay above the bar.
-  await page.goto('tutorial/archivo/etapa-0/01-primer-cubo/');
+  // At the end of a chapter, previous/next stay above the bar.
+  await page.goto('tutorial/dibujar/01-la-pantalla/');
   await page.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
   const next = (await page.locator('.pagination-links a[rel="next"]').boundingBox())!;
   expect(next.y + next.height).toBeLessThanOrEqual((await bar.boundingBox())!.y);
@@ -78,19 +77,22 @@ test('each section has its own sidebar, and previous/next never leave it', async
   await page.setViewportSize({ width: 1440, height: 900 });
   const sidebarLinks = (section: string) => page.locator(`.sidebar-pane a[href*="/${section}/"]`);
 
-  await page.goto('tutorial/archivo/etapa-0/01-primer-cubo/');
-  expect(await sidebarLinks('tutorial').count()).toBeGreaterThan(5);
+  await page.goto('tutorial/dibujar/01-la-pantalla/');
+  // The book: its first page and its chapters, nothing of the earlier tutorials (decision 0030).
+  expect(await sidebarLinks('tutorial').count()).toBeGreaterThanOrEqual(3);
+  await expect(page.locator('.sidebar-pane a[href*="/archivo/"], .sidebar-pane a[href*="/parte-"]')).toHaveCount(0);
   await expect(sidebarLinks('bitacora')).toHaveCount(0);
 
   await page.goto('bitacora/etapa-0b/');
   expect(await sidebarLinks('bitacora').count()).toBe(reports().length + 1);
   await expect(sidebarLinks('tutorial')).toHaveCount(0);
 
-  // The patterns are the tutorial's last page, after the glossary (before, the glossary was the last,
-  // and its "next" went to the Bitácora): the last page's "next" never leaves the section.
-  await page.goto('tutorial/archivo/glosario/');
-  await expect(page.locator('.pagination-links a[rel="next"]')).toHaveAttribute('href', /\/tutorial\/archivo\/patrones\/$/);
-  await page.goto('tutorial/archivo/patrones/');
+  // Chapter 1 comes after the book's first page and before chapter 2; the last chapter's "next" never leaves the
+  // section (before, the tutorial's last page went on to the Bitácora).
+  await page.goto('tutorial/dibujar/01-la-pantalla/');
+  await expect(page.locator('.pagination-links a[rel="prev"]')).toHaveAttribute('href', /\/tutorial\/$/);
+  await expect(page.locator('.pagination-links a[rel="next"]')).toHaveAttribute('href', /\/tutorial\/dibujar\/02-lineas\/$/);
+  await page.goto('tutorial/dibujar/02-lineas/');
   await expect(page.locator('.pagination-links a[rel="next"]')).toHaveCount(0);
   await page.goto('bitacora/etapa-0/');
   await expect(page.locator('.pagination-links a[rel="prev"]')).toHaveAttribute('href', /\/bitacora\/$/);
@@ -110,7 +112,8 @@ test('each section has its own sidebar, and previous/next never leave it', async
     await page.goto(address);
     await expect(page.locator('html')).not.toHaveAttribute('data-has-sidebar');
     await expect(page.locator('.pagination-links a')).toHaveCount(0);
-    expect((await page.locator('.sl-markdown-content').boundingBox())!.width).toBeLessThanOrEqual(730);
+    // (The page's text column, Starlight's: notes in the margin open their own inside it.)
+    expect((await page.locator('.sl-container > .sl-markdown-content').boundingBox())!.width).toBeLessThanOrEqual(730);
   }
 });
 
@@ -130,12 +133,12 @@ test("the home page's doors lead to pages that exist, with what is new in each s
   const featured = rooms.filter((f) => /^# group: (start|demos)$/m.test(readFileSync(join(recipes, f), 'utf8')));
   await expect(page.locator('.mg-rooms li:not(.mg-rooms-more) a')).toHaveCount(featured.length);
   await expect(page.locator('.mg-rooms-more a')).toHaveText(`y ${rooms.length - featured.length} salas más`);
-  // The number of lessons, and the latest report.
-  // (Every part's numbered lessons: tutorial/parte-1/01-coordenadas.mdx…)
-  const lessons = readdirSync(join(DOCS, 'tutorial'))
-    .filter((d) => d.startsWith('parte-'))
-    .flatMap((d) => readdirSync(join(DOCS, 'tutorial', d)).filter((f) => /^\d+.*\.mdx$/.test(f)));
-  await expect(doors.nth(1)).toContainText(`${lessons.length} lecciones`);
+  // The number of chapters, and the latest report.
+  // (The book's chapters, in their parts' folders: tutorial/dibujar/01-la-pantalla.mdx…)
+  const chapters = readdirSync(join(DOCS, 'tutorial'), { withFileTypes: true })
+    .filter((d) => d.isDirectory())
+    .flatMap((d) => readdirSync(join(DOCS, 'tutorial', d.name)).filter((f) => /^\d+.*\.mdx$/.test(f)));
+  await expect(doors.nth(1)).toContainText(`${chapters.length} capítulos`);
   await expect(doors.nth(2).locator('.mg-door-next a')).toHaveText(reports()[0]!.title);
 
   const hrefs = await page.locator('.mg-doors a, .mg-stages a').evaluateAll((as) => as.map((a) => (a as HTMLAnchorElement).href));

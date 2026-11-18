@@ -12,7 +12,7 @@ export const SECTIONS = [
 
 export type SectionId = (typeof SECTIONS)[number]['id'];
 
-/** The section a page belongs to, from its id (`tutorial/parte-1/01-coordenadas` → `tutorial`). The home page has none. */
+/** The section a page belongs to, from its id (`tutorial/dibujar/01-la-pantalla` → `tutorial`). The home page has none. */
 export function sectionOf(pageId: string): SectionId | null {
   return SECTIONS.find((s) => pageId === s.id || pageId.startsWith(`${s.id}/`))?.id ?? null;
 }

@@ -1,69 +1,143 @@
 ---
-title: El tutorial
-description: 'Aprender a hacer mundos y juegos físicos en 3D para el navegador, entendiéndolos hasta su matemática, con un proyecto que crece de lección en lección y termina cada parte en un juego.'
+title: 'Construir un mundo'
+description: 'El tutorial de Manifold: un libro que cuenta cómo se construye, desde un píxel, un mundo en 3D en el navegador y los juegos que se juegan en él, cada pieza de dos formas, a mano y con la biblioteca, hasta la matemática que la hace funcionar.'
 ---
 
-> **En construcción.** El tutorial se escribe parte por parte, y esta página dice cuáles ya están. El [tutorial anterior](archivo/) queda archivado: sus lecciones siguen funcionando, pero ya no se actualizan.
+:::note[Se está escribiendo]
+El libro se escribe de a un capítulo, y cada uno se lee y se prueba antes de pasar al siguiente. Por ahora están los dos primeros; el temario entero está al final de esta página.
+:::
 
-Este tutorial enseña a hacer **mundos físicos en 3D que corren en el navegador, y juegos sobre ellos**, entendiéndolos hasta su matemática. Es para quien programa un poco (variables, funciones, `if`, `for`, objetos en JavaScript) y nunca hizo gráficos, física ni juegos. Para empezar alcanza con la matemática del secundario; lo que va más allá se enseña.
+**Construir un mundo para entenderlo.** Este libro cuenta cómo se construye, desde un píxel, un mundo en 3D que corre en el navegador, y los juegos que se juegan en él. Cada pieza se hace **de dos formas**: a mano, con nuestro propio código, y con la biblioteca que usa todo el mundo (el canvas del navegador, three.js, Rapier), y las dos se comparan en la misma pantalla. Cuando coinciden, entendimos lo que hace la biblioteca; cuando no, la diferencia es lo que hay que aprender.
 
-## Un mundo que crece
+Al final vas a tener tu propia versión de una noche en un mundo chico: una torre que se sube al atardecer, una fortaleza en la que se entra a oscuras y una muralla que se defiende hasta el alba. Son los juegos de [Manifold](../jugar/), el motor que se construye en este sitio, en una versión que hacés vos, pieza por pieza. Y cuando una idea vive en Manifold, una nota al margen dice dónde está en su código.
 
-No hay ejemplos sueltos: hay **un proyecto**, un mundo chico que se vuelve juegos, y cada lección le agrega algo o lo cambia. Es siempre el mismo mundo, que acumula: la torreta de la parte 1 es la rival de la parte 2, un centinela en el laberinto de la parte 3, el cañón de la parte 4 y un vigía en la parte 6; el guardia de la parte 7 maneja el mismo personaje que quien juega.
+## El mapa
 
-**El proyecto es el hilo, no un corsé.** Una idea que merece su propio espacio tiene su propia lección, con una figura hecha para ella: las **lecciones de concepto** enseñan una idea por sí misma (las coordenadas, la proyección, los vectores), con una figura que se toca y se arrastra, y las **del proyecto** la llevan al código del juego.
+Un juego hace lo mismo muchas veces por segundo, una vez por cuadro. Cada parte del libro construye una de esas piezas:
 
-El código del proyecto está en cada una de sus lecciones, en el editor que hay debajo de lo que dibuja. Las pestañas que se ven primero son los archivos que esa lección agregó o cambió; las más tenues, el resto del proyecto, como lo dejaron las lecciones anteriores.
+| En cada cuadro                                               | Lo construye                    |
+| ------------------------------------------------------------ | ------------------------------- |
+| Leer los controles                                           | Parte IV, _Alguien juega_       |
+| Mover las cosas: el tiempo, las fuerzas                      | Parte II, _Mover_               |
+| Ver qué choca con qué, y responder                           | Parte III, _Chocar_             |
+| Que las mentes decidan                                       | Parte V, _Alguien piensa_       |
+| Dibujarlo: proyectar, rellenar, iluminar                     | Parte I, _Dibujar_, y Parte VII |
+| Todo eso, organizado en un juego con niveles, menús y sonido | Parte VI, _Un juego entero_     |
 
-**El editor es para probar.** Cambiá lo que quieras y ejecutalo (▶, o Ctrl/⌘ + Enter); ↺ Restaurar vuelve al código del tutorial. Lo que cambies queda en esa lección: al recargar, o en la siguiente, el proyecto vuelve a estar como lo dejó el tutorial.
+Se empieza por el final del cuadro, dibujar, porque es lo que hace falta para ver todo lo demás. Y se empieza por lo más chico: un píxel.
 
-## La matemática, cuando el juego la pide
+## Cómo se lee
 
-Cada idea matemática entra **en la lección donde un problema del juego la necesita por primera vez**, y se enseña ahí: de dónde sale la pregunta, las definiciones, la deducción paso a paso y un ejemplo con los mismos números que muestra la figura. Nada se usa antes de enseñarse, y nada de lo que hace falta para seguir está escondido en un recuadro cerrado. Cómo se escribe, y cómo se traduce lo que dicen los libros, está en [La notación](notacion/).
+Cada capítulo es una sentada, entre media hora y tres cuartos, y cuenta una historia: queremos algo, probamos lo obvio, se rompe donde se puede ver, la matemática nos dice por qué, lo arreglamos, y tenemos algo nuevo con qué jugar.
 
-La matemática de un motor no tiene fondo: cada tema, seguido hasta el final, llega a teorías de nivel de doctorado. Por eso **la pregunta del juego marca la profundidad**, y cada resultado se trata de una de tres maneras:
+Hay tres clases de bloques, y cada uno promete una sola cosa:
 
-- **Se demuestra** lo que cabe en una página con la matemática de los primeros años de la universidad (álgebra lineal, cálculo, geometría). Es la mayor parte del tutorial.
-- **Se enuncia con precisión** lo que necesita más: con todas sus hipótesis, la idea de por qué es cierto, y dónde está la demostración. Se puede usar con confianza, sabiendo en qué se apoya.
-- **Se nombra** lo que queda más lejos, en "Más a fondo" o "Para saber más": qué existe, por qué les importa a los motores y dónde leerlo.
+- **Las figuras** son para mirar y tocar con el mouse, no para leer código. Están en el medio del texto, numeradas, con una línea debajo que dice qué mirar, y arrancan solas cuando llegás a ellas. Cómo está hecha cada una queda en un enlace chico, para el curioso: no es parte de la lección.
+- **Tu código** es el proyecto, que crece de capítulo en capítulo: está entero en el editor, se cambia y se corre ahí mismo. Trae solo lo que el capítulo ya explicó, y antes tiene una **consigna**: qué cambiar, qué esperás que pase antes de correrlo, y dónde mirarlo. Al final de sus pestañas, en cursiva y de solo lectura, están las **herramientas del libro**: hacen funcionar el ejemplo, pero no son la lección.
+- **Los fragmentos** son código fijo dentro del texto, para leer mientras se explica.
 
-Y lo que el proyecto le deja a una biblioteca (la física de cuerpos rígidos a Rapier, el dibujo a la placa de video), primero lo construye en chico, para saber qué hace y cuándo falla. Nada se simplifica hasta volverlo falso: cuando algo se prueba solo para un caso, se dice.
+Además:
 
-## Cómo es una lección
+- **Los ejercicios** son cortos y están después de cada idea. Muchos piden adivinar antes de probar: es la mejor forma de descubrir qué no entendimos. Las respuestas están plegadas debajo.
+- **Los márgenes** guardan lo que no es la historia: cómo lo hacen otros motores, una nota para quien ya sabe, una demostración más larga, dónde está la idea en Manifold. Se abren si te interesan.
 
-Una idea por lección, en cinco pasos:
+Para empezar alcanza con saber programar un poco (variables, funciones, `if`, `for`, objetos en JavaScript) y acordarse de la matemática del secundario. Todo lo demás está acá.
 
-1. **El problema:** la pregunta que responde la idea, o lo que el proyecto necesita ahora, en la figura o en el proyecto.
-2. **La matemática** que lo resuelve.
-3. **El código** de la figura, paso a paso (en una lección de concepto), o **en el proyecto**, qué cambia, archivo por archivo.
-4. **Probalo:** qué probar, y qué tiene que pasar.
-5. **Lo importante:** lo que hay que llevarse.
+## El temario
 
-Alrededor, para quien quiera más: "Más a fondo" (las demostraciones largas y lo que sigue), "Sutilezas" (las trampas), "En los motores" (las decisiones de diseño detrás de la idea, cómo las toman three.js, Unity, Godot y los libros, y **dónde Manifold eligió otra cosa**, con lo que midió), "En Manifold" (dónde está en el motor que se construye en este sitio), "Para practicar" (con lo que tiene que dar cada ejercicio) y "Para saber más".
+Un solo mundo que crece: cada parte le suma un rincón a una noche, y al final se juntan todos.
 
-Y cuando el tutorial hace algo que a quien ya tiene experiencia le parecería raro, un recuadro **"Para quien ya sabe"** dice qué esperaría, qué se hace acá y por qué.
+### Parte I. Dibujar
 
-**Cómo leer el código de una figura.** Debajo de la figura de una lección de concepto hay dos cosas. Primero, **la idea de la lección**: las fórmulas, en su propio archivo o al principio de `main.ts`, marcadas como _THE LESSON_. Es lo que explica la sección "El código", y lo que conviene cambiar para ver qué pasa. Después, **el dibujo** (_THE DRAWING_): las flechas, los nombres, el panel y el arrastre, hechos con el **kit de laboratorio** del tutorial (`'lab'`). Ese no hace falta leerlo. Si te da curiosidad, el enlace que hay debajo del editor muestra su código, y todo lo que hay ahí es three.js que el proyecto va enseñando: en la lección 1.7 el proyecto arma su propia versión chica, y desde ahí el kit se lee solo.
+Del píxel a un mundo en la pantalla: primero en el plano, después en el espacio. A mano, con nuestro propio dibujante; con la biblioteca, el canvas del navegador y después three.js. Al final, _el patio al atardecer_.
 
-El texto está en español y el código en inglés, como en la industria; la primera vez que aparece un término va con su nombre en inglés. El código está en TypeScript: si venís de JavaScript, [esta página](typescript/) cuenta lo que hace falta para leerlo.
+1. [La pantalla](dibujar/01-la-pantalla/): qué es un píxel, cómo se guarda una pantalla, y un cielo de noche pintado a mano.
+2. [Líneas](dibujar/02-lineas/): el punto que viaja de A a B, una línea sin agujeros, y constelaciones.
+3. Triángulos: de qué lado de una recta cae un punto, y colores que se mezclan entre tres esquinas. _(todavía no)_
+4. Girar y mover: el bucle, girar con seno y coseno, y el orden de los movimientos. _(todavía no)_
+5. Matrices: movimientos que se componen, y un sistema solar chico. _(todavía no)_
+6. Flechas: vectores, el producto escalar, y una pelota que rebota en paredes inclinadas. _(todavía no)_
+7. Un cubo: qué es el 3D, y por qué el primer cubo de three.js parece un cuadrado. _(todavía no)_
+8. Girar en el espacio: el orden de los giros cambia el resultado. _(todavía no)_
+9. Una torreta con partes: una base que gira y un cañón que se inclina sobre ella. _(todavía no)_
+10. Caras: qué caras se ven, y el algoritmo del pintor. _(todavía no)_
+11. Profundidad: el z-buffer. _(todavía no)_
+12. La luz: cuánta luz le llega a una cara, y el color que no es lineal. _(todavía no)_
+13. Texturas: imágenes sobre las caras, sin que se doblen ni titilen. _(todavía no)_
+14. La cámara: caminar por el mundo con el teclado y el mouse. _(todavía no)_
+15. La proyección: la división del capítulo 7, escrita como una matriz. _(todavía no)_
+16. La placa de video: por qué existe, y un primer shader. _(todavía no)_
 
-## Tres hilos
+### Parte II. Mover
 
-- **La consola.** En la parte 2 el proyecto gana una consola chica, como la del [Dojo](../jugar/consola/), y desde ahí cada lección del proyecto termina con una receta para escribir en ella y lo que tiene que contestar.
-- **La misma huella.** Un mundo que empieza igual y recibe las mismas teclas en los mismos pasos llega al mismo estado, bit por bit, en cualquier navegador: lo comprueba una huella (_hash_) del estado. Empieza con el paso fijo y el azar con semilla, y termina en jugar con otros por la red.
-- **Un motor de verdad.** [Manifold](../proyecto/), el motor que se construye en este sitio, resuelve los mismos problemas en tamaño real. Cada lección dice dónde y, cuando eligió distinto, por qué.
+El tiempo, las fuerzas y el movimiento, con nuestros propios vectores y los de three.js. Al final, _tiro al blanco_.
 
-## Las partes
+17. El reloj: el mismo movimiento en cualquier pantalla. _(todavía no)_
+18. Velocidad: moverse con las teclas, y la diagonal que va más rápido. _(todavía no)_
+19. Acelerar: integrar paso a paso, y anticipar un blanco que se mueve. _(todavía no)_
+20. Fuerzas: Newton como código. _(todavía no)_
+21. Oscilar: resortes y péndulos. _(todavía no)_
+22. Suavizar: seguir algo sin depender de los cuadros por segundo. _(todavía no)_
+23. Orientar: cuaterniones. _(todavía no)_
+24. Partículas: miles de cosas chicas. _(todavía no)_
+25. Lo mismo, otra vez: repeticiones idénticas, y un fantasma contra quien correr. _(todavía no)_
 
-| Parte                     | El juego que la cierra                    |
-| ------------------------- | ----------------------------------------- |
-| [1. El espacio](parte-1/) | La torreta: apuntar y acertar, por turnos |
-| 2. El tiempo              | Juntar las monedas; después, tu fantasma  |
-| 3. Formas y choques       | El laberinto                              |
-| 4. La física              | Voltear la torre                          |
-| 5. Un personaje           | Plataformas contra el reloj               |
-| 6. Un mundo que responde  | La sala de sigilo                         |
-| 7. Mentes                 | El guardia te persigue                    |
-| 8. El dibujo              | La sala de noche                          |
-| 9. Jugar con otros        | Dos pestañas, una partida                 |
-| 10. Mundos extraños       | Un nivel sobre un planeta chico           |
+### Parte III. Chocar
+
+Qué toca qué, y qué pasa después: nuestras pruebas y nuestro motor de partículas, y después Rapier. Al final, _voltear la torre_.
+
+26. ¿Se tocan? _(todavía no)_
+27. Un rayo _(todavía no)_
+28. Formas de verdad _(todavía no)_
+29. Responder: rebotes, rozamiento, reposo. _(todavía no)_
+30. Lo que va rápido atraviesa _(todavía no)_
+31. Cosas que giran _(todavía no)_
+32. Un motor de verdad: Rapier, junto al nuestro. _(todavía no)_
+
+### Parte IV. Alguien juega
+
+Los controles, un personaje que camina y salta, una cámara, una figura animada. Al final, _la torre_.
+
+33. Controles _(todavía no)_
+34. Un personaje no es una caja _(todavía no)_
+35. Saltar _(todavía no)_
+36. La cámara que sigue _(todavía no)_
+37. Un esqueleto _(todavía no)_
+38. Pies en el suelo _(todavía no)_
+
+### Parte V. Alguien piensa
+
+Mentes: querer ir, encontrar el camino, ver, oír, decidir. Al final, _la fortaleza_.
+
+39. Querer ir _(todavía no)_
+40. Encontrar el camino _(todavía no)_
+41. Ver _(todavía no)_
+42. Oír y recordar _(todavía no)_
+43. Decidir _(todavía no)_
+
+### Parte VI. Un juego entero
+
+Cómo se arma un juego: un mundo que no sabe que lo miran, su estructura, sus herramientas, sus piezas, su interfaz, su sonido y su velocidad. Al final, _una noche_: los rincones juntos.
+
+44. Un mundo que no sabe que lo miran _(todavía no)_
+45. Organizar _(todavía no)_
+46. Mensajes _(todavía no)_
+47. Herramientas _(todavía no)_
+48. Cosas hechas con código _(todavía no)_
+49. Niveles y recursos _(todavía no)_
+50. Interfaz _(todavía no)_
+51. Sonido _(todavía no)_
+52. Que ande rápido _(todavía no)_
+
+### Parte VII. Se hace de noche
+
+Lo que le falta al dibujo, y el final. Al final, _la muralla_, defendida hasta el alba.
+
+53. Materiales _(todavía no)_
+54. Pintar en la placa _(todavía no)_
+55. Sombras _(todavía no)_
+56. El cielo y la niebla _(todavía no)_
+57. Brillos _(todavía no)_
+58. La muralla _(todavía no)_
+
+**Y después.** Un segundo volumen: jugar con otros, cada uno en su navegador, y mundos raros.

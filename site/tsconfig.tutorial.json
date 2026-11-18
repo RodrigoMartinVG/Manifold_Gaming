@@ -1,5 +1,12 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": { "noUncheckedIndexedAccess": true },
-  "include": ["src/lab/**/*", "src/lessons/parte-*/**/*", "src/lessons/notation/**/*", "src/lessons/typescript/**/*"]
+  "include": [
+    "src/lab/**/*",
+    "src/lessons/parte-*/**/*",
+    "src/lessons/libro/**/*",
+    "src/lessons/material/**/*",
+    "src/lessons/notation/**/*",
+    "src/lessons/typescript/**/*"
+  ]
 }

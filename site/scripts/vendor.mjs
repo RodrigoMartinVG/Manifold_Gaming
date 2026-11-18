@@ -51,12 +51,23 @@ const LIBRARIES = [
     code: "export * from '../src/lab/index.ts';",
     external: ['three', 'three/addons/controls/OrbitControls.js', 'three/addons/libs/lil-gui.module.min.js'],
   },
+  {
+    // The lab kit in the plane (src/lab/plane/): the book's 2D figures. Only the canvas and lil-gui, no three.js.
+    specifier: 'lab/plane',
+    file: 'lab-plane.js',
+    code: "export * from '../src/lab/plane/index.ts';",
+    external: ['three/addons/libs/lil-gui.module.min.js'],
+  },
 ];
 
 await rm(target, { recursive: true, force: true });
 await mkdir(target, { recursive: true });
 await mkdir(entries, { recursive: true });
-/** @type {Record<string, string>} */
+/**
+ * What the iframe reads to know each library's file, and what that library imports itself (its `external`):
+ * a lesson that imports the lab kit gets three.js and lil-gui too, from this list, not from a second one.
+ * @type {Record<string, { file: string, needs: string[] }>}
+ */
 const manifest = {};
 for (const lib of LIBRARIES) {
   const entry = `${entries}${lib.file}`;
@@ -74,7 +85,7 @@ for (const lib of LIBRARIES) {
       rolldownOptions: { external: lib.external },
     },
   });
-  manifest[lib.specifier] = lib.file;
+  manifest[lib.specifier] = { file: lib.file, needs: lib.external };
 }
 await writeFile(`${target}manifest.json`, JSON.stringify(manifest, null, 2));
 await rm(entries, { recursive: true, force: true });

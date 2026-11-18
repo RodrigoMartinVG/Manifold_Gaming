@@ -1,0 +1,62 @@
+---
+/**
+ * A NOTE IN THE MARGIN of the book (docs/tutorial-v3.md): what is not the story, beside it. How other engines
+ * do it, the note for whoever already knows, a longer proof, where the idea lives in Manifold. Closed, it is a
+ * line the reader may open; nothing in the story depends on it. (The labels are the site's text, in Spanish.)
+ */
+interface Props {
+  /** What kind of note: its label says it. */
+  kind: 'motores' | 'sabe' | 'demostracion' | 'manifold';
+  /** Its title, after the label. */
+  title?: string;
+}
+const { kind, title } = Astro.props;
+const LABEL = {
+  motores: 'En otros motores',
+  sabe: 'Para quien ya sabe',
+  demostracion: 'Una demostración más larga',
+  manifold: 'En Manifold',
+} as const;
+---
+
+<details class="mg-margen not-content" data-kind={kind}>
+  <summary><span class="mg-margen-label">{LABEL[kind]}</span>{title && <span class="mg-margen-title">{title}</span>}</summary>
+  <div class="mg-margen-body sl-markdown-content"><slot /></div>
+</details>
+
+<style is:global>
+  .mg-margen {
+    margin: 1rem 0;
+    padding: 0.35rem 0.9rem;
+    border-left: 3px solid var(--mg-bronze, #c99050);
+    background: color-mix(in srgb, var(--sl-color-gray-6, #222) 55%, transparent);
+    border-radius: 0 0.4rem 0.4rem 0;
+    font-size: 0.92em;
+  }
+  .mg-margen summary {
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    gap: 0.6rem;
+    align-items: baseline;
+    color: var(--sl-color-gray-2);
+  }
+  .mg-margen summary::-webkit-details-marker {
+    display: none;
+  }
+  .mg-margen summary::before {
+    content: '▸';
+    color: var(--mg-bronze, #c99050);
+  }
+  .mg-margen[open] summary::before {
+    content: '▾';
+  }
+  .mg-margen-label {
+    font-variant: small-caps;
+    letter-spacing: 0.04em;
+    color: var(--mg-bronze, #c99050);
+  }
+  .mg-margen-body {
+    padding-block: 0.3rem 0.5rem;
+  }
+</style>

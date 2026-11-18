@@ -55,12 +55,15 @@ interface Running {
 
 let active: Running | null = null;
 
+/** The vendored libraries (site/scripts/vendor.mjs): each one's file, and the libraries it imports itself. */
+type Libraries = Record<string, { file: string; needs: string[] }>;
+
 /**
  * The libraries (Three.js, Rapier...): each one fetched once per page, the first time a lesson
  * imports it (stage 1f: before, all of them, the first time anything ran; with Rapier, 4 MB more for
  * lessons that do not use it).
  */
-let manifest: Promise<Record<string, string>> | null = null;
+let manifest: Promise<Libraries> | null = null;
 const fetched = new Map<string, Promise<string>>();
 
 async function loadLibraries(base: string, wanted: readonly string[]): Promise<Record<string, string>> {
@@ -69,20 +72,23 @@ async function loadLibraries(base: string, wanted: readonly string[]): Promise<R
     if (!response.ok) throw new Error(`No se pudo cargar ${file} (${response.status})`);
     return response;
   };
-  manifest ??= get('manifest.json').then((r) => r.json() as Promise<Record<string, string>>);
-  const files = await manifest;
-  // What the libraries need themselves: an addon of Three.js imports Three.js.
-  const needed = new Set(wanted.filter((s) => s in files));
-  if ([...needed].some((s) => s.startsWith('three/'))) needed.add('three');
-  // The lab kit imports Three.js, its orbit controls and lil-gui: the same modules the lesson gets.
-  if (needed.has('lab'))
-    for (const s of ['three', 'three/addons/controls/OrbitControls.js', 'three/addons/libs/lil-gui.module.min.js']) needed.add(s);
+  manifest ??= get('manifest.json').then((r) => r.json() as Promise<Libraries>);
+  const libraries = await manifest;
+  // What the lesson imports, and what those import in turn (the lab kit: three.js, its orbit controls and
+  // lil-gui; an addon of three.js: three.js), as the vendoring wrote it down: the same modules for everyone.
+  const needed = new Set<string>();
+  const add = (s: string) => {
+    if (needed.has(s) || !(s in libraries)) return;
+    needed.add(s);
+    for (const n of libraries[s]!.needs) add(n);
+  };
+  for (const s of wanted) add(s);
   const texts = await Promise.all(
     [...needed].map(async (specifier) => {
       if (!fetched.has(specifier))
         fetched.set(
           specifier,
-          get(files[specifier]!).then((r) => r.text()),
+          get(libraries[specifier]!.file).then((r) => r.text()),
         );
       return [specifier, await fetched.get(specifier)!] as const;
     }),
@@ -111,18 +117,30 @@ export function mountLiveCode(root: HTMLElement) {
     workshop,
     EditorView.lineWrapping, // the editor is narrow: long lines continue below, with no horizontal bar
   ];
-  const createState = (code: string) => EditorState.create({ doc: code, extensions });
-  let states = files.map((f) => createState(f.code));
+  // A tool of the book's (a project's `herramientas/`, docs/tutorial-v3.md §4): it makes the example work, it is not
+  // the lesson, so it is read-only, and a note over it says so.
+  const isTool = (f: File) => f.name.startsWith('herramientas/');
+  const readOnly = [EditorState.readOnly.of(true), EditorView.editable.of(false)];
+  const createState = (code: string, tool = false) =>
+    EditorState.create({ doc: code, extensions: tool ? [...extensions, ...readOnly] : extensions });
+  let states = files.map((f) => createState(f.code, isTool(f)));
   let current = 0;
   const view = new EditorView({ state: states[0], parent: editorPlace });
+  const toolNote = root.querySelector<HTMLElement>('.lc-tool-note');
 
-  const markTab = () => tabs.querySelectorAll('button').forEach((b, i) => b.setAttribute('aria-selected', String(i === current)));
+  const markTab = () => {
+    tabs.querySelectorAll('button').forEach((b, i) => b.setAttribute('aria-selected', String(i === current)));
+    if (toolNote) toolNote.hidden = !(files[current] && isTool(files[current]));
+  };
   files.forEach((f, i) => {
     const button = document.createElement('button');
     button.type = 'button';
     button.role = 'tab';
     button.textContent = f.name;
-    if (f.changed === false) {
+    if (isTool(f)) {
+      button.classList.add('lc-tool');
+      button.title = 'Herramienta del libro: no es parte de la lección';
+    } else if (f.changed === false) {
       button.classList.add('lc-kept');
       button.title = 'Sin cambios en esta lección';
     }
@@ -204,7 +222,7 @@ export function mountLiveCode(root: HTMLElement) {
   root.querySelector('.lc-run')?.addEventListener('click', () => void run());
   cover.addEventListener('click', () => void run());
   root.querySelector('.lc-reset')?.addEventListener('click', () => {
-    states = files.map((f) => createState(f.code));
+    states = files.map((f) => createState(f.code, isTool(f)));
     view.setState(states[current]!);
   });
 
@@ -215,8 +233,24 @@ export function mountLiveCode(root: HTMLElement) {
     },
   });
 
-  // A lesson's first example starts by itself when it shows up on screen (if nothing else is running).
-  if (root.dataset.autorun) {
+  // In the book (docs/tutorial-v3.md), the example in front of the reader is the one alive: each one that
+  // `follows` the reading starts when most of it comes on screen, and stops the one that was running (only one
+  // runs at a time). So a page with a figure every few paragraphs keeps one WebGL context, the one being read.
+  // "On screen" is said of the drawing, not of the whole block: a project's block (its editor, its console) can
+  // be taller than the window, and would never be mostly on screen. And only on the way in: the observer also
+  // calls on the way out, while the drawing is still partly visible, and that must not take the run back from
+  // the next one.
+  if (root.dataset.follow) {
+    const MOSTLY = 0.6;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.intersectionRatio >= MOSTLY) && root.dataset.state !== 'running') void run();
+      },
+      { threshold: MOSTLY },
+    );
+    observer.observe(result);
+  } else if (root.dataset.autorun) {
+    // A lesson's first example starts by itself when it shows up on screen (if nothing else is running).
     const observer = new IntersectionObserver((entries) => {
       if (!entries.some((e) => e.isIntersecting)) return;
       observer.disconnect();
