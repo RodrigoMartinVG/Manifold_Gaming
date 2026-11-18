@@ -69,10 +69,16 @@ are seeded: textures as charts (8.8), the handedness sign (8.10), mirrors with d
   (−*w* ≤ _x_, _y_, _z_ ≤ _w_), the division by _w_ (1.10), the viewport _x_px_ = (_x_ndc_ + 1)/2 · _W_, pixel centres at +0.5.
   Rasterization: edge functions _E_ab_(_P_) = ORIENT2D(_A_, _B_, _P_) (1.6), positive inside a CCW triangle; the top-left
   rule for ties; barycentrics = _E_/(2·area) (3.6); quads of 2×2 for derivatives, so small triangles shade helper pixels.
-  Perspective-correct interpolation is stated here and proved in 8.3. Cost: a pipeline runs at its slowest stage; vary one
-  stage's load to find it. **Example:** NDC (0.25, −0.5) in 800 × 600 lands at (500, 450) from the top left, a pixel
-  corner, so the tie rule decides. Triangle _A_ (0.5, 0.5), _B_ (5.5, 1.5), _C_ (2.5, 3.5) on a 6 × 4 grid: 2·area = 13,
-  nine centres inside, one of them exactly on _A_.
+  Perspective-correct interpolation is stated here and proved in 8.3. Cost: a pipeline runs at its slowest stage (a
+  model: the bottleneck can move within a frame, RTR 18.2); vary one stage's load to find it. **Example:** NDC
+  (0.25, −0.5) in 800 × 600 lands at (500, 450) from the top left, a pixel corner, so the tie rule decides. Triangle
+  _A_ (0.5, 0.5), _B_ (5.5, 1.5), _C_ (2.5, 3.5) on a 6 × 4 grid: 2·area = 13; nine centres in the closed triangle
+  (Pick: 13/2 = _I_ + 3/2 − 1), its three vertices, which are centres, and six strictly inside, the ones the top-left
+  rule draws (_AB_ and _BC_ are right edges, and each vertex lies on one).
+- **Depth:** Proved: the viewport map, **V** = [**R**ᵀ \| −**R**ᵀ**t**], edge functions as the inside test, barycentrics
+  as _E_/(2·area), the top-left rule drawing a shared-edge centre once (the edge's two orientations). Stated:
+  perspective-correct interpolation (proved in 8.3), the slowest-stage model. Named: clipping, the guard band (L2 §5.5),
+  real rasterizers (tiles, hierarchy; RTR 23.1). Toy first: the toy rasterizer, the GPU's rule on a 6 × 4 grid.
 - **The live figure:** (1) the strip, clickable, highlighting in the scene what each stage touches; (2) the toy
   rasterizer: drag vertices, covered centres, quads and helper pixels counted, edge values and barycentric bars at the
   hovered pixel, a CW triangle culled; toggle naive: a full-screen pass as two triangles (the diagonal's quads shaded
@@ -82,7 +88,7 @@ are seeded: textures as charts (8.8), the handedness sign (8.10), mirrors with d
 - **Traps:** a device pixel ratio of 2 is four times the pixels; three.js hides the fixed stages behind `side`,
   `depthTest`, `depthWrite`, `transparent`; tearing without two buffers (the browser double-buffers;
   `requestAnimationFrame` paces). Capsule (browser performance): measure before optimizing, with Spector.js and the bench.
-- **Exercises:** (1) The NDC example; hint: the y axis flips. (2) Edge functions by hand for the grid triangle (9 centres).
+- **Exercises:** (1) The NDC example; hint: the y axis flips. (2) Edge functions by hand for the grid triangle (9 centres in the closed triangle, 6 drawn).
   (3) Predict a pixel-bound scene at half the canvas side (¼ of the pixel work). (4) The view matrix of a camera at
   (0, 2, 5) looking down −Z (a translation by (0, −2, −5)).
 - **Our angle:** the drawing reads the state and never writes it. En Manifold: `createStage` draws at pixel ratio 1
@@ -109,6 +115,10 @@ vec4(position, 1.0)` (three.js supplies these uniforms and attributes to `Shader
   in a float32 uniform: at 1 h the spacing of floats is 2⁻¹² s ≈ 0.24 ms, at 1 day 2⁻⁷ s ≈ 7.8 ms, at 30 days 0.25 s, and
   a pulse stutters (G §8.5.4.4's warning, applied). **Example:** writing linear 0.5 without the output conversion shows
   128 instead of 188 (sRGB encode of 0.5 = 0.735).
+- **Depth:** Proved: the float32 spacing at 1 h, 1 day and 30 days (2.9's spacing of floats), the per-vertex against
+  per-pixel count, 128 against 188 (8.6's curve). Stated: varyings are interpolated perspective-correctly (proved in
+  8.3). Toy first: nothing new is delegated; the reader writes both shaders, and 8.1's toy already interpolated with
+  barycentrics.
 - **The live figure:** the GLSL sandbox on the coin (vertex and fragment tabs, errors by line), uniforms as sliders; toggle
   naive: a stripe pattern computed per vertex and interpolated (wrong on a coarse mesh) against per pixel; toggle the
   output conversion against a `MeshBasicMaterial` of the same colour. Panel: vertices, covered pixels, their ratio, the
@@ -137,16 +147,21 @@ vec4(position, 1.0)` (three.js supplies these uniforms and attributes to `Shader
 - **Approach:** L2's derivation, re-signed for view space looking down −Z and NDC depth in [−1, 1] (L2 Ex. 6.8). Hook: the
   painter's order fails on a cycle of three planks; and the night room's far floor tiles flicker under coins' blob
   shadows. 1.2's figure is relabelled a third time.
-- **The mathematics:** (1) on a plane **n**·_P_ + _d_ = 0, a point seen at screen position (_x_s_, _y_s_) is
-  _P_ = (−*z*/_g_)(_x_s_, _y_s_, −*g*), so 1/(−*z*) = −(_n_x_ _x_s_ + _n_y_ _y_s_ − _n_z_ _g_)/(_gd_): affine in the screen. Hence any
-  attribute _a_ affine on the triangle has _a_/_w_ affine too: interpolate _a_/_w_ and 1/_w_, divide (_w_ = −*z*). (2) The depth
-  row _z_c_ = _Az_ + _B_ with _w_c_ = −*z* gives _z_ndc_ = −*A* − _B_/_z_, already affine in 1/_z_ as (1) asks; the conditions
-  −*n* ↦ −1, −*f* ↦ 1 give _A_ = −(_f_ + _n_)/(_f_ − _n_), _B_ = −2*fn*/(_f_ − _n_), exactly three.js's `elements[10]` and
-  `elements[14]`. (3) Window depth _z_w_ = (_f_/(_f_ − _n_))(1 − _n_/_d_) at distance _d_; _z_w_ = ½ at _d_ = 2*nf*/(_n_ + _f_) < 2*n*.
-  (4) The smallest separable gap with 24 bits is about 2⁻²⁴*d*²(_f_ − _n_)/(_fn_). **Example:** RTR's _n_ = 10, _f_ = 110:
-  _z_ndc_ = 0.1, 0.833, 0.98 at 20, 60, 100. The pilot's camera (_n_ = 0.1, _f_ = 200): elements −1.0010005 and −0.2001001;
-  half of all depth values lie within 0.1999 m of the eye; at 50 m the gap is 1.5 mm (with _n_ = 0.01, 15 mm; 0.001,
-  15 cm).
+- **The mathematics:** (1) on a plane **n**·_P_ + _d_ = 0 not through the eye (_d_ ≠ 0), a point seen at screen
+  position (_x_s_, _y_s_) is _P_ = (−*z*/_g_)(_x_s_, _y_s_, −*g*), so 1/(−*z*) = −(_n_x_ _x_s_ + _n_y_ _y_s_ − _n_z_ _g_)/(_gd_):
+  affine in the screen. Hence any attribute _a_ affine on the triangle has _a_/_w_ affine too: interpolate _a_/_w_ and
+  1/_w_, divide (_w_ = −*z*). (2) The depth row _z_c_ = _Az_ + _B_ with _w_c_ = −*z* gives _z_ndc_ = −*A* − _B_/_z_, already
+  affine in 1/_z_ as (1) asks; the conditions −*n* ↦ −1, −*f* ↦ 1 give _A_ = −(_f_ + _n_)/(_f_ − _n_),
+  _B_ = −2*fn*/(_f_ − _n_), exactly three.js's `elements[10]` and `elements[14]`. (3) Window depth
+  _z_w_ = (_f_/(_f_ − _n_))(1 − _n_/_d_) at distance _d_; _z_w_ = ½ at _d_ = 2*nf*/(_n_ + _f_) < 2*n*. (4) The smallest
+  separable gap in a 24-bit fixed-point buffer is, to first order, about 2⁻²⁴*d*²(_f_ − _n_)/(_fn_). **Example:** RTR's
+  _n_ = 10, _f_ = 110: _z_ndc_ = 0.1, 0.833, 0.98 at 20, 60, 100. The pilot's camera (_n_ = 0.1, _f_ = 200): elements
+  −1.0010005 and −0.2001001; half of all depth values lie within 0.1999 m of the eye; at 50 m the gap is 1.5 mm (with
+  _n_ = 0.01, 15 mm; 0.001, 15 cm).
+- **Depth:** Proved: 1/_z_ affine on the screen, hence perspective-correct interpolation in general (any attribute
+  affine on the triangle), the depth row from its conditions, _z_w_(_d_), the half-depth distance, the first-order gap.
+  Stated: reversed depth's gain with a float buffer, with its idea (L2 §6.3.3, "Más a fondo"). Named: logarithmic
+  depth. Toy first: the toy 8-bit buffer's ticks show the precision before the real 24-bit buffer is trusted.
 - **The live figure:** near and far sliders; _z_w_(_d_) with ticks for each representable value of a toy 8-bit buffer (and
   the 24-bit gap as a number); two planes δ apart at distance _D_, flickering. One knob, two failures (the near plane):
   large clips walls when the camera is close, small makes far surfaces fight. Toggle naive: affine interpolation (pass
@@ -177,9 +192,13 @@ vec4(position, 1.0)` (three.js supplies these uniforms and attributes to `Shader
 - **The mathematics:** over is a convex combination (1.4's lerp): **c**o = α**c**s + (1 − α)**c**d. Two layers in the two
   orders differ by exactly α₁α₂(**c**₁ − **c**₂) (expand both): the error vanishes when either is faint, the reason order
   matters more as opacity grows (RTR fig. 5.37). Premultiplied colour makes over associative, so layers compose front to
-  back (under). Additive, **c**o = **c**d + α**c**s, commutes: sparks need no sort. **Example:** red (0.9, 0.2, 0.1) at
-  α = 0.6 over blue (0.1, 0.1, 0.9) gives (0.58, 0.16, 0.42) (RTR); a bubble's edge, coverage ¾ times opacity 0.1, has
-  α = 0.075.
+  back (under). Additive, **c**o = **c**d + α**c**s, commutes (up to the target's rounding): sparks need no sort.
+  **Example:** red (0.9, 0.2, 0.1) at α = 0.6 over blue (0.1, 0.1, 0.9) gives (0.58, 0.16, 0.42) (RTR); a bubble's edge,
+  coverage ¾ times opacity 0.1, has α = 0.075.
+- **Depth:** Proved: the order error α₁α₂(**c**₁ − **c**₂), over's associativity with premultiplied colour, additive's
+  order-freedom. Stated: alpha as coverage times opacity, a model that takes each layer's coverage as uncorrelated with
+  what lies behind (RTR 5.5). Named: order-independent transparency (depth peeling, weighted blending; RTR 5.5). Toy
+  first: the blend unit is the formula itself, and the panel checks it against the drawn overlap.
 - **The live figure:** three overlapping coloured quads; drag to reorder the draw list; an α slider. Toggles: depth writes
   on (a pane vanishes behind another) or off; sorting by centre against a manual order for two crossing panes (sorting
   fails). Panel: the overlap colour in this order and the swapped one, and their difference against α₁α₂(**c**₁ − **c**₂).
@@ -209,13 +228,18 @@ vec4(position, 1.0)` (three.js supplies these uniforms and attributes to `Shader
   shader beside `MeshLambertMaterial`, compared pixel by pixel.
 - **The mathematics:** irradiance _E_ = _I_ · falloff · (**n**·**l**)⁺ (the cosine: a beam of section _A_ covers _A_/cos θ,
   L2 fig. 7.3); radiance is constant along a ray in empty space (one sentence; the 1/*r*² against *r*² proof is a "Más a
-  fondo"); BRDF _f_ = _L_o_/_E_; Lambert constant, and energy (∫ cos θ dω = π over the hemisphere, proved by two
-  integrals) makes it ρ/π, as three.js's `BRDF_Lambert`. Phong: **r** = 2(**n**·**l**)**n** − **l** ("el mismo movimiento":
-  keep the part along **n**, flip the rest), (**v**·**r**)^α. Blinn–Phong: **h** = nrm(**l** + **v**), (**n**·**h**)^α;
-  coplanar, angle(**n**, **h**) = ½ angle(**v**, **r**), so the exponent is about 4× for the same highlight. three.js
-  normalizes it by (α/2 + 1)/π (`D_BlinnPhong`). The unlit part: ambient or hemisphere light. **Example:** _I_ = 100 cd at
-  5 m, **n**·**l** = 0.6, range 10 m: _E_ = 4 · 0.6 · 0.879 = 2.11 lx; ρ = 0.5: _L_ = 0.336 (encoded 0.614 without tone
+  fondo"); BRDF _f_ = _L_o_/_E_ (for light from one direction); Lambert constant, and energy (∫ cos θ dω = π over the
+  hemisphere, proved by two integrals) makes it ρ/π, as three.js's `BRDF_Lambert`. Phong: **r** = 2(**n**·**l**)**n** − **l**
+  ("el mismo movimiento": keep the part along **n**, flip the rest), (**v**·**r**)^α. Blinn–Phong: **h** = nrm(**l** + **v**),
+  (**n**·**h**)^α; coplanar, angle(**n**, **h**) = ½ angle(**v**, **r**), so the exponent is about 4× for the same
+  highlight (near its peak, where cos _x_ ≈ 1 − _x_²/2). three.js normalizes it by (α/2 + 1)/π (`D_BlinnPhong`), so that
+  ∫ _D_ (**n**·**h**) dω = 1. The unlit part: ambient or hemisphere light. **Example:** _I_ = 100 cd at 5 m,
+  **n**·**l** = 0.6, range 10 m: _E_ = 4 · 0.6 · 0.879 = 2.11 lx; ρ = 0.5: _L_ = 0.336 (encoded 0.614 without tone
   mapping).
+- **Depth:** Proved: the cosine law for irradiance, ∫ cos θ dω = π and hence Lambert's ρ/π, the reflection vector, the
+  coplanar half-angle fact. Stated: radiance constant along a ray (proof in "Más a fondo", L2 §7.1); three.js's
+  Blinn–Phong constant (exercise 2's integral, with cos^(α+1)); G2's shading equation (G2 §12.1–12.4). Named: the
+  rendering equation in full. Toy first: our Lambert shader against `MeshLambertMaterial`, pixel by pixel.
 - **The live figure:** a sphere and a floor under a point light: distance, intensity (cd), range, shininess; Lambert,
   Blinn–Phong and ambient toggles; tessellation with per-vertex against per-pixel (naive toggle). The big floor of two
   triangles with a 10 cd lamp 1 m above its centre: 10 lx at the centre, 0.027 lx at the corners, so per-vertex loses the
@@ -241,16 +265,21 @@ vec4(position, 1.0)` (three.js supplies these uniforms and attributes to `Shader
   drawn with the output encoding off: one spot looks dim, the overlap blinding. L2's derivations go in "Más a fondo"
   (chromaticity is the perspective divide again; the luminance weights from a 3×3 solve).
 - **The mathematics:** the sRGB curve: 12.92*C* up to 0.0031308, then 1.055*C*^(1/2.4) − 0.055; the joint meets in value
-  (0.04045) and nearly in slope (12.92 against 12.70); the straight piece avoids a pure power's infinite slope at 0.
-  Encoding spends codes where the eye tells darks apart. Light adds in linear terms; encoding does not commute with
-  addition. Luminance _Y_ = 0.2126*R* + 0.7152*G* + 0.0722*B* (linear). Tone mapping maps unbounded scene values to the
-  display: exposure first, then a curve (Reinhard _x_/(1 + _x_): 3 ↦ 0.75, 0.5 ↦ 0.333; ACES, AgX, Neutral in three.js).
-  **Example:** each spot gives linear 0.5, the overlap 1.0. Correct: shown as 188 and 255, a luminance ratio of 2.
-  Naive: 128 and 255, which the screen shows as 0.214 and 1, a ratio of 4.67.
+  to four digits (0.04045) and nearly in slope (12.92 against 12.70); the straight piece avoids a pure power's infinite
+  slope at 0. Encoding spends codes where the eye tells darks apart. Light adds in linear terms; encoding does not
+  commute with addition. Luminance _Y_ = 0.2126*R* + 0.7152*G* + 0.0722*B* (linear, for sRGB's primaries and white).
+  Tone mapping maps unbounded scene values to the display: exposure first, then a curve (Reinhard _x_/(1 + _x_):
+  3 ↦ 0.75, 0.5 ↦ 0.333; ACES, AgX, Neutral in three.js). **Example:** each spot gives linear 0.5, the overlap 1.0.
+  Correct: shown as 188 and 255, a luminance ratio of 2. Naive: 128 and 255, which the screen shows as 0.216 (sRGB's decoding of 128/255) and 1, a
+  ratio of 4.63.
+- **Depth:** Proved: the joint's value and slope, that encoding does not commute with addition (the example is the
+  counterexample), Reinhard's values. Stated: the luminance weights (the 3×3 solve, "Más a fondo", L2 §5.2–5.3); that
+  the eye tells darks apart better, a fact of perception (RTR 5.6, L2 §5.3). Named: colorimetry beyond sRGB (CIE XYZ,
+  the cones), ACES and AgX as fitted curves. Toy first: hand-written Reinhard and encoding before three.js's.
 - **The live figure:** the two spots with a pipeline switch (correct, no encoding, encoded twice); a grey ramp quantized
   to 5 bits, linear against encoded (banding in the darks); the tone curve with an exposure slider and three.js's curves.
   Panel: the hovered pixel's linear value, its code (0–255), _Y_, and the displayed overlap-to-single ratio (2.00 against
-  4.67).
+  4.63).
 - **Traps:** a hex colour is sRGB and three.js stores it linear (`Color.setHex`, color management on); `outputColorSpace`
   defaults to sRGB, `toneMapping` to none; colour textures need `colorSpace = SRGBColorSpace`, data textures none;
   encoding twice; lerping encoded colours; post-processing after the encoding.
@@ -284,6 +313,10 @@ vec4(position, 1.0)` (three.js supplies these uniforms and attributes to `Shader
   at linear 0.212. Console: `show.lightmeter` (view: meter and drawn _E_ at the player); `lamp.set 2 intensity 80` (world, at
   a step); recipe `seed 1; restart; step 300; light.at player` prints _E_, and `view.exposure 2; step 1; hash` gives the
   same hash as without it.
+- **Depth:** No new theorem: 8.5–8.6 applied. Proved: (_d_/_r_)⁴ = (_d_²/_r_²)², so no square root; the example's _E_;
+  where the window halves. Stated: three.js 0.187's two attenuation formulas, read from its source, not derived (the
+  window is Frostbite's choice of a smooth cut to zero at _r_). Toy first: `light.ts`'s falloff, by hand, is the
+  reference the drawn light is read back against (within 1%).
 - **The live figure:** the project's room with the probe at the player: the meter's _E_ against the drawn patch read back
   from a float target (×π/ρ), within 1%. Toggle naive: decay 1 with a fudge factor (Manifold's choice) against the shared
   falloff.
@@ -314,6 +347,10 @@ vec4(position, 1.0)` (three.js supplies these uniforms and attributes to `Shader
   The mip chain costs 1/3 more (1 + ¼ + ¹⁄₁₆ + … = 4/3). **Example** (RTR): (0.32, 0.29) on 256²: (81.92, 74.24), nearest
   texel (81, 74), sRGB (0.9, 0.8, 0.7) = linear (0.787, 0.604, 0.448); bilinear from (81.42, 73.74): weights 0.151,
   0.109, 0.429, 0.311. A 2048² RGBA8 texture is 16 MiB on the GPU, 21.3 MiB with mips, whatever the PNG weighs.
+- **Depth:** Proved: repeat as the fractional part, texel centres, bilinear as two lerps, the footprint as the
+  derivative of the texel coordinate, the mip chain's 4/3. Stated: λ = log₂ ρ as the GL rule, which GPUs may
+  approximate; anisotropic filtering, whose probes each GPU chooses (RTR 6.2.2). Toy first: the zoomed 8 × 8 texture
+  is sampled by hand before the GPU's sampler is used.
 - **The live figure:** a zoomed 8 × 8 texture with its grid and centres; drag the sample; nearest against bilinear (naive
   toggle); the four weights as bars. A UV view: hover a triangle in 3D, it lights in UV space (L2 fig. 7.8). Wrap modes on a
   floor with _u_ ∈ [0, 4]. Panel: (_u_, _v_), texel, weights, linear value, GPU bytes per texture.
@@ -335,14 +372,20 @@ vec4(position, 1.0)` (three.js supplies these uniforms and attributes to `Shader
   6.2.2 (minification and mipmaps).
 - **Approach:** one idea seen three times: a pixel, a frame and a step are samples. Hook: the far floor shimmers as the
   camera walks, a thin railing crawls, and a spinning coin seems to turn backwards.
-- **The mathematics:** sin(2π*fn*/_f_s_) = sin(2π(_f_ − _f_s_)_n_/_f_s_), so frequencies above _f_s_/2 come back as aliases (Nyquist);
-  a texture's one-texel stripes have frequency ½, so a pixel per texel at least; prefilter over the footprint (mipmaps are a
-  box pyramid). Edges: MSAA (several coverage samples, one shading), supersampling, post filters, temporal reuse. three.js:
+- **The mathematics:** sin(2π*fn*/_f_s_) = sin(2π(_f_ − _f_s_)_n_/_f_s_), so frequencies above _f_s_/2 come back as aliases
+  (Nyquist's easy half, proved; the other half, that a signal with no frequency at or above _f_s_/2 is recovered exactly
+  from its samples, is stated with RTR 5.4's picture); a texture's one-texel stripes have frequency ½, so a pixel per
+  texel at least; prefilter over the footprint (mipmaps are a box pyramid). Edges: MSAA (several coverage samples, one shading), supersampling, post filters, temporal reuse. three.js:
   `antialias: true` is MSAA on the canvas, and a render target needs `samples`. **Example:** an 8-spoke coin at 7 rev/s
   shows 56 spokes per second; drawn at 60 Hz that aliases to −4 per second, a slow turn backwards at 0.5 rev/s (at 30 Hz
-  too; at 144 Hz it is true). The floor 30 m away seen from 1.7 m with a 60° field and 1080 rows: a pixel covers 2.9 cm
-  across and 51 cm along the floor; a 1 m tile of 512 texels gives 15 × 263 texels, levels 3.9 and 8.0, anisotropy 18:
+  too; at 144 Hz it is true). The floor 30 m away seen from 1.7 m with a 60° field and 1080 rows: a pixel at the screen's centre
+  spans 2 tan 30°/1080 rad, so 3.2 cm across and 57 cm along the floor; a 1 m tile of 512 texels gives 16 × 291
+  texels, levels 4.0 and 8.2, anisotropy 18:
   trilinear alone blurs, 16× anisotropic keeps it sharp.
+- **Depth:** Proved: the alias identity and its numbers (the coin, the 50 Hz wobble), the stripes' ½, the footprint.
+  Stated: the sampling theorem's reconstruction half, which justifies prefiltering (RTR 5.4; proof in PBRT 4th ed.
+  §8.1); a mipmap as a box prefilter, not the ideal one. Named: reconstruction filters, MSAA's and temporal
+  antialiasing's machinery (RTR 5.4). Toy first: the sampled-sine plotter, before the GPU's filters.
 - **The live figure:** the coin with spin and frame-rate sliders; a sampled sine with its alias; the receding checkerboard
   with filter menu (nearest, no mips, trilinear, anisotropy 4 and 16) and mip levels as colours; MSAA on a railing. One knob,
   two failures (filtering, as LOD bias): negative shimmers, positive blurs, both measured (frame-to-frame flicker on a slow
@@ -366,13 +409,17 @@ vec4(position, 1.0)` (three.js supplies these uniforms and attributes to `Shader
 - **Approach:** Blinn: leave the geometry, perturb the normal the light reads; it works because shading only reads
   normals. Hook: the night room's walls look like painted paper under the guard's lantern; real bricks cost triangles.
 - **The mathematics:** edges **e**₁ = Δ*u*₁**t** + Δ*v*₁**b**, **e**₂ = Δ*u*₂**t** + Δ*v*₂**b**, so [**t** **b**] = [**e**₁ **e**₂] times the
-  inverse of the 2×2 UV matrix; average per vertex; **t**′ = nrm(**t** − (**t**·**n**)**n**) ("el mismo movimiento"),
-  σ = sign((**n** × **t**′)·**b**), **b**′ = σ(**n** × **t**′); TBN orthonormal, so its inverse is its transpose (1.9).
-  three.js stores the tangent as a vec4 with σ in _w_ (`computeTangents`) and rebuilds the bitangent from it; without one it
-  builds the frame per pixel from derivatives. Decode _n_t_ = 2·texel/255 − 1. From heights: **m** = nrm(−∂*h*/∂*x*, −∂*h*/∂*y*, 1).
+  inverse of the 2×2 UV matrix (invertible unless the triangle's UVs are collinear); average per vertex;
+  **t**′ = nrm(**t** − (**t**·**n**)**n**) ("el mismo movimiento"), σ = sign((**n** × **t**′)·**b**), **b**′ = σ(**n** × **t**′);
+  TBN orthonormal, so its inverse is its transpose (1.9). three.js stores the tangent as a vec4 with σ in _w_
+  (`computeTangents`) and rebuilds the bitangent from it; without one it builds the frame per pixel from derivatives. Decode _n_t_ = 2·texel/255 − 1. From heights: **m** = nrm(−∂*h*/∂*x*, −∂*h*/∂*y*, 1).
   **Example:** floor triangle (0, 0, 0), (1, 0, 0), (0, 0, −1) with UVs (0, 0), (1, 0), (0, 1): **t** = (1, 0, 0),
   **b** = (0, 0, −1), σ = +1; mirror _u_ at the second vertex and **t** = (−1, 0, 0), σ = −1. Texel (200, 128, 220) decodes to
   (0.569, 0.004, 0.725), length 0.922, normalized (0.617, 0.004, 0.787): lit head-on it gives 0.787 instead of 1.
+- **Depth:** Proved: the frame from the 2×2 solve, Gram–Schmidt and σ, the transpose as the inverse of an orthonormal
+  frame, a height field's normal from two tangents. Stated: why the trick convinces (shading reads only the normal;
+  silhouettes and grazing views give it away, RTR 6.7–6.8); the per-vertex average is a choice, not a theorem. Named:
+  MikkTSpace, the tangents glTF asks for; parallax mapping. Toy first: the floor's frame by hand before `computeTangents`.
 - **The live figure:** a wall with a brick normal map under a draggable light; maps on and off (naive toggle); per-pixel
   normals as arrows; the TBN at a vertex; mirrored UVs with σ ignored (the bumps light from the wrong side) and used; a
   grazing-view slider (flattening, a flat silhouette); paint heights and see the normal map. Panel: texel RGB, decoded and
@@ -401,7 +448,12 @@ vec4(position, 1.0)` (three.js supplies these uniforms and attributes to `Shader
   _D_ = α²/(π((**n**·**h**)²(α² − 1) + 1)²), α = roughness² (three.js "UE4's roughness"). Normalization ∫ _D_(**n**·**h**) dω = 1
   (a substitution _u_ = cos²θ; the mathematician's exercise). Environment light: the reflection direction looks up a
   prefiltered map, a mip per roughness (`PMREMGenerator`, `scene.environment`). **Example:** *F*₀ = 0.04: _F_(60°) = 0.070,
-  _F_(85°) = 0.649. _D_ at its peak is 1/(πα²): 5.09 at roughness 0.5, 81.5 at 0.25 (sharper and brighter, the same energy).
+  _F_(85°) = 0.649. _D_ at its peak is 1/(πα²): 5.09 at roughness 0.5, 81.5 at 0.25 (sharper and brighter, with
+  ∫ _D_(**n**·**h**) dω = 1 still).
+- **Depth:** Proved: GGX's normalization (exercise 1), _D_'s peak, the Schlick values. Stated: Schlick as a fit to
+  Fresnel's equations (RTR 9.5); Cook–Torrance with the idea of its 4 (the half vector's change of variables) and Smith's
+  masking (RTR 9.7–9.8); prefiltering as an approximation (RTR 10.5). Named: Fresnel from Maxwell, the energy GGX loses
+  at high roughness (RTR 9.8.2). Toy first: ML 2.3's hand-written Cook–Torrance; PMREM is used, not built.
 - **The live figure:** a 5 × 5 grid of spheres, roughness by metalness, under one environment; a Fresnel curve with an *F*₀
   slider, exact Schlick against three.js's (it uses Epic's exp2 fit, at most 0.004 away, near grazing); a GGX lobe
   with a roughness slider. Toggle naive: no environment (black faces). Panel: *F*₀, _F_(θ) both ways, α, _D_ peak.
@@ -429,11 +481,16 @@ vec4(position, 1.0)` (three.js supplies these uniforms and attributes to `Shader
   beats none (a blob, as Manifold draws).
 - **The mathematics:** the light's camera (look-at, 1.16; perspective for a spot, orthographic for the sun, six views for a
   point light); the test: _P_ to light clip space, to [0, 1]; shadowed iff _z_P_ − bias > _z_map_(_u_, _v_). Acne: the map holds
-  depth at texel centres; on a surface tilted by θ from the light, depth varies across a texel by about
-  texel·tan θ, so the bias must exceed half that; too much bias leaks light (the shadow detaches). Texel size = frustum
-  width / map size. PCF returns the fraction of passing comparisons: RTR's "fraction of the light visible", the logic's
-  partial light. **Example:** a spot 3 m up with a 45° half-angle covers 6 m of floor, 5.9 mm per texel at 1024²; at θ = 45°
+  depth at texel centres; on a surface tilted by θ from the direction the map measures depth along (the sun's rays; a
+  spot's axis, near its centre), depth varies across a texel by about texel·tan θ, so the bias must exceed half that;
+  too much bias leaks light (the shadow detaches). Texel size = frustum width / map size. PCF returns the fraction of
+  passing comparisons, which approximates RTR's "fraction of the light visible" and the logic's partial light (its
+  kernel is fixed, not the lamp's size). **Example:** a spot 3 m up with a 45° half-angle covers 6 m of floor, 5.9 mm per texel at 1024²; at θ = 45°
   the bias needs about 3 mm. RTR's 100 m sun frustum at 2048 gives 4.9 cm texels; fitted to a 20 m room, 9.8 mm.
+- **Depth:** Proved: the shadow test as 8.3's depth comparison, the texel size, the acne bound ½·texel·tan θ, the
+  frustum-fit numbers. Stated: PCF as an approximation of partial visibility; slope-scale bias, normal offset and
+  cascades with their idea (RTR 7.4–7.6, L2 §8.3). Named: PCSS, VSM and ESM, ray-traced shadows. Toy first: ML 2.4's
+  two-pass shadow map by hand, then three.js's `LightShadow`.
 - **The live figure:** the bias knob from 0 to large, both failures measured: acne (the share of a lit test patch wrongly
   shadowed) and leak (the gap between a box's base and its shadow, in cm); map resolution; the depth map seen from the
   light; toggle naive: default shadow-camera bounds against fitted. Panel: texel at the floor, bias, acne %, leak.
@@ -467,6 +524,9 @@ vec4(position, 1.0)` (three.js supplies these uniforms and attributes to `Shader
   lit-or-shadowed verdict on a grid of floor points against the drawn one, read back. Recipe: `seed 2; restart;
 show.agreement` prints at least 98%; `view.shadow.bias 0` drops it (acne), `view.shadow.bias 0.02` too (leaks);
   `step 600; hash` is the same at any bias.
+- **Depth:** No new theorem: 8.11–8.12 applied. Stated: the 98% is a measured tolerance, not an identity (problem 7);
+  PMREM's prefiltering, as 8.11 states it. Toy first: the agreement test reads the drawn shadow against the logic's
+  exact rays, the reference built by hand in part 6.
 - **Traps:** texture memory (8.8) counted in `renderer.info.memory`; the environment adds light the meter does not count
   (keep it out of the agreement test, or add it to the logic's ambient); normal maps without tangents in glTF.
 - **Exercises:** (1) Give the crates a metal edge with a metalness map. (2) Measure the agreement against map size. (3) Fit
@@ -488,11 +548,16 @@ show.agreement` prints at least 98%; `view.shadow.bias 0` drops it (acne), `view
   Planes return: L2's "a plane is a row and travels with the inverse".
 - **The mathematics:** inside the clip cube means −*w* ≤ _x_c_ ≤ _w_, i.e. (row₄ + row₁)·_P_ ≥ 0 with rows of **M** = **PV**: the
   six planes are row₄ ± rowᵢ (Gribb–Hartmann), normalized to measure distance; three.js's `Frustum.setFromProjectionMatrix`
-  does exactly this. Sphere outside iff its signed distance to some plane is below −*r*; box by projected extent (3.4). Tests
-  are conservative: they may say "maybe" wrongly (time), never "invisible" wrongly (correctness). A BVH (3.12) with three
-  outcomes and plane masking. **Example:** fov 60°, aspect 1, _n_ = 0.1, _f_ = 100: left plane (_g_, 0, −1, 0)/2 =
-  (0.866, 0, −0.5, 0); a sphere of radius 1 at (−6, 0, −10) is at −0.196 (kept), at (−8, 0, −10) at −1.928 (culled). The
-  near plane comes out as −*z* − 0.1 ≥ 0.
+  does exactly this. A sphere is culled iff its signed distance to some plane is below −*r*: that implies it is
+  outside, not conversely (near the corners); box by projected extent (3.4). Tests are conservative: they may say
+  "maybe" wrongly (time), never "invisible" wrongly (correctness). A BVH (3.12) with three outcomes and plane masking.
+  **Example:** fov 60°, aspect 1, _n_ = 0.1, _f_ = 100: left plane (_g_, 0, −1, 0)/2 = (0.866, 0, −0.5, 0); a sphere of
+  radius 1 at (−6, 0, −10) is at −0.196 (kept), at (−8, 0, −10) at −1.928 (culled). The near plane comes out as
+  −*z* − 0.1 ≥ 0.
+- **Depth:** Proved: the six planes from the rows of **PV**, the sphere and box tests and why they are conservative,
+  plane masking's one-line reason (a child inside a parent's half-space needs no test). Stated: what a BVH saves, a
+  cost argued and measured (3.12). Named: occlusion culling (hierarchical _z_, visible sets; RTR 19.7), portals ("Más a
+  fondo"). Toy first: `cull.ts` by hand against three.js's `Frustum`, plane by plane.
 - **The live figure:** the frustum from above with many spheres coloured in, out and straddling, the selected one's six
   distances against its radius; boxes with the false-positive region near corners; a BVH coloured by outcome with plane
   tests counted. Toggle naive: no culling, or per object without hierarchy. Panel: objects tested, plane tests, draw calls,
@@ -520,6 +585,10 @@ show.agreement` prints at least 98%; `view.shadow.bias 0` drops it (acne), `view
 - **The mathematics:** a cost model, frame CPU ≈ _c_call_·_N_calls_ + _c_obj_·_N_ against _c_call_ + _c_upload_·64 B·_N_; each
   instance matrix is **TRS** (1.11) composed once per change, 16 floats. **Example:** 2000 moving coins upload 128 KB per
   frame; 1000 → 1 call. The crossover is measured on the reader's machine, not assumed.
+- **Depth:** No theorem: a linear cost model whose constants are measured, never assumed; the 64 bytes per copy are
+  counted. Stated: what instancing does on the GPU (one draw, the vertex shader reading each copy's matrix; RTR 18.4).
+  Named: multi-draw and GPU-driven rendering (`BatchedMesh` uses the first). Toy first: the thousand separate meshes,
+  the naive rung, measured before `InstancedMesh`.
 - **The live figure:** _N_ from 10 to 10 000; separate meshes against one `InstancedMesh` (naive toggle). Panel:
   `renderer.info.render.calls`, triangles, CPU ms, uploaded bytes.
 - **Traps:** `instanceMatrix.needsUpdate` (a dirty flag) and update ranges; one bound for all copies (8.14);
@@ -542,15 +611,20 @@ show.agreement` prints at least 98%; `view.shadow.bias 0` drops it (acne), `view
   inscattering). **Also:** MF §4.2–4.4 (fireworks: types, fuse, payload); GPP ch. 19, ch. 17.
 - **Approach:** each effect is a cheap lie with a model behind it. Hook: a lamp breaks (6.11): sparks, glass and smoke; the
   coins should shine; the hall needs fog.
-- **The mathematics:** billboards: a fixed vector and an approximate up give a basis by two cross products (1.6, 1.16);
-  screen-aligned, viewpoint-oriented (no stretching at a wide field of view), axial (degenerate when the axis is the view).
-  Particles: semi-implicit Euler (2.2) in the view, seeded from the event's seed but outside the hash (6.10's rule); a pool
-  packed by swapping with the last; additive blending needs no sort (8.4's proof). Fog: _dT_/_dd_ = −σ*T* gives
-  _T_ = e^(−σ*d*), the 2.3 equation in distance; integrating the light scattered in gives
+- **The mathematics:** billboards: a fixed vector and an approximate up (not parallel to it) give a basis by two cross
+  products (1.6, 1.16); screen-aligned, viewpoint-oriented (no stretching at a wide field of view), axial (degenerate
+  when the axis is the view). Particles: semi-implicit Euler (2.2) in the view, seeded from the event's seed but outside
+  the hash (6.10's rule); a pool packed by swapping with the last; additive blending needs no sort (8.4's proof). Fog,
+  with σ the same everywhere (a uniform fog): _dT_/_dd_ = −σ*T* gives _T_ = e^(−σ*d*), the 2.3 equation in distance;
+  integrating the light scattered in, the same at every point of the ray, gives
   **c** = _T_**c**surface + (1 − _T_)**c**fog. Blur: _G_(_x_, _y_) = _g_(_x_)_g_(_y_), two 1D passes, *k*² → 2*k* taps (81 → 18 at
   _k_ = 9). Bloom: threshold the linear HDR image, blur, add, then tone map and encode last (`OutputPass`). **Example:** at
   σ = 0.1 m⁻¹: at 10 m Beer–Lambert gives 0.368, three.js's `FogExp2` (exp(−(ρ*d*)²)) also 0.368, the logic's rational
   1/(1 + σ*d*) 0.5; at 20 m: 0.135, 0.018, 0.333.
+- **Depth:** Proved: the billboard basis and its degenerate case, Beer–Lambert and the inscattering formula for a
+  uniform fog, the separable blur and its cost, additive's order-freedom (8.4). Stated: bloom as an imitation of glare,
+  a recipe with no theorem behind it (RTR 12). Named: scattering in non-uniform media (radiative transfer, phase
+  functions; RTR 14). Toy first: the logic's fog law and the pool by hand; three.js's fogs are measured against them.
 - **The live figure:** a ring of billboards at a wide field of view, by alignment mode (RTR fig. 13.7); a spark emitter with
   pool size and allocations per second (toggle naive: `new` per spark, the GC sawtooth in the memory graph); fog curves
   (Beer–Lambert, `Fog`, `FogExp2`, the logic's) with a density slider and the room drawn with each; bloom with a threshold
@@ -587,6 +661,8 @@ show.agreement` prints at least 98%; `view.shadow.bias 0` drops it (acne), `view
   shadow size, bloom) per machine. The budget: 16.7 ms, at most four shadowed spots at 1024², pixel ratio 1, under 150 draw
   calls. Console: `show.frame`, `view.quality low`, `show.agreement`. Recipes: `seed 5; restart; step 1800; hash` equal with
   `view.quality low` and `high`; `show.agreement` at least 98%; `renderer.info` calls under 150.
+- **Depth:** No new theorem: the part's results applied. Measured, not proved: the frame budget, the 98% agreement
+  (problem 7), the hash unchanged by every view setting. Named: a portal through the doorway (exercise 2, 10.7).
 - **Traps:** the lantern's shadow swimming (snap or accept); bloom hiding the dark the player needs (threshold above the
   meter's range); GPU memory leaked on restart (6.2's disposal).
 - **Exercises:** (1) Add a second guard's lantern within the budget. (2) A "Más a fondo": draw the room's other side
@@ -622,3 +698,22 @@ show.agreement` prints at least 98%; `view.shadow.bias 0` drops it (acne), `view
    (the sheets propose at least 98% of floor samples).
 8. **The integrated-GPU budget constrains part 6.** A shadowed point light costs six depth passes; the night room fits the
    budget with spot lamps, so 6.16 should give its lamps cones (which 6.8 already teaches).
+
+### Depth review (2026-11-18)
+
+What the rule of curriculum §4.6 could not settle alone:
+
+1. **A proof outside §3's books.** RTR 5.4 states the sampling theorem without proof, and no book in §3 proves it.
+   8.9's Depth line points to _Physically Based Rendering_, 4th ed. (free online), §8.1; the author may prefer another
+   source, or only a "Para saber más".
+2. **The toys for physical materials and shadows.** 8.5 builds Lambert by hand and compares it with three.js pixel by
+   pixel. 8.11 and 8.12 only reuse ML 2.3's hand-written Cook–Torrance and ML 2.4's two-pass shadow map (in their
+   sources). Should each be a main-path rung read against `MeshStandardMaterial` and `LightShadow`, as the rule asks,
+   or does 8.5's toy cover shading for the part? PMREM's prefiltering stays stated either way.
+3. **The normal offset is level 1 and unwritten.** 8.13's `normalBiasFor` gives "8.12's bias from the texel size", but
+   8.12 derives only the depth bias ½·texel·tan θ. Moving the lookup δ along the normal puts it δ/cos θ in front of the
+   surface along the light, so δ > ½·texel·sin θ suffices: half a texel works at every angle, where the depth bias grows
+   without bound. The game asks for a bias that does not fail; prove it in 8.12, or leave it stated?
+4. **8.12's example and a spot's depth.** A spot's map stores depth along its axis, so a floor square to a downward
+   spot has one depth across each texel and needs no slope term. "At θ = 45° the bias needs about 3 mm" fits a surface
+   tilted 45° from that axis (or the sun's map), not the floor at the cone's edge. Which was meant?

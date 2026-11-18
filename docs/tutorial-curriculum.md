@@ -15,7 +15,8 @@ English.
 mathematics** (0021), for someone who programs a little and has never done graphics, physics or games. One project
 grows from the first lesson to the last and ends each part in something played. Concept lessons teach one idea for
 itself, with a figure the reader touches. Project lessons take the idea into the project. The mathematics enters when
-the game first asks for it, and it is taught whole and precisely, with its proofs. The text is Spanish, the code
+the game first asks for it, and it is taught precisely, proved where a proof fits the lesson, to the depth the game's
+question needs and no further (§4.6). The text is Spanish, the code
 English: TypeScript, three.js and Rapier, in the browser.
 
 What no other tutorial offers, and where it shows:
@@ -254,6 +255,47 @@ A lesson is reviewed against this list before it is published:
     every lesson's project passes.
 11. **The lesson ends saying where the idea comes back.**
 12. **The game is more expressive** after a project lesson than before it.
+13. **The depth is the question's (§4.6):** each result at its level, the level said; nothing proved that the game
+    did not ask for, nothing stated without its hypotheses, and no simplification passed off as the general case.
+
+### 4.6 How deep the mathematics goes
+
+The mathematics of an engine has no bottom: quaternions lead to Lie groups, the contact solver to complementarity
+theory, physically based shading to radiometry and measure, a curved world to Riemannian geometry, robust geometry to
+exact arithmetic. A tutorial that follows each thread to its end never ends; one that shows code without its
+mathematics is a book of recipes that does not transfer. The rule between them (the author's, 2026-11-18):
+
+**The game's question sets the depth.** A piece of mathematics enters because the game asks something (is the target
+in front, does the ball go through the wall, why does the stack jitter) and the lesson stops where that question is
+answered and the reader can reason about the code when it breaks. "It is interesting" is a reason for "Más a fondo",
+never for the main path.
+
+**Three levels of treatment**, chosen for each result, and said in the sheet (each lesson's **Depth:** line):
+
+1. **Proved.** What fits a page with first-years university mathematics (linear algebra, calculus, elementary geometry
+   and probability): the result is derived from conditions and proved in the main path, with a worked example the
+   figure shows. This is the tutorial's core, and most of parts 1 to 3 and the toy engine of part 4.
+2. **Stated precisely, with its idea.** A result whose proof needs more than a page or more than that mathematics: its
+   hypotheses complete, what it says, why it is believable (a picture, the idea of the proof, a special case proved),
+   and where the proof is (a book by chapter). The reader may use it with confidence and knows what it rests on.
+   Examples: every rotation is about an axis (Euler); separating axes suffice for convex shapes (the separating
+   hyperplane theorem); GJK terminates; when an integrator is stable.
+3. **Named and pointed to.** The horizon: what exists, why it matters to engines, and where to read it, in "Más a
+   fondo" or "Para saber más", without pretending to cover it. Examples: SO(3) as a Lie group and the exponential map,
+   the linear complementarity problem, the rendering equation as an integral over measures, exact geometric
+   predicates, curvature tensors.
+
+**What the engine delegates, the tutorial builds small first.** Where the project hands a job to a library (Rapier
+for rigid bodies, the GPU for rasterization), a lesson builds a toy version that does the same job on the simplest
+case, measures where it fails, and then uses the real one knowing what it does (4.6 before 4.11). The toy is proved
+(level 1); the industrial algorithm is stated (level 2) or named (level 3).
+
+**Nothing false for the sake of simplicity.** A simplification is said as one: "we prove it for X; the general case
+is Y, in Z". Hypotheses are named (perpendicular axes and one unit before Pythagoras). A level-2 statement is as
+exact as a level-1 theorem; only its proof is elsewhere.
+
+**Lessons need not weigh the same.** A concept lesson whose question is small may be short, as long as what it says is
+precise. Length follows the question, not a template.
 
 ## 5. The parts and their lessons
 

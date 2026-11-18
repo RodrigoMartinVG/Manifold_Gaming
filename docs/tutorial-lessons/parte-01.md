@@ -139,6 +139,9 @@ takes the seventeen lessons and _la torreta_.
   then standing), with the assumptions named (perpendicular axes, one unit). Worked example: _P_ = (3; 2; 1),
   _Q_ = (−1; 0,5; −2): Δ = (−4; −1,5; −3), floor distance 5, distance √27,25 ≈ 5,2202 m; in Unity the same points give
   the same distance; in Unreal 522,02.
+- **Depth:** Proved: the distance by Pythagoras twice (perpendicular axes, one unit, named); whether a change of axes
+  flips the hand, by counting swaps and sign changes. Stated: that the hand is a convention, defined as mathematics in
+  1.6.
 - **The live figure:** the pilot's: drag _P_ and _Q_ on the floor, a height slider, the box of the distance, a
   left-handed toggle that mirrors the frame while the numbers stay. Panel rows: "P (x, y, z)", "Δ = Q − P", "floor
   distance", "our distance", "three.js distanceTo". Test: "our distance" equals "three.js distanceTo" to 4 decimals;
@@ -173,6 +176,8 @@ takes the seventeen lessons and _la torreta_.
   Worked example: eye (0; 1; 2), φ = 55°, 800 × 450, _P_ = (1; 1,5; −3): _d_ = 5, (_x_′, _y_′) = (0,2; 0,1),
   (_u_, _v_) ≈ (0,2161; 0,1921), pixel ≈ (486,4; 181,8). Rails at 20°: vanishing point _x_′ = tan 20° ≈ 0,3640, pixel
   (557,3; 225). θ ≈ 85,6°, not 97,8°.
+- **Depth:** Proved: the projection by similar triangles and again by the line's parameter; vanishing points; tan(θ/2)
+  = a tan(φ/2). Named: the 4 × 4 matrix with w (1.10) and depth (8.3).
 - **The live figure:** the pilot's: drag _P_; sliders for the rails' turn, the field of view and the picture size; the
   inset photo by three.js with our rings on it. The side view is drawn so that 1.10 can relabel its depth axis as _w_.
   "One knob, two failures" (RTR): the field of view, too wide distorts the edges and exaggerates the near, too narrow
@@ -208,6 +213,7 @@ takes the seventeen lessons and _la torreta_.
   _s_/_d_ · _H_/(2_h_). Worked example (the pilot's camera, now looking at the turret's first target): eye
   (1,5; 1,6; 6), φ = 55°, 800 × 450, target _T_1 = (2; 0,5; −3): _d_ = 9, (_u_, _v_) ≈ (0,0600; −0,2348), pixel
   ≈ (424,0; 277,8); its 0,6 m sphere spans ≈ 28,8 px.
+- **Depth:** Proved: 1.2's steps from any eye, and the size on screen. Nothing stated or named: a project lesson.
 - **The project:** `view.ts` (`createView({ eye, fov })` returns `scene`, `camera`, `onFrame(update)` and `dispose()`;
   the picture follows the window's size); `screen.ts` (`toScreen`, the pilot's, unchanged); `world.ts` (`World`, plain
   data: the floor's size, the turret `{ position }`, the targets `{ id, position }`; `createWorld(layout)`);
@@ -249,6 +255,8 @@ takes the seventeen lessons and _la torreta_.
 - **The mathematics:** as the pilot, with the derivation |_k_**v**| = |_k_||**v**| and |**v̂**| = 1. Worked example
   (the autopilot's first stop): **a** = (3; 0; −1), **b** = (1; 0; −2), _k_ = −0,5: sum (4; 0; −3), difference
   (2; 0; 1), |**a**| = √10 ≈ 3,162, |**b**| = √5 ≈ 2,236, |**a** + **b**| = 5 ≤ 5,398, **â** ≈ (0,949; 0; −0,316).
+- **Depth:** Proved: the operations' rules component by component, |k v| = |k| |v|, |v̂| = 1, uniqueness in a basis,
+  affine combinations. Stated: the triangle inequality (proved in 1.5).
 - **The live figure:** the pilot's: drag both tips (snapped to half metres), the parallelogram, _k_**a**, **â** on the
   unit circle, the autopilot. Panel rows: "vector a", "sum a + b", "difference a − b", "length |a + b|", "|a| + |b|",
   "unit â", "length |â|", "three.js â", "scalar k". Test: at the first stop the values above; with both tips on the same
@@ -293,6 +301,9 @@ takes the seventeen lessons and _la torreta_.
   Worked example (1.4's vectors): **a** = (3; 0; −1), **b** = (1; 0; −2): **a**·**b** = 5, cos θ = 5/√50, θ = 45°;
   **a**∥ = (1; 0; −2), **a**⊥ = (2; 0; 1), |**a**⊥| = √5 = √10 · sin 45°. Cone from the origin along **b̂**: outside at
   α = 30° (cos 45° < cos 30°), inside at 50°.
+- **Depth:** Proved: perpendicularity by Pythagoras and its converse, the shadow and the cosine, projection, rejection
+  and |a⊥| = |a| sin θ, Cauchy–Schwarz (by the angle, and without it in "Más a fondo"), the triangle inequality, the
+  cone. Named: the support point (part 3).
 - **The live figure:** two modes. "Split": drag **a** and **b**; the shadow on **b**'s line, the rejection, the right
   angle, the arc θ; "flip b" and "b × 2" leave **a**∥ unchanged (one projects onto the line). "Look": an eye with a
   draggable facing direction and a draggable target, the front half-plane shaded, a cone with an α slider. Naive
@@ -313,7 +324,8 @@ takes the seventeen lessons and _la torreta_.
   _Immersive Linear Algebra_ ch. 3.
 - **Reuses:** none (new); the pilot 04's Lagrange-identity proof becomes exercise 1's second hint.
 - **Open:** whether "the extreme point" gets a figure here or only a sentence; E's figure (a point cloud with its two
-  extremes lit) is cheap and pays in 3.8.
+  extremes lit) is cheap and pays in 3.8. _Written (batch 2):_ a "Más a fondo" in words, no figure; the panel's
+  projection row is "projection a‖b" (U+2016: U+2225 rendered as a dotless i in the panel's font).
 
 ### 1.6 El producto vectorial: áreas con signo, normales, una base (C)
 
@@ -340,6 +352,10 @@ takes the seventeen lessons and _la torreta_.
   Worked example: **a** = (3; 0; −1), **b** = (1; 0; −2): **a** × **b** = (0; 5; 0), area 5 (= √10 · √5 · sin 45°),
   triangle 2,5, **b** to the left of **a**. In space: **a** = (2; 1; 0), **b** = (0; 1; 3): **a** × **b** =
   (3; −6; 2), length 7 (Lagrange: 5 · 10 − 1² = 49).
+- **Depth:** Proved: the signed area in the plane (by the sine of a difference, which gives its sign), the components
+  as shadows, perpendicularity, Lagrange's identity and the length, anticommutativity, handedness as the triple
+  product's sign, the frame from a gaze. Named: bivectors and the exterior product, why there is no cross product in
+  4D, pseudovectors.
 - **The live figure:** three modes, all dragged. "Área con signo": drag **a** and **b** on the floor; the parallelogram
   green or red by sign; "show the proof" draws L1's rectangle cut. "Las tres sombras": drag **a** and **b** in space
   (handles on a vertical plane plus a height handle); the shadows on the three planes with their signed areas beside
@@ -362,7 +378,10 @@ takes the seventeen lessons and _la torreta_.
 - **Sources:** L1 1.5.2–1.5.3, 4.1; E §3.1.6, §3.3.5–3.3.8; G §5.2.4.8–9; MF §2.1.8–9, §14.2.1; MA §3.9.4;
   _Immersive Linear Algebra_ ch. 4.
 - **Reuses:** none (new).
-- **Open:** three modes may be too many for one figure; if so, the frame mode moves into 1.7's project view.
+- **Open:** three modes may be too many for one figure; if so, the frame mode moves into 1.7's project view. _Written
+  (batch 2):_ two modes, "signed area" and "in space" (the tips' heights as sliders, c and its box in the second); the
+  frame moved into 1.7, drawn at the turret with `debug.axes`; L1's rectangle proof replaced by the sine of a
+  difference, which also gives the sign.
 
 ### 1.7 Mirar: delante, detrás, a qué lado (P)
 
@@ -382,6 +401,8 @@ takes the seventeen lessons and _la torreta_.
   at the eye's height: _T_1 = (2; 0,5; −3) in front, right, 33,7° (outside); _T_2 = (−1; 0,5; 2) behind, left;
   _T_3 = (−1; 0,5; −4) in front, left, 14,0° (inside). One eighth to the right, **f** = (1; 0; −1)/√2: _T_1 at 11,3°,
   inside.
+- **Depth:** Proved: the three tests (recalled), the nearest heading as the largest dot product, the cone's edges as
+  cos α f ± sin α r. Nothing stated or named: a project lesson.
 - **The project:** `vec.ts` (new: the 1.4 functions plus `dot` and `cross`); `debug.ts` (new: `debug.arrow`,
   `debug.line`, `debug.point`, `debug.axes`, `debug.text`, each with a lifetime in seconds of the real clock, default one
   frame, and depth on or off; requests are queued and `debug.flush` draws them at the end of the frame); `turret.ts`
@@ -406,7 +427,10 @@ takes the seventeen lessons and _la torreta_.
 - **Reuses:** the pilot's `course/parte-1/02-moverse/vec.ts` and `vec.test.ts` (as `vec.ts` with `dot` and `cross`
   added, and their tests); its raw key handling.
 - **Open:** the curriculum says `vec.ts` "grows" here, but with "Moverse" moved to 2.8 no earlier project lesson adds
-  it: 1.7 adds it whole. Also decide whether `debug.ts` lifetimes count real seconds (as here) or frames.
+  it: 1.7 adds it whole. Also decide whether `debug.ts` lifetimes count real seconds (as here) or frames. _Written
+  (batch 2):_ real seconds; `debug.ts` is only the queue (no three.js, so rules may ask), `view/debug-view.ts` draws it;
+  the step is `parte-1/02-mirar`, and Moverse's step moved to `parte-2/08-moverse`. The camera looks down with
+  three.js's `lookAt` (1.3's did not turn, to be checked against `toScreen`). Panel buttons mirror the keys.
 - **The kit's bridge** (the author's decision, 2026-11-16): the lab kit is never taught as a topic. When `debug.ts` arrives here, the lesson says that the kit under every concept figure is the same idea at full size (arrows, points, lines, labels, drawn each frame), and that from now on it can be read: the link under each figure's editor.
 
 ### 1.8 Matrices: adónde van los ejes (C)
