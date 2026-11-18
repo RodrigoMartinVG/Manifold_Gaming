@@ -1,4 +1,4 @@
-# Manifold replay 44
+# Manifold replay 45
 # The fortress's courtyard, played unseen to its way out: the dark side, a gate lantern put out.
 # A reference replay (stage 5f, as the tower’s since 5d): playing it must end with the hash on its
 # last line. Recorded by games/fortress/src/levels.test.ts; recorded again (npm run references) only
@@ -89,4 +89,4 @@ input 1256 1 move @323:0.64 crouch
 input 1257 1 move @323:0.56 crouch
 input 1258 1 move @323:0.5 crouch
 input 1259 1 move @359
-end 1281 c19f14e0
+end 1281 26538cf7

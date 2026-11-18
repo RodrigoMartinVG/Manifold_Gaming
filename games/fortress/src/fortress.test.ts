@@ -1,9 +1,10 @@
 import { beforeAll, describe, expect, test } from 'vitest';
 import { initPhysics, NO_INPUT, type Entity, type Event, type PlayerInput } from '@manifold/core';
+import { noticeOf, pouch, secondsToNotice } from '@manifold/arms';
 import { missingKeys, notesBetween } from '@manifold/presentation';
 import { FORTRESS, FORTRESS_THEME, FORTRESS_WORDS } from './game';
 import { levelOf } from './play';
-import { FORTRESS as RULES } from './rules';
+import { AWARE, FORTRESS as RULES } from './rules';
 
 beforeAll(initPhysics);
 
@@ -77,13 +78,31 @@ describe('the fortress, on the games’ shell (stage 5f)', () => {
     f.session.world.dispose();
   });
 
-  test('seen by a guard on its feet, it was seen (no star); a guard down sees nothing', () => {
+  test('seen (stage 5l): a glimpse is not; a moment longer in its sight, the guard is suspicious (“huh?”), then alerted (it shouts), and that is being seen (no star); a guard down sees nothing', () => {
     const f = levelOf(2);
     f.step();
-    // Before the guard at its post, the flame lighting it (it carries it): seen.
+    const g0 = () => f.guards()[0]!;
+    const n = () => noticeOf(g0())!;
+    const said: string[] = [];
+    const steps = (k: number) => {
+      for (let i = 0; i < k; i++) {
+        f.step();
+        for (const ev of f.world().stepEvents) if (ev.type === 'sound' && ev.source === g0().id) said.push(ev.sound);
+      }
+    };
+    // Before the guard at its post, the flame lighting it (it carries it): a glimpse, three steps.
     f.session.world.place(f.me(), [0.3, 0.82, -17.2]);
-    for (let i = 0; i < 3; i++) f.step();
-    expect(f.r().seen).toBeGreaterThan(0);
+    steps(3);
+    expect(n().level).toBeGreaterThan(0);
+    expect([n().state, f.r().seen]).toEqual(['calm', 0]);
+    // A moment longer: suspicious, then alerted; seen once.
+    for (let i = 0; i < 60 && n().state !== 'alerted'; i++) steps(1);
+    expect(n().state).toBe('alerted');
+    // (Its shout is its brain's, the step after.)
+    steps(3);
+    expect(said.indexOf('huh')).toBeGreaterThanOrEqual(0);
+    expect(said.indexOf('huh')).toBeLessThan(said.indexOf('shout'));
+    expect(f.r().seen).toBe(1);
     // Again, the guard down first: the same place, unseen.
     const g = levelOf(2);
     g.step();
@@ -94,6 +113,77 @@ describe('the fortress, on the games’ shell (stage 5f)', () => {
     expect(g.r().seen).toBe(0);
     f.session.world.dispose();
     g.session.world.dispose();
+  });
+
+  test('a guard’s awareness (stage 5l): sure in a fraction of a second near and in light, in seconds at the edge of its sight in the dark; warier, sooner', () => {
+    // Right by it, as lit as it can count: a seventh of a second; at its sight's edge (12 m), barely lit: two.
+    expect(secondsToNotice(AWARE, 0, 12, 2.5)).toBeCloseTo(0.14, 6);
+    expect(secondsToNotice(AWARE, 12, 12, 1)).toBeCloseTo(2, 6);
+    expect(secondsToNotice(AWARE, 6, 12, 1)).toBeCloseTo(1.175, 6);
+    // Brighter than 2.5 counts as 2.5; farther than its sight as its edge; warier, 0.6 of it.
+    expect(secondsToNotice(AWARE, 0, 12, 9)).toBe(secondsToNotice(AWARE, 0, 12, 2.5));
+    expect(secondsToNotice(AWARE, 30, 12, 1)).toBe(secondsToNotice(AWARE, 12, 12, 1));
+    expect(secondsToNotice(AWARE, 6, 12, 1, true)).toBeCloseTo(0.6 * 1.175, 6);
+  });
+
+  test('suspicious and out of its sight, one gets away: the guard goes to look, then lets it go (“nothing”); alerted and lost, it searches, then goes back warier', () => {
+    const f = levelOf(2);
+    f.step();
+    const g0 = () => f.guards()[0]!;
+    const n = () => noticeOf(g0())!;
+    const post = [...g0().transform!.position];
+    const said: string[] = [];
+    const steps = (k: number, until: () => boolean = () => false) => {
+      for (let i = 0; i < k && !until(); i++) {
+        f.step();
+        for (const ev of f.world().stepEvents) if (ev.type === 'sound' && ev.source === g0().id) said.push(ev.sound);
+      }
+    };
+    /**
+     * Put somewhere at once, and a step of the world before its guards think: its eyes then are of where it
+     * is now (a brain thinking first reads the eyes of the step before with where it is now: it would know
+     * where it went, as no one who walks there could make it).
+     */
+    const put = (at: number[]) => {
+      f.session.world.place(f.me(), at as [number, number, number]);
+      f.session.step();
+    };
+    put([0.3, 0.82, -17.2]);
+    steps(60, () => n().state === 'suspicious');
+    expect(n().state).toBe('suspicious');
+    // Gone (back at the level's start, out of its sight): it goes to look, and in a few seconds lets it go.
+    put([...f.r().spawn]);
+    steps(600, () => n().state === 'calm');
+    expect(n().state).toBe('calm');
+    expect(said).toContain('calm');
+    expect(Math.hypot(g0().transform!.position[0] - post[0]!, g0().transform!.position[2] - post[2]!)).toBeGreaterThan(0.5);
+    expect(f.r().seen).toBe(0);
+    // Alerted, then lost: three seconds on it searches, ten more and it is back, warier for half a minute.
+    put([0.3, 0.82, -17.2]);
+    steps(120, () => n().state === 'alerted');
+    expect(n().state).toBe('alerted');
+    put([...f.r().spawn]);
+    steps(400, () => n().state === 'searching');
+    expect(n().state).toBe('searching');
+    steps(900, () => n().state === 'calm');
+    expect(n().state).toBe('calm');
+    expect(n().until - f.world().tick).toBeGreaterThan(60 * (AWARE.waryFor - 1));
+    f.session.world.dispose();
+  });
+
+  test('a pebble (stage 5l): thrown, where it first strikes a clatter is heard 10 m round; three in the pouch, one gone', () => {
+    const f = levelOf(0);
+    f.step();
+    expect(pouch(f.me())!.pebble).toBe(3);
+    f.pebble(0.2);
+    expect(pouch(f.me())!.pebble).toBe(2);
+    let heard: { radius: number } | undefined;
+    for (let i = 0; i < 180 && !heard; i++) {
+      f.step();
+      heard = f.world().stepEvents.find((ev) => ev.type === 'sound' && ev.sound === 'pebble') as { radius: number } | undefined;
+    }
+    expect(heard?.radius).toBe(10);
+    f.session.world.dispose();
   });
 
   test('its jump, grounded (stage 5k): its feet 1.1 m up in 0.36 s, on its feet again in about 0.66 s, no longer 2 m on the world’s gravity', () => {
@@ -119,12 +209,13 @@ describe('the fortress, on the games’ shell (stage 5f)', () => {
     for (const key of named) expect(FORTRESS_WORDS.es, key).toHaveProperty([key]);
   });
 
-  test('its music, sparse (decision 0027): sneaking, a note begins on fewer than a fifth of the beats; alert, on a third at most; quiet once done', () => {
+  test('its music, sparse (decision 0027), in tiers (5l): sneaking, a note begins on fewer than a fifth of the beats; wary, more; alert, more still, a third at most; quiet once done', () => {
     const beats = FORTRESS_THEME.tempo;
     const share = (mood: string) => new Set(notesBetween(FORTRESS_THEME, mood, 0, beats).map((n) => n.beat)).size / beats;
     expect(share('sneak')).toBeGreaterThan(0);
     expect(share('sneak')).toBeLessThan(0.2);
-    expect(share('alert')).toBeGreaterThan(share('sneak'));
+    expect(share('wary')).toBeGreaterThan(share('sneak'));
+    expect(share('alert')).toBeGreaterThan(share('wary'));
     expect(share('alert')).toBeLessThanOrEqual(1 / 3);
     expect(notesBetween(FORTRESS_THEME, 'done', 0, beats)).toEqual([]);
   });

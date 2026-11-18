@@ -104,5 +104,9 @@
  *  44  stage 5k: the fortress's intruder and the wall's defender jump as grounded characters
  *      (`GROUNDED`: an arc of 1.1 m in 0.36 s, falling 1.4 times as fast), no longer 2.15 m on the
  *      world's gravity; the engine, the Dojo and the tower as in 43
+ *  45  stage 5l: an aware guard's awareness fills while it sees someone and empties when it does not
+ *      (`arms.notice`: calm, suspicious, alerted, searching; its barks `huh` and `calm`), and its brain
+ *      goes after them only once alerted; a pebble thrown clatters where it strikes (`pebble`); the
+ *      fortress counts a guard alerted as seen. Guards without `aware` (the Dojo's) as in 44
  */
-export const SIMULATION_VERSION = 44;
+export const SIMULATION_VERSION = 45;

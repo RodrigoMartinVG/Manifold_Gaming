@@ -38,6 +38,9 @@ const ECHO: Readonly<Record<string, number>> = {
   break: 0.35,
   blast: 0.9,
   shout: 0.4,
+  huh: 0.3,
+  calm: 0.3,
+  pebble: 0.35,
   ready: 0.2,
   fired: 0.55,
   whiz: 0.1,
@@ -197,6 +200,15 @@ export function mountAudio(page: GamePage): Piece {
         break;
       case 'ready':
         synth.ready(k, p.out, p.when);
+        break;
+      case 'huh':
+        synth.huh(k, p.out, p.when);
+        break;
+      case 'calm':
+        synth.calm(k, p.out, p.when);
+        break;
+      case 'pebble':
+        synth.pebble(k, p.out, p.when);
         break;
     }
     counted(`${s.sound} ${s.surface ?? ''}`.trim());

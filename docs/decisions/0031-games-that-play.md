@@ -159,6 +159,12 @@ falling at 1.4 times that gravity), the world's gravity unchanged. The sounds st
 in layers after Farnell's "Designing Sound", heard as sound travels (the highs off with distance, late at 343 m/s, a
 made convolution echo, a compressor). The walk's sway is a comfort setting (`view.bob`), as the research asked.
 
+As it went (5l): the awareness lives in the simulation (`noticing`, `arms.notice`), not in the brain's memory,
+so the view can draw it and any host's brain reads the same; only guards whose wariness has `aware` have it
+(the Dojo's do not). The fortress's star counts guards alerted, not glimpses. On the author's word mid-stage,
+weapons no longer go through walls: what is held is drawn raised out of a wall in front of it, and what is
+fired or thrown starts on this side of a near wall.
+
 ## The author's answers
 
 The author took every recommendation (2026-11-18):

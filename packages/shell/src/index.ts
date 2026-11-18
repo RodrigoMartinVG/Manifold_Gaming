@@ -70,6 +70,8 @@ export interface Game {
   hud?: Hud;
   buttons?: readonly GameButton[];
   tools?: Tools;
+  /** (Stage 5l) Pieces of its own on its page (the fortress's: how exposed, how noticed). */
+  pieces?: readonly ((page: GamePage) => Piece)[];
 }
 
 /** The game's words with the shell's: the game's first (it may say a shell key its own way). */
@@ -305,6 +307,7 @@ export async function startGame(container: HTMLElement, game: Game): Promise<Mou
     pieces: [
       campaign(game, progress, { ...(fromLink ? { link: fromLink } : {}), ...(race ? { race } : {}) }),
       ...(music ? [(page: GamePage) => mountMusic(page, music)] : []),
+      ...(game.pieces ?? []),
     ],
   });
 }

@@ -18,7 +18,7 @@ import { ARMS_INPUTS, armsDamage, arms, ATTACK, fuses, WEAPON, WEAPONS, type Wea
 beforeAll(initPhysics);
 
 /** A floor, a player carrying `kind`, and dummies (characters with health and no one driving them) where asked. */
-function range(kind: WeaponKind, dummies: Vec3[] = [], o: { wall?: Vec3 } = {}): Cartridge {
+function range(kind: WeaponKind, dummies: Vec3[] = [], o: { wall?: Vec3; thin?: Vec3 } = {}): Cartridge {
   return {
     id: 'arms-range',
     title: 'Range',
@@ -33,6 +33,12 @@ function range(kind: WeaponKind, dummies: Vec3[] = [], o: { wall?: Vec3 } = {}):
         world.createEntity({
           transform: { position: o.wall, rotation: quat.identity() },
           body: { type: 'fixed', shape: { kind: 'box', halfExtents: [4, 3, 0.2] } },
+        });
+      // (Stage 5l) A thin wall: 4 cm.
+      if (o.thin)
+        world.createEntity({
+          transform: { position: o.thin, rotation: quat.identity() },
+          body: { type: 'fixed', shape: { kind: 'box', halfExtents: [4, 3, 0.02] } },
         });
       const make = (player: number, at: Vec3, facing: Vec3, game: Entity['game'] = {}) => {
         const parts = characterParts({ player, facing, color: 0x93d9c9 });
@@ -144,6 +150,38 @@ describe('the launcher (stage 5g): a rocket that blows where it strikes', () => 
     const alone = top(false);
     expect(alone).toBeGreaterThan(1.5);
     expect(top(true)).toBeGreaterThan(alone + 1);
+  });
+});
+
+describe('facing a wall (stage 5l: the author saw weapons go through walls)', () => {
+  // Its face 3 cm in front of the body (its capsule 0.3 m round), 4 cm thick: nearer than where a rocket
+  // starts (0.4 m out of the eyes) or a grenade (0.5 m out of the chest).
+  const thin: Vec3 = [0, 1, -0.35];
+
+  test('a rocket fired into a thin wall right in front blows on this side of it, not past it', () => {
+    const { step, world, all } = play(range('launcher', [], { thin }));
+    step({ [ATTACK]: true });
+    for (let i = 0; i < 30; i++) step();
+    const blast = all.find((e) => e.type === 'blast') as Extract<Event, { type: 'blast' }> | undefined;
+    expect(blast).toBeDefined();
+    expect(blast!.at[2]).toBeGreaterThan(-0.33);
+    world().dispose();
+  });
+
+  test('a grenade thrown at it stays on this side, and the dart shot at it strikes it', () => {
+    const g = play(range('grenade', [], { thin }));
+    g.step({ [ATTACK]: true });
+    for (let i = 0; i < 40; i++) g.step();
+    const grenade = [...g.world().entities.values()].find((e) => e.body?.type === 'dynamic' && e.body.shape.kind === 'ball');
+    // (Gone by now if its fuse ran out: then where it blew.)
+    const at = grenade?.transform?.position ?? (g.all.find((e) => e.type === 'blast') as Extract<Event, { type: 'blast' }>).at;
+    expect(at[2]).toBeGreaterThan(-0.33);
+    g.world().dispose();
+    const d = play(range('dart', [], { thin }));
+    d.step({ [ATTACK]: true });
+    const shot = d.all.find((e) => e.type === 'shot') as Extract<Event, { type: 'shot' }>;
+    expect(shot.end[2]).toBeGreaterThan(-0.34);
+    d.world().dispose();
   });
 });
 

@@ -726,7 +726,8 @@ export type Event =
    */
   | {
       type: 'sound';
-      sound: 'step' | 'land' | 'hit' | 'door' | 'lift' | 'break' | 'blast' | 'shout' | 'ready';
+      // (Stage 5l: a guard's "huh?" and its "nothing", and a pebble's clatter.)
+      sound: 'step' | 'land' | 'hit' | 'door' | 'lift' | 'break' | 'blast' | 'shout' | 'ready' | 'huh' | 'calm' | 'pebble';
       source: EntityId;
       at: Vec3;
       surface: string | null;

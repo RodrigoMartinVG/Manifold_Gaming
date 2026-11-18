@@ -375,7 +375,17 @@ export function animate(
   springSpine(model, dt);
   // What it carries in its hands, along its aim (stage 4c: tools.ts); not while climbing or rolling.
   const carries = c.mode === 'climb' || c.mode === 'roll' ? null : (around?.tool ?? null);
-  const tool = holdTool(model.object, model.arms, model.holding, carries, model.aim.pitch, up, dt);
+  // (Stage 5l: out of a wall in front of it, by the surroundings' rays.)
+  const tool = holdTool(
+    model.object,
+    model.arms,
+    model.holding,
+    carries,
+    model.aim.pitch,
+    up,
+    dt,
+    around?.wall ? (f, d, r) => around.wall!(f, d, r) : undefined,
+  );
   // And the hands on what they hold: a wall, a ledge, what is carried, a tool (hands.ts).
   grip(model.object, model.arms, model.hands, c, around, model.gait.climbPhase, moved, up, dt, tool);
   model.playing = dominant(weights);

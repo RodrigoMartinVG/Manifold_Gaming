@@ -1302,9 +1302,10 @@ test('the fortress’s end: the flame carried out of the keep, the thread’s la
       sessionStorage.setItem('kept', '1');
     }
   });
-  // The flame taken (its zone), and out of the postern: the guard at its post sees it carried, lit.
+  // The flame taken (its zone), and out of the postern: the guard at its post sees it carried, lit, for half
+  // a second (stage 5l: long enough to be sure, a quarter; three steps were a glimpse, let go).
   await page.goto(
-    'jugar/fortaleza/#recipe=wait+1;set+intruder+transform.position+0.3+0.9+-17.2;wait+3;set+intruder+transform.position+12+0.9+-11',
+    'jugar/fortaleza/#recipe=wait+1;set+intruder+transform.position+0.3+0.9+-17.2;wait+30;set+intruder+transform.position+12+0.9+-11',
   );
   await expect(game).toHaveAttribute('data-dialog', 'La fortaleza', { timeout: 20_000 });
   await page.getByRole('button', { name: 'Seguir: La torre del homenaje' }).click();
@@ -1319,6 +1320,47 @@ test('the fortress’s end: the flame carried out of the keep, the thread’s la
   await page.getByRole('button', { name: 'Volver' }).click();
   await expect(game).toHaveAttribute('data-dialog', 'La fortaleza');
   expect(JSON.parse((await game.getAttribute('data-progress'))!).reached).toBe(3);
+  expect(list).toEqual([]);
+});
+
+test('the fortress reads (stage 5l): in the dark the gem says hidden; under a lantern, in sight, a guard’s sign fills to “!”; its steps spread rings', async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  const list = errors(page);
+  const game = page.locator('#game');
+  // Under the breach's lantern, in the yard guard's beat.
+  await page.goto(`jugar/fortaleza/#${intruderAt(-2.4, 0.9, -2.2)}`);
+  await expect(game).toHaveAttribute('data-dialog', 'La fortaleza', { timeout: 20_000 });
+  await page.getByRole('button', { name: 'Jugar', exact: true }).click();
+  await page.getByRole('button', { name: 'Seguir' }).click();
+  await page.getByRole('button', { name: 'Seguir' }).click();
+  await expect(game).toHaveAttribute('data-level', 'wall');
+  await expect.poll(() => game.getAttribute('data-gem').then(Number), { timeout: 20_000 }).toBeGreaterThan(1);
+  await expect(page.locator('.mg-gem')).toContainText('A la vista');
+  await expect.poll(() => game.getAttribute('data-sign'), { timeout: 30_000 }).toBe('alerted');
+  await expect(page.locator('.mg-wary:not([hidden])').first()).toContainText('!');
+  // Walking: each step a ring as far as it is heard.
+  await page.keyboard.down('KeyS');
+  await expect.poll(() => game.getAttribute('data-rings').then(Number), { timeout: 10_000 }).toBeGreaterThan(0);
+  await page.keyboard.up('KeyS');
+  expect(list).toEqual([]);
+});
+
+test('the fortress, in the dark: the gem says hidden, and a guard that glimpses nothing has no sign', async ({ page }) => {
+  test.setTimeout(90_000);
+  const list = errors(page);
+  const game = page.locator('#game');
+  // By the outer wall, east of the breach, in the dark.
+  await page.goto(`jugar/fortaleza/#${intruderAt(4, 0.9, 0.75)}`);
+  await expect(game).toHaveAttribute('data-dialog', 'La fortaleza', { timeout: 20_000 });
+  await page.getByRole('button', { name: 'Jugar', exact: true }).click();
+  await page.getByRole('button', { name: 'Seguir' }).click();
+  await page.getByRole('button', { name: 'Seguir' }).click();
+  await expect(game).toHaveAttribute('data-level', 'wall');
+  await expect.poll(async () => Number(await game.getAttribute('data-gem')), { timeout: 20_000 }).toBeLessThan(0.6);
+  await expect(page.locator('.mg-gem')).toContainText('Oculto');
+  expect(await game.getAttribute('data-sign')).toBe('none');
   expect(list).toEqual([]);
 });
 

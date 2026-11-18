@@ -6,12 +6,14 @@ import {
   arms,
   fuses,
   guard,
+  noticeOf,
   POUCH,
   STEALTH_INPUTS,
   STEALTH_ZONES,
   stealth,
   stealthDamage,
   WEAPON,
+  type Aware,
   type Pouch,
   type Weapon,
 } from '@manifold/arms';
@@ -45,8 +47,8 @@ export const FORTRESS_ZONES: ZoneKinds = {
 
 /**
  * How an intruder is doing on a level: where it started and comes back to, when it started and got
- * out (−1: not yet), how many times it was caught (down) and seen (a guard's eyes found it), and
- * whether it carries the flame.
+ * out (−1: not yet), how many times it was caught (down) and seen (since 5l: a guard was alerted by it,
+ * not glimpsed it), and whether it carries the flame.
  */
 export type Run = {
   spawn: Vec3;
@@ -66,12 +68,32 @@ export const FORTRESS = Object.freeze({
   health: 100,
   /** The flame, carried: a small light round it (it shows where it goes: the way out is harder than the way in). */
   flame: { radius: 2.6, intensity: 0.7 },
-  /** Night: what it starts with in its pouch. */
-  pouch: { smoke: 1, flare: 0 } satisfies Pouch,
+  /** Night: what it starts with in its pouch (stage 5l: three pebbles to throw, a noise a guard comes to check). */
+  pouch: { smoke: 1, flare: 0, pebble: 3 } satisfies Pouch,
 });
 
-/** Its guards are all wary (stage 5e): they shout, light lamps again, mind a guard down. */
-const WARY_GUARD = Object.freeze({ shout: true, relight: true, notice: true });
+/**
+ * (Stage 5l, decision 0031) HOW ITS GUARDS' AWARENESS FILLS: a third of a second right by one in light,
+ * two seconds at the edge of its sight (12 m) at the light it needs to see at all; suspicious from a
+ * third; out of sight a second and a half, emptying a third a second; alerted, three seconds lost before
+ * it searches, ten seconds of search ("tens of seconds", the research says, by its senses); then warier
+ * half a minute, its times at 0.6. The numbers of the genre (Mark of the Ninja's and Thief's guards take
+ * a moment to be sure), short enough that standing in a lamp's light is still caught at once.
+ */
+export const AWARE: Readonly<Aware> = Object.freeze({
+  near: 0.35,
+  far: 2,
+  suspicious: 0.35,
+  decay: 0.35,
+  grace: 1.5,
+  lose: 3,
+  search: 10,
+  wary: 0.6,
+  waryFor: 30,
+});
+
+/** Its guards are all wary (stage 5e): they shout, light lamps again, mind a guard down; (5l) and aware. */
+const WARY_GUARD = Object.freeze({ shout: true, relight: true, notice: true, aware: AWARE });
 
 /** A guard on its feet (its eyes count: a guard down does not see). */
 export const standing = (e: Entity | undefined): e is Entity => !!e?.brain && (e.health?.down ?? -1) < 0;
@@ -150,8 +172,12 @@ export function createFortress(levels: Readonly<Record<string, Level>>): Cartrid
           zone.lamp = { radius: FORTRESS.flame.radius, intensity: 1, signal: null, on: true };
         }
         if (zone.sensor.kind === 'item') {
-          const flare = (zone.sensor.params.kind?.[0] ?? 1) === 2;
-          zone.appearance = { shape: 'sphere', size: [0.3, 0.3, 0.3], color: flare ? 0xff6a3a : 0x8a8a84 };
+          const kind = zone.sensor.params.kind?.[0] ?? 1;
+          zone.appearance = {
+            shape: 'sphere',
+            size: kind === 3 ? [0.18, 0.18, 0.18] : [0.3, 0.3, 0.3],
+            color: kind === 2 ? 0xff6a3a : kind === 3 ? 0xb4ac9e : 0x8a8a84,
+          };
           zone.spin = { angularVelocity: [0, 1.5, 0] };
         }
       }
@@ -171,15 +197,16 @@ export function createFortress(levels: Readonly<Record<string, Level>>): Cartrid
       fuses(world);
       stealth(world, events);
       const relicHere = [...world.entities.values()].some((e) => e.sensor?.kind === 'relic');
+      // Seen: a guard alerted by it, at this step (stage 5l: a glimpse that a guard let go is not being
+      // seen; the shell's result counts the times: none, unseen).
+      for (const g of world.entities.values()) {
+        const n = noticeOf(g);
+        if (!n || n.state !== 'alerted' || n.since !== world.tick || !standing(g)) continue;
+        const who = world.entities.get(n.who);
+        const r = who && run(who);
+        if (r && r.finish < 0) r.seen++;
+      }
       for (const ev of events) {
-        // Seen by a guard's eyes, a guard on its feet (the shell's result counts the times: none, unseen).
-        // (A guard down still has eyes, the world's watcher: it does not see, its game says.)
-        if (ev.type === 'seen') {
-          const who = world.entities.get(ev.entity);
-          const r = who && run(who);
-          if (standing(world.entities.get(ev.watcher)) && r && r.finish < 0) r.seen++;
-          continue;
-        }
         if (ev.type !== 'sensorEntered') continue;
         const zone = world.entities.get(ev.sensor);
         const e = world.entities.get(ev.entity);

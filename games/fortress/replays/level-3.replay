@@ -1,4 +1,4 @@
-# Manifold replay 44
+# Manifold replay 45
 # The fortress's keep, played unseen to its way out: a blow from behind, the flame, the side door.
 # A reference replay (stage 5f, as the tower’s since 5d): playing it must end with the hash on its
 # last line. Recorded by games/fortress/src/levels.test.ts; recorded again (npm run references) only
@@ -69,4 +69,4 @@ input 1047 1 move @156:0.85
 input 1048 1 move @156:0.63
 input 1049 1 move @100
 input 1052 1 move @99
-end 1076 0bf8716a
+end 1076 dd30b4bd

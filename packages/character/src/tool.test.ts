@@ -40,11 +40,22 @@ const standing = (pitch = 0, mode = 'walk') =>
 
 const DART: Tool = { size: [0.04, 0.07, 0.26], color: 0x8fa8c0, grips: [0.04, 0.16], lift: 0, sweep: null };
 const STICK: Tool = { size: [0.035, 0.035, 1.2], color: 0xc8a060, grips: [0.06, 0.24], lift: 50, sweep: null };
-const holding = (tool: Tool | null): Surroundings => ({ ray: () => null, held: null, tool });
+/** (Stage 5l) A wall across in front, its face at z = `at` (none: no wall), as the surroundings' rays see it. */
+const wallAt = (at: number | null) => (from: THREE.Vector3, d: THREE.Vector3, reach: number) => {
+  if (at === null || d.z >= -1e-9) return null;
+  const t = (at - from.z) / d.z;
+  return t >= 0 && t <= reach ? { point: from.clone().addScaledVector(d, t) } : null;
+};
+const holding = (tool: Tool | null, wall: number | null = null): Surroundings => ({
+  ray: () => null,
+  wall: wallAt(wall),
+  held: null,
+  tool,
+});
 
-/** `frames` frames standing, aiming at `pitch`, carrying `tool`. */
-function play(copy: ModelInstance, tool: Tool | null, frames: number, pitch = 0, mode = 'walk') {
-  for (let i = 0; i < frames; i++) animate(copy, standing(pitch, mode), [0, 1, 0], [0, 0, 0], 0, DT, holding(tool));
+/** `frames` frames standing, aiming at `pitch`, carrying `tool` (a wall in front at z = `wall`, if any). */
+function play(copy: ModelInstance, tool: Tool | null, frames: number, pitch = 0, mode = 'walk', wall: number | null = null) {
+  for (let i = 0; i < frames; i++) animate(copy, standing(pitch, mode), [0, 1, 0], [0, 0, 0], 0, DT, holding(tool, wall));
   copy.object.updateMatrixWorld(true);
 }
 const handOf = (copy: ModelInstance, side: 'L' | 'R') => endOf(copy.arms![side], new THREE.Vector3());
@@ -88,6 +99,25 @@ describe('what the mannequin carries (stage 4c)', () => {
     expect(handOf(copy, 'R').distanceTo(copy.holding.pose!.grips.R)).toBeLessThan(0.02);
     play(copy, STICK, 20);
     expect(above(pointing(copy))).toBeCloseTo(50, 1);
+  });
+
+  test('(stage 5l) facing a wall, what it holds stays out of it: raised as little as clears it, drawn back if even raised it does not; with room again, as before', () => {
+    const copy = modelInstance(model);
+    // Its body keeps 0.3 m from a wall: the wall's face half a meter ahead, nearer than the dart's end.
+    play(copy, DART, 30, 0, 'walk', -0.5);
+    expect(copy.holding.pose!.muzzle.z).toBeGreaterThanOrEqual(-0.5);
+    expect(above(pointing(copy))).toBeGreaterThan(5);
+    // The stick, swept level across in front (a strike), at the same wall: its end never in it.
+    play(copy, STICK, 30, 0, 'walk', -0.5);
+    for (let a = 60; a >= -60; a -= 10) {
+      play(copy, { ...STICK, sweep: a }, 1, 0, 'walk', -0.5);
+      expect(copy.holding.pose!.muzzle.z).toBeGreaterThanOrEqual(-0.5 - 1e-6);
+    }
+    // The hands stay on it.
+    expect(handOf(copy, 'R').distanceTo(copy.holding.pose!.grips.R)).toBeLessThan(0.03);
+    // Room again (the wall three meters off): the dart comes down level, slowly, in a second.
+    play(copy, DART, 60, 0, 'walk', -3);
+    expect(above(pointing(copy))).toBeCloseTo(0, 1);
   });
 
   test('nothing carried, or climbing or rolling: no tool, and the hands are free', () => {

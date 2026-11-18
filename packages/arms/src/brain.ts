@@ -6,13 +6,14 @@ import {
   shotDice,
   type Brain,
   type Entity,
+  type EntityId,
   type Memory,
   type PlayerInput,
   type World,
 } from '@manifold/core';
 import { gunnerOf, GUARD_BRAIN, type Fair, type Gunner } from './guard';
 import { ATTACK, raised, READY, weapon } from './weapons';
-import { SHOUT_INPUT, STEALTH, wary } from './stealth';
+import { noticeOf, SHOUT_INPUT, STEALTH, wary } from './stealth';
 
 /**
  * THE GUARD'S BRAIN (stage 4e, decision 0023): it runs where the match is hosted, once, and asks for
@@ -30,6 +31,12 @@ import { SHOUT_INPUT, STEALTH, wary } from './stealth';
  * Its way is the navigation's (4d): when a door or the lift is not as its path needs, the path goes to
  * the button or the plate first, and it waits there until the mechanism is as needed; on the lift, until
  * it is up. Its memory is plain data the host keeps.
+ *
+ * (Stage 5l) An aware guard (its wariness has `aware`) does not go after whoever it glimpses: what it has
+ * noticed is the world's (`noticing`, stealth.ts), and it acts on it. Calm, it keeps its round; suspicious
+ * and seeing them, it stops and stares; suspicious and no longer seeing them, it goes to look where it
+ * saw them (as to a sound); alerted, it gives chase as before (and shouts); searching, it goes to where
+ * it saw them last and looks round.
  */
 
 type Mode = 'patrol' | 'look' | 'chase' | 'search';
@@ -81,6 +88,9 @@ export interface GuardMemory extends Memory {
   /** (Stage 5i, a fair gunner) When it last flinched from a hit, and how many shots since it last saw them. */
   flinch?: number;
   shots?: number;
+  /** (Stage 5l, an aware guard) Which sighting it went to look at, suspicious; which search it went on. */
+  investigated?: number;
+  searched?: number;
 }
 
 /** How near a point it must be to have reached it (m, along the ground); within its stick's reach (m, to the other's center). */
@@ -160,6 +170,25 @@ export const guardBrain: Brain = (world, self, memory) => {
   m.relight ??= null;
   m.post ??= self.brain?.route ? null : { at: feetOf(self), facing: [...self.character!.facing] };
   const before = m.mode;
+  // (Stage 5l) What it noticed: whom it may go after (only once alerted, or searching), and what it does short of that.
+  const n = w.aware ? noticeOf(self) : undefined;
+  let after: readonly EntityId[] | undefined;
+  if (w.aware) {
+    const seeing = (self.watcher?.sees ?? []).filter((id) => isPlayer(world.entities.get(id)));
+    after = n && (n.state === 'alerted' || n.state === 'searching') ? seeing : [];
+    const at = n && n.at.length === 3 ? (n.at as Vec3) : null;
+    if (n?.state === 'suspicious' && at) {
+      if (seeing.length > 0) return { face: toward(self.transform.position, at) };
+      if (m.investigated !== n.seen) {
+        m.investigated = n.seen;
+        m.heard = { at: [...at], tick: world.tick };
+      }
+    }
+    if (n?.state === 'searching' && at && m.mode === 'patrol' && m.searched !== n.since) {
+      m.searched = n.since;
+      m.heard = { at: [...at], tick: world.tick };
+    }
+  }
   for (const l of world.entities.values()) {
     if (!l.lamp || !l.transform || !inSight(world, self, l.transform.position)) continue;
     const was = m.lamps[String(l.id)];
@@ -176,7 +205,7 @@ export const guardBrain: Brain = (world, self, memory) => {
       m.downs.push(g.id);
       m.heard = { at: [...g.transform.position], tick: world.tick };
     }
-  const input = guardBrain4e(world, self, memory);
+  const input = guardBrain4e(world, self, memory, after);
   // At the lamp it goes to light again (not while it is after someone): a hand on it.
   const lamp = m.relight === null ? undefined : world.entities.get(m.relight);
   if (lamp?.transform && lamp.lamp && m.mode !== 'chase') {
@@ -280,7 +309,8 @@ function tokenFree(world: World, self: Entity, target: Entity, tokens: number): 
 }
 
 /** The guard's brain, as stage 4e made it. */
-const guardBrain4e: Brain = (world, self, memory) => {
+/** The guard's brain of stage 4e; (5l) whom it may go after among those its eyes see, if its caller says (an aware guard: only once alerted). */
+const guardBrain4e = (world: World, self: Entity, memory: Memory, after?: readonly EntityId[]): PlayerInput => {
   const m = memory as GuardMemory;
   if (m.mode === undefined)
     Object.assign(m, {
@@ -312,7 +342,7 @@ const guardBrain4e: Brain = (world, self, memory) => {
   // navigation's: a door creaks a meter up, a lift hums at its middle).
   const nav = navOf(world);
   const ground = (p: Vec3): Vec3 => (nav.reason ? p : (cellAt(nav, p)?.at ?? p));
-  const target = (self.watcher?.sees ?? []).map((id) => world.entities.get(id)).find(isPlayer);
+  const target = (after ?? self.watcher?.sees ?? []).map((id) => world.entities.get(id)).find(isPlayer);
   if (target) m.seen = { id: target.id, at: [...feetOf(target)], tick: world.tick };
   // (A door or a lift it is working itself, or that moves right by it, it does not go to look at: it knows.)
   const working = (m.plan?.changes.length ?? 0) > 0 || world.tick - m.used < 60;

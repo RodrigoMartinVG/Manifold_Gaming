@@ -454,6 +454,66 @@ export function shout(kit: Kit, out: AudioNode, at: number) {
   noise(kit, out, at, { from: 1400, q: 1.5, gain: 0.06, attack: 0.03, decay: 0.45 });
 }
 
+/**
+ * A VOICE'S SYLLABLE (stage 5l): a buzz through two formant bands (as `shout`), its pitch from `from` to
+ * `to` times its own over `seconds`, as loud as `gain`, `delay` after `at`.
+ */
+function syllable(
+  kit: Kit,
+  out: AudioNode,
+  at: number,
+  o: { pitch: number; from: number; to: number; seconds: number; f1: number; f2: number; gain: number; delay?: number },
+) {
+  const c = kit.context;
+  const t = at + (o.delay ?? 0);
+  const osc = c.createOscillator();
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(o.pitch * o.from, t);
+  osc.frequency.exponentialRampToValueAtTime(o.pitch * o.to, t + o.seconds);
+  const env = envelope(kit, t, o.gain, 0.03, o.seconds);
+  for (const f of [o.f1, o.f2]) {
+    const band = c.createBiquadFilter();
+    band.type = 'bandpass';
+    band.frequency.value = f;
+    band.Q.value = 8;
+    osc.connect(band).connect(env);
+  }
+  env.connect(out);
+  osc.start(t);
+  osc.stop(t + o.seconds + 0.05);
+}
+
+/** A GUARD'S "HUH?" (stage 5l): suspicious, a short hum rising in pitch, as a question does. */
+export function huh(kit: Kit, out: AudioNode, at: number) {
+  const pitch = near(kit, 150, 0.1);
+  syllable(kit, out, at, { pitch, from: 0.9, to: 1.45, seconds: 0.32, f1: 500, f2: 1100, gain: 0.7 });
+  noise(kit, out, at, { from: 1200, q: 1.5, gain: 0.04, attack: 0.02, decay: 0.25 });
+}
+
+/** A GUARD'S "NOTHING" (stage 5l): letting it go, a falling hum and a breath out, as a shrug. */
+export function calm(kit: Kit, out: AudioNode, at: number) {
+  const pitch = near(kit, 140, 0.1);
+  syllable(kit, out, at, { pitch, from: 1.15, to: 0.8, seconds: 0.5, f1: 450, f2: 900, gain: 0.5 });
+  noise(kit, out, at, { from: 900, to: 500, q: 1, gain: 0.08, attack: 0.05, decay: 0.5, delay: 0.1 });
+}
+
+/** A PEBBLE'S CLATTER (stage 5l): two or three small knocks on stone, each higher and softer. */
+export function pebble(kit: Kit, out: AudioNode, at: number) {
+  let delay = 0;
+  for (let i = 0; i < 3; i++) {
+    noise(kit, out, at, {
+      from: near(kit, 2800, 0.2) * (1 + 0.15 * i),
+      q: 5,
+      gain: 0.5 / (1 + i),
+      attack: 0.0008,
+      decay: 0.03,
+      delay,
+    });
+    tone(kit, out, at, { from: near(kit, 1800, 0.15), gain: 0.06 / (1 + i), decay: 0.04, delay });
+    delay += 0.08 + 0.07 * kit.random();
+  }
+}
+
 /** A WEAPON RAISED (stage 5i): a metal click and a short rising whine, the warning. */
 export function ready(kit: Kit, out: AudioNode, at: number) {
   noise(kit, out, at, { from: 2600, q: 6, gain: 0.5, attack: 0.001, decay: 0.03 });

@@ -1,10 +1,10 @@
 import characters from '@manifold/character/assets';
-import { armsTool, ATTACK, FLARE_INPUT, pouch, SMOKE_INPUT } from '@manifold/arms';
+import { armsTool, ATTACK, FLARE_INPUT, GUARD, noticeOf, PEBBLE_INPUT, pouch, SMOKE_INPUT } from '@manifold/arms';
 import { STEP, levelFromText, type Cartridge, type Level } from '@manifold/core';
 import { KIT } from '@manifold/kit';
 import kit from '@manifold/kit/assets';
 import weapons from '@manifold/arms/assets';
-import { timeIn, type Hud, type Theme, type Words } from '@manifold/presentation';
+import { mountWariness, timeIn, type GamePage, type Hud, type Theme, type Words } from '@manifold/presentation';
 import type { Game } from '@manifold/shell';
 import { createFortress, FORTRESS_ZONES, run, standing } from './rules';
 
@@ -42,6 +42,7 @@ export const FORTRESS_WORDS = {
     'fortress.hud.caught': 'Atrapado',
     'fortress.hud.smoke': 'Humo',
     'fortress.hud.flare': 'Bengala',
+    'fortress.hud.pebble': 'Piedritas',
     'fortress.hud.flame': 'Llama',
     'fortress.hud.yes': 'la llevás',
     'fortress.caught': 'Te atraparon: de vuelta al punto de control',
@@ -66,6 +67,7 @@ export const FORTRESS_WORDS = {
     'fortress.hud.caught': 'Caught',
     'fortress.hud.smoke': 'Smoke',
     'fortress.hud.flare': 'Flare',
+    'fortress.hud.pebble': 'Pebbles',
     'fortress.hud.flame': 'Flame',
     'fortress.hud.yes': 'carried',
     'fortress.caught': 'caught: back to the checkpoint',
@@ -87,6 +89,7 @@ export const fortressHud: Hud = ({ world, hero, say, language }) => {
     { label: say('fortress.hud.time'), value: timeIn(language, seconds) },
     { label: say('fortress.hud.caught'), value: String(r.caught) },
     ...(p ? [{ label: say('fortress.hud.smoke'), value: String(p.smoke) }] : []),
+    ...(p && (p.pebble ?? 0) > 0 ? [{ label: say('fortress.hud.pebble'), value: String(p.pebble) }] : []),
     ...(p && p.flare > 0 ? [{ label: say('fortress.hud.flare'), value: String(p.flare) }] : []),
     ...(r.relic ? [{ label: say('fortress.hud.flame'), value: say('fortress.hud.yes') }] : []),
   ];
@@ -97,8 +100,10 @@ const rest = (beats: number): null[] => Array<null>(beats).fill(null);
 
 /**
  * ITS MUSIC (decision 0027): night. In D minor pentatonic, slower than the tower's dusk: a low drone and,
- * far apart, a soft pulse, twice in 16 beats (sneaking); while a guard sees the intruder, the drone
- * twice as often, the pulse every four beats and a high note over it (alert); quiet once a level is done.
+ * far apart, a soft pulse, twice in 16 beats (sneaking); (stage 5l) in TIERS by the most a guard on its
+ * feet has noticed (the research: the music says how near one is to being found): one suspicious or
+ * searching, the drone a little more often and a high note, held, now and then (wary); one alerted, the
+ * drone twice as often, the pulse every four beats and a high note over it (alert); quiet once done.
  */
 export const FORTRESS_THEME: Theme = {
   tempo: 48,
@@ -110,6 +115,13 @@ export const FORTRESS_THEME: Theme = {
       voices: [
         { wave: 'sine', gain: 0.15, notes: [0, ...rest(15), 2, ...rest(15)], length: 14 },
         { wave: 'triangle', gain: 0.04, octave: 1, notes: [0, ...rest(3), 0, ...rest(11)], length: 1 },
+      ],
+    },
+    wary: {
+      voices: [
+        { wave: 'sine', gain: 0.15, notes: [0, ...rest(11), 1, ...rest(11)], length: 10 },
+        { wave: 'triangle', gain: 0.04, octave: 1, notes: [0, ...rest(5)], length: 1 },
+        { wave: 'sine', gain: 0.025, octave: 3, notes: [3, ...rest(23)], length: 6 },
       ],
     },
     alert: {
@@ -124,11 +136,31 @@ export const FORTRESS_THEME: Theme = {
   mood: (world, hero) => {
     const r = hero && run(hero);
     if (r && r.finish >= 0) return 'done';
-    // A guard on its feet that sees the intruder (its eyes, now).
-    const seen = !!hero && [...world.entities.values()].some((e) => standing(e) && e.watcher?.sees.includes(hero.id));
-    return seen ? 'alert' : 'sneak';
+    // The most a guard on its feet has noticed (stage 5l).
+    let wary = false;
+    for (const e of world.entities.values()) {
+      const n = standing(e) ? noticeOf(e) : undefined;
+      if (n?.state === 'alerted') return 'alert';
+      if (n?.state === 'suspicious' || n?.state === 'searching') wary = true;
+    }
+    return wary ? 'wary' : 'sneak';
   },
 };
+
+/**
+ * (Stage 5l) HOW EXPOSED, HOW NOTICED, on its page: its guards' signs (what each noticed, the world's),
+ * where a searching one will look, the light gem (how lit the intruder is for a guard's eyes: its light,
+ * crouched less, over what a guard needs to see at all) and the rings of the intruder's noise.
+ */
+const wariness = (page: GamePage) =>
+  mountWariness(page, {
+    noticed: (e) => noticeOf(e),
+    exposure: (hero) => {
+      const c = hero.character;
+      if (!c) return null;
+      return (c.light * (c.mode === 'crouch' ? c.movement.crouch.seen : 1)) / GUARD.threshold;
+    },
+  });
 
 /** The fortress, as the shell takes it: its levels in order, done at their way out. */
 export const FORTRESS: Game = {
@@ -162,12 +194,14 @@ export const FORTRESS: Game = {
   credits: [kit, characters, weapons],
   music: FORTRESS_THEME,
   hud: fortressHud,
+  pieces: [wariness],
   // What each one has in its hands (stage 5g: the games' weapons, their models): the stick.
   tools: armsTool,
-  // Its buttons: the stick, X or a click (as the Dojo's); smoke, F; a flare, Z.
+  // Its buttons: the stick, X or a click (as the Dojo's); smoke, F; a flare, Z; (5l) a pebble, Q.
   buttons: [
     { action: ATTACK, keys: ['KeyX', 'Mouse0'], pad: 5 },
     { action: SMOKE_INPUT, keys: ['KeyF'], pad: 2 },
     { action: FLARE_INPUT, keys: ['KeyZ'] },
+    { action: PEBBLE_INPUT, keys: ['KeyQ'], pad: 3 },
   ],
 };

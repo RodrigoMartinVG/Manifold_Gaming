@@ -1,5 +1,5 @@
 import type { Vec3 } from '@manifold/common';
-import { ATTACK, SMOKE_INPUT } from '@manifold/arms';
+import { ATTACK, PEBBLE_INPUT, SMOKE_INPUT } from '@manifold/arms';
 import { BotHost, NO_INPUT, registryFor, Session, withoutView, type Entity, type PlayerInput } from '@manifold/core';
 import { FORTRESS } from './game';
 import { run, standing } from './rules';
@@ -69,6 +69,11 @@ export function levelOf(index: number) {
     step({ [SMOKE_INPUT]: true, pitch });
     step({ pitch });
   };
+  /** (Stage 5l) A pebble thrown where it faces, `pitch` up. */
+  const pebble = (pitch = 0) => {
+    step({ [PEBBLE_INPUT]: true, pitch });
+    step({ pitch });
+  };
   /** The guards, in the order the level has them. */
   const guards = () => [...world().entities.values()].filter((e) => e.brain);
   const guardAt = (k: number) => guards()[k]!.transform!.position;
@@ -93,6 +98,7 @@ export function levelOf(index: number) {
     use,
     strike,
     smoke,
+    pebble,
     guards,
     guardAt,
     facingOf,

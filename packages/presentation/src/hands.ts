@@ -89,6 +89,8 @@ export const newHands = (): Hands => ({ L: newHand(), R: newHand() });
 export interface Surroundings {
   /** The first surface that does not move by the physics along a ray (the character left out). */
   ray(from: THREE.Vector3, direction: THREE.Vector3, reach: number): { point: THREE.Vector3; normal: THREE.Vector3 } | null;
+  /** (Stage 5l) The same, the level's surfaces only (no character): what a tool it holds keeps out of. */
+  wall?(from: THREE.Vector3, direction: THREE.Vector3, reach: number): { point: THREE.Vector3 } | null;
   /** What it holds, as drawn: where it is, how it is turned, its shape. */
   held: { center: THREE.Vector3; rotation: THREE.Quaternion; shape: Shape } | null;
   /** What it carries in its hands, as its game says (stage 4c: tools.ts), if anything. */
@@ -112,6 +114,10 @@ export function surroundingsOf(
     ray(from, direction, length) {
       const hit = world.castRay(from.toArray(), direction.toArray(), length, { skip: e.id, dynamic: false });
       return hit && { point: new THREE.Vector3(...hit.point), normal: new THREE.Vector3(...hit.normal) };
+    },
+    wall(from, direction, length) {
+      const hit = world.castRay(from.toArray(), direction.toArray(), length, { skip: e.id, dynamic: false, characters: false });
+      return hit && { point: new THREE.Vector3(...hit.point) };
     },
     held:
       holding?.body && t

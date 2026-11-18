@@ -189,7 +189,7 @@ export function arms(world: World, events: readonly Event[]) {
       const bolt = w.kind === 'bolt';
       const p = bolt ? WEAPONS.bolt : WEAPONS.launcher;
       world.createEntity({
-        transform: { position: vec3.add(eye, vec3.scale(ahead, 0.4)), rotation: quat.identity() },
+        transform: { position: startOf(world, e, eye, ahead, 0.4, p.radius), rotation: quat.identity() },
         projectile: {
           from: e.id,
           velocity: vec3.scale(ahead, p.speed),
@@ -210,7 +210,7 @@ export function arms(world: World, events: readonly Event[]) {
       const { above } = aimOf(c, up);
       world.createEntity({
         game: { [FUSE]: { steps: g.fuse, by: e.id } satisfies Fuse, [THROWN]: { by: e.id } satisfies Thrown },
-        transform: { position: vec3.add(chest, vec3.scale(ahead, 0.5)), rotation: quat.identity() },
+        transform: { position: startOf(world, e, chest, ahead, 0.5, 0.12), rotation: quat.identity() },
         body: {
           type: 'dynamic',
           shape: { kind: 'ball', radius: 0.12 },
@@ -247,6 +247,19 @@ function rockets(world: World, events: readonly Event[]) {
     for (const { entity, share } of world.explode(at, l.blast, l.strength, by))
       if (world.entities.get(entity)?.health) world.hurt(entity, Math.round(l.damage * share), { from: by, kind: 'rocket' });
   }
+}
+
+/**
+ * WHERE WHAT IS FIRED OR THROWN STARTS (stage 5l: the author saw weapons go through walls, facing one):
+ * `along` m from `from` (the eyes, the chest) the way it goes, or, if something the world has is nearer
+ * that way, a little short of it (`size`, what it is from its middle to its edge, and 2 cm more). Out of
+ * the eyes into a wall, it starts on this side and strikes it; until 5l it started 0.4 m on, past a wall
+ * thinner than what was left of that, and flew on beyond it.
+ */
+export function startOf(world: World, e: Entity, from: Vec3, ahead: Vec3, along: number, size: number): Vec3 {
+  const hit = world.castRay(from, ahead, along + size, { skip: e.id, characters: false });
+  const at = hit ? Math.max(0, Math.min(along, hit.distance - size - 0.02)) : along;
+  return vec3.add(from, vec3.scale(ahead, at));
 }
 
 /**
