@@ -43,7 +43,10 @@ export default defineConfig({
   // hidden (behind each one there was a cause, as the review at the end of stage 2d found).
   retries: process.env.CI ? 1 : 0,
   failOnFlakyTests: !!process.env.CI,
-  reporter: process.env.CI ? 'github' : 'list',
+  // In continuous integration, the failures on the run's page (`github`) and the HTML report, with each
+  // failed test's trace, in `playwright-report/`: what the workflow keeps when something failed. (With
+  // `github` alone that folder was never written: a failure there left nothing to look at, 2026-11-17.)
+  reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',
   use: {
     baseURL: BASE,
     trace: 'retain-on-failure',
