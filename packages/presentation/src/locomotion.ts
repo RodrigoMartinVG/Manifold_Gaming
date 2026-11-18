@@ -232,6 +232,9 @@ export function targets(r: Reading, g: Pick<Gait, 'angle' | 'climbAngle'>): Part
   if (r.mode === 'glide') return { glide: 1 };
   // Rolling (stage 4b): its roll, played by how far it has gone.
   if (r.mode === 'roll') return { roll: 1 };
+  // (Stage 5c: down a wall, falling; hanging from a ledge, the climb held still, its hands on the edge.)
+  if (r.mode === 'slide') return { fall: 1 };
+  if (r.mode === 'hang') return { climb: 1 };
   if (r.mode === 'air') {
     // Rising (fast up), and falling (from a little before the top): a jump reads its arc.
     const rise = clamp01((r.vertical + 1) / 4);

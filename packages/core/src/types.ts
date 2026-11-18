@@ -407,10 +407,25 @@ export interface Movement {
   block: { speed: number };
   /** How fast it turns on its own axis when asked to (`turn` at 1), radians per second. */
   turn: number;
+  /**
+   * On a wall (stage 5c, `can.wallJump`): the fastest it slides down it while it pushes against it
+   * (m/s), how fast a jump from it takes it away (m/s), and for how long after that jump (s) it cannot
+   * steer back towards the wall it left (or it would be back on it at once).
+   */
+  wall: { slide: number; off: number; lock: number };
+  /**
+   * THE PLATFORMER'S JUMP (stage 5c), if its game gives one: how high its feet rise (m) and how long
+   * they take to get there (s), from which its own gravity and its jump's speed follow (`arcOf`); how
+   * many times stronger that gravity is when the jump is let go while it rises (a short hop) and while
+   * it falls (it comes down sooner than it went up); the fastest it falls (m/s); and how far (m) it is
+   * nudged round a corner its head clips while it rises. Without it, the world's gravity and
+   * `jump.speed`, as always.
+   */
+  arc?: { height: number; time: number; release: number; fall: number; terminal: number; corner: number };
 }
 
 /** The ways of moving (stage 2b): exactly one at each step. Gliding and climbing came with stage 2c; crouching and rolling with 4b. */
-export type ModeName = 'walk' | 'air' | 'glide' | 'climb' | 'crouch' | 'roll' | 'block';
+export type ModeName = 'walk' | 'air' | 'glide' | 'climb' | 'crouch' | 'roll' | 'block' | 'slide' | 'hang';
 
 /**
  * WHAT A CHARACTER CAN DO besides walking and jumping (stage 2c): each one, on or off, and it can
@@ -430,6 +445,10 @@ export interface Capabilities {
   roll: boolean;
   /** Holding `block` on the ground, it guards itself (stage 4f): slower; what a hit from the front takes then is its game's. */
   block: boolean;
+  /** Pushing against a wall in the air, it slides down it slowly, and a jump takes it up and off it (stage 5c). */
+  wallJump: boolean;
+  /** Falling past a ledge in front of it, it grabs it and hangs; pushing on, it climbs onto it (stage 5c). */
+  ledge: boolean;
 }
 
 /**
@@ -503,6 +522,18 @@ export interface Character {
    * character, and a jump keeps it.
    */
   ground: { velocity: Vec3; spin: number };
+  /** Whether it is rising from a jump it made (stage 5c): let go of the jump then, its arc's gravity pulls harder. */
+  leaping: boolean;
+  /** The wall it jumped off (stage 5c, away from it), and for how many more steps it cannot steer back towards it. */
+  offWall: Vec3;
+  offSteps: number;
+  /**
+   * The ledge it hangs from (stage 5c): where its hands hold (on the edge, at the top's height), the
+   * wall's way, for how many steps it has hung, and, climbing onto it, how many steps of that are left.
+   */
+  ledge: { at: Vec3; wall: Vec3; steps: number; climb: number } | null;
+  /** For how many more steps it does not grab a ledge again (having let one go). */
+  regrab: number;
   /**
    * How much the platforms it stood on have turned it, all of it put together (stage 2d), as a
    * rotation. Where it is told to look (the `face` input) is read INSIDE this turn: so a character
@@ -579,6 +610,8 @@ export type CharacterSpec = Pick<Character, 'player'> & {
     roll?: Partial<Movement['roll']>;
     block?: Partial<Movement['block']>;
     turn?: number;
+    wall?: Partial<Movement['wall']>;
+    arc?: Movement['arc'];
   };
   can?: Partial<Capabilities>;
   poses?: Partial<Record<ModeName, CollisionPose>>;

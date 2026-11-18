@@ -223,4 +223,71 @@ describe('the metrics gym (stage 5a)', () => {
         expect(g.lostSince(), `steps in the air at x = ${x}${run ? ', running' : ''}`).toBe(0);
       }
   });
+
+  test('the platformer (stage 5c, the tower’s: dojo.arc, dojo.walljump, dojo.ledge): its jump exactly 2 m, back at step 45; ledges grabbed to 3.25 m (its hands reach 3.32); chimneys climbed to 4 m wide, not 5 (metricsOf: 4.46)', () => {
+    const { session, me } = g;
+    for (const line of ['dojo.arc on', 'dojo.walljump on', 'dojo.ledge on'])
+      expect(session.registry.run(line, 'console').filter((x) => x.level === 'error')).toEqual([]);
+    g.step();
+    const p = metricsOfEntity(session.world, me())!;
+    // On flat ground, the jump held: its feet exactly 2 m up, back at step 45, 3.375 m on walking.
+    g.put(-30, 1, 19.5);
+    g.walk({ move: [1, 0, 0] }, 60);
+    const from = g.at();
+    let steps = 0;
+    let top = 0;
+    do {
+      g.step({ move: [1, 0, 0], jump: true });
+      steps++;
+      top = Math.max(top, g.at()[1]! - from[1]!);
+    } while (steps < 200 && !g.c().grounded);
+    expect(steps).toBe(p.jump.back);
+    expect(top).toBeCloseTo(2, 3);
+    expect(g.at()[0]! - from[0]!).toBeCloseTo(p.reach.walk, 3);
+    // Ledges (their face at z = 9.5), walked up to and jumped at, the jump held (let go, a short hop).
+    const LEDGES = [2.5, 3.0, 3.25, 3.5, 3.75];
+    const grabbed = LEDGES.filter((_, k) => {
+      g.put(4 + 4 * k, 1, 12);
+      g.walk({ move: AHEAD }, 120, () => g.at()[2]! < 10.4);
+      g.walk({ move: AHEAD, jump: true }, 60, () => g.c().mode === 'hang');
+      return g.c().mode === 'hang';
+    });
+    expect(grabbed).toEqual([2.5, 3.0, 3.25]);
+    expect(Math.max(...grabbed)).toBeLessThan(p.ledge);
+    // Chimneys: from one wall to the other, the jump held, let go for a step on a wall and pressed again
+    // still towards it (the wall it leaps off); how high in 400 steps (the walls: 8 m).
+    const CHIMNEYS = [2.0, 3.0, 4.0, 4.5, 5.0];
+    const heights = CHIMNEYS.map((_, k) => {
+      g.put(-28 + 6.5 * k, 1, 14);
+      let way = 1;
+      let wait = 0;
+      let high = 0;
+      let held = true;
+      g.step({ move: [way, 0, 0], jump: true });
+      for (let i = 0; i < 400; i++) {
+        let jump: boolean = held;
+        let pressed = false;
+        if (g.c().mode === 'slide' && wait === 0) {
+          if (held) held = jump = false;
+          else {
+            held = jump = pressed = true;
+            way = -way;
+            wait = 10;
+          }
+        }
+        wait = Math.max(0, wait - 1);
+        g.step({ move: [pressed ? -way : way, 0, 0], jump });
+        high = Math.max(high, g.at()[1]! - MIDDLE);
+      }
+      return high;
+    });
+    const climbed = CHIMNEYS.filter((_, k) => heights[k]! >= 7.9);
+    expect(climbed).toEqual([2.0, 3.0, 4.0]);
+    // Past 4.46 m its jumps come back lower than they left: at 4.5 it still climbs a while, not to the top; at 5, hardly.
+    expect(p.wall.chimney).toBeGreaterThan(4);
+    expect(p.wall.chimney).toBeLessThan(4.5);
+    expect(heights[4]!).toBeLessThan(heights[3]!);
+    for (const line of ['dojo.arc off', 'dojo.walljump off', 'dojo.ledge off']) session.registry.run(line, 'console');
+    g.step();
+  });
 });

@@ -105,6 +105,12 @@ export const CONSOLE_ES: Readonly<Record<string, string>> = {
   'dojo.climb': 'trepar: empujando contra una pared, el personaje la sube',
   'dojo.glide': 'planear: manteniendo el salto mientras cae, cae despacio y se dirige mejor',
   'dojo.doublejump': 'un salto más en el aire',
+  'dojo.walljump':
+    'empujando contra una pared en el aire, los personajes se deslizan despacio por ella, y saltando se despegan hacia arriba (etapa 5c)',
+  'dojo.ledge':
+    'cayendo junto a un borde, los personajes se agarran y quedan colgados; empujando o saltando, se suben (etapa 5c)',
+  'dojo.arc':
+    'el salto del juego de plataformas (etapa 5c, el de la torre): 2 m en 0,42 s, con su propia gravedad, más fuerte al soltar y al caer, una velocidad máxima de caída y corrección en las esquinas',
   'dojo.roll': 'rodar: con la V, en el piso, el personaje rueda hacia donde se le pide ir, bajo, unos 3 m (prendido de entrada)',
   'dojo.crouch':
     'agacharse: con la C apretada, en el piso, el personaje va más lento, pasa por donde parado no cabe, y se lo ve y se lo oye menos (prendido de entrada)',

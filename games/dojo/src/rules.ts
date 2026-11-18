@@ -1,5 +1,5 @@
 import { quat, sinCosDegrees, vec3, type Vec3 } from '@manifold/common';
-import { characterParts } from '@manifold/character';
+import { characterParts, PLATFORMER } from '@manifold/character';
 import { KIT } from '@manifold/kit';
 import {
   aimOf,
@@ -67,6 +67,8 @@ const copyMovement = (m: Movement): Movement => ({
   roll: { ...m.roll },
   block: { ...m.block },
   turn: m.turn,
+  wall: { ...m.wall },
+  ...(m.arc ? { arc: { ...m.arc } } : {}),
 });
 
 /**
@@ -712,6 +714,31 @@ export function createDojo(levels: Readonly<Record<string, Level>>, brains: Read
         'Holding the jump while falling, the characters glide: they fall slowly, and steer more (stage 2c).',
       );
       capability('dojo.doublejump', 'doubleJump', 'One more jump in the air, pressing jump again (stage 2c).');
+      capability(
+        'dojo.walljump',
+        'wallJump',
+        'Pushing against a wall in the air, the characters slide down it slowly; jumping, they leap up and off it (stage 5c).',
+      );
+      capability(
+        'dojo.ledge',
+        'ledge',
+        'Falling past a ledge in front of them, the characters grab it and hang; pushing on, or jumping, they climb onto it (stage 5c).',
+      );
+      registry.declareVariable({
+        name: 'dojo.arc',
+        description:
+          "The platformer's jump (stage 5c, the tower's): 2 m in 0.42 s, with its own gravity, stronger let go and falling, a top falling speed and corner correction. Off: the world's gravity and a jump of 6.5 m/s. For every character, at a step.",
+        scope: 'world',
+        type: { kind: 'boolean' },
+        default: false,
+        onWorld(world, value) {
+          for (const e of world.entities.values())
+            if (e.character) {
+              if (value === true) e.character.movement.arc = { ...PLATFORMER.movement.arc };
+              else delete e.character.movement.arc;
+            }
+        },
+      });
       capability(
         'dojo.crouch',
         'crouch',

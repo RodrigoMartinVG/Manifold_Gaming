@@ -1,8 +1,9 @@
 # Manifold level 10
-# The tower's entrance (stage 5b): a floor to prove the games' shell, not one of the tower's own (5d
-# builds those by the gym's measures). Up a stair onto platforms a meter up, across a gap of 3 m (a
-# walking jump carries 5.9 m: the far side is 6 m deep), up a stair to the goal 2 m up; a star on two
-# blocks 2 m high beside the gap, jumped onto from the ground (2.2 m at most: the gym).
+# The tower's entrance (stages 5b and 5c): a floor to prove the games' shell and the platformer's
+# controller, not one of the tower's own (5d builds those by the gym's measures). Up a stair onto
+# platforms a meter up, across a gap of 2 m (a walking jump carries its middle 3.4 m), up a stair to
+# the goal 2 m up. Beside the gap, a chimney of two walls 6 m high and 2.4 m apart with a star in it,
+# 5 m up: leaping from wall to wall (the gym: up to 4 m apart).
 title The entrance
 spawn 0 1 6
 facing 0 0 -1
@@ -36,16 +37,20 @@ kit floor_4  4 0 -22
 kit stairs_1    0 0 0
 kit platform_2  0 0 -2
 kit platform_2  0 0 -4
+kit platform_2  0 0 -8
 kit platform_2  0 0 -10
 kit platform_2  0 0 -12
-kit platform_2  0 0 -14
-kit stairs_1    0 1 -16
+kit stairs_1    0 1 -14
+kit platform_2  0 1 -16
 kit platform_2  0 1 -18
-kit platform_2  0 1 -20
-kit block_1     3 0 -7
-kit block_1     3 1 -7
+
+# The chimney: walls of the kit, two stacked, turned to face each other across x = 5.35.
+kit wall_4  4 0 -8  rotate y 90
+kit wall_4  4 3 -8  rotate y 90
+kit wall_4  6.7 0 -8  rotate y 90
+kit wall_4  6.7 3 -8  rotate y 90
 
 sensor checkpoint  0 1.8 -3     1 0.8 2
-sensor goal        0 2.8 -19.5  1 0.8 1
-sensor star        3 2.8 -7     0.5 0.8 0.5
+sensor goal        0 2.8 -17    1 0.8 1
+sensor star        5.35 5 -8    0.6 0.8 0.6
 sensor fall        0 -6 0       60 3 60

@@ -248,7 +248,8 @@ export function describeMetrics(world: World, id: number): string {
   return [
     `jump: its feet rise ${f(m.jump.height)} m (${f(m.jump.continuous)} without steps), at the top at step ${m.jump.top}, back as high at step ${m.jump.back} (${f(m.jump.back * STEP)} s)`,
     `across, landing as high: its middle goes ${f(m.reach.walk)} m walking, ${f(m.reach.run)} m running (its body lands on an edge a little further)`,
-    `up: steps of ${f(m.step)} m (an edge of 0.4 its round foot rides), ground of ${m.slope}° standing still, of ${m.climb}° walking up`,
+    `up: steps of ${f(m.step)} m (an edge of 0.4 its round foot rides), ground of ${m.slope}° standing still, of ${m.climb}° walking up; ledges its hands reach up to ${f(m.ledge)} m`,
+    `its jump's gravity: ${f(m.jump.gravity)} m/s², its speed up ${f(m.jump.speed)} m/s; off a wall, ${f(m.wall.off)} m/s, sliding down one at ${f(m.wall.slide)} m/s at most`,
     `its body: ${f(m.width)} m wide, ${f(m.tall)} m tall, ${f(m.crouched)} m crouched, keeping ${m.gap} m from what it touches`,
   ].join('\n');
 }

@@ -34,4 +34,19 @@ describe('what a character can do, in meters (stage 5a)', () => {
     expect(soft.jump.height).toBeLessThan(1.04);
     expect(soft.jump.back).toBeLessThan(m.jump.back);
   });
+
+  test('the platformer’s jump (stage 5c): exactly its 2 m at step 24, back at step 45 (it falls 1.5 times as hard), 3.375 m on walking', () => {
+    const arc = { height: 2, time: 0.42, release: 2.5, fall: 1.5, terminal: 16, corner: 0.25 };
+    const p = metricsOf({ ...DEFAULT_MOVEMENT, arc }, BODY, 9.81);
+    expect(p.jump).toMatchObject({ top: 24, back: 45 });
+    expect(p.jump.height).toBeCloseTo(2, 12);
+    expect([p.jump.gravity, p.jump.speed]).toEqual([24, 10]);
+    expect(p.reach.walk).toBeCloseTo((4.5 * 45) / 60, 12);
+    // Its hands at the top of the jump: its feet 2 m and 2 cm up, its middle 0.8 over them, its hands 0.5 over that.
+    expect(p.ledge).toBeCloseTo(2 + 0.02 + 0.8 + 0.5, 12);
+    expect(p.wall).toMatchObject({ slide: 2.5, off: 6 });
+    // The widest gap between two walls it climbs walking (the gym: up to 4 m, not 4.5): 6 m/s for the
+    // jump's step and the 14 its lock keeps, then steered down to 4.5 at 14 m/s², for the jump's 45 steps.
+    expect(p.wall.chimney).toBeCloseTo(4.4583, 4);
+  });
 });

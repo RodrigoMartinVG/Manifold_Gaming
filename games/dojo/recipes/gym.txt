@@ -4,6 +4,8 @@
 # up, gaps to jump across walking and running, ramps from 10° to 55°, corridors and ceilings to fit
 # through, and the kit's tiles to walk across: each box named by what it measures (`inspect
 # height_200`). `metrics` says the same in numbers, from your character's own: `inspect me` shows how
-# to change one (`set` with its id, `character.movement.jump.speed 4.5`), and `metrics` again.
+# to change one (`set` with its id, `character.movement.jump.speed 4.5`), and `metrics` again. The
+# platformer's character, the tower's (stage 5c): `dojo.arc on`, `dojo.walljump on`, `dojo.ledge on`,
+# for its ledges (z = 9) and chimneys (z = 14).
 seed 5
 dojo.level gym

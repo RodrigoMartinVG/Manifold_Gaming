@@ -83,5 +83,9 @@
  *      what it did beyond holding a body up against gravity (at rest, a heavy one was heard on every
  *      step); a push is part of a body's velocity as the world knows it; what is held is held short of
  *      what is in the way, not pushed into it
+ *  39  stage 5c: the platformer's controller: a jump by its height and its time to the top, its own
+ *      gravity, stronger let go and falling, a top falling speed, corner correction (`arc`); down a wall
+ *      and off it (`wallJump`, the `slide` mode); a ledge grabbed, hung from and climbed onto (`ledge`,
+ *      the `hang` mode). A character without them moves as in 38 to the bit; its state has their fields
  */
-export const SIMULATION_VERSION = 38;
+export const SIMULATION_VERSION = 39;

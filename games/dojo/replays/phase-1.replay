@@ -1,4 +1,4 @@
-# Manifold replay 38
+# Manifold replay 39
 # Phase 1: the character walking, running, jumping, turning and throwing; the gravity; a second player.
 # A reference replay (stage 2.5a): playing it must end with the hash on its last line. A refactor
 # keeps it bit for bit. Recorded by games/dojo/src/reference.test.ts; recorded again (npm run
@@ -38,4 +38,4 @@ input 490 1 jump
 input 491 1
 change 631 physics.gravity 0 -9.81 0
 change 631 players.leave 2
-end 720 a73e34de
+end 720 b88cac96

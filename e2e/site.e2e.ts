@@ -1110,8 +1110,10 @@ async function climbFloor(page: Page) {
   // (Bounds on how long to wait for the world, not measures: drawing on the CPU with a sky, it may go at a
   // tenth of its speed.)
   await expect.poll(z, { timeout: 90_000, intervals: [20] }).toBeLessThan(-4.6);
-  await page.keyboard.press('Space');
+  // Held (stage 5c: let go at once, the platformer's jump is a short hop), to the goal.
+  await page.keyboard.down('Space');
   await expect(page.locator('#game')).toHaveAttribute('data-dialog', /: listo$/, { timeout: 90_000 });
+  await page.keyboard.up('Space');
   await page.keyboard.up('KeyW');
 }
 

@@ -1236,6 +1236,11 @@ export class World {
     if (e.character) {
       e.character.velocity = [0, 0, 0];
       e.character.grounded = false;
+      // (Stage 5c: put somewhere else, it lets go of the ledge it hung from, and what it was doing off a
+      // wall is over: before, the next step pulled it back to the edge it held.)
+      e.character.ledge = null;
+      e.character.offSteps = 0;
+      e.character.leaping = false;
     }
   }
 

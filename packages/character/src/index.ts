@@ -15,6 +15,22 @@ export const MANNEQUIN = 'character.mannequin';
 export const CHARACTER_SHAPE = { kind: 'capsule', halfHeight: 0.5, radius: 0.3 } as const;
 
 /**
+ * THE PLATFORMER'S CHARACTER (stage 5c, decision 0029: the tower): the same body, moving as a platformer
+ * asks. Its jump by its height and its time to the top (2 m in 0.42 s: its own gravity, 24 m/s², and
+ * speed, 10 m/s, from `arcOf`), half as strong again falling and 2.5 times let go rising (a short hop),
+ * no faster down than 16 m/s, and nudged up to 25 cm round a corner its head clips; down a wall no
+ * faster than 2.5 m/s, and off it at 6 m/s; and ledges grabbed. The metrics gym measures it
+ * (`dojo.arc`, `dojo.walljump`, `dojo.ledge`).
+ */
+export const PLATFORMER = {
+  movement: {
+    arc: { height: 2, time: 0.42, release: 2.5, fall: 1.5, terminal: 16, corner: 0.25 },
+    wall: { slide: 2.5, off: 6, lock: 0.25 },
+  },
+  can: { wallJump: true, ledge: true },
+} as const satisfies Pick<CharacterSpec, 'movement' | 'can'>;
+
+/**
  * What the mannequin's body is in each way of moving where it is not the standing capsule (stage 2e,
  * for phase 4's blows), from its animations: crouched in the air, its knees up; gliding, tilted 55°
  * forward; crouching. (The controller moves the standing capsule, except crouching: stage 4b.)

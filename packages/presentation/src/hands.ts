@@ -231,6 +231,10 @@ export function grip(
   upward.set(...up).normalize();
   right.set(1, 0, 0).transformDirection(object.matrixWorld);
   const climbing = c.mode === 'climb' && (c.wall[0] !== 0 || c.wall[1] !== 0 || c.wall[2] !== 0) && around !== undefined;
+  // Hanging from a ledge (stage 5c): both hands on its edge (8 cm short of where the simulation says
+  // they hold, which is 10 cm past it), a shoulder's width apart.
+  const ledge = c.mode === 'hang' ? c.ledge : null;
+  const edge = ledge ? new THREE.Vector3(...ledge.at).addScaledVector(new THREE.Vector3(...ledge.wall), -0.08) : null;
   const still = Math.hypot(...moved) < STILL;
   for (const side of ['L', 'R'] as const) {
     const h = hands[side];
@@ -256,7 +260,11 @@ export function grip(
     if (h.contact) {
       const far = shoulder.distanceTo(h.contact) > LET_GO * full;
       const holdsCarried = h.kind === 'held' || h.kind === 'tool';
-      const over = holdsCarried ? h.kind !== carried : !climbing || far || (h.kind === 'wall' && !window && !still);
+      const over = holdsCarried
+        ? h.kind !== carried
+        : edge
+          ? h.kind !== 'ledge'
+          : !climbing || far || (h.kind === 'wall' && !window && !still);
       if (over) {
         h.leaving = aimOfHand(h, new THREE.Vector3());
         h.contact = null;
@@ -271,6 +279,7 @@ export function grip(
     }
     // Take.
     if (!h.contact && reachFor && carried) take(h, reachFor, carried);
+    else if (!h.contact && edge) take(h, edge.clone().addScaledVector(right, (side === 'L' ? -1 : 1) * 0.18), 'ledge');
     else if (!h.contact && climbing && dt > 0) {
       const hold = wallHold(limb, around, c.wall);
       const may = hold && (hold.kind === 'ledge' || ((window || still) && !h.took));

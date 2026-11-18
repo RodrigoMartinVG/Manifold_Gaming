@@ -1,5 +1,5 @@
 import type { Vec3 } from '@manifold/common';
-import { characterParts } from '@manifold/character';
+import { characterParts, PLATFORMER } from '@manifold/character';
 import { quat, vec3 } from '@manifold/common';
 import {
   buildLevel,
@@ -24,13 +24,17 @@ export const runner = (e: Entity) => component<Runner>(e, RUNNER);
 /** The first climber's color, and the others'. */
 const COLORS = [0x93d9c9, 0x4a9fd8, 0xd86a4a, 0x7ac25a, 0xc25ab8];
 
-/** A climber: the games' character (stage 4a), and its runner. */
+/** A climber: the games' character (stage 4a), moving as the platformer's (stage 5c), and its runner. */
 function climber(world: World, player: number, at: Vec3, facing: Vec3) {
   const parts = characterParts({ player, facing, color: COLORS[(player - 1) % COLORS.length]! });
   world.createEntity({
     transform: { position: [...at], rotation: quat.identity() },
     body: parts.body,
-    character: parts.character,
+    character: {
+      ...parts.character,
+      movement: { ...parts.character.movement, arc: { ...PLATFORMER.movement.arc }, wall: { ...PLATFORMER.movement.wall } },
+      can: { ...parts.character.can, ...PLATFORMER.can },
+    },
     appearance: parts.appearance,
     game: {
       [RUNNER]: { spawn: [...at], checkpoint: [...at], start: world.tick, finish: -1, falls: 0, stars: 0 } satisfies Runner,
@@ -41,10 +45,10 @@ function climber(world: World, player: number, at: Vec3, facing: Vec3) {
 const stars = (world: World) => [...world.entities.values()].filter((e) => e.sensor?.kind === 'star');
 
 /**
- * THE TOWER'S RULES, FOR NOW (stage 5b): a floor from its file, with the games' kit, and a climber at
- * its start (each player who joins, beside the first); a fall brings it back to its last checkpoint,
- * a star is taken, the goal ends the floor (the shell says so: its runner's `finish`). 5c gives it the
- * platformer's controller. Its own rules, not the Dojo's (decision 0003: a game imports the engine,
+ * THE TOWER'S RULES (stage 5b; its climber, the platformer's since 5c: its jump by height and time,
+ * walls slid down and leapt off, ledges grabbed): a floor from its file, with the games' kit, and a
+ * climber at its start (each player who joins, beside the first); a fall brings it back to its last
+ * checkpoint, a star is taken, the goal ends the floor (the shell says so: its runner's `finish`). Its own rules, not the Dojo's (decision 0003: a game imports the engine,
  * never another game), and headless: what it keeps is the world's (hashed, in snapshots, in replays).
  */
 export function createTower(levels: Readonly<Record<string, Level>>): Cartridge {

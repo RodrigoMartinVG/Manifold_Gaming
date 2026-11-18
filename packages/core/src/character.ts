@@ -32,6 +32,7 @@ export const DEFAULT_MOVEMENT: Readonly<Movement> = Object.freeze({
   roll: { speed: 5, time: 0.6 },
   block: { speed: 2 },
   turn: 3,
+  wall: { slide: 2.5, off: 6, lock: 0.25 },
 });
 
 export function newCharacter(spec: CharacterSpec): Character {
@@ -46,12 +47,25 @@ export function newCharacter(spec: CharacterSpec): Character {
     roll: { ...DEFAULT_MOVEMENT.roll, ...m.roll },
     block: { ...DEFAULT_MOVEMENT.block, ...m.block },
     turn: m.turn ?? DEFAULT_MOVEMENT.turn,
+    wall: { ...DEFAULT_MOVEMENT.wall, ...m.wall },
+    // (The platformer's jump, stage 5c: only if its game gives one.)
+    ...(m.arc ? { arc: { ...m.arc } } : {}),
   };
   return {
     player: spec.player,
     movement,
     // Without capabilities, unless the game gives them (stage 2c).
-    can: { doubleJump: false, glide: false, climb: false, crouch: false, roll: false, block: false, ...spec.can },
+    can: {
+      doubleJump: false,
+      glide: false,
+      climb: false,
+      crouch: false,
+      roll: false,
+      block: false,
+      wallJump: false,
+      ledge: false,
+      ...spec.can,
+    },
     airJumps: movement.jump.air,
     wall: [0, 0, 0],
     mode: 'air',
@@ -72,6 +86,11 @@ export function newCharacter(spec: CharacterSpec): Character {
     thrown: false,
     carry: [0, 0, 0],
     ground: { velocity: [0, 0, 0], spin: 0 },
+    leaping: false,
+    offWall: [0, 0, 0],
+    offSteps: 0,
+    ledge: null,
+    regrab: 0,
     carriedTurn: quat.identity(),
     ...(spec.poses ? { poses: structuredPoses(spec.poses) } : {}),
     ...(spec.hits ? { hits: structuredHits(spec.hits) } : {}),
@@ -240,7 +259,75 @@ const MODES: Record<ModeName, Mode> = {
   },
   // Rolling (stage 4b): the way it rolls, at its speed, whatever it asks, its body low.
   roll: { steer: (c) => vec3.scale(c.rollDirection, c.movement.roll.speed) },
+  // Down a wall it pushes against in the air (stage 5c): it steers as in the air, and slides no faster than `wall.slide`.
+  slide: {
+    steer: (c, now, wanted, _move, dt) => approach(now, wanted, c.movement.air.control * dt),
+    fall: (c) => c.movement.wall.slide,
+  },
+  // Hanging from a ledge (stage 5c): still, its hands on it; gravity does not pull it.
+  hang: { steer: () => [0, 0, 0], holds: () => 0 },
 };
+
+/**
+ * A PLATFORMER'S JUMP, IN STEPS (stage 5c): from its height h and its time to the top t, the gravity
+ * g and the jump's speed v that, integrated as the step does (semi-implicit: the velocity first, then
+ * the position), bring its feet exactly h up in N = t / Δt steps (rounded, two at least) and no
+ * higher. After k steps its velocity up is v − k g Δt, and its height Δt (k v − g Δt k(k+1)/2). Asking
+ * the velocity to be 0 at step N, and the height h there:
+ *
+ *     v = N g Δt,   h = g Δt² N(N − 1) / 2   ⇒   g = 2h / (N(N − 1) Δt²),   v = 2h / ((N − 1) Δt).
+ *
+ * (Its feet are at h at steps N − 1 and N: the last step up moves them by nothing.) The continuous
+ * 2h / t² and 2h / t are a little less: the step loses half a step's rise.
+ */
+export function arcOf(arc: NonNullable<Movement['arc']>, dt: number): { gravity: number; speed: number; steps: number } {
+  const n = Math.max(2, Math.round(arc.time / dt));
+  return { gravity: (2 * arc.height) / (n * (n - 1) * dt * dt), speed: (2 * arc.height) / ((n - 1) * dt), steps: n };
+}
+
+/** How long climbing onto a ledge takes (stage 5c), up and then on, each (s). */
+const CLIMB_UP = 0.15;
+
+/** Where a character's hands are, above its center (stage 5c): 30 cm under the top of its head. */
+export const handsOf = (shape: Shape): number => (shape.kind === 'capsule' ? shape.halfHeight + shape.radius : 0.8) - 0.3;
+
+/**
+ * A LEDGE IT CAN GRAB (stage 5c), falling past it: a wall's face in front of it, a little under its
+ * hands (from its center, towards `towards`, as far as its body and 30 cm); and above that face, 10 cm
+ * in, a top it could stand on (a ray down from above its hands), at most `window` under its hands
+ * (falling, they pass it: a step's fall at least) or 5 cm over them. Where its hands would hold (on
+ * the top, 10 cm past the edge) and the wall's way; or null.
+ */
+function ledgeAhead(
+  world: World,
+  e: Entity,
+  center: Vec3,
+  towards: Vec3,
+  radius: number,
+  hands: number,
+  window: number,
+  up: Vec3,
+): { at: Vec3; wall: Vec3; steps: number; climb: number } | null {
+  const face = wallAhead(world, e, vec3.add(center, vec3.scale(up, hands - 0.25)), towards, radius + 0.3, up);
+  if (isZero(face.wall)) return null;
+  const above = 0.35;
+  const from = vec3.add(vec3.add(center, vec3.scale(face.wall, face.distance + 0.1)), vec3.scale(up, hands + above));
+  const hit = world.castRay(from, vec3.scale(up, -1), above + window, { skip: e.id, dynamic: false });
+  if (!hit || vec3.dot(hit.normal, up) < 0.7 || hit.distance < above - 0.05) return null;
+  return { at: vec3.add(from, vec3.scale(up, -hit.distance)), wall: face.wall, steps: 0, climb: 0 };
+}
+
+/** The horizontal ways a corner correction tries (stage 5c), in this order: the axes, then the diagonals. */
+const NUDGES: readonly Vec3[] = [
+  [1, 0, 0],
+  [-1, 0, 0],
+  [0, 0, 1],
+  [0, 0, -1],
+  [Math.SQRT1_2, 0, Math.SQRT1_2],
+  [-Math.SQRT1_2, 0, Math.SQRT1_2],
+  [Math.SQRT1_2, 0, -Math.SQRT1_2],
+  [-Math.SQRT1_2, 0, -Math.SQRT1_2],
+];
 
 /**
  * WHICH MODE, decided here and only here (stage 2b), with what it can do (stage 2c):
@@ -264,13 +351,17 @@ const modeFor = (
   crouching: boolean,
   room: boolean,
   blocking: boolean,
+  sliding: boolean,
 ): ModeName => {
   if (c.rolling > 0) return 'roll';
   if (low(c.mode) && !room) return 'crouch';
   if (c.can.climb && vec3.dot(move, c.wall) > 0.5 && (c.grounded || c.mode === 'climb' || vUp <= 0)) return 'climb';
+  // (Stage 5c: on a ledge it grabbed, it hangs; down a wall it pushes against in the air, it slides.)
+  if (c.ledge !== null) return 'hang';
   if (c.grounded && crouching && c.can.crouch) return 'crouch';
   if (c.grounded && blocking && c.can.block) return 'block';
   if (c.grounded) return 'walk';
+  if (sliding) return 'slide';
   if (c.can.glide && jumping && vUp < 0) return 'glide';
   return 'air';
 };
@@ -754,7 +845,23 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
   }
   // Low, whether it could stand up where it is (stage 4b): its standing body, there, touching nothing.
   const room = !low(before) || fits(world, e, body.shape, up);
-  c.mode = modeFor(c, move, jumping, vUp, isDown(input, 'crouch'), room, isDown(input, 'block'));
+  // 2b (stage 5c): in the air, a wall beside it, to slide down and jump off: from its chest, towards
+  // where it is asked to go (or where it looks); and a ledge to grab, falling past one.
+  const radius = body.shape.kind === 'capsule' ? body.shape.radius : 0.3;
+  const hands = handsOf(body.shape);
+  const lookingWay = vec3.normalize(vec3.onPlane(c.facing, up));
+  const pushingWay = vec3.length(move) > 0.1 ? vec3.normalize(move) : null;
+  const side = c.can.wallJump && !c.grounded ? wallAhead(world, e, here, pushingWay ?? lookingWay, radius + 0.25, up) : null;
+  const beside = side && !isZero(side.wall) ? side.wall : null;
+  // (Just off a wall, not back on it: the lock lasts its time.)
+  const backOn = beside !== null && c.offSteps > 0 && vec3.dot(beside, c.offWall) > 0.7;
+  const sliding = beside !== null && !backOn && vUp <= 0 && pushingWay !== null && vec3.dot(move, beside) > 0.5;
+  if (c.ledge === null && c.can.ledge && !c.grounded && vUp <= 0 && c.regrab === 0 && before !== 'climb') {
+    const grab = ledgeAhead(world, e, here, pushingWay ?? lookingWay, radius, hands, Math.max(0.25, -vUp * dt + 0.05), up);
+    if (grab) c.ledge = grab;
+  }
+  c.mode = modeFor(c, move, jumping, vUp, isDown(input, 'crouch'), room, isDown(input, 'block'), sliding);
+  if (c.mode !== 'hang') c.ledge = null;
   // Going low or standing up, the controller moves the low body, or the standing one, from then on.
   if (low(before) !== low(c.mode)) {
     const pose = low(c.mode) ? crouchPoseOf(c, body) : { shape: body.shape, offset: [0, 0, 0] as Vec3 };
@@ -782,6 +889,20 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
     const steered = approach(across, vec3.sub(wanted, vec3.scale(downhill, wantedAlong)), most);
     const up_ = wantedAlong < 0 ? Math.max(wantedAlong, along - most) : along;
     vH = vec3.add(steered, vec3.scale(downhill, up_));
+  } else if (c.offSteps > 0) {
+    // Just off a wall (stage 5c), for `wall.lock`: what takes it away from the wall it keeps (neither
+    // steering back nor braking: the air's steering would have taken a third of it), and it steers along it.
+    const n = c.offWall;
+    const away = vec3.dot(vH, n);
+    const along = mode.steer(
+      c,
+      vec3.sub(vH, vec3.scale(n, away)),
+      vec3.sub(wanted, vec3.scale(n, vec3.dot(wanted, n))),
+      move,
+      dt,
+      traction,
+    );
+    vH = vec3.add(along, vec3.scale(n, away));
   } else vH = mode.steer(c, vH, wanted, move, dt, traction);
   // Climbing, it comes to its wall (stage 4a): as far as touching it less `WALL_GAP`, at `WALL_APPROACH`
   // at most (its body's radius from its axis, where the ray went from, and the controller's own gap).
@@ -818,17 +939,72 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
   let leapt = false;
 
   // 3: the jump: from the ground (or just after leaving it), from a wall, or one more in the air.
-  const { jump } = c.movement;
+  // (Stage 5c: with the platformer's arc, its own speed and gravity: `arcOf`.)
+  const { jump, arc } = c.movement;
+  const arced = arc ? arcOf(arc, dt) : null;
+  const jumpSpeed = arced ? arced.speed : jump.speed;
   if (jumping && !c.jumpHeld) c.jumpPending = jump.buffer;
   c.jumpHeld = jumping;
-  if (c.grounded || c.mode === 'climb') c.airJumps = jump.air;
+  if (c.grounded || c.mode === 'climb' || c.mode === 'slide' || c.mode === 'hang') c.airJumps = jump.air;
+  // HANGING FROM A LEDGE (stage 5c). Jumping, or pushing on once it has hung a fifth of a second (it came
+  // pushing towards the wall: it does not climb in the step it grabs), it climbs onto it: up until its
+  // feet clear the top, then onto it, `CLIMB_UP` each, its hands on the edge until it is up (a motion
+  // of its own, through what is in the way: a hop with gravity lost its way forward against the wall,
+  // which takes the velocity into it). Jumping pushing away, it leaps off, as from a wall; pushing away,
+  // or crouching, it lets go (and does not grab again for a fifth of a second). Else it stays, its
+  // hands on the edge, its body a gap off the wall.
+  let hangMove: Vec3 | null = null;
+  if (c.mode === 'hang' && c.ledge) {
+    const L = c.ledge;
+    const { at, wall } = L;
+    const toward = vec3.dot(move, wall);
+    const half = Math.max(1, Math.round(CLIMB_UP / dt));
+    const tall = body.shape.kind === 'capsule' ? body.shape.halfHeight + body.shape.radius : 0.8;
+    const climbUp = L.climb === 0 && ((c.jumpPending > 0 && toward > -0.5) || (toward > 0.5 && L.steps >= Math.round(0.2 / dt)));
+    if (climbUp) {
+      L.climb = 2 * half;
+      c.jumpPending = 0;
+    }
+    vUp = 0;
+    vH = [0, 0, 0];
+    if (L.climb > 0) {
+      // Up, as far as its feet must go to stand on the top; then on, until its middle is over the top.
+      const rise = vec3.dot(vec3.sub(at, here), up) + tall + CHARACTER_GAP + 0.02;
+      const on = vec3.dot(vec3.sub(at, here), wall) + radius - 0.05;
+      hangMove = L.climb > half ? vec3.scale(up, rise / (L.climb - half)) : vec3.scale(wall, on / L.climb);
+      L.climb--;
+      if (L.climb === 0) {
+        c.ledge = null;
+        c.regrab = Math.round(0.2 / dt);
+      }
+    } else if ((c.jumpPending > 0 && toward <= -0.5) || toward < -0.5 || isDown(input, 'crouch')) {
+      c.ledge = null;
+      c.mode = 'air';
+      mode = MODES.air;
+      c.regrab = Math.round(0.2 / dt);
+      if (c.jumpPending > 0) {
+        vUp = jumpSpeed;
+        vH = vec3.scale(wall, -c.movement.wall.off);
+        c.offWall = [...wall];
+        c.offSteps = Math.round(c.movement.wall.lock / dt);
+        c.leaping = true;
+      } else vH = vec3.scale(wall, -1);
+      c.jumpPending = 0;
+    } else {
+      L.steps++;
+      hangMove = vec3.sub(
+        vec3.sub(vec3.sub(at, vec3.scale(wall, 0.1 + radius + CHARACTER_GAP + WALL_GAP)), vec3.scale(up, hands)),
+        here,
+      );
+    }
+  }
   // (Rolling, it does not jump: a jump asked for is kept as long as ever, `jump.buffer` steps, and if
   // the roll ends before that, it jumps then.)
   if (c.jumpPending > 0 && c.mode === 'roll') c.jumpPending--;
   else if (c.jumpPending > 0) {
     if (c.mode === 'climb') {
       // Off the wall: up, and away from it.
-      vUp = jump.speed;
+      vUp = jumpSpeed;
       vH = vec3.scale(c.wall, -c.movement.climb.off);
       c.mode = 'air';
       mode = MODES.air;
@@ -837,13 +1013,26 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
     } else if (c.grounded || c.stepsInAir <= jump.coyote) {
       // (From a moving platform, it keeps the platform's velocity: it leaves with it.)
       vH = vec3.add(vH, vec3.onPlane(c.ground.velocity, up));
-      vUp = jump.speed + Math.max(0, vec3.dot(c.ground.velocity, up));
+      vUp = jumpSpeed + Math.max(0, vec3.dot(c.ground.velocity, up));
       leapt = true;
+      c.leaping = true;
       c.jumpPending = 0;
       c.stepsInAir = jump.coyote + 1; // the coyote time is over: from now on, only a jump in the air
+    } else if (beside !== null && !backOn) {
+      // OFF A WALL (stage 5c): sliding down it, or beside it in the air: up as a jump, and away from it
+      // at `wall.off`, keeping what it had along it; for `wall.lock` it cannot steer back towards it.
+      vUp = jumpSpeed;
+      vH = vec3.add(vec3.onPlane(vH, beside), vec3.scale(beside, -c.movement.wall.off));
+      c.offWall = [...beside];
+      c.offSteps = Math.round(c.movement.wall.lock / dt);
+      c.leaping = true;
+      c.mode = 'air';
+      mode = MODES.air;
+      c.jumpPending = 0;
     } else if (c.can.doubleJump && c.airJumps > 0) {
-      vUp = jump.speed;
+      vUp = jumpSpeed;
       c.airJumps--;
+      c.leaping = true;
       c.jumpPending = 0;
     } else c.jumpPending--;
   }
@@ -868,15 +1057,20 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
     vUp = 0;
     rise = Math.max(0, CHARACTER_GAP - under.distance);
   } else {
-    vUp -= gravity * dt;
+    // (Stage 5c: the arc's gravity, stronger once the jump is let go rising, and falling; and its top speed down.)
+    const pull = arced && arc ? arced.gravity * (vUp > 0 ? (c.leaping && !jumping ? arc.release : 1) : arc.fall) : gravity;
+    vUp -= pull * dt;
     const fall = mode.fall?.(c);
     if (fall !== undefined) vUp = Math.max(vUp, -fall);
+    if (arc) vUp = Math.max(vUp, -arc.terminal);
   }
   const carried: Vec3 = [...c.carry];
   c.carry = [0, 0, 0];
 
-  // 5: what it can really do.
-  const desired = vec3.add(vec3.scale(vec3.add(vec3.add(vH, vec3.scale(up, vUp)), carried), dt), vec3.scale(up, rise));
+  // 5: what it can really do. (Hanging, stage 5c: to where its hands hold the edge.)
+  const desired = hangMove
+    ? hangMove
+    : vec3.add(vec3.scale(vec3.add(vec3.add(vH, vec3.scale(up, vUp)), carried), dt), vec3.scale(up, rise));
   const platform = under?.moves ? world.entities.get(under.entity)?.body?.handle : undefined;
   const { movement, grounded, ceiling, touched, walls } = world.physics.moveCharacter(body.handle, desired, up, platform);
   // What it ran into that the physics moves, it pushes (stage 3g), towards where it was asked to go.
@@ -884,14 +1078,32 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
 
   // 6: what it learned. (A ceiling is what the controller says hit its head: rising a little less
   // than asked is not one; that happens brushing a wall, and it used to cut jumps short.)
-  if (vUp > 0 && ceiling) vUp = 0;
+  // CORNER CORRECTION (stage 5c, with the arc's `corner`): rising, its head clips an edge above it; if
+  // moving it sideways a little (5 cm at a time, as far as `corner`, the axes before the diagonals)
+  // frees the way up, it goes there and keeps rising. Else the ceiling stops it.
+  let nudge: Vec3 = [0, 0, 0];
+  if (vUp > 0 && ceiling && arc && arc.corner > 0) {
+    const at = vec3.add(world.physics.position(body.handle), movement);
+    const rot = e.transform!.rotation;
+    const free = (from: Vec3, way: Vec3, reach: number) =>
+      world.castShape(body.shape, from, rot, way, reach, { skip: e.id, dynamic: false }) === null;
+    search: for (let k = 0.05; k <= arc.corner + 1e-9; k += 0.05)
+      for (const d of NUDGES) {
+        const way = vec3.normalize(vec3.onPlane(d, up));
+        const to = vec3.add(at, vec3.scale(way, k));
+        if (free(at, way, k) && free(to, up, vUp * dt + CHARACTER_GAP)) {
+          nudge = vec3.scale(way, k);
+          break search;
+        }
+      }
+  }
+  if (vUp > 0 && ceiling && isZero(nudge)) vUp = 0;
   // Against a wall (stage 4.5b): what the controller did not let it do into a wall, it no longer has, at
   // most v − (v·n)n (before, the velocity it kept was the one it asked for: pushing a wall standing still,
   // 4.5 m/s, and it left the wall at full speed). Only what was refused: up a step, the controller
   // touches its face but takes it over, and it keeps its speed.
   // And only a wall: what reaches above a step's height (a ray towards it there); a step it goes up.
   const refused = vec3.sub(vec3.onPlane(desired, up), vec3.onPlane(movement, up));
-  const radius = body.shape.kind === 'capsule' ? body.shape.radius : 0.3;
   const feetNow = vec3.sub(
     world.physics.position(body.handle),
     vec3.scale(up, (body.shape.kind === 'capsule' ? body.shape.halfHeight : 0.5) + radius),
@@ -929,6 +1141,11 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
   // (Landed: on the ground and no longer going up. Just thrown, a hair above it, it is still on its way.)
   if (grounded && vUp <= 0) c.thrown = false;
   c.stepsInAir = grounded ? 0 : c.stepsInAir + 1;
+  // (Stage 5c: a jump's rise is over at its top or on the ground; the lock off a wall and the pause
+  // before grabbing again count down, and end on the ground.)
+  if (grounded || vUp <= 0) c.leaping = false;
+  c.offSteps = grounded ? 0 : Math.max(0, c.offSteps - 1);
+  c.regrab = Math.max(0, c.regrab - 1);
   // A platform that moves or turns carries it (stage 2d), if it stood on it and did not jump off it:
   // exactly as far as the platform takes the point where it is. After the controller, not through
   // it: the controller saw the platform fixed (physics.ts), and a platform going down would have
@@ -937,7 +1154,7 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
   // the platform passes under; before, the carry took it into the beam). If it walked off the edge
   // (it stood, and now it does not, without jumping), it keeps the platform's velocity along the
   // ground, as it would jumping; and from then on, it stands on nothing that moves.
-  const walked = vec3.add(world.physics.position(body.handle), movement);
+  const walked = vec3.add(vec3.add(world.physics.position(body.handle), movement), nudge);
   const riding: Vec3 = ride && !leapt && under ? sweep(world, e, walked, ride.movement, under.entity) : [0, 0, 0];
   if (wasGrounded && !grounded && !leapt) {
     vH = vec3.add(vH, vec3.onPlane(c.ground.velocity, up));
@@ -954,6 +1171,7 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
   else if (c.lock !== null && toLocked && vec3.length(toLocked) > 1e-6) c.facing = vec3.normalize(toLocked);
   else if (toldLooking && vec3.length(toldLooking) > 1e-6) c.facing = vec3.normalize(toldLooking);
   else if (c.mode === 'climb' && !isZero(c.wall)) c.facing = [...c.wall];
+  else if (c.mode === 'hang' && c.ledge) c.facing = [...c.ledge.wall];
   else if (vec3.length(inWorld) > 0.1) c.facing = vec3.normalize(inWorld);
   // And where it aims, above or below that (stage 4b).
   c.pitch = 90 * Math.max(-1, Math.min(1, axisOf(input, 'pitch')));
