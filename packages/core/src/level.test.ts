@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, test } from 'vitest';
 import { approx, quat } from '@manifold/common';
 import { levelOfWorld } from './building';
-import { buildLevel, LEVEL_FORMAT, levelFromText, levelToText } from './level';
+import { buildLevel, LEVEL_FORMAT, levelFromText, levelToText, LINES, pieceKind, pieceOf, type KitPieces } from './level';
 import { initPhysics } from './physics';
 import { World } from './world';
 
@@ -738,5 +738,93 @@ describe('the level format, version 9: a game’s kit of pieces (stage 4.5e, dec
     // Written back as the level said it.
     expect(levelToText(levelOfWorld(world))).toBe(levelToText(levelFromText(TEXT, { kit: KIT })));
     world.dispose();
+  });
+});
+
+/**
+ * EACH KIND OF LINE IN ONE PLACE (stage 5.5e): `LINES` says, for each word, the format since which it is
+ * read, how it is read, written and built, and (for what builds pieces) how one is made, moved, kept and
+ * followed. Before, a kind was told apart in six places, and they had drifted: the list of kinds an
+ * unknown line was told of had no `kit`, the words a line takes were said for some kinds and not others,
+ * and a kit piece's material was not checked as a box's was.
+ */
+describe('the kinds of lines, each in one place (stage 5.5e)', () => {
+  const KIT: KitPieces = {
+    post: { boxes: [{ center: [0, 1, 0], half: [0.1, 1, 0.1] }], size: [0.2, 2, 0.2], model: 'test.post' },
+  };
+  const EVERY = `# Manifold level ${LEVEL_FORMAT}
+title Every  kind
+spawn 0 1 0
+facing 0 0 -1
+ambient 0.5
+sky 12
+material oil  friction 0.02  bounce 0  density 900  drag 0.4
+box 0 -0.5 0  10 0.5 10  material oil  name floor
+kit post  2 0 2  name post_a
+map -5 0 -5  1 2  g goal
+#.g
+end
+sensor goal  0 1 -3  1 1 1  name goal_a
+lamp 0 3 0  5 1  name lamp_a
+watcher 0 2 -8  10 60 0.4  name eye
+signal on  zone goal_a
+route rounds  0 0 0  1 0 0
+objective win when on say test.win
+scene hi when on  a:test.hi
+`;
+
+  test('a level with a line of every kind: read, written back the same, built, each piece kept as its own', () => {
+    // Every kind the registry has is in it (a new kind without a line here fails this test).
+    const words = new Set(
+      EVERY.split('\n')
+        .slice(1)
+        .map((l) => l.split(/\s+/)[0]!)
+        .filter((w) => w in LINES),
+    );
+    expect([...words].sort()).toEqual(Object.keys(LINES).sort());
+    const level = levelFromText(EVERY, { kit: KIT });
+    // The title as written, its spaces too.
+    expect(level.title).toBe('Every  kind');
+    expect(levelFromText(levelToText(level), { kit: KIT })).toEqual(level);
+    const world = new World({ seed: 1 }).attach({ kit: KIT });
+    buildLevel(world, level);
+    const kinds = new Set([...world.entities.values()].flatMap((e) => (e.source ? [pieceOf(e.source).word] : [])));
+    expect([...kinds].sort()).toEqual(
+      Object.keys(LINES)
+        .filter((w) => pieceKind(w))
+        .sort(),
+    );
+    // Written back from the world, read again: the same world.
+    const again = new World({ seed: 1 }).attach({ kit: KIT });
+    buildLevel(again, levelFromText(levelToText(levelOfWorld(world)), { kit: KIT }));
+    expect(levelToText(levelOfWorld(again))).toBe(levelToText(levelOfWorld(world)));
+    world.dispose();
+    again.dispose();
+  });
+
+  test('a line of no kind is told every kind there is, the kit’s too', () => {
+    const wrong = () => levelFromText(`# Manifold level ${LEVEL_FORMAT}\nterrain 0 0 0`);
+    expect(wrong).toThrow(`"terrain" is not understood (${Object.keys(LINES).join(', ')})`);
+    expect(wrong).toThrow(/ kit,/);
+  });
+
+  test('a word a line does not take: it is told the words it takes, for every kind', () => {
+    const lines: [string, string][] = [
+      ['box 0 0 0  1 1 1  colour #ffffff', 'color'],
+      ['lamp 0 3 0  5 1  colour #ffffff', 'signal'],
+      ['watcher 0 2 0  10 60 0.4  colour #ffffff', 'rotate'],
+      ['kit post  0 0 0  colour #ffffff', 'material'],
+    ];
+    for (const [line, takes] of lines)
+      expect(() => levelFromText(`# Manifold level ${LEVEL_FORMAT}\n${line}`, { kit: KIT }), line).toThrow(
+        new RegExp(`"colour" is not understood here \\(.*\\b${takes}\\b.*\\)`),
+      );
+  });
+
+  test('a kit piece’s material is checked as a box’s', () => {
+    for (const line of ['box 0 0 0  1 1 1  material Oil', 'kit post  0 0 0  material Oil'])
+      expect(() => levelFromText(`# Manifold level ${LEVEL_FORMAT}\n${line}`, { kit: KIT }), line).toThrow(
+        `level, line 2: "Oil" is not a material's name`,
+      );
   });
 });

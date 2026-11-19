@@ -1,7 +1,18 @@
 import type { Registry, Value } from '@manifold/commands';
 import type { Vec3 } from '@manifold/common';
 import type { Cartridge } from './cartridge';
-import { buildPiece, levelFromText, levelToText, type Level, type LevelPiece, type ZoneKinds } from './level';
+import {
+  buildPiece,
+  emptyLevel,
+  levelFromText,
+  levelToText,
+  LINES,
+  pieceKind,
+  pieceOf,
+  type Level,
+  type LevelPiece,
+  type ZoneKinds,
+} from './level';
 import { MATERIALS } from './materials';
 import type { Entity } from './types';
 import { copyData, DEFAULT_AMBIENT, ENTITY_NAME, World } from './world';
@@ -15,6 +26,7 @@ import { copyData, DEFAULT_AMBIENT, ENTITY_NAME, World } from './world';
 export function levelOfWorld(world: World): Level {
   const origin = world.origin ?? { title: 'Untitled', spawn: [0, 1, 0] as Vec3, facing: [0, 0, -1] as Vec3, ambient: null };
   const level: Level = {
+    ...emptyLevel(),
     title: origin.title,
     spawn: [...origin.spawn],
     facing: [...origin.facing],
@@ -25,31 +37,15 @@ export function levelOfWorld(world: World): Level {
         .filter(([name]) => !(name in MATERIALS))
         .map(([name, m]) => [name, { ...m }]),
     ),
-    boxes: [],
-    kits: [],
-    maps: [],
-    sensors: [],
     signals: world.signals.map((s) => ({ name: s.name, op: s.op, reads: [...s.reads] })),
     // As the level said it, unless it was changed since.
     ambient: world.ambient === (origin.ambient ?? DEFAULT_AMBIENT) ? origin.ambient : world.ambient,
-    lamps: [],
-    watchers: [],
-    routes: [],
-    objectives: [],
-    scenes: [],
   };
+  // Each piece in its kind's list (stage 5.5e: `LINES`), in the order the entities were made.
   for (const e of [...world.entities.values()].sort((a, b) => a.id - b.id)) {
-    const s = e.source;
-    if (!s) continue;
-    if ('box' in s) level.boxes.push(copyData(s.box));
-    else if ('kit' in s) level.kits.push(copyData(s.kit));
-    else if ('map' in s) level.maps.push(copyData(s.map));
-    else if ('sensor' in s) level.sensors.push(copyData(s.sensor));
-    else if ('lamp' in s) level.lamps.push(copyData(s.lamp));
-    else if ('route' in s) level.routes.push(copyData(s.route));
-    else if ('objective' in s) level.objectives.push(copyData(s.objective));
-    else if ('scene' in s) level.scenes.push(copyData(s.scene));
-    else level.watchers.push(copyData(s.watcher));
+    if (!e.source) continue;
+    const { kind, item } = pieceOf(e.source);
+    kind.list(level).push(copyData(item));
   }
   return level;
 }
@@ -75,10 +71,14 @@ export function levelDiff(from: Level, to: Level): string[] {
  * watcher or a route (stage 4d). A line that is not understood throws, with why.
  */
 export function pieceFromLine(world: World, line: string, zones?: ZoneKinds): LevelPiece {
-  const words = line.trim().split(/\s+/);
-  const kind = words[0];
-  if (kind !== 'box' && kind !== 'kit' && kind !== 'sensor' && kind !== 'lamp' && kind !== 'watcher' && kind !== 'route')
-    throw new Error(`"${kind ?? ''}": what is added is a box, a kit piece, a sensor, a lamp, a watcher or a route`);
+  const word = line.trim().split(/\s+/)[0] ?? '';
+  const kind = pieceKind(word);
+  if (!kind?.added)
+    throw new Error(
+      `"${word}": what is added is a line of one of these (${Object.keys(LINES)
+        .filter((w) => pieceKind(w)?.added)
+        .join(', ')})`,
+    );
   // The world as a level, and the new line at its end: read as one, so names and signals are checked.
   const before = levelOfWorld(world);
   const text = levelToText(before) + line + '\n';
@@ -95,12 +95,7 @@ export function pieceFromLine(world: World, line: string, zones?: ZoneKinds): Le
       { cause: e },
     );
   }
-  if (kind === 'box') return { box: level.boxes.at(-1)! };
-  if (kind === 'kit') return { kit: level.kits.at(-1)! };
-  if (kind === 'sensor') return { sensor: level.sensors.at(-1)! };
-  if (kind === 'lamp') return { lamp: level.lamps.at(-1)! };
-  if (kind === 'route') return { route: level.routes.at(-1)! };
-  return { watcher: level.watchers.at(-1)! };
+  return { [word]: kind.list(level).at(-1) } as LevelPiece;
 }
 
 /** An entity by its id or its name. */
@@ -108,24 +103,11 @@ export function entityNamed(world: World, which: string): Entity | undefined {
   return /^\d+$/.test(which) ? world.entities.get(Number(which)) : world.named(which);
 }
 
-/** A piece moved by `by`, without its name (names are one entity's). */
+/** A piece moved by `by`, as its kind moves one (without its name: names are one entity's). */
 function moved(piece: LevelPiece, by: Vec3): LevelPiece {
   const p = copyData(piece);
-  // (A map's floor, stage 4a: its map moves, and it has no name.)
-  if ('map' in p) {
-    p.map.origin = [p.map.origin[0] + by[0], p.map.origin[1] + by[1], p.map.origin[2] + by[2]];
-    return p;
-  }
-  // (An objective or a scene, stage 4f, has no place: as it was.)
-  if ('objective' in p || 'scene' in p) return p;
-  // (A route, stage 4d: its points move; it needs a name, so the copy's is the first free one after it.)
-  if ('route' in p) {
-    p.route.points = p.route.points.map((q) => [q[0] + by[0], q[1] + by[1], q[2] + by[2]]);
-    return p;
-  }
-  const item = 'box' in p ? p.box : 'kit' in p ? p.kit : 'sensor' in p ? p.sensor : 'lamp' in p ? p.lamp : p.watcher;
-  item.center = [item.center[0] + by[0], item.center[1] + by[1], item.center[2] + by[2]];
-  item.name = null;
+  const { kind, item } = pieceOf(p);
+  kind.move?.(item, by);
   return p;
 }
 
@@ -166,7 +148,7 @@ export function declareBuilding(registry: Registry<World>, cartridge?: Cartridge
     inRecipes: true,
     check: (world, [which], out) => {
       const e = entityNamed(world, String(which));
-      if (e?.source && ('objective' in e.source || 'scene' in e.source)) {
+      if (e?.source && !pieceOf(e.source).kind.move) {
         out.write(`clone: ${String(which)} is an objective or a scene: one of a kind (stage 4f)`, 'error');
         return false;
       }
@@ -271,8 +253,8 @@ export function setField(world: World, which: string, field: string, words: stri
     if (world.named(name) && world.named(name) !== e) return `${name} is another entity's name`;
     if (!dry) {
       world.rename(e, name);
-      const item = itemOf(e);
-      if (item) item.name = name;
+      const piece = e.source && pieceOf(e.source);
+      if (piece && piece.kind.named) (piece.item as { name: string | null }).name = name;
     }
     return null;
   }
@@ -307,27 +289,13 @@ export function setField(world: World, which: string, field: string, words: stri
     if (rest[0] === 'linearVelocity') world.push(e, [to[0] - now[0], to[1] - now[1], to[2] - now[2]]);
     else at[key] = to;
   } else at[key] = value;
-  // The level line follows.
-  const item = itemOf(e);
-  if (item) {
-    if (field === 'transform.position') item.center = [...(value as Vec3)];
-    else if (field === 'appearance.color' && 'color' in item) item.color = value as number;
-    else if (component === 'lamp' && (key === 'radius' || key === 'intensity') && key in item)
-      (item as unknown as Record<string, unknown>)[key] = value;
-    else if (component === 'watcher' && (key === 'range' || key === 'threshold') && key in item)
-      (item as unknown as Record<string, unknown>)[key] = value;
-    else if (component === 'sensor' && rest[0] === 'params' && 'params' in item) item.params[key] = [...(value as number[])];
-    else if (field === 'sensor.half' && 'half' in item) item.half = [...(value as Vec3)];
+  // The level line follows, as its kind says (stage 5.5e: `LINES`). (A map's floor, stage 4a, follows
+  // nothing: it is written back as its map; nor a route, stage 4d.)
+  if (e.source) {
+    const { kind, item } = pieceOf(e.source);
+    kind.follow?.(item, field, value);
   }
   return null;
-}
-
-/** The level item an entity was built from, if any. */
-function itemOf(e: Entity) {
-  const s = e.source;
-  // (A map's floor, stage 4a, has no item of its own to change: it is written back as its map; nor a route, stage 4d.)
-  if (!s || 'map' in s || 'route' in s || 'objective' in s || 'scene' in s) return null;
-  return 'box' in s ? s.box : 'kit' in s ? s.kit : 'sensor' in s ? s.sensor : 'lamp' in s ? s.lamp : s.watcher;
 }
 
 /**
