@@ -1,6 +1,6 @@
 import { vec3 } from '@manifold/common';
 import { CHARACTER_GAP, CLIMBS_DEGREES, STANDS_DEGREES, STEP_UP } from './physics';
-import { arcOf, CROUCHED, crouchPoseOf, handsOf } from './character';
+import { arcOf, CROUCHED, crouchPoseOf, handsOf, pulled } from './character';
 import { gravityAt } from './gravity';
 import { STEP, type World } from './world';
 import type { Entity, Movement, Shape } from './types';
@@ -109,20 +109,17 @@ export function metricsOf(
   } else {
     // As the step does it: the velocity first, under the gravity of rising or of falling, no faster down
     // than its top speed; then the height.
+    // (The character's own rule, `pulled`: the jump held all the way, its hang at the top too.)
     let up = v;
     let y = 0;
-    let hung = -1;
+    let hung: number | undefined;
     height = 0;
     top = 0;
     back = 0;
     for (let n = 1; n < 100_000; n++) {
-      if (arc.hang && hung > 0) {
-        up = 0;
-        hung--;
-      } else if (arc.hang && hung < 0 && up > 0 && up - g * dt <= 0) {
-        up = 0;
-        hung = Math.round(arc.hang / dt);
-      } else up = Math.max(up - g * (up > 0 ? 1 : arc.fall) * dt, -arc.terminal);
+      const next = pulled(up, g * (up > 0 ? 1 : arc.fall), dt, { hang: arc.hang, hung, holding: true, leaping: up > 0 });
+      hung = next.hung;
+      up = next.hung !== undefined ? next.vUp : Math.max(next.vUp, -arc.terminal);
       y += up * dt;
       if (y > height) {
         height = y;

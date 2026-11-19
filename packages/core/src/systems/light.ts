@@ -1,4 +1,4 @@
-import { poseOf } from '../character';
+import { poseOf, seenOf } from '../character';
 import type { Entity, EntityId } from '../types';
 import { insideLength, type World } from '../world';
 import { quat, type Vec3, vec3 } from '@manifold/common';
@@ -107,8 +107,8 @@ export function illuminate(world: World) {
       if (vec3.dot(direction, forward) < w.cone) continue;
       const hit = world.castRay(from, direction, d, { skip: eye.id, besides: e.id });
       if (hit && hit.distance < d - 1e-6) continue;
-      // Crouched, a watcher sees less of it (stage 4b: its posture): it needs that much more light.
-      const posture = e.character!.mode === 'crouch' ? e.character!.movement.crouch.seen : 1;
+      // In a posture seen less (stage 4b: crouched), a watcher needs that much more light (its mode's, stage 5.5e).
+      const posture = seenOf(e.character!);
       if (e.character!.light * through(world, from, at, fogs) * posture < w.threshold) continue;
       now.push(e.id);
     }

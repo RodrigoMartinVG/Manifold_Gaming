@@ -1,7 +1,8 @@
 import { beforeAll, describe, expect, test } from 'vitest';
 import { quat, vec3, type Vec3 } from '@manifold/common';
 import type { Cartridge } from './cartridge';
-import { aimOf, DEFAULT_MOVEMENT, faceFor, poseOf, turned } from './character';
+import { aimOf, DEFAULT_MOVEMENT, faceFor, MODE_NAMES, poseOf, pulled, seenOf, turned } from './character';
+import { GHOST_FORMAT, GHOST_HEADER, ghostFromText } from './ghost';
 import { buildLevel, levelFromText } from './level';
 import { NO_INPUT } from './input';
 import { stepRadius } from './sound';
@@ -1397,5 +1398,40 @@ describe('across a seam (stage 3c)', () => {
     expect(hero.transform!.position[2], 'well onto the ledge').toBeLessThan(-5.5);
     expect(hero.character!.grounded).toBe(true);
     world.dispose();
+  });
+});
+
+/**
+ * THE WAYS OF MOVING AS RECORDS (stage 5.5e, S1): each mode says when it applies, its posture, its jump,
+ * where it looks; the fall is one rule (`pulled`), the character's and its metrics'. Before, the lists of
+ * modes were written by hand where they were needed, and had drifted: a ghost's file did not know two of
+ * them.
+ */
+describe('the ways of moving, each a record (stage 5.5e)', () => {
+  test('every way of moving is one the ghosts know, and a strip in each reads back', () => {
+    expect([...MODE_NAMES].sort()).toEqual(['air', 'block', 'climb', 'crouch', 'glide', 'hang', 'roll', 'slide', 'walk']);
+    for (const mode of MODE_NAMES) {
+      const text = `${GHOST_HEADER} ${GHOST_FORMAT}\ngame test\nevery 6\npose 0 0 0 0 ${mode}\nend 6\n`;
+      expect(ghostFromText(text).poses[0]!.mode, mode).toBe(mode);
+    }
+  });
+
+  test('a posture seen less: crouched, by its numbers; walking, all of it', () => {
+    const c = { mode: 'crouch', movement: { ...DEFAULT_MOVEMENT, crouch: { ...DEFAULT_MOVEMENT.crouch, seen: 0.4 } } };
+    expect(seenOf(c as never)).toBe(0.4);
+    expect(seenOf({ ...c, mode: 'walk' } as never)).toBe(1);
+  });
+
+  test('the fall, one rule: the arc held to its top hangs there, then falls; let go, it falls at once', () => {
+    const dt = 1 / 60;
+    // Rising, held: the step it would start down, it hangs instead, for its time; then it falls.
+    let next = pulled(0.1, 9, dt, { hang: 0.05, hung: undefined, holding: true, leaping: true });
+    expect(next).toEqual({ vUp: 0, hung: 3 });
+    next = pulled(0, 9, dt, { hang: 0.05, hung: next.hung, holding: true, leaping: false });
+    expect(next).toEqual({ vUp: 0, hung: 2 });
+    // Let go, at once.
+    expect(pulled(0, 9, dt, { hang: 0.05, hung: 2, holding: false, leaping: false })).toEqual({ vUp: -9 * dt, hung: undefined });
+    // No hang in its arc: it only falls.
+    expect(pulled(0.1, 9, dt, { hang: undefined, hung: undefined, holding: true, leaping: true }).vUp).toBe(0.1 - 9 * dt);
   });
 });

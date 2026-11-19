@@ -1,4 +1,5 @@
 import { quat, vec3, type Vec3 } from '@manifold/common';
+import { MODE_NAMES } from './character';
 import { degreesOf, direction } from './input';
 import type { Character, EntityId, ModeName } from './types';
 import type { World } from './world';
@@ -36,8 +37,6 @@ export const GHOST_FORMAT = 1;
  * question's proposal), 2.7 KB; every 6, 2.3; every 8, 2.0, cutting corners by 30 cm (decision 0025).
  */
 export const GHOST_EVERY = 6;
-
-const MODES: readonly ModeName[] = ['walk', 'air', 'glide', 'climb', 'crouch', 'roll', 'block'];
 
 /** A pose of a strip: where (m), where it looks (degrees from forward, −Z, towards the right) and how it moves. */
 export interface GhostPose {
@@ -163,7 +162,7 @@ export function ghostFromText(text: string): Ghost {
   };
   const mode = (n: number, s: string | undefined, was: ModeName | null): ModeName => {
     if (s === undefined) return was ?? fail(n, 'its way of moving is missing');
-    if (!(MODES as readonly string[]).includes(s)) fail(n, `"${s}" is not a way of moving`);
+    if (!(MODE_NAMES as readonly string[]).includes(s)) fail(n, `"${s}" is not a way of moving`);
     return s as ModeName;
   };
   for (let n = 1; n < lines.length; n++) {
