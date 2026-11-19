@@ -267,10 +267,10 @@ function springSpine(model: ModelInstance, dt: number) {
  * How far a character's roll has gone (stage 4b), 0 to 1: the steps gone of its roll's steps (its time,
  * over the step), from the simulation's state. Not rolling, 0.
  */
-export function rollProgress(c: Pick<Character, 'mode' | 'rolling' | 'movement'>): number {
+export function rollProgress(c: Pick<Character, 'mode' | 'roll' | 'movement'>): number {
   if (c.mode !== 'roll') return 0;
   const steps = Math.max(1, Math.round(c.movement.roll.time / STEP));
-  return Math.min(1, Math.max(0, 1 - c.rolling / steps));
+  return Math.min(1, Math.max(0, 1 - c.roll.steps / steps));
 }
 
 /** How fast the drawn aim follows the world's (degrees per second): a flick of the mouse, quick but not a jump. */
@@ -330,7 +330,7 @@ export function animate(
       facing: c.facing,
       velocity: moved,
       vertical: vec3.dot(c.velocity, up),
-      airJumps: c.airJumps,
+      airJumps: c.jump.air,
       // (What a turning platform turns it is not turning on its feet.)
       turning: turning - spin,
       roll: rollProgress(c),

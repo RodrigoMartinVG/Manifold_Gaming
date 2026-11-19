@@ -26,9 +26,9 @@ const standing = (pitch: number) =>
     grounded: true,
     facing: [0, 0, -1],
     pitch,
-    wall: [0, 0, 0],
+    climb: { wall: [0, 0, 0] },
     velocity: [0, 0, 0],
-    airJumps: 0,
+    jump: { pending: 0, held: false, air: 0, inAir: 0, rising: false, hung: 0 },
     holding: 0,
     ground: { velocity: [0, 0, 0], spin: 0 },
   }) as unknown as Character;

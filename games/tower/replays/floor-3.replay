@@ -1,4 +1,4 @@
-# Manifold replay 49
+# Manifold replay 50
 rules character 1 kit 1 tower 1
 # The tower's second floor, played to its goal: a ferry, a hanging chimney, a lift, a ferry, a lift.
 # A reference replay (decision 0025): playing it must end with the hash on its last line.
@@ -62,4 +62,4 @@ input 2516 1 move @0
 input 2539 1
 input 2696 1 move @0 jump
 input 2726 1 move @0
-end 2744 db709af9
+end 2744 0945d5ec

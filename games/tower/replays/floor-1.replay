@@ -1,4 +1,4 @@
-# Manifold replay 49
+# Manifold replay 50
 rules character 1 kit 1 tower 1
 # The tower's entrance, played to its goal: a hop, a ledge, a chimney.
 # A reference replay (decision 0025): playing it must end with the hash on its last line.
@@ -56,4 +56,4 @@ input 902 1 move @270
 input 903 1 move @270 jump
 input 904 1 move @90 jump
 input 925 1 move @0
-end 934 5851b054
+end 934 be15b923

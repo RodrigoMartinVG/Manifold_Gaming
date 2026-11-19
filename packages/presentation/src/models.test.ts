@@ -45,7 +45,7 @@ describe('what the view reads of a character (stage 2e2)', () => {
 
   test('how far a roll has gone (stage 4b): the steps gone of its steps, from the simulation; not rolling, 0', () => {
     const c = (mode: string, rolling: number) =>
-      ({ mode, rolling, movement: { roll: { speed: 5, time: 0.6 } } }) as unknown as Character;
+      ({ mode, roll: { steps: rolling, way: [0, 0, 0] }, movement: { roll: { speed: 5, time: 0.6 } } }) as unknown as Character;
     // 0.6 s: 36 steps.
     expect(rollProgress(c('roll', 35))).toBeCloseTo(1 / 36, 12);
     expect(rollProgress(c('roll', 18))).toBe(0.5);

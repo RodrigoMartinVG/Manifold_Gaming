@@ -296,11 +296,11 @@ describe('forgiveness (stage 5p, decision 0031: as Celeste’s)', () => {
     // Let go as it starts to hang: down at once.
     const s = setUp({ arc: { ...ARC, hang: 0.08 } });
     settle(s.world);
-    for (let i = 0; i < 40 && s.hero.character!.hung === undefined; i++) step(s.world, input([0, 0, 0], true));
-    expect(s.hero.character!.hung).toBe(5);
+    for (let i = 0; i < 40 && s.hero.character!.jump.hung === 0; i++) step(s.world, input([0, 0, 0], true));
+    expect(s.hero.character!.jump.hung).toBe(5);
     step(s.world);
     expect(s.hero.character!.velocity[1]).toBeLessThan(0);
-    expect(s.hero.character!.hung).toBeUndefined();
+    expect(s.hero.character!.jump.hung).toBe(0);
   });
 
   test('a jump off a wall asked for pushing away from it leaps off it (until 5p, only one pushing towards it did)', () => {
@@ -346,6 +346,6 @@ describe('forgiveness (stage 5p, decision 0031: as Celeste’s)', () => {
     // (Released and pressed again, still in the lock: no second leap off it, nor a coyote one.)
     step(s.world, input([1, 0, 0], true));
     expect(s.hero.character!.velocity[0]).toBeLessThan(-4);
-    expect(s.hero.character!.nearWall).toBeUndefined();
+    expect(s.hero.character!.wallJump.near).toBeNull();
   });
 });

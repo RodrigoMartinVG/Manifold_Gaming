@@ -22,7 +22,7 @@ export { DEFAULT_MOVEMENT, newCharacter, HISTORY, CROUCHED, crouchPoseOf, frameO
 export { LOCK_RANGE } from './around';
 export { HOLD, PUSH } from './hands';
 export { airStrafe, arcOf, pulled, upAt, carriedBy, faceFor, aimOf, turned } from './steer';
-export { MODE_NAMES, seenOf, poseOf, hitPartsOf, eyeHeightOf } from './modes';
+export { MODE_NAMES, seenOf, poseOf, hitPartsOf, eyeHeightOf, stopMotion } from './modes';
 
 /** The horizontal ways a corner correction tries (stage 5c), in this order: the axes, then the diagonals. */
 const NUDGES: readonly Vec3[] = [
@@ -84,10 +84,10 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
     const steered = approach(across, vec3.sub(wanted, vec3.scale(downhill, wantedAlong)), most);
     const up_ = wantedAlong < 0 ? Math.max(wantedAlong, along - most) : along;
     m.vH = vec3.add(steered, vec3.scale(downhill, up_));
-  } else if (c.offSteps > 0) {
+  } else if (c.wallJump.lock > 0) {
     // Just off a wall (stage 5c), for `wall.lock`: what takes it away from the wall it keeps (neither
     // steering back nor braking: the air's steering would have taken a third of it), and it steers along it.
-    const n = c.offWall;
+    const n = c.wallJump.off;
     const away = vec3.dot(m.vH, n);
     const along = MODES[c.mode].steer(
       c,
@@ -124,40 +124,40 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
   // 3: the jump: from the ground (or just after leaving it), the mode's own, from a wall, or one more in
   // the air. (Stage 5c: with the platformer's arc, its own speed and gravity: `arcOf`.)
   const { jump } = c.movement;
-  if (jumping && !c.jumpHeld) c.jumpPending = jump.buffer;
-  c.jumpHeld = jumping;
-  if (c.grounded || MODES[c.mode].holdsOn) c.airJumps = jump.air;
+  if (jumping && !c.jump.held) c.jump.pending = jump.buffer;
+  c.jump.held = jumping;
+  if (c.grounded || MODES[c.mode].holdsOn) c.jump.air = jump.air;
   // A motion of the mode's own (hanging, stage 5c), which may leave it.
   MODES[c.mode].own?.(c, s, m, dt);
-  if (c.jumpPending > 0) {
+  if (c.jump.pending > 0) {
     const own = MODES[c.mode].jump;
     let leapOff: Vec3 | null;
     if (own) own(c, s, m);
-    else if (c.grounded || c.stepsInAir <= jump.coyote) {
+    else if (c.grounded || c.jump.inAir <= jump.coyote) {
       // (From a moving platform, it keeps the platform's velocity: it leaves with it.)
       m.vH = vec3.add(m.vH, vec3.onPlane(c.ground.velocity, up));
       m.vUp = s.jumpSpeed + Math.max(0, vec3.dot(c.ground.velocity, up));
       m.leapt = true;
-      c.leaping = true;
-      c.jumpPending = 0;
-      c.stepsInAir = jump.coyote + 1; // the coyote time is over: from now on, only a jump in the air
+      c.jump.rising = true;
+      c.jump.pending = 0;
+      c.jump.inAir = jump.coyote + 1; // the coyote time is over: from now on, only a jump in the air
     } else if (!c.grounded && (leapOff = wallToLeap(world, e, c, s)) !== null) {
       // OFF A WALL (stage 5c): sliding down it, or beside it in the air: up as a jump, and away from it
       // at `wall.off`, keeping what it had along it; for `wall.lock` it cannot steer back towards it.
       m.vUp = s.jumpSpeed;
       m.vH = vec3.add(vec3.onPlane(m.vH, leapOff), vec3.scale(leapOff, -c.movement.wall.off));
-      c.offWall = [...leapOff];
-      c.offSteps = Math.round(c.movement.wall.lock / dt);
-      c.leaping = true;
+      c.wallJump.off = [...leapOff];
+      c.wallJump.lock = Math.round(c.movement.wall.lock / dt);
+      c.jump.rising = true;
       c.mode = 'air';
-      c.jumpPending = 0;
-      delete c.nearWall;
-    } else if (c.can.doubleJump && c.airJumps > 0) {
+      c.jump.pending = 0;
+      c.wallJump.near = null;
+    } else if (c.can.doubleJump && c.jump.air > 0) {
       m.vUp = s.jumpSpeed;
-      c.airJumps--;
-      c.leaping = true;
-      c.jumpPending = 0;
-    } else c.jumpPending--;
+      c.jump.air--;
+      c.jump.rising = true;
+      c.jump.pending = 0;
+    } else c.jump.pending--;
   }
 
   // How fast it was coming down (for the landing's sound, stage 3f).
@@ -251,14 +251,15 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
   c.grounded = grounded;
   // (Landed: on the ground and no longer going up. Just thrown, a hair above it, it is still on its way.)
   if (grounded && vUp <= 0) c.thrown = false;
-  c.stepsInAir = grounded ? 0 : c.stepsInAir + 1;
+  c.jump.inAir = grounded ? 0 : c.jump.inAir + 1;
   // (Stage 5c: a jump's rise is over at its top or on the ground; the lock off a wall and the pause
   // before grabbing again count down, and end on the ground.)
-  if (grounded || vUp <= 0) c.leaping = false;
-  if (grounded && c.hung !== undefined) delete c.hung;
-  if (c.nearWall && (grounded || (!s.againstWall && ++c.nearWall.since > c.movement.jump.coyote))) delete c.nearWall;
-  c.offSteps = grounded ? 0 : Math.max(0, c.offSteps - 1);
-  c.regrab = Math.max(0, c.regrab - 1);
+  if (grounded || vUp <= 0) c.jump.rising = false;
+  if (grounded) c.jump.hung = 0;
+  if (c.wallJump.near && (grounded || (!s.againstWall && ++c.wallJump.near.since > c.movement.jump.coyote)))
+    c.wallJump.near = null;
+  c.wallJump.lock = grounded ? 0 : Math.max(0, c.wallJump.lock - 1);
+  c.hang.regrab = Math.max(0, c.hang.regrab - 1);
   // 4b: the contributions after the controller, from where its walk left it (what it stands on, if it
   // moves). If it walked off the edge (it stood, and now it does not, without jumping), it keeps the
   // platform's velocity along the ground, as it would jumping; and from then on, it stands on nothing
@@ -288,7 +289,7 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
   // And where it aims, above or below that (stage 4b).
   c.pitch = 90 * Math.max(-1, Math.min(1, axisOf(input, 'pitch')));
   // A step of its roll gone (stage 4b).
-  if (c.mode === 'roll') c.rolling--;
+  if (c.mode === 'roll') c.roll.steps--;
   world.physics.setNextPose(body.handle, position, quat.look(c.facing, up));
 
   // What is heard (stage 3f): a step every stride walked on the ground, on what it stands on (by its

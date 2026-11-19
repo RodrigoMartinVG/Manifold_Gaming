@@ -112,14 +112,14 @@ export function metricsOf(
     // (The character's own rule, `pulled`: the jump held all the way, its hang at the top too.)
     let up = v;
     let y = 0;
-    let hung: number | undefined;
+    let hung = 0;
     height = 0;
     top = 0;
     back = 0;
     for (let n = 1; n < 100_000; n++) {
       const next = pulled(up, g * (up > 0 ? 1 : arc.fall), dt, { hang: arc.hang, hung, holding: true, leaping: up > 0 });
       hung = next.hung;
-      up = next.hung !== undefined ? next.vUp : Math.max(next.vUp, -arc.terminal);
+      up = Math.max(next.vUp, -arc.terminal);
       y += up * dt;
       if (y > height) {
         height = y;

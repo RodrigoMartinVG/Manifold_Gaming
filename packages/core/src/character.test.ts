@@ -1425,13 +1425,76 @@ describe('the ways of moving, each a record (stage 5.5e)', () => {
   test('the fall, one rule: the arc held to its top hangs there, then falls; let go, it falls at once', () => {
     const dt = 1 / 60;
     // Rising, held: the step it would start down, it hangs instead, for its time; then it falls.
-    let next = pulled(0.1, 9, dt, { hang: 0.05, hung: undefined, holding: true, leaping: true });
+    let next = pulled(0.1, 9, dt, { hang: 0.05, hung: 0, holding: true, leaping: true });
     expect(next).toEqual({ vUp: 0, hung: 3 });
     next = pulled(0, 9, dt, { hang: 0.05, hung: next.hung, holding: true, leaping: false });
     expect(next).toEqual({ vUp: 0, hung: 2 });
     // Let go, at once.
-    expect(pulled(0, 9, dt, { hang: 0.05, hung: 2, holding: false, leaping: false })).toEqual({ vUp: -9 * dt, hung: undefined });
+    expect(pulled(0, 9, dt, { hang: 0.05, hung: 2, holding: false, leaping: false })).toEqual({ vUp: -9 * dt, hung: 0 });
     // No hang in its arc: it only falls.
-    expect(pulled(0.1, 9, dt, { hang: undefined, hung: undefined, holding: true, leaping: true }).vUp).toBe(0.1 - 9 * dt);
+    expect(pulled(0.1, 9, dt, { hang: undefined, hung: 0, holding: true, leaping: true }).vUp).toBe(0.1 - 9 * dt);
+  });
+});
+
+/**
+ * THE DEBTS THAT CHANGE THE SIMULATION (stage 5.5f, version 50): a character's state grouped by way of
+ * moving; put somewhere else, it stops what it was doing; the hash leaves out what equals its default.
+ */
+describe('put somewhere else, a character stops what it was doing (stage 5.5f)', () => {
+  function rolling() {
+    const world = new World({ seed: 1 });
+    world.createEntity({
+      transform: { position: [0, -0.5, 0], rotation: quat.identity() },
+      body: { type: 'fixed', shape: { kind: 'box', halfExtents: [30, 0.5, 30] } },
+    });
+    const hero = world.createEntity({
+      transform: { position: [0, 0.82, 0], rotation: quat.identity() },
+      body: { type: 'character', shape: { kind: 'capsule', halfHeight: 0.5, radius: 0.3 } },
+      character: { player: 1, can: { roll: true, wallJump: true } },
+    });
+    const step = (input: PlayerInput = {}) => {
+      world.applyInputs(new Map([[1, { ...NO_INPUT, ...input }]]));
+      world.step();
+    };
+    for (let i = 0; i < 20; i++) step();
+    return { world, hero, step };
+  }
+
+  test('sent back mid-roll, it no longer rolls; a jump it asked for is not kept; no wall to leap off', () => {
+    const { world, hero, step } = rolling();
+    step({ move: [1, 0, 0], roll: true });
+    step({ move: [1, 0, 0] });
+    expect(hero.character!.mode).toBe('roll');
+    hero.character!.jump.pending = 5;
+    hero.character!.wallJump.near = { wall: [1, 0, 0], since: 0 };
+    world.place(hero, [5, 0.82, 5]);
+    expect(hero.character!.roll.steps).toBe(0);
+    expect(hero.character!.jump.pending).toBe(0);
+    expect(hero.character!.wallJump.near).toBeNull();
+    for (let i = 0; i < 10; i++) step();
+    // Standing where it was put, not rolling on (before, it rolled the rest of its roll from there).
+    expect(hero.character!.mode).toBe('walk');
+    expect(Math.hypot(hero.transform!.position[0] - 5, hero.transform!.position[2] - 5)).toBeLessThan(0.01);
+    world.dispose();
+  });
+
+  test('a lamp put out and lit again is the lamp it was: the hash leaves out a default, and every undefined', () => {
+    const world = new World({ seed: 1 });
+    const lamp = world.createEntity({
+      transform: { position: [0, 3, 0], rotation: quat.identity() },
+      lamp: { radius: 5, intensity: 1, signal: null },
+    });
+    const before = stateHash(world);
+    lamp.lamp!.out = true;
+    expect(stateHash(world)).not.toBe(before);
+    lamp.lamp!.out = false;
+    expect(stateHash(world)).toBe(before);
+    // And a field that is undefined is one that is not there; a snapshot keeps neither.
+    (lamp as unknown as Record<string, unknown>).affords = undefined;
+    expect(stateHash(world)).toBe(before);
+    const kept = world.snapshot().entities.find((e) => e.id === lamp.id)!;
+    expect('out' in kept.lamp!).toBe(false);
+    expect('affords' in kept).toBe(false);
+    world.dispose();
   });
 });

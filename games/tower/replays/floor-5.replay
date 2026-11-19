@@ -1,4 +1,4 @@
-# Manifold replay 49
+# Manifold replay 50
 rules character 1 kit 1 tower 1
 # The tower's fourth floor, played to its goal: ledges, a running jump, a drop, a stair of ledges.
 # A reference replay (decision 0025): playing it must end with the hash on its last line.
@@ -48,4 +48,4 @@ input 758 1 move @0:0.67
 input 759 1 move @0:0.49
 input 760 1 move @0 jump
 input 800 1 move @0
-end 819 e38a9d54
+end 819 cedc3075

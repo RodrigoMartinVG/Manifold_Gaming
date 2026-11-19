@@ -44,11 +44,10 @@ const GRAVITY: Contribution = {
       const { arc } = c.movement;
       const arced = s.arced;
       const pull =
-        arced && arc ? arced.gravity * (m.vUp > 0 ? (c.leaping && !s.jumping ? arc.release : 1) : arc.fall) : s.gravity;
-      const next = pulled(m.vUp, pull, dt, { hang: arc?.hang, hung: c.hung, holding: s.jumping, leaping: c.leaping });
+        arced && arc ? arced.gravity * (m.vUp > 0 ? (c.jump.rising && !s.jumping ? arc.release : 1) : arc.fall) : s.gravity;
+      const next = pulled(m.vUp, pull, dt, { hang: arc?.hang, hung: c.jump.hung, holding: s.jumping, leaping: c.jump.rising });
       m.vUp = next.vUp;
-      if (next.hung !== undefined) c.hung = next.hung;
-      else if (c.hung !== undefined) delete c.hung;
+      c.jump.hung = next.hung;
       const fall = mode.fall?.(c);
       if (fall !== undefined) m.vUp = Math.max(m.vUp, -fall);
       if (arc) m.vUp = Math.max(m.vUp, -arc.terminal);

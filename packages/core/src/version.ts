@@ -129,5 +129,12 @@
  *      wall within `wall.reach` of its body whichever way it is asked to go, and as late after leaving it
  *      as one off the ground (`nearWall`); held, a jump hangs at its top `arc.hang` (`hung`), its height
  *      the same. Only the platformer has them (the tower: its six floors); the rest as in 48
+ *  50  stage 5.5f (decision 0033), the debts that change the simulation, in one version: a character's
+ *      state grouped by way of moving (`jump`, `climb`, `roll`, `hang`, `wallJump`: what were fourteen
+ *      fields of it, two of them absent or deleted when not in use); put somewhere else, it stops what
+ *      it was doing (`stopMotion`: a checkpoint ends a roll, a pending jump, a wall to leap off); the
+ *      hash leaves out every `undefined` and a component's field equal to its default (defaults.ts: a
+ *      lamp put out and lit again is the lamp it was), and a snapshot leaves them out too. How every
+ *      world moves is as in 49 but for what a character put somewhere else did next
  */
-export const SIMULATION_VERSION = 49;
+export const SIMULATION_VERSION = 50;

@@ -1,4 +1,4 @@
-# Manifold replay 49
+# Manifold replay 50
 rules arms 1 character 1 fortress 1 kit 1
 # The fortress's outer wall, played unseen to its way out: the culvert, a pebble, the gate.
 # A reference replay (decision 0025): playing it must end with the hash on its last line.
@@ -74,4 +74,4 @@ input 1431 101 face @180
 input 1450 1 move @344
 input 1455 100 face @0
 input 1461 101 face @270
-end 1467 490c7ff3
+end 1467 9291a272

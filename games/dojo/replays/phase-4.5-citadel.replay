@@ -1,4 +1,4 @@
-# Manifold replay 49
+# Manifold replay 50
 rules arms 1 character 1 dojo 1 kit 1
 # The citadel, played from its gate to its tower: the crate on the plate, a guard that follows, the roofs.
 # A reference replay (decision 0025): playing it must end with the hash on its last line.
@@ -434,4 +434,4 @@ input 2785 1 move @0
 input 2809 101 move @350
 input 2810 101 move @353
 input 2951 1
-end 2955 9caf3142
+end 2955 9c396fe1

@@ -489,25 +489,61 @@ export interface Capabilities {
  * Its "up" is not stored: it is the opposite of the gravity where it stands (decision 0012). Today
  * that is always +Y; on the planets of phase 7 it will change from place to place.
  */
+/**
+ * A JUMP, AS IT GOES (stage 5.5f: what was six fields of the character, together).
+ */
+export interface JumpState {
+  /** Steps a jump asked for is still kept, if it came too early (`jump.buffer`); 0, none. */
+  pending: number;
+  /** Whether the jump input was held at the previous step: a jump starts when it is pressed, not while held. */
+  held: boolean;
+  /** Jumps it still has in the air (stage 2c), until it touches the ground, a wall or a ledge again. */
+  air: number;
+  /** Steps since it last stood on something (the coyote time counts them). */
+  inAir: number;
+  /** Rising from a jump it made (stage 5c): let go of the jump then, its arc's gravity pulls harder. */
+  rising: boolean;
+  /** (Stage 5p) While it hangs at a jump's top (`arc.hang`), how many more steps it may; 0, it does not. */
+  hung: number;
+}
+
+/** A ledge a character hangs from (stage 5c): where its hands hold, the wall's way, its steps hung, its steps climbing onto it left. */
+export interface Ledge {
+  at: Vec3;
+  wall: Vec3;
+  steps: number;
+  climb: number;
+}
+
 export interface Character {
   /** The player who drives it (the inputs carry this number). */
   player: number;
   movement: Movement;
   /** What it can do besides walking and jumping (stage 2c). */
   can: Capabilities;
-  /** Jumps it still has in the air (stage 2c), until it touches the ground again. */
-  airJumps: number;
-  /** The wall it touched at the last step: the direction towards it, along the ground (zero: none). */
-  wall: Vec3;
   /** The mode it moved in at the last step. */
   mode: ModeName;
   velocity: Vec3;
   grounded: boolean;
-  stepsInAir: number;
-  /** Steps left to jump when it touches the ground (0: no jump pending). */
-  jumpPending: number;
-  /** Whether the jump input was held at the previous step: a jump starts when it is pressed, not while held. */
-  jumpHeld: boolean;
+  /** Its jump as it goes (stage 5.5f: its state together, as each way of moving's below). */
+  jump: JumpState;
+  /** Climbing (stage 2c): the wall it touched at the last step, the direction towards it along the ground (zero: none). */
+  climb: { wall: Vec3 };
+  /** Rolling (stage 4b): the steps of its roll still to come (0: not rolling), and which way it goes (flat, of length 1). */
+  roll: { steps: number; way: Vec3 };
+  /**
+   * Hanging (stage 5c): the ledge it hangs from (where its hands hold, on the edge, at the top's height;
+   * the wall's way; for how many steps it has hung; and, climbing onto it, how many steps of that are
+   * left), and for how many more steps it does not grab one again (having let one go).
+   */
+  hang: { ledge: Ledge | null; regrab: number };
+  /**
+   * Off a wall (stage 5c): the wall it jumped off, and for how many more steps it cannot steer back
+   * towards it (`lock`); and (stage 5p, decision 0031: forgiveness) the last wall it was against in the
+   * air and how many steps ago (`near`: for as long as a jump off the ground may come late, a jump off it
+   * may too; null on the ground, and long after).
+   */
+  wallJump: { off: Vec3; lock: number; near: { wall: Vec3; since: number } | null };
   /** Where it looks: a unit vector perpendicular to its "up". */
   facing: Vec3;
   /**
@@ -518,9 +554,6 @@ export interface Character {
   pitch: number;
   /** What it holds (stage 3g), by id; 0, nothing. Held by a pull towards in front of it, it stays the physics'. */
   holding: EntityId;
-  /** Rolling (stage 4b): the steps of its roll still to come (0: not rolling), and which way it goes (flat, of length 1). */
-  rolling: number;
-  rollDirection: Vec3;
   /**
    * Locked on (stage 4f): the character it faces and circles, by id, chosen with `lock` (the nearest in
    * front, within `LOCK_RANGE`); null, none. Its moves to the side go round it, at the same distance.
@@ -548,26 +581,6 @@ export interface Character {
    * character, and a jump keeps it.
    */
   ground: { velocity: Vec3; spin: number };
-  /** Whether it is rising from a jump it made (stage 5c): let go of the jump then, its arc's gravity pulls harder. */
-  leaping: boolean;
-  /** The wall it jumped off (stage 5c, away from it), and for how many more steps it cannot steer back towards it. */
-  offWall: Vec3;
-  offSteps: number;
-  /**
-   * The ledge it hangs from (stage 5c): where its hands hold (on the edge, at the top's height), the
-   * wall's way, for how many steps it has hung, and, climbing onto it, how many steps of that are left.
-   */
-  ledge: { at: Vec3; wall: Vec3; steps: number; climb: number } | null;
-  /** For how many more steps it does not grab a ledge again (having let one go). */
-  regrab: number;
-  /**
-   * (Stage 5p, decision 0031: forgiveness, for whoever jumps off walls) The last wall it was against in
-   * the air, and how many steps ago: for as long as a jump off the ground may come late (`jump.coyote`), a
-   * jump off it may too. Only while it matters (none on the ground, nor long after).
-   */
-  nearWall?: { wall: Vec3; since: number };
-  /** (Stage 5p) While it hangs at a jump's top (`arc.hang`), how many more steps it may. */
-  hung?: number;
   /**
    * How much the platforms it stood on have turned it, all of it put together (stage 2d), as a
    * rotation. Where it is told to look (the `face` input) is read INSIDE this turn: so a character

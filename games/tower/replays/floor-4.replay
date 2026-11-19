@@ -1,4 +1,4 @@
-# Manifold replay 49
+# Manifold replay 50
 rules character 1 kit 1 tower 1
 # The tower's third floor, played to its goal: two carousels, the bar, three turntables.
 # A reference replay (decision 0025): playing it must end with the hash on its last line.
@@ -119,4 +119,4 @@ input 1100 1 move @353:0.6
 input 1101 1 move @345:0.45
 input 1102 1 move @0 jump
 input 1132 1 move @0
-end 1138 bcd8555f
+end 1138 408676b4

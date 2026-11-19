@@ -22,6 +22,12 @@ beforeAll(initPhysics);
  * GHOSTS AS STRIPS OF POSES (stage 4.5c, decision 0025), recorded from a run on the circuit: the player
  * driven along its first stretch for a minute, as a person would (walking, running, jumping, turning).
  */
+/** What the player asks for at step `i`: a path that turns (forward, a curve), jumps now and then, running half the time. */
+const inputAt = (i: number): PlayerInput => {
+  const a = (i / 60) * 0.6;
+  return { move: [Math.sin(a), 0, -Math.cos(a)], run: Math.floor(i / 180) % 2 === 0, jump: i % 97 === 0 };
+};
+
 function run(seconds: number) {
   /** Where the player really was, step by step (from step 0). */
   const truth: number[][] = [];
@@ -32,11 +38,8 @@ function run(seconds: number) {
   recorder.record(session.world, 1);
   const hero = () => [...session.world.entities.values()].find((e) => e.character?.player === 1)!;
   for (let i = 0; i < seconds * 60; i++) {
-    // A path that turns: forward, a curve, jumps now and then, running half the time.
-    const a = (i / 60) * 0.6;
-    const input: PlayerInput = { move: [Math.sin(a), 0, -Math.cos(a)], run: Math.floor(i / 180) % 2 === 0, jump: i % 97 === 0 };
     if (i === 0) truth.push([...hero().transform!.position]);
-    session.setInput(1, input);
+    session.setInput(1, inputAt(i));
     session.step();
     recorder.record(session.world, 1);
     truth.push([...hero().transform!.position]);
@@ -63,10 +66,11 @@ describe('a ghost, as a strip of poses (stage 4.5c)', () => {
 
   test('it ends where the player ended, also between two of its steps (stage 4.5’s close)', () => {
     const { session, recorder, hero } = run(20);
-    // Four steps more, still walking: the strip's last step was 1200, it ends at 1204.
+    // Four steps more, still on its curve: the strip's last step was 1200, it ends at 1204. (Not a turn of a
+    // sudden: the strip's straight line between two poses cannot follow one, and that is not what this measures.)
     let halfway: number[] = [];
     for (let i = 0; i < 4; i++) {
-      session.setInput(1, { move: [0, 0, -1] });
+      session.setInput(1, inputAt(1200 + i));
       session.step();
       recorder.record(session.world, 1);
       if (i === 1) halfway = [...hero().transform!.position];

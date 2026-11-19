@@ -1,7 +1,8 @@
 import { Random, quat, vec3, type Quat, type Vec3 } from '@manifold/common';
-import { moveCharacter } from './character';
+import { moveCharacter, stopMotion } from './character';
 
 import { COMPONENT_NAME, MAKERS } from './components';
+import { withoutDefaults } from './defaults';
 import { EARTH, gravityAt } from './gravity';
 import { MATERIAL_NAME, MATERIALS, materialProblem, type Material } from './materials';
 
@@ -422,7 +423,8 @@ export class World {
       inputs: copyData([...this.inputs]),
       lastInputs: copyData([...this.lastInputs]),
       players: [...this.players],
-      entities: copyData([...this.entities.values()]),
+      // (Each without what equals its default, stage 5.5f: defaults.ts.)
+      entities: [...this.entities.values()].map((e) => withoutDefaults(copyData(e))),
       physics: this.physics.snapshot(),
     };
   }
@@ -835,15 +837,8 @@ export class World {
       e.body.linearVelocity = [0, 0, 0];
       e.body.angularVelocity = [0, 0, 0];
     }
-    if (e.character) {
-      e.character.velocity = [0, 0, 0];
-      e.character.grounded = false;
-      // (Stage 5c: put somewhere else, it lets go of the ledge it hung from, and what it was doing off a
-      // wall is over: before, the next step pulled it back to the edge it held.)
-      e.character.ledge = null;
-      e.character.offSteps = 0;
-      e.character.leaping = false;
-    }
+    // (A character stops what it was doing, as its ways of moving say: stage 5.5f.)
+    if (e.character) stopMotion(e.character);
   }
 
   /** Frees its physics. A world that is no longer used must be disposed (WebAssembly's memory is not collected). */

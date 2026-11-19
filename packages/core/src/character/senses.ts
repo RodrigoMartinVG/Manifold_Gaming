@@ -58,16 +58,16 @@ export function sense(world: World, e: Entity, c: Character, body: Body, m: Moti
   const jumping = isDown(input, 'jump');
   // A wall, if it can climb: from its feet, towards the wall it climbs, or towards where it is asked
   // to go (a little beyond its radius). From its feet, so it keeps climbing until they pass the top.
-  const climbed = c.wall;
+  const climbed = c.climb.wall;
   const frame = frameOf(body.shape);
   const feet = vec3.add(e.transform!.position, vec3.scale(up, -frame.waist));
   let wallDistance = 0;
   if (c.can.climb) {
-    const towards = isZero(c.wall) ? (vec3.length(move) > 0.1 ? vec3.normalize(move) : null) : c.wall;
+    const towards = isZero(c.climb.wall) ? (vec3.length(move) > 0.1 ? vec3.normalize(move) : null) : c.climb.wall;
     const found = towards ? wallAhead(world, e, feet, towards, 0.55, up) : null;
-    c.wall = found ? found.wall : [0, 0, 0];
+    c.climb.wall = found ? found.wall : [0, 0, 0];
     wallDistance = found ? found.distance : 0;
-  } else c.wall = [0, 0, 0];
+  } else c.climb.wall = [0, 0, 0];
   // What it stands on (stage 2d; with its whole capsule since 2.5b), if it stands: below, what moves
   // carries it; here, its surface's friction decides how much its feet push (stage 3b: the floor's
   // material). On nothing found, or on what the physics moves (a cube), they hold.
@@ -79,16 +79,16 @@ export function sense(world: World, e: Entity, c: Character, body: Body, m: Moti
   const before = c.mode;
   // A roll (stage 4b): pressed on the ground (walking or crouched), it starts, the way it is asked to go
   // (or where it looks), for its time; off the ground, it is over.
-  if (!c.grounded) c.rolling = 0;
+  if (!c.grounded) c.roll.steps = 0;
   else if (
     !down &&
-    c.rolling === 0 &&
+    c.roll.steps === 0 &&
     c.can.roll &&
     (before === 'walk' || before === 'crouch') &&
     pressed(world, c.player, 'roll')
   ) {
-    c.rolling = Math.max(1, Math.round(c.movement.roll.time / dt));
-    c.rollDirection = vec3.length(move) > 0.1 ? vec3.normalize(move) : vec3.normalize(vec3.onPlane(c.facing, up));
+    c.roll.steps = Math.max(1, Math.round(c.movement.roll.time / dt));
+    c.roll.way = vec3.length(move) > 0.1 ? vec3.normalize(move) : vec3.normalize(vec3.onPlane(c.facing, up));
   }
   // Low, whether it could stand up where it is (stage 4b): its standing body, there, touching nothing.
   const room = MODES[before].low !== true || fits(world, e, body.shape, up);
@@ -101,22 +101,22 @@ export function sense(world: World, e: Entity, c: Character, body: Body, m: Moti
   const side = c.can.wallJump && !c.grounded ? wallAhead(world, e, here, pushingWay ?? lookingWay, radius + 0.25, up) : null;
   const beside = side && !isZero(side.wall) ? side.wall : null;
   // (Just off a wall, not back on it: the lock lasts its time.)
-  const backOn = beside !== null && c.offSteps > 0 && vec3.dot(beside, c.offWall) > 0.7;
+  const backOn = beside !== null && c.wallJump.lock > 0 && vec3.dot(beside, c.wallJump.off) > 0.7;
   const sliding = beside !== null && !backOn && m.vUp <= 0 && pushingWay !== null && vec3.dot(move, beside) > 0.5;
   // (Stage 5p, decision 0031: forgiveness) The last wall it pushed against in the air, and how long ago
   // (counted at the step's end, as its steps in the air are): a jump off it may come as late as one off
   // the ground (`jump.coyote`). None on the ground, nor after.
   let againstWall = false;
   if (c.can.wallJump) {
-    if (c.grounded) delete c.nearWall;
+    if (c.grounded) c.wallJump.near = null;
     else if (beside !== null && !backOn && pushingWay !== null && vec3.dot(move, beside) > 0.5) {
-      c.nearWall = { wall: [...beside], since: 0 };
+      c.wallJump.near = { wall: [...beside], since: 0 };
       againstWall = true;
     }
   }
-  if (c.ledge === null && c.can.ledge && !c.grounded && m.vUp <= 0 && c.regrab === 0 && before !== 'climb') {
+  if (c.hang.ledge === null && c.can.ledge && !c.grounded && m.vUp <= 0 && c.hang.regrab === 0 && before !== 'climb') {
     const grab = ledgeAhead(world, e, here, pushingWay ?? lookingWay, radius, hands, Math.max(0.25, -m.vUp * dt + 0.05), up);
-    if (grab) c.ledge = grab;
+    if (grab) c.hang.ledge = grab;
   }
   // ON GROUND TOO STEEP TO STAND ON (stage 4.5b; 3b measured it: on 40° it went 14 cm in two seconds,
   // since every step it touched the ground it kept no speed). The face under its middle, steeper than
@@ -183,7 +183,7 @@ export function wallToLeap(world: World, e: Entity, c: Character, s: Senses): Ve
   const { beside, backOn, lookingWay, pushingWay, up } = s;
   if (beside !== null && !backOn) return beside;
   if (!c.can.wallJump) return null;
-  const left = (w: Vec3) => c.offSteps > 0 && vec3.dot(w, c.offWall) > 0.7;
+  const left = (w: Vec3) => c.wallJump.lock > 0 && vec3.dot(w, c.wallJump.off) > 0.7;
   const reach = c.movement.wall.reach;
   if (reach !== undefined) {
     let best: { wall: Vec3; distance: number } | null = null;
@@ -204,6 +204,6 @@ export function wallToLeap(world: World, e: Entity, c: Character, s: Senses): Ve
     }
     if (best) return best.wall;
   }
-  const n = c.nearWall;
+  const n = c.wallJump.near;
   return n && n.since <= c.movement.jump.coyote && !left(n.wall) ? n.wall : null;
 }

@@ -57,11 +57,11 @@ export function pulled(
   vUp: number,
   pull: number,
   dt: number,
-  o: { hang: number | undefined; hung: number | undefined; holding: boolean; leaping: boolean },
-): { vUp: number; hung: number | undefined } {
-  if (o.hang && o.hung !== undefined && o.hung > 0 && o.holding) return { vUp: 0, hung: o.hung - 1 };
+  o: { hang: number | undefined; hung: number; holding: boolean; leaping: boolean },
+): { vUp: number; hung: number } {
+  if (o.hang && o.hung > 0 && o.holding) return { vUp: 0, hung: o.hung - 1 };
   if (o.hang && o.leaping && o.holding && vUp > 0 && vUp - pull * dt <= 0) return { vUp: 0, hung: Math.round(o.hang / dt) };
-  return { vUp: vUp - pull * dt, hung: undefined };
+  return { vUp: vUp - pull * dt, hung: 0 };
 }
 
 /**

@@ -1,4 +1,4 @@
-# Manifold replay 49
+# Manifold replay 50
 rules character 1 kit 1 tower 1
 # The tower's first floor, played to its goal: two chimneys, a jump over the void, a ledge.
 # A reference replay (decision 0025): playing it must end with the hash on its last line.
@@ -75,4 +75,4 @@ input 971 1 move @90 jump
 input 972 1 move @270 jump
 input 978 1 move @0 jump
 input 1042 1 move @0
-end 1048 d1bf4329
+end 1048 fb448bfa

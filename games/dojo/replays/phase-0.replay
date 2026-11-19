@@ -1,4 +1,4 @@
-# Manifold replay 49
+# Manifold replay 50
 rules arms 1 character 1 dojo 1 kit 1
 # Phase 0: the empty Dojo, its cube spun from the console.
 # A reference replay (decision 0025): playing it must end with the hash on its last line.

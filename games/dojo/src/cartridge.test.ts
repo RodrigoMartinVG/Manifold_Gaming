@@ -321,8 +321,9 @@ describe('capabilities in the course (stage 2c): each star needs its own', () =>
   // From the highest platform's edge, walking towards the island, the jump held all the way (it glides
   // when it falls). Walking: running, it glides past the island (a player would steer back; this does not).
   const island = (step: number): PlayerInput => ({ move: [-1, 0, 0], jump: step > 1 });
-  // On the highest platform, a jump, and another one at the top of the first.
-  const high = (step: number): PlayerInput => ({ jump: step === 2 || step === 42 });
+  // On the highest platform, once it stands there (put there, it is born in the air: stage 5.5f), a jump, and
+  // another one at the top of the first.
+  const high = (step: number): PlayerInput => ({ jump: step === 10 || step === 50 });
 
   test("the course's platforms (stage 2d): the ferry takes a character over the void and back; the carousel, round", () => {
     // The ferry is where it has to be at each step (out 9 m in 5 s, from x = 11.5): at step 30, at 12.4.
@@ -351,7 +352,7 @@ describe('capabilities in the course (stage 2c): each star needs its own', () =>
 
   test('the tower: climbing reaches its star; a second jump does not', () => {
     expect(attempt('dojo.climb on', [6, 1, 2], tower, 300).stars).toBe(1);
-    expect(attempt('dojo.doublejump on', [6, 1, 2], (s) => ({ ...tower(s), jump: s === 2 || s === 42 }), 300).stars).toBe(0);
+    expect(attempt('dojo.doublejump on', [6, 1, 2], (s) => ({ ...tower(s), jump: s === 10 || s === 50 }), 300).stars).toBe(0);
   });
 
   test('the island: gliding reaches its star; a running jump falls into the void', () => {

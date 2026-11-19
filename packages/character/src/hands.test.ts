@@ -57,9 +57,9 @@ const climber = (velocity: Vec3, mode = 'climb') =>
     grounded: false,
     facing: [0, 0, -1],
     pitch: 0,
-    wall: mode === 'climb' ? [0, 0, -1] : [0, 0, 0],
+    climb: { wall: mode === 'climb' ? [0, 0, -1] : [0, 0, 0] },
     velocity,
-    airJumps: 0,
+    jump: { pending: 0, held: false, air: 0, inAir: 0, rising: false, hung: 0 },
     holding: 0,
     ground: { velocity: [0, 0, 0], spin: 0 },
   }) as unknown as Character;

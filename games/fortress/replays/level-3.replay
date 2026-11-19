@@ -1,4 +1,4 @@
-# Manifold replay 49
+# Manifold replay 50
 rules arms 1 character 1 fortress 1 kit 1
 # The fortress's barracks, played unseen to its way out: behind the round, a dark room, the north.
 # A reference replay (decision 0025): playing it must end with the hash on its last line.
@@ -105,4 +105,4 @@ input 2688 100
 input 2689 100 move @93
 input 2709 1 move @72
 input 2714 100 move @92
-end 2724 122ad5e2
+end 2724 1263c7c5

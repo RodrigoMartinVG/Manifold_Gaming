@@ -124,6 +124,8 @@ interface Mode {
   leave?(world: World, e: Entity, c: Character, s: Senses, m: Motion): void;
   /** What it keeps that goes while the character is in another mode (hanging: its ledge). */
   outside?(c: Character): void;
+  /** What of it stops when the character is put somewhere else (`stopMotion`: a roll ends, a ledge is let go). */
+  reset?(c: Character): void;
   /** Its own motion this step (`m.own`), if it moves itself (hanging: on the ledge, up onto it); it may leave itself. */
   own?(c: Character, s: Senses, m: Motion, dt: number): void;
   /** Its own answer to a jump asked for (rolling: kept for later; climbing: off its wall). */
@@ -165,9 +167,9 @@ export const MODES: Record<ModeName, Mode> = {
   // pushes against it. Not towards it: the controller would not let it rise along something that steep.
   // Gravity does not pull it.
   climb: {
-    applies: (c, s, m) => c.can.climb && vec3.dot(s.move, c.wall) > 0.5 && (c.grounded || c.mode === 'climb' || m.vUp <= 0),
-    steer: (c, _now, _wanted, move) => vec3.scale(vec3.onPlane(move, c.wall), c.movement.climb.speed),
-    holds: (c, move) => c.movement.climb.speed * Math.max(0, vec3.dot(move, c.wall)),
+    applies: (c, s, m) => c.can.climb && vec3.dot(s.move, c.climb.wall) > 0.5 && (c.grounded || c.mode === 'climb' || m.vUp <= 0),
+    steer: (c, _now, _wanted, move) => vec3.scale(vec3.onPlane(move, c.climb.wall), c.movement.climb.speed),
+    holds: (c, move) => c.movement.climb.speed * Math.max(0, vec3.dot(move, c.climb.wall)),
     ownWay: true,
     holdsOn: true,
     // It comes to its wall (stage 4a): as far as touching it less `WALL_GAP`, at `WALL_APPROACH` at most
@@ -175,7 +177,7 @@ export const MODES: Record<ModeName, Mode> = {
     toward(c, s, body, dt) {
       if (body.shape.kind !== 'capsule') return null;
       const off = s.wallDistance - body.shape.radius - CHARACTER_GAP - WALL_GAP;
-      return off > 0 ? vec3.scale(c.wall, Math.min(WALL_APPROACH, off / dt)) : null;
+      return off > 0 ? vec3.scale(c.climb.wall, Math.min(WALL_APPROACH, off / dt)) : null;
     },
     // The top of a wall: it was climbing and the wall ended under its feet. A hop up and over, so it gets
     // onto it: up, and towards the wall it climbed at its climbing speed (closing phase 2: the hop was
@@ -183,7 +185,7 @@ export const MODES: Record<ModeName, Mode> = {
     // wall, grabbed it again and hopped, forever). Not when the wall ended at a side (it climbed along
     // it past its edge, stage 2e2 found the hop there too): then it lets go, as when it stops pushing.
     leave(world, e, c, s, m) {
-      if (isZero(c.wall) && topAhead(world, e, s.feet, s.climbed, s.up)) {
+      if (isZero(c.climb.wall) && topAhead(world, e, s.feet, s.climbed, s.up)) {
         m.vUp = Math.max(m.vUp, c.movement.climb.top);
         m.vH = vec3.add(m.vH, vec3.scale(s.climbed, c.movement.climb.speed));
       }
@@ -191,13 +193,14 @@ export const MODES: Record<ModeName, Mode> = {
     // Off the wall: up, and away from it.
     jump(c, s, m) {
       m.vUp = s.jumpSpeed;
-      m.vH = vec3.scale(c.wall, -c.movement.climb.off);
+      m.vH = vec3.scale(c.climb.wall, -c.movement.climb.off);
       c.mode = 'air';
-      c.jumpPending = 0;
-      c.stepsInAir = c.movement.jump.coyote + 1;
+      c.jump.pending = 0;
+      c.jump.inAir = c.movement.jump.coyote + 1;
     },
     // It looks at its wall.
-    facing: { way: (c) => (isZero(c.wall) ? null : [...c.wall]) },
+    facing: { way: (c) => (isZero(c.climb.wall) ? null : [...c.climb.wall]) },
+    reset: (c) => void (c.climb.wall = [0, 0, 0]),
   },
   // Crouching (stage 4b): standing on something, holding `crouch`, if it can; as walking, slower (running
   // does not hurry it), its body low, less seen and heard.
@@ -223,12 +226,13 @@ export const MODES: Record<ModeName, Mode> = {
   // its body low, looking the way it rolls. It does not jump: a jump asked for is kept as long as ever,
   // `jump.buffer` steps, and if the roll ends before that, it jumps then.
   roll: {
-    applies: (c) => c.rolling > 0,
-    steer: (c) => vec3.scale(c.rollDirection, c.movement.roll.speed),
+    applies: (c) => c.roll.steps > 0,
+    steer: (c) => vec3.scale(c.roll.way, c.movement.roll.speed),
     low: true,
     ownWay: true,
-    jump: (c) => void c.jumpPending--,
-    facing: { firm: true, way: (c) => [...c.rollDirection] },
+    jump: (c) => void c.jump.pending--,
+    facing: { firm: true, way: (c) => [...c.roll.way] },
+    reset: (c) => void (c.roll.steps = 0),
   },
   // Down a wall it pushes against in the air (stage 5c): it steers as in the air, and slides no faster than `wall.slide`.
   slide: {
@@ -240,18 +244,38 @@ export const MODES: Record<ModeName, Mode> = {
   // Hanging from a ledge it grabbed (stage 5c): still, its hands on it; gravity does not pull it. It looks
   // at the wall under the ledge; in another mode, it holds no ledge.
   hang: {
-    applies: (c) => c.ledge !== null,
+    applies: (c) => c.hang.ledge !== null,
     steer: () => [0, 0, 0],
     holds: () => 0,
     holdsOn: true,
-    outside: (c) => void (c.ledge = null),
+    outside: (c) => void (c.hang.ledge = null),
+    reset: (c) => void (c.hang = { ledge: null, regrab: 0 }),
     own: hangOn,
-    facing: { way: (c) => (c.ledge ? [...c.ledge.wall] : null) },
+    facing: { way: (c) => (c.hang.ledge ? [...c.hang.ledge.wall] : null) },
   },
 };
 
 /** The ways of moving there are (stage 5.5e: what a ghost's file may say). */
 export const MODE_NAMES = Object.keys(MODES) as readonly ModeName[];
+
+/**
+ * A CHARACTER PUT SOMEWHERE ELSE (stage 5.5f, the audit's W6): what it was doing stops, as each way of
+ * moving says (a roll ends, a ledge is let go, the wall it climbed is no longer there), and so does its
+ * motion: no velocity, in the air, born there (no coyote time), no jump kept, rising or hanging at a top,
+ * no wall to leap off, nothing it was thrown with, carried or carried by; its jumps in the air back.
+ * Before, `place` reset five of these: one sent back to a checkpoint mid-roll kept rolling, and within the
+ * coyote time of a wall it could leap off that wall from the checkpoint.
+ */
+export function stopMotion(c: Character) {
+  c.velocity = [0, 0, 0];
+  c.grounded = false;
+  c.thrown = false;
+  c.carry = [0, 0, 0];
+  c.ground = { velocity: [0, 0, 0], spin: 0 };
+  c.jump = { ...c.jump, pending: 0, air: c.movement.jump.air, inAir: c.movement.jump.coyote + 1, rising: false, hung: 0 };
+  c.wallJump = { off: [0, 0, 0], lock: 0, near: null };
+  for (const name of MODE_NAMES) MODES[name].reset?.(c);
+}
 
 /** How much of the light a character is seen by, in its posture (stage 4b: crouched, less). */
 export const seenOf = (c: Character): number => MODES[c.mode].seen?.(c) ?? 1;
@@ -289,17 +313,17 @@ const CLIMB_UP = 0.15;
  * hands on the edge, its body a gap off the wall.
  */
 function hangOn(c: Character, s: Senses, m: Motion, dt: number) {
-  if (!c.ledge) return;
-  const L = c.ledge;
+  if (!c.hang.ledge) return;
+  const L = c.hang.ledge;
   const { at, wall } = L;
   const { up, here, radius } = s;
   const toward = vec3.dot(s.move, wall);
   const half = Math.max(1, Math.round(CLIMB_UP / dt));
   const tall = s.frame.bottom;
-  const climbUp = L.climb === 0 && ((c.jumpPending > 0 && toward > -0.5) || (toward > 0.5 && L.steps >= Math.round(0.2 / dt)));
+  const climbUp = L.climb === 0 && ((c.jump.pending > 0 && toward > -0.5) || (toward > 0.5 && L.steps >= Math.round(0.2 / dt)));
   if (climbUp) {
     L.climb = 2 * half;
-    c.jumpPending = 0;
+    c.jump.pending = 0;
   }
   m.vUp = 0;
   m.vH = [0, 0, 0];
@@ -310,21 +334,21 @@ function hangOn(c: Character, s: Senses, m: Motion, dt: number) {
     m.own = L.climb > half ? vec3.scale(up, rise / (L.climb - half)) : vec3.scale(wall, on / L.climb);
     L.climb--;
     if (L.climb === 0) {
-      c.ledge = null;
-      c.regrab = Math.round(0.2 / dt);
+      c.hang.ledge = null;
+      c.hang.regrab = Math.round(0.2 / dt);
     }
-  } else if ((c.jumpPending > 0 && toward <= -0.5) || toward < -0.5 || s.crouching) {
-    c.ledge = null;
+  } else if ((c.jump.pending > 0 && toward <= -0.5) || toward < -0.5 || s.crouching) {
+    c.hang.ledge = null;
     c.mode = 'air';
-    c.regrab = Math.round(0.2 / dt);
-    if (c.jumpPending > 0) {
+    c.hang.regrab = Math.round(0.2 / dt);
+    if (c.jump.pending > 0) {
       m.vUp = s.jumpSpeed;
       m.vH = vec3.scale(wall, -c.movement.wall.off);
-      c.offWall = [...wall];
-      c.offSteps = Math.round(c.movement.wall.lock / dt);
-      c.leaping = true;
+      c.wallJump.off = [...wall];
+      c.wallJump.lock = Math.round(c.movement.wall.lock / dt);
+      c.jump.rising = true;
     } else m.vH = vec3.scale(wall, -1);
-    c.jumpPending = 0;
+    c.jump.pending = 0;
   } else {
     L.steps++;
     m.own = vec3.sub(

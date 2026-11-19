@@ -1,4 +1,4 @@
-# Manifold replay 49
+# Manifold replay 50
 rules arms 1 character 1 fortress 1 kit 1
 # The fortress's courtyard, played unseen to its way out: the west side, a blow from behind.
 # A reference replay (decision 0025): playing it must end with the hash on its last line.
@@ -75,4 +75,4 @@ input 1253 101
 input 1254 101 move @0
 input 1269 100 move @2
 input 1287 1 move @2
-end 1293 6340b1a7
+end 1293 e4675b03

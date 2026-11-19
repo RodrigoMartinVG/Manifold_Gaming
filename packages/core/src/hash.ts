@@ -1,3 +1,4 @@
+import { leftOut } from './defaults';
 import { FARTHEST, type World } from './world';
 
 // One number is written as 8 bytes (little-endian, explicitly: the same bytes on every machine) and
@@ -47,7 +48,11 @@ export function stateHash(world: World): number {
     }
     number(th);
   };
-  const value = (v: unknown): void => {
+  /**
+   * A value, all of it. Of an object, every key but those whose value is `undefined`, and (stage 5.5f) of an
+   * entity's component, every field but those equal to its default (`component`: its name; defaults.ts).
+   */
+  const value = (v: unknown, component?: string): void => {
     if (typeof v === 'number') number(v);
     else if (typeof v === 'string') text(v);
     else if (typeof v === 'boolean') byte(v ? 1 : 0);
@@ -56,10 +61,21 @@ export function stateHash(world: World): number {
       for (const x of v) value(x);
     } else if (v && typeof v === 'object') {
       for (const k of Object.keys(v).sort()) {
+        const x = (v as Record<string, unknown>)[k];
+        if (x === undefined || (component !== undefined && leftOut(component, k, x))) continue;
         text(k);
-        value((v as Record<string, unknown>)[k]);
+        value(x);
       }
     } else byte(0);
+  };
+  /** An entity: its components, each with its defaults left out. */
+  const entity = (e: Record<string, unknown>) => {
+    for (const k of Object.keys(e).sort()) {
+      const x = e[k];
+      if (x === undefined) continue;
+      text(k);
+      value(x, k);
+    }
   };
   number(world.tick);
   // The id counter too (stage 1d): two worlds with the same entities but different counters give
@@ -87,6 +103,6 @@ export function stateHash(world: World): number {
     }
   }
   const ids = [...world.entities.keys()].sort((a, b) => a - b);
-  for (const id of ids) value(world.entities.get(id));
+  for (const id of ids) entity(world.entities.get(id) as unknown as Record<string, unknown>);
   return h >>> 0;
 }

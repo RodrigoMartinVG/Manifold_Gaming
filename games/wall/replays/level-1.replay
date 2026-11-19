@@ -1,4 +1,4 @@
-# Manifold replay 49
+# Manifold replay 50
 rules arms 1 character 1 kit 1 wall 1
 # The wall walk, played to its way out: the balcony, the armory, the bridge, the dais.
 # A reference replay (decision 0025): playing it must end with the hash on its last line.
@@ -2079,4 +2079,4 @@ input 3604 100
 input 3604 1 move @358
 input 3620 1
 input 3710 1 move @0
-end 3787 750b108a
+end 3787 19214ff5

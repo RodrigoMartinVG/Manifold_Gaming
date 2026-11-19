@@ -1,4 +1,4 @@
-# Manifold replay 49
+# Manifold replay 50
 rules arms 1 character 1 dojo 1 kit 1
 # Phase 2: the course with every capability: a checkpoint, falls, three stars, the goal, both platforms.
 # A reference replay (decision 0025): playing it must end with the hash on its last line.
@@ -45,4 +45,4 @@ change 1831 dojo.glide off
 input 1831 1
 input 1835 1 jump
 input 1890 1
-end 1920 791285e6
+end 1920 0cacd413

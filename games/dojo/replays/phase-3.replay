@@ -1,4 +1,4 @@
-# Manifold replay 49
+# Manifold replay 50
 rules arms 1 character 1 dojo 1 kit 1
 # Phase 3: the machines: a button that opens a door, plates that call a lift, a ride up to a star.
 # A reference replay (decision 0025): playing it must end with the hash on its last line.
@@ -21,4 +21,4 @@ input 261 1
 input 461 1 move @14
 input 490 1
 change 501 dojo.goto 4.6 1 -4
-end 720 d90aefba
+end 720 b89e6ba9

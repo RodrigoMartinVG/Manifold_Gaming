@@ -69,7 +69,7 @@ export function mountContact(page: GamePage, o: { timeScale(): number } = { time
         }
         // Against a wall, sliding down it: where it touches (its chest's height), a puff as it comes on,
         // and one every 0.08 s as it slides.
-        const wall = c.nearWall?.wall;
+        const wall = c.wallJump.near?.wall;
         if (c.mode === 'slide' && wall && pace > 0) {
           now.scrape += pace;
           if (before?.mode !== 'slide' || now.scrape >= 0.08) {

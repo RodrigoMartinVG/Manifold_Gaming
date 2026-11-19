@@ -1,4 +1,4 @@
-# Manifold replay 49
+# Manifold replay 50
 rules arms 1 character 1 fortress 1 kit 1
 # The fortress's keep, played unseen to its way out: the flame behind its guard, the west aisle.
 # A reference replay (decision 0025): playing it must end with the hash on its last line.
@@ -245,4 +245,4 @@ input 2753 1 move @180:0.57 crouch
 input 2754 102 move @359
 input 2754 1 move @180:0.51 crouch
 input 2755 1 move @260
-end 2789 ff77fb90
+end 2789 c54fc8ec

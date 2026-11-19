@@ -55,7 +55,7 @@ function slide(velocity: Vec3, mode = 'walk') {
     facing: [0, 0, -1],
     pitch: 0,
     velocity,
-    airJumps: 0,
+    jump: { pending: 0, held: false, air: 0, inAir: 0, rising: false, hung: 0 },
     ground: { velocity: [0, 0, 0], spin: 0 },
   } as unknown as Character;
   const speeds: number[] = [];
@@ -126,7 +126,7 @@ describe("the mannequin's feet (after the tutorial's pass)", () => {
       facing: [0, 0, -1],
       pitch: 0,
       velocity,
-      airJumps: 0,
+      jump: { pending: 0, held: false, air: 0, inAir: 0, rising: false, hung: 0 },
       ground: { velocity: [0, 0, 0], spin: 0 },
     } as unknown as Character;
     for (let i = 0; i < 100; i++) {
