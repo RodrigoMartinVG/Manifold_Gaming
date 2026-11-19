@@ -724,7 +724,7 @@ function push(world: World, e: Entity, touched: readonly number[], wanted: Vec3,
   if (speed < 1e-6) return;
   const along = vec3.scale(wanted, 1 / speed);
   for (const handle of touched) {
-    const thing = [...world.entities.values()].find((x) => x.body?.handle === handle);
+    const thing = world.entityOfHandle(handle);
     if (!thing?.body || !thing.transform || thing.id === e.character?.holding) continue;
     // Only what is ahead of it, where it is going.
     const toward = vec3.onPlane(vec3.sub(thing.transform.position, e.transform!.position), up);

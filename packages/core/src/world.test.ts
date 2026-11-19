@@ -332,3 +332,30 @@ describe('the world’s edge, as data (stage 5.5e)', () => {
     for (const w of [usual.world, wide.world]) w.dispose();
   });
 });
+
+describe('the world’s indexes (stage 5.5e)', () => {
+  test('a name finds its entity at once: made, renamed, broken (still there, still named), removed; a body’s handle its entity', () => {
+    const world = new World({ seed: 1 });
+    const lamp = world.createEntity({
+      name: 'lamp',
+      transform: { position: [0, 1, 0], rotation: quat.identity() },
+      body: { type: 'fixed', shape: { kind: 'ball', radius: 0.2 } },
+      breakable: { threshold: 1 },
+      lamp: { radius: 3, intensity: 1, signal: null },
+    });
+    expect(world.named('lamp')).toBe(lamp);
+    expect(world.entityOfHandle(lamp.body!.handle)).toBe(lamp);
+    world.rename(lamp, 'lantern');
+    expect([world.named('lamp'), world.named('lantern')]).toEqual([undefined, lamp]);
+    // Broken, a lamp stays (it gives no light), and so does its name; what breaks and is no lamp is gone, its name too.
+    world.breakApart(lamp, 0, 10);
+    expect([lamp.breakable!.broken, world.named('lantern')]).toEqual([true, lamp]);
+    world.removeEntity(lamp.id);
+    expect(world.named('lantern')).toBeUndefined();
+    // Restored, its names come back with it.
+    const other = new World({ seed: 1 });
+    other.createEntity({ name: 'door', transform: { position: [0, 0, 0], rotation: quat.identity() } });
+    expect(World.restore(other.snapshot()).named('door')?.name).toBe('door');
+    for (const w of [world, other]) w.dispose();
+  });
+});

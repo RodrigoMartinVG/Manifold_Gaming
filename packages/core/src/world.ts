@@ -1,11 +1,10 @@
 import { Random, quat, vec3, type Quat, type Vec3 } from '@manifold/common';
-import { HISTORY, moveCharacter, newCharacter, poseOf } from './character';
-import { castHit } from './hits';
-import { pressed } from './input';
+import { moveCharacter, newCharacter } from './character';
+
 import { COMPONENT_NAME } from './components';
 import { EARTH, gravityAt } from './gravity';
 import { MATERIAL_NAME, MATERIALS, materialProblem, type Material } from './materials';
-import { HIT_HEARD, hitRadius } from './sound';
+
 import { bodyMass, PHYSICS, type PhysicsBackend, type PhysicsHit } from './physics';
 
 import { VERIFIED, type Profile } from './profile';
@@ -26,6 +25,15 @@ import type {
   SignalOp,
 } from './types';
 import { SIMULATION_VERSION } from './version';
+import { spin, move } from './systems/kinematics';
+import { readBack } from './systems/readback';
+import { remember } from './systems/history';
+import { fly } from './systems/projectiles';
+import { shatter, breakApart } from './systems/breaks';
+import { lightAt, transmission, illuminate } from './systems/light';
+import { compute } from './systems/signals';
+import { sense } from './systems/zones';
+import { tell } from './systems/story';
 import { signalReadsProblem, WORD } from './words';
 
 /** A body's mass, from its density (the physics' own, 1, without one) and its shape's volume: what Rapier gives it. */
@@ -236,6 +244,11 @@ export function copyData<T>(x: T): T {
  *   9. story: an active objective whose signal is on is done, and the one after it becomes active; a
  *      scene whose signal is on plays, once (stage 4f).
  *
+ * Each phase is a system of its own (stage 5.5e: `systems/`, a function of the world; they were private methods
+ * of a world of 1,350 lines): `kinematics.ts` (spin, move), `readback.ts`, `history.ts`, `projectiles.ts`,
+ * `breaks.ts`, `light.ts`, `signals.ts`, `zones.ts`, `story.ts`; the characters' is `character.ts`. A new
+ * phase (buoyancy, a rope) is a new module and a line in `PHASES`.
+ *
  * A game hooks in around them, never inside (mechanism and policy, decision 0000): before
  * (`Cartridge.beforeStep`: what these phases will use at this step: a bot's inputs, a mechanism's
  * target, what a character carries) and after (`Cartridge.onStep`: its rules, on the step's events).
@@ -271,8 +284,20 @@ export class World {
   private readonly byHandle = new Map<number, EntityId>();
   private readonly characterBodies = new Set<number>();
   private characterList: number[] | null = null;
+  /**
+   * EACH NAME'S ENTITY (stage 5.5e): `named` went through every entity, for every zone, used and seen signal
+   * on every step. Kept where entities come, go or are renamed (`rename`); never in a snapshot.
+   */
+  private readonly byName = new Map<string, EntityId>();
+
+  /** The entity whose body has this physics handle, if any. */
+  entityOfHandle(handle: number): Entity | undefined {
+    const id = this.byHandle.get(handle);
+    return id === undefined ? undefined : this.entities.get(id);
+  }
 
   private indexBody(e: Entity) {
+    if (e.name !== undefined) this.byName.set(e.name, e.id);
     if (!e.body) return;
     this.byHandle.set(e.body.handle, e.id);
     if (e.character) {
@@ -281,7 +306,8 @@ export class World {
     }
   }
 
-  private forgetBody(e: Entity) {
+  /** A body's entity forgotten by the indexes (its body removed, broken: `systems/breaks.ts`). The systems' own. */
+  forgetBody(e: Entity) {
     if (!e.body) return;
     this.byHandle.delete(e.body.handle);
     if (this.characterBodies.delete(e.body.handle)) this.characterList = null;
@@ -335,7 +361,8 @@ export class World {
    * ITS SIGNALS (stage 3c, decision 0018), in the order they are computed: the order declared. Data,
    * like the rest: hashed, and in snapshots, values and what each keeps.
    */
-  private readonly wires: Signal[] = [];
+  /** The signals, in their order (stage 3c): the world's and its signals system's (`systems/signals.ts`). */
+  readonly wires: Signal[] = [];
   /** How it runs (stage 2.5b, decision 0014): its physics, and who verifies it. */
   readonly profile: Profile;
   /**
@@ -546,31 +573,6 @@ export class World {
     return pushed;
   }
 
-  /**
-   * THE STORY'S PIECES (stage 4f), after the signals: each active objective whose signal is on is done
-   * (`objective`, done), and the one it leads to becomes active (`objective`, active); each scene whose
-   * signal is on and has not played, plays (`scene`). What they say is keys of the game's words.
-   */
-  private tell() {
-    for (const e of [...this.entities.values()]) {
-      const o = e.objective;
-      if (o?.state !== 'active' || this.signal(o.when) === 0) continue;
-      o.state = 'done';
-      this.emit({ type: 'objective', name: e.name ?? String(e.id), say: o.say, state: 'done' });
-      const next = o.then ? this.named(o.then)?.objective : undefined;
-      if (next && next.state === 'waiting') {
-        next.state = 'active';
-        this.emit({ type: 'objective', name: o.then!, say: next.say, state: 'active' });
-      }
-    }
-    for (const e of this.entities.values()) {
-      const sc = e.scene;
-      if (!sc || sc.played || this.signal(sc.when) === 0) continue;
-      sc.played = true;
-      this.emit({ type: 'scene', name: e.name ?? String(e.id), lines: sc.lines.map((l) => ({ ...l })) });
-    }
-  }
-
   /** A signal's value: what it was at the end of the last step. */
   signal(name: string): number {
     const w = this.wires.find((x) => x.name === name);
@@ -593,12 +595,22 @@ export class World {
 
   /** The entity with this name, if there is one (stage 3b). */
   named(name: string): Entity | undefined {
-    for (const e of this.entities.values()) if (e.name === name) return e;
-    return undefined;
+    const id = this.byName.get(name);
+    return id === undefined ? undefined : this.entities.get(id);
   }
 
-  /** The uniform field is handed to the physics as is (the planets of phase 7 will push each body instead). */
-  private uniformGravity() {
+  /** Gives an entity another name (stage 5.5e: through here, so `named` finds it at once). Unique, checked by whoever asks. */
+  rename(e: Entity, name: string) {
+    if (e.name !== undefined && this.byName.get(e.name) === e.id) this.byName.delete(e.name);
+    e.name = name;
+    this.byName.set(name, e.id);
+  }
+
+  /**
+   * The uniform field is handed to the physics as is (the planets of phase 7 will push each body instead).
+   * The world's and its systems' (`systems/readback.ts`).
+   */
+  uniformGravity() {
     return gravityAt(this.field, [0, 0, 0]);
   }
 
@@ -690,6 +702,7 @@ export class World {
     const entity = this.entities.get(id);
     if (!entity) return;
     this.forgetBody(entity);
+    if (entity.name !== undefined && this.byName.get(entity.name) === id) this.byName.delete(entity.name);
     if (entity.body) this.physics.removeBody(entity.body.handle);
     this.entities.delete(id);
     this.emit({ type: 'entityRemoved', id });
@@ -809,213 +822,21 @@ export class World {
 
   /** What each phase does (see `PHASES`). */
   private readonly phases: Record<Phase, () => void> = {
-    spin: () => this.spin(),
-    kinematics: () => this.move(),
+    spin: () => spin(this),
+    kinematics: () => move(this),
     characters: () => {
       for (const e of this.entities.values()) if (e.character && e.body?.type === 'character') moveCharacter(this, e, STEP);
     },
     physics: () => this.physics.step(),
-    breaks: () => this.shatter(),
-    readBack: () => this.readBack(),
-    history: () => this.remember(),
-    projectiles: () => this.fly(),
-    zones: () => this.sense(),
-    light: () => this.illuminate(),
-    signals: () => this.compute(),
-    story: () => this.tell(),
+    breaks: () => shatter(this),
+    readBack: () => readBack(this),
+    history: () => remember(this),
+    projectiles: () => fly(this),
+    zones: () => sense(this),
+    light: () => illuminate(this),
+    signals: () => compute(this),
+    story: () => tell(this),
   };
-
-  /**
-   * KINEMATIC BODIES SYSTEM: each one gets the velocity of this step: the one it has, the one it
-   * spins with, and, if it is a MOVING PLATFORM (stage 2d), the one that takes it where it has to be
-   * at the end of this step. That place is a function of the time (back and forth, at a constant
-   * speed), not of where it was: so it never drifts, however many trips it makes.
-   */
-  private move() {
-    const t = this.tick * STEP;
-    for (const e of this.entities.values()) {
-      if (!e.transform || e.body?.type !== 'kinematic') continue;
-      const m = e.mover;
-      if (m) {
-        const phase = t % (2 * m.seconds);
-        const u = phase <= m.seconds ? phase / m.seconds : 2 - phase / m.seconds;
-        const target = vec3.add(m.from, vec3.scale(vec3.sub(m.to, m.from), u));
-        e.body.linearVelocity = vec3.scale(vec3.sub(target, e.transform.position), 1 / STEP);
-      }
-      if (e.spin) e.body.angularVelocity = [...e.spin.angularVelocity];
-      if (e.mechanism) this.drive(e, e.mechanism);
-      this.physics.setKinematicVelocity(e.body.handle, e.body.linearVelocity, e.body.angularVelocity);
-    }
-  }
-
-  /**
-   * A MECHANISM (stage 3c): it reads its signal, as it was at the end of the last step, and turns
-   * back from where it is if the signal changed which way it goes; then it gets the velocity that
-   * takes it where it has to be at the end of this step. Its place is a function of its state and the
-   * step (`mechanismAt`); its velocity, of where it really is: so it never drifts. Turning, from the
-   * turn between where it is and where it has to be: twice its vector part, over the step (for the
-   * small turn of one step, the angle; a little less, and the next step makes it up). No sine, no
-   * cosine: the same bits everywhere.
-   */
-  private drive(e: Entity, m: Mechanism) {
-    const want = this.signal(m.signal) !== 0 ? 1 : 0;
-    if (want !== m.toward) {
-      m.from = progressOf(m, this.tick - 1);
-      m.since = this.tick - 1;
-      m.toward = want;
-      // Heard when it starts to move (stage 3f): a door creaks, a lift hums, 12 m around.
-      this.emit({
-        type: 'sound',
-        sound: m.door ? 'door' : 'lift',
-        source: e.id,
-        at: [...e.transform!.position],
-        surface: e.body?.material ?? null,
-        speed: 1 / m.seconds,
-        energy: 0,
-        radius: 12,
-      });
-    }
-    const target = mechanismAt(m, progressOf(m, this.tick));
-    const body = e.body!;
-    body.linearVelocity = vec3.scale(vec3.sub(target.position, e.transform!.position), 1 / STEP);
-    let turn = quat.multiply(target.rotation, quat.conjugate(e.transform!.rotation));
-    if (turn[3] < 0) turn = [-turn[0], -turn[1], -turn[2], -turn[3]];
-    body.angularVelocity = [(2 * turn[0]) / STEP, (2 * turn[1]) / STEP, (2 * turn[2]) / STEP];
-  }
-
-  /**
-   * READING BACK every moving body's pose and velocities. And, for what the physics moves, a hit, heard
-   * (stage 3f): how much its velocity changed in the step beyond what gravity gave it is what something
-   * did to it; half its mass times that change squared, the energy of the hit. From what the world
-   * already has (the velocity before, the one after): the same in every copy, and after a snapshot.
-   */
-  /**
-   * PROJECTILES SYSTEM (stage 4c): each one moves a segment of ray, its velocity for a step (bent by
-   * the gravity if it says so), swept with its radius against the characters as they are now and the
-   * world (`castHit`, its shooter left out): so a fast one crosses nothing between two steps. What it
-   * strikes first, if it has health, it hurts (a character's part by name), and it is gone (`impact`).
-   * Out of steps, it is gone too.
-   */
-  private fly() {
-    for (const e of [...this.entities.values()]) {
-      const p = e.projectile;
-      if (!p || !e.transform) continue;
-      const at = e.transform.position;
-      if (p.gravity) p.velocity = vec3.add(p.velocity, vec3.scale(gravityAt(this.field, at), STEP));
-      const move = vec3.scale(p.velocity, STEP);
-      const length = vec3.length(move);
-      if (length > 0) {
-        const hit = castHit(this, at, vec3.scale(move, 1 / length), length, {
-          ...(p.from === null ? {} : { skip: p.from }),
-          radius: p.radius,
-        });
-        if (hit) {
-          if (this.entities.get(hit.entity)?.health)
-            this.hurt(hit.entity, p.damage, { from: p.from, part: hit.kind === 'character' ? hit.part : null, kind: p.kind });
-          this.emit({
-            type: 'impact',
-            projectile: e.id,
-            at: hit.point,
-            hit: hit.entity,
-            kind: p.kind,
-            // (Stage 5g) Which way it went, and who fired it: what a game does where it struck (a rocket blows).
-            velocity: [...p.velocity],
-            from: p.from,
-          });
-          this.removeEntity(e.id);
-          continue;
-        }
-        e.transform.position = vec3.add(at, move);
-      }
-      if (--p.life <= 0) this.removeEntity(e.id);
-    }
-  }
-
-  /**
-   * HISTORY SYSTEM (stage 4c, decision 0022): each character's pose as it ends this step, at the end
-   * of its history, which keeps the last `HISTORY` (the oldest goes).
-   */
-  private remember() {
-    for (const e of this.entities.values()) {
-      const c = e.character;
-      if (!c || !e.transform) continue;
-      c.history.push({ position: [...e.transform.position], rotation: [...e.transform.rotation], pitch: c.pitch, mode: c.mode });
-      if (c.history.length > HISTORY) c.history.splice(0, c.history.length - HISTORY);
-    }
-  }
-
-  private readBack() {
-    const g = this.uniformGravity();
-    const gone: EntityId[] = [];
-    for (const e of this.entities.values()) {
-      if (!e.body || !e.transform || e.body.type === 'fixed') continue;
-      // (Not copied: reading gives the body a new velocity, and no one changes one in place.)
-      const before = e.body.linearVelocity;
-      this.physics.read(e.body.handle, e.transform, e.body);
-      if (e.body.type !== 'dynamic') continue;
-      // Out of the world (stage 4.5b): what the physics moves, past `FARTHEST` from the origin, is gone
-      // (a ball out of a level without a void fell for ever, and the physics went on with it). Never a
-      // character: what becomes of one is its game's.
-      if (!e.character && vec3.length(e.transform.position) > this.edge) {
-        gone.push(e.id);
-        continue;
-      }
-      // Only as a contact begins (stage 4.5's close): what it was pressed against, or slides along, it does
-      // not strike again on every step. (Asked first: most bodies begin no contact in a step, and the rest
-      // of this is then not worked out. The order of the two questions changes nothing of what is heard.)
-      const struck = this.physics.struck(e.body.handle);
-      if (struck.length === 0) continue;
-      // What its contacts did to its velocity, beyond holding it up against gravity (stage 4.5's close: a
-      // crate at rest takes back a step of gravity on every step, 0.6 J for its 45 kg, and was heard on
-      // every one; the author heard it).
-      const contact = vec3.sub(vec3.sub(e.body.linearVelocity, before), vec3.scale(g, STEP));
-      const fall = vec3.length(g);
-      const up = fall > 1e-9 ? vec3.scale(g, -1 / fall) : ([0, 0, 0] as Vec3);
-      const change = vec3.sub(contact, vec3.scale(up, Math.min(Math.max(vec3.dot(contact, up), 0), fall * STEP)));
-      // Its mass from its density and its shape, here (asking the physics, a call into WebAssembly for
-      // every body on every step, took the stress room's step near its budget): the same number.
-      const energy = 0.5 * bodyMass(e.body) * vec3.dot(change, change);
-      if (energy < HIT_HEARD) continue;
-      // On what: the first thing it began to touch (its material), or its own.
-      const other = this.byHandle.get(struck[0]!);
-      const against = other === undefined ? undefined : this.entities.get(other);
-      this.emit({
-        type: 'sound',
-        sound: 'hit',
-        source: e.id,
-        at: [...e.transform.position],
-        surface: against?.body?.material ?? e.body.material ?? null,
-        speed: vec3.length(before),
-        energy,
-        radius: hitRadius(energy),
-        against: against?.id ?? null,
-      });
-    }
-    for (const id of gone) this.removeEntity(id);
-  }
-
-  /**
-   * BREAKS SYSTEM (stage 3e): for every whole breakable with a body, what the physics moves that touches
-   * it now, and with how much energy it came: half its mass times its speed squared, its speed as it was
-   * before this step (its component still has it: it is read back after this phase). The first hit at
-   * least its threshold breaks it (`breakApart`).
-   */
-  private shatter() {
-    for (const e of [...this.entities.values()]) {
-      const b = e.breakable;
-      if (!b || b.broken || !e.body) continue;
-      for (const handle of this.physics.touching(e.body.handle)) {
-        const other = [...this.entities.values()].find((x) => x.body?.handle === handle);
-        if (other?.body?.type !== 'dynamic') continue;
-        const v = other.body.linearVelocity;
-        const energy = 0.5 * this.physics.massOf(handle) * vec3.dot(v, v);
-        if (energy >= b.threshold) {
-          this.breakApart(e, other.id, energy);
-          break;
-        }
-      }
-    }
-  }
 
   /**
    * Breaks something (stage 3e; the console or a game may, too): it is broken (a lamp gives no light),
@@ -1025,60 +846,7 @@ export class World {
    * cube a third of its smallest side, out at 1 to 3 m/s from the world's randomness.
    */
   breakApart(e: Entity, by: EntityId, energy: number) {
-    const b = e.breakable;
-    if (!b || b.broken || !e.transform) return;
-    b.broken = true;
-    const at: Vec3 = [...e.transform.position];
-    const seed = this.random.uint32();
-    const half: Vec3 =
-      e.body?.shape.kind === 'box'
-        ? e.body.shape.halfExtents
-        : e.body?.shape.kind === 'ball'
-          ? [e.body.shape.radius, e.body.shape.radius, e.body.shape.radius]
-          : [0.1, 0.1, 0.1];
-    const material = e.body?.material ?? null;
-    if (e.body) {
-      this.forgetBody(e);
-      this.physics.removeBody(e.body.handle);
-      delete e.body;
-    }
-    const pieces = Math.max(2, Math.min(6, Math.round((2 * Math.max(...half)) / 0.2)));
-    const side = Math.max(0.04, (2 * Math.min(...half)) / 3);
-    const color = e.appearance?.color ?? 0x8a8a8a;
-    for (let i = 0; i < pieces; i++) {
-      const out: Vec3 = [this.random.between(-1, 1), this.random.between(0.2, 1), this.random.between(-1, 1)];
-      const speed = this.random.between(1, 3) / Math.max(1e-9, vec3.length(out));
-      this.createEntity({
-        transform: {
-          position: vec3.add(at, [
-            this.random.between(-half[0], half[0]),
-            this.random.between(-half[1], half[1]),
-            this.random.between(-half[2], half[2]),
-          ]),
-          rotation: quat.identity(),
-        },
-        body: {
-          type: 'dynamic',
-          shape: { kind: 'box', halfExtents: [side / 2, side / 2, side / 2] },
-          linearVelocity: vec3.scale(out, speed),
-          angularVelocity: [this.random.between(-6, 6), this.random.between(-6, 6), this.random.between(-6, 6)],
-        },
-        appearance: { shape: 'box', size: [side, side, side], color },
-      });
-    }
-    this.emit({ type: 'broke', entity: e.id, at, by, energy, seed });
-    this.emit({
-      type: 'sound',
-      sound: 'break',
-      source: e.id,
-      at,
-      surface: e.lamp ? 'glass' : material,
-      speed: 0,
-      energy,
-      radius: Math.max(15, hitRadius(energy)),
-    });
-    // A box that broke is gone but for its pieces; a lamp stays, broken (it is still a lamp, dark).
-    if (!e.lamp) this.removeEntity(e.id);
+    breakApart(this, e, by, energy);
   }
 
   /**
@@ -1088,35 +856,7 @@ export class World {
    * multiplications, a division and a square root: the same in every browser and in Node.
    */
   lightAt(point: Vec3, skip?: EntityId): number {
-    return this.lit(point, skip, this.lampsOn(), this.attenuators());
-  }
-
-  /** The lamps on, and the zones that attenuate: what the light reads, gathered once per step. */
-  private lampsOn(): Entity[] {
-    return [...this.entities.values()].filter((e) => e.lamp?.on && e.transform);
-  }
-  private attenuators(): Entity[] {
-    return [...this.entities.values()].filter((e) => e.sensor?.params.opacity?.[0] && e.transform);
-  }
-
-  private lit(point: Vec3, skip: EntityId | undefined, lamps: readonly Entity[], fogs: readonly Entity[]): number {
-    let light = this.ambient;
-    for (const e of lamps) {
-      const lamp = e.lamp!;
-      if (!e.transform) continue;
-      const to = vec3.sub(point, e.transform.position);
-      const d = vec3.length(to);
-      if (d >= lamp.radius) continue;
-      if (d > 1e-9) {
-        const hit = this.castRay(e.transform.position, vec3.scale(to, 1 / d), d, {
-          besides: e.id,
-          ...(skip === undefined ? {} : { skip }),
-        });
-        if (hit && hit.distance < d - 1e-6) continue;
-      }
-      light += lamp.intensity * (1 - d / lamp.radius) * this.through(e.transform.position, point, fogs);
-    }
-    return light;
+    return lightAt(this, point, skip);
   }
 
   /**
@@ -1127,120 +867,7 @@ export class World {
    * the player does.
    */
   transmission(from: Vec3, to: Vec3): number {
-    return this.through(from, to, this.attenuators());
-  }
-
-  private through(from: Vec3, to: Vec3, fogs: readonly Entity[]): number {
-    if (fogs.length === 0) return 1;
-    let thickness = 0;
-    for (const zone of fogs)
-      thickness +=
-        zone.sensor!.params.opacity![0]! *
-        insideLength(zone.transform!.position, zone.transform!.rotation, zone.sensor!.half, from, to);
-    return 1 / (1 + thickness);
-  }
-
-  /**
-   * LIGHT SYSTEM (stage 3d): every lamp on or off as its signal was at the end of the last step (as a
-   * mechanism reads it); how lit every character is, at its center; and who every watcher sees (in
-   * range, in its cone, nothing in between, lit enough as seen from it). A change in what a watcher
-   * sees is an event (`seen`, `lost`).
-   */
-  private illuminate() {
-    for (const e of this.entities.values())
-      // (Stage 5e: put out by a hand, it gives no light until a hand lights it again.)
-      if (e.lamp) e.lamp.on = !e.breakable?.broken && !e.lamp.out && (e.lamp.signal === null || this.signal(e.lamp.signal) !== 0);
-    const lamps = this.lampsOn();
-    const fogs = this.attenuators();
-    const characters: Entity[] = [];
-    // Where each one's body is (stage 4b: crouched, lower than its center), where light and sight reach.
-    const centers = new Map<EntityId, Vec3>();
-    for (const e of this.entities.values())
-      if (e.character && e.transform) {
-        const offset = e.body ? poseOf(e.character, e.body).offset : ([0, 0, 0] as Vec3);
-        const center = vec3.add(e.transform.position, quat.rotate(e.transform.rotation, offset));
-        centers.set(e.id, center);
-        e.character.light = this.lit(center, e.id, lamps, fogs);
-        characters.push(e);
-      }
-    for (const eye of this.entities.values()) {
-      const w = eye.watcher;
-      if (!w || !eye.transform) continue;
-      const from = eye.transform.position;
-      const forward = quat.rotate(eye.transform.rotation, [0, 0, -1]);
-      const now: EntityId[] = [];
-      for (const e of characters) {
-        const at = centers.get(e.id)!;
-        const to = vec3.sub(at, from);
-        const d = vec3.length(to);
-        if (d > w.range || d < 1e-9) continue;
-        const direction = vec3.scale(to, 1 / d);
-        if (vec3.dot(direction, forward) < w.cone) continue;
-        const hit = this.castRay(from, direction, d, { skip: eye.id, besides: e.id });
-        if (hit && hit.distance < d - 1e-6) continue;
-        // Crouched, a watcher sees less of it (stage 4b: its posture): it needs that much more light.
-        const posture = e.character!.mode === 'crouch' ? e.character!.movement.crouch.seen : 1;
-        if (e.character!.light * this.through(from, at, fogs) * posture < w.threshold) continue;
-        now.push(e.id);
-      }
-      for (const id of w.sees) if (!now.includes(id)) this.emit({ type: 'lost', watcher: eye.id, entity: id });
-      for (const id of now) if (!w.sees.includes(id)) this.emit({ type: 'seen', watcher: eye.id, entity: id });
-      w.sees = [...w.sees.filter((id) => now.includes(id)), ...now.filter((id) => !w.sees.includes(id))];
-    }
-  }
-
-  /**
-   * SIGNALS SYSTEM (stage 3c, decision 0018): every signal, in the order declared, from what the
-   * zones noticed in this step and the signals above it. A change is an event (`signalChanged`).
-   */
-  private compute() {
-    if (this.wires.length === 0) return;
-    const value = new Map<string, number>();
-    const zone = (name: string) => this.named(name)?.sensor;
-    for (const w of this.wires) {
-      const was = w.value;
-      const on = (name: string) => (value.get(name) ?? 0) !== 0;
-      switch (w.op) {
-        case 'input':
-          w.value = w.memory;
-          break;
-        case 'zone':
-          w.value = (zone(w.reads[0]!)?.inside ?? []).filter((id) => {
-            const e = this.entities.get(id);
-            return e?.character !== undefined || e?.body?.type === 'dynamic';
-          }).length;
-          break;
-        case 'used':
-          w.value = (zone(w.reads[0]!)?.inside ?? []).filter((id) => {
-            const c = this.entities.get(id)?.character;
-            return c !== undefined && pressed(this, c.player, 'use');
-          }).length;
-          break;
-        case 'seen':
-          w.value = this.named(w.reads[0]!)?.watcher?.sees.length ?? 0;
-          break;
-        case 'any':
-          w.value = w.reads.some(on) ? 1 : 0;
-          break;
-        case 'all':
-          w.value = w.reads.every(on) ? 1 : 0;
-          break;
-        case 'not':
-          w.value = on(w.reads[0]!) ? 0 : 1;
-          break;
-        case 'toggle': {
-          const now = on(w.reads[0]!) ? 1 : 0;
-          if (now && !w.memory) w.value = w.value ? 0 : 1;
-          w.memory = now;
-          break;
-        }
-        case 'latch':
-          w.value = on(w.reads[0]!) ? 1 : on(w.reads[1]!) ? 0 : w.value;
-          break;
-      }
-      value.set(w.name, w.value);
-      if (w.value !== was) this.emit({ type: 'signalChanged', signal: w.name, value: w.value, was });
-    }
+    return transmission(this, from, to);
   }
 
   /**
@@ -1266,41 +893,6 @@ export class World {
     }
   }
 
-  /**
-   * ZONES SYSTEM (stage 2a): for each zone, which moving bodies have their center inside its box (in
-   * the box's own axes: the point is turned back by the zone's rotation). Additions, multiplications
-   * and comparisons: the same everywhere. Who came in and who left become events, in a fixed order.
-   *
-   * Most bodies are far from every zone (stage 2.5b): first, three comparisons against the box along
-   * the world's axes that holds the zone (it never leaves out one that is inside: it holds it), and
-   * only the bodies within it are turned into the zone's axes. In the stress room it took 0.15 ms a
-   * step, a third of the physics; the same answer, for less.
-   */
-  private sense() {
-    const movers = [...this.entities.values()].filter((e) => e.transform && e.body && e.body.type !== 'fixed');
-    for (const zone of this.entities.values()) {
-      const sensor = zone.sensor;
-      const at = zone.transform;
-      if (!sensor || !at) continue;
-      const back = quat.conjugate(at.rotation);
-      const reach = holdingBox(at.rotation, sensor.half);
-      const c = at.position;
-      const now: EntityId[] = [];
-      for (const e of movers) {
-        const p = e.transform!.position;
-        if (Math.abs(p[0] - c[0]) > reach[0] || Math.abs(p[1] - c[1]) > reach[1] || Math.abs(p[2] - c[2]) > reach[2]) continue;
-        const local = quat.rotate(back, vec3.sub(e.transform!.position, at.position));
-        if (Math.abs(local[0]) <= sensor.half[0] && Math.abs(local[1]) <= sensor.half[1] && Math.abs(local[2]) <= sensor.half[2])
-          now.push(e.id);
-      }
-      for (const id of sensor.inside)
-        if (!now.includes(id) && this.entities.has(id)) this.emit({ type: 'sensorLeft', sensor: zone.id, entity: id });
-      for (const id of now) if (!sensor.inside.includes(id)) this.emit({ type: 'sensorEntered', sensor: zone.id, entity: id });
-      // Who was inside first stays first; who came now goes after.
-      sensor.inside = [...sensor.inside.filter((id) => now.includes(id)), ...now.filter((id) => !sensor.inside.includes(id))];
-    }
-  }
-
   /** Frees its physics. A world that is no longer used must be disposed (WebAssembly's memory is not collected). */
   dispose() {
     this.physics.dispose();
@@ -1318,35 +910,13 @@ export class World {
     this.pending = [];
     return events;
   }
-
-  /**
-   * SPIN system: the rotation advances this step's angle around the axis of its angular velocity,
-   * WITHOUT TRIGONOMETRY (stage 1f: it used `hypot`, `sin` and `cos`, which each JavaScript engine
-   * computes its own way). The quaternion of a small turn is [ω·dt/2, 1], brought back to length 1:
-   * it turns 2·atan(|ω|·dt/2) instead of |ω|·dt, two parts in a hundred thousand less at 1 rad/s.
-   * Additions, multiplications and a square root, the same bits everywhere. It is renormalized, so
-   * rounding does not accumulate.
-   */
-  private spin() {
-    for (const e of this.entities.values()) {
-      if (!e.spin || !e.transform) continue;
-      const w = e.spin.angularVelocity;
-      // A kinematic body is turned by the physics (with its deterministic math: see `move`); a
-      // dynamic or fixed one is moved by the physics, or not at all.
-      if (e.body) continue;
-      if (w[0] === 0 && w[1] === 0 && w[2] === 0) continue;
-      const h = STEP / 2;
-      const delta = quat.normalize([w[0] * h, w[1] * h, w[2] * h, 1]);
-      e.transform.rotation = quat.normalize(quat.multiply(delta, e.transform.rotation));
-    }
-  }
 }
 
 /**
  * Half the size, along the world's axes, of the box that holds a box of half size `half` turned by
  * `rotation`: each of its own axes, turned, contributes its length along each of the world's axes.
  */
-function holdingBox(rotation: Quat, half: Vec3): Vec3 {
+export function holdingBox(rotation: Quat, half: Vec3): Vec3 {
   const x = quat.rotate(rotation, [half[0], 0, 0]);
   const y = quat.rotate(rotation, [0, half[1], 0]);
   const z = quat.rotate(rotation, [0, 0, half[2]]);

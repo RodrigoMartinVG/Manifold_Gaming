@@ -270,7 +270,7 @@ export function setField(world: World, which: string, field: string, words: stri
     if (parts.length !== 1 || !ENTITY_NAME.test(name)) return 'a name is one word: lowercase letters, digits and _';
     if (world.named(name) && world.named(name) !== e) return `${name} is another entity's name`;
     if (!dry) {
-      e.name = name;
+      world.rename(e, name);
       const item = itemOf(e);
       if (item) item.name = name;
     }
