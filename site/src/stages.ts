@@ -19,7 +19,7 @@ export const STAGES = [
 ] as const;
 
 /**
- * The stage the engine is in now (its index in `STAGES`): the forest, whose stage 5.5 (decision 0033, the
- * code given its shape before it) comes first.
+ * The stage the engine is in now (its index in `STAGES`): the forest, which stage 5.5 (decision 0033, the
+ * code given its shape before it, closed on 2026-11-19) prepared.
  */
 export const CURRENT_STAGE = 6;
