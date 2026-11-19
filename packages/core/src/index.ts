@@ -136,6 +136,7 @@ export type {
   PlayerInput,
   Breakable,
   Lamp,
+  Lit,
   Mechanism,
   Sensor,
   Shape,
@@ -171,3 +172,4 @@ export {
   type Ghost,
   type GhostPose,
 } from './ghost';
+export { eyeEmitter, lampEmitter, reaches, type Emitter } from './systems/light';

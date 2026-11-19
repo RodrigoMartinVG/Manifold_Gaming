@@ -3,6 +3,7 @@ import { quat, type Vec3 } from '@manifold/common';
 import { stateHash } from './hash';
 import { buildLevel, levelFromText } from './level';
 import { initPhysics } from './physics';
+import { eyeEmitter, lampEmitter, reaches } from './systems/light';
 import { insideLength, World } from './world';
 
 beforeAll(initPhysics);
@@ -198,5 +199,45 @@ describe('a watcher (stage 3d)', () => {
     expect(stateHash(world)).not.toBe(before);
     world.dispose();
     back.dispose();
+  });
+});
+
+/**
+ * ONE EMITTER, A BEAM, WHAT RECEIVES LIGHT (stage 5.5e, S8): a lamp and a watcher's eye are emitters that
+ * share one beam query (`reaches`), and any entity may receive light (`lit`). Before, light was computed
+ * only at characters, and each kind had its own beam.
+ */
+describe('emitters, a beam, and what receives light (stage 5.5e)', () => {
+  test('anything that receives light is lit each step: by the lamp in reach, not behind the wall, only the ambient beyond', () => {
+    const { world, step } = room();
+    world.setSignal('lights', 1);
+    const sensor = (at: Vec3) =>
+      world.createEntity({ transform: { position: at, rotation: quat.identity() }, lit: { light: 0 } });
+    const near = sensor([0, 0.5, 2]);
+    const behind = sensor([5, 0.5, 0]);
+    const far = sensor([0, 0.5, 9]);
+    step(2);
+    // 3.04 m from the lamp (of 6): 1 · (1 − 3.04/6), plus the ambient.
+    expect(near.lit!.light).toBeCloseTo(0.05 + (1 - Math.hypot(2.5, 2) / 6), 6);
+    expect(near.lit!.light).toBeCloseTo(world.lightAt([0, 0.5, 2], near.id), 12);
+    expect(behind.lit!.light).toBe(0.05);
+    expect(far.lit!.light).toBe(0.05);
+  });
+
+  test('a beam reaches what is in its range and its cone, with nothing in between', () => {
+    const { world } = room();
+    const eye = [...world.entities.values()].find((e) => e.name === 'eye')!;
+    const sight = eyeEmitter(eye);
+    // Looking along +Z from z = −10: ahead, in reach; behind it, not; past its range, not.
+    expect(reaches(world, sight, [0, 1, -2])).toBeCloseTo(Math.hypot(1, 8), 9);
+    expect(reaches(world, sight, [0, 2, -12])).toBeNull();
+    expect(reaches(world, sight, [0, 2, 11])).toBeNull();
+    // Out of its 90°: 45° off its axis and more.
+    expect(reaches(world, sight, [6, 2, -5])).toBeNull();
+    // A lamp shines every way, as far as its radius; behind the wall, nothing; at itself, with no ray.
+    const lamp = lampEmitter([...world.entities.values()].find((e) => e.name === 'lamp')!);
+    expect(reaches(world, lamp, [0, 3, -5.5])).toBeCloseTo(5.5, 9);
+    expect(reaches(world, lamp, [5, 0.5, 0])).toBeNull();
+    expect(reaches(world, lamp, [0, 3, 0])).toBe(0);
   });
 });

@@ -30,6 +30,8 @@ export interface Entity {
   mechanism?: Mechanism;
   lamp?: Lamp;
   watcher?: Watcher;
+  /** What receives light (stage 5.5e): how lit it is at its place, each step. */
+  lit?: Lit;
   breakable?: Breakable;
   health?: Health;
   projectile?: Projectile;
@@ -81,6 +83,16 @@ export interface Lamp {
   on: boolean;
   /** Put out by a hand (stage 5e), and lit again by one: meanwhile it gives no light, whatever its signal. */
   out?: boolean;
+}
+
+/**
+ * WHAT RECEIVES LIGHT (stage 5.5e, S8): how lit it is at its place (its transform's), as a character is at
+ * its center (`light`), from the ambient and every lamp's beam, through the zones that attenuate; the
+ * light system writes it each step. Any entity may have it: a plant that turns to the light, a crystal
+ * that glows lit, what a beam must light. Before, light was computed only at characters.
+ */
+export interface Lit {
+  light: number;
 }
 
 /**
