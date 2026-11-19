@@ -536,7 +536,7 @@ test('a world born a hundred times in one page leaves nothing behind: what the G
   const list = errors(page);
   const game = page.locator('#game');
   const counts = async () =>
-    Promise.all(['data-geometries', 'data-textures', 'data-scene'].map(async (a) => Number(await game.getAttribute(a))));
+    Promise.all(['data-geometries', 'data-textures', 'data-objects'].map(async (a) => Number(await game.getAttribute(a))));
   // The keep: a level with models, lamps, guards with weapons, a lamp that breaks.
   await page.goto('jugar/dojo/keep/');
   await expect.poll(async () => (await position(page, 'player')).length, { timeout: 20_000 }).toBe(3);

@@ -172,3 +172,31 @@ describe('the layers, in one table (stage 5.5b, decision 0003 as amended)', () =
     expect(await broken('packages/arms/src/brain.ts', 'export const a = Math.atan2(1, 2);\n')).toEqual([]);
   }, 60_000);
 });
+
+/**
+ * EACH OF THE PAGE'S ATTRIBUTES, ONE WRITER (found in continuous integration after stage 5.5g): the probe wrote
+ * `data-scene` with how many objects the scene holds, and the story writes it with the line being said; on a
+ * slower machine the probe's came last, and a click on a line seemed to do nothing. What a piece writes on the
+ * page's container (`container.dataset.x =`, the probe's `data.x =`) is written by that file alone: the view's,
+ * the shell's and every game's.
+ */
+describe('the page’s attributes', () => {
+  test('each is written by one file', () => {
+    const folders = [
+      'packages/presentation/src',
+      'packages/shell/src',
+      ...readdirSync(join(root, 'games')).map((g) => `games/${g}/src`),
+    ];
+    const writers = new Map<string, Set<string>>();
+    for (const folder of folders.filter((f) => existsSync(join(root, f))))
+      for (const name of readdirSync(join(root, folder)).filter((n) => n.endsWith('.ts') && !n.endsWith('.test.ts'))) {
+        const file = `${folder}/${name}`;
+        const text = readFileSync(join(root, file), 'utf8');
+        const writes = name === 'probe.ts' ? /\bdata\.([a-zA-Z]+) =/g : /container\.dataset\.([a-zA-Z]+) =/g;
+        for (const m of text.matchAll(writes)) (writers.get(m[1]!) ?? writers.set(m[1]!, new Set()).get(m[1]!)!).add(file);
+      }
+    expect(writers.size).toBeGreaterThan(10);
+    const shared = [...writers].filter(([, files]) => files.size > 1).map(([key, files]) => `${key}: ${[...files].join(', ')}`);
+    expect(shared).toEqual([]);
+  });
+});

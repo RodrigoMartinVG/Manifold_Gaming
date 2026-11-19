@@ -48,11 +48,12 @@ export function mountProbe(page: GamePage, match: PageMatch): Piece {
       data.draws = String(drawn.calls);
       data.triangles = String(drawn.triangles);
       // (Stage 5.5g) What the GPU keeps (three.js's count) and what the scene holds, for what leaks: a world
-      // born again and again must not leave either growing.
+      // born again and again must not leave either growing. (`objects`, not `scene`: that one is the story's,
+      // the line being said; written by both, a click on a line seemed to do nothing, found in CI.)
       const memory = page.stage.renderer.info.memory;
       data.geometries = String(memory.geometries);
       data.textures = String(memory.textures);
-      data.scene = String(page.stage.scene.children.length);
+      data.objects = String(page.stage.scene.children.length);
       if (++frames % 10 !== 0) return;
       data.frames = String(frames);
       data.checks = String(match.checks);
