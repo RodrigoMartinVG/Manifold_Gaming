@@ -1,4 +1,4 @@
-import { characterParts, GROUNDED } from '@manifold/character';
+import { characterParts, GROUNDED, CHARACTER_VERSION } from '@manifold/character';
 import { quat, vec3, type Vec3 } from '@manifold/common';
 import {
   ARMS_BRAINS,
@@ -16,6 +16,7 @@ import {
   type Aware,
   type Pouch,
   type Weapon,
+  ARMS_VERSION,
 } from '@manifold/arms';
 import {
   buildLevel,
@@ -27,7 +28,7 @@ import {
   type World,
   type ZoneKinds,
 } from '@manifold/core';
-import { KIT } from '@manifold/kit';
+import { KIT, KIT_VERSION } from '@manifold/kit';
 
 /**
  * The zones a level of the fortress understands: where one comes back to, where one falls, the way out
@@ -140,6 +141,14 @@ function intruder(world: World, player: number, at: Vec3, facing: Vec3) {
 }
 
 /**
+ * THE VERSION OF ITS RULES (stage 5.5c, decision 0033): it goes up when they change what a replay gives;
+ * its replays are then recorded again, and no other game's. With the library's it uses, its `versions`.
+ *
+ *   1  stage 5.5c: as at the engine's version 49
+ */
+export const FORTRESS_VERSION = 1;
+
+/**
  * THE FORTRESS'S RULES (stage 5f): a level from its file, with the games' kit; an intruder at its start;
  * its guards wary (they shout, light lamps again, mind a guard down: stage 5e), where its `guard` zones
  * are; what fights and the stealth (@manifold/arms), a blow from behind on a guard that does not see
@@ -152,6 +161,7 @@ export function createFortress(levels: Readonly<Record<string, Level>>): Cartrid
   return {
     id: 'fortress',
     title: 'The fortress',
+    versions: { fortress: FORTRESS_VERSION, ...ARMS_VERSION, ...CHARACTER_VERSION, ...KIT_VERSION },
     kit: KIT,
     zones: FORTRESS_ZONES,
     brains: ARMS_BRAINS,

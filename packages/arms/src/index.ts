@@ -70,3 +70,11 @@ export {
   type Pouch,
   type Wary,
 } from './stealth';
+
+/**
+ * THE VERSION OF ITS RULES (stage 5.5c, decision 0033): what fights: the weapons, their strikes, shots and blasts, the arsenal, the guards and the stealth. It goes up when what they decide changes
+ * what a replay gives; every game whose rules use it names it in its `versions`, so its replays say so.
+ *
+ *   1  stage 5.5c: as at the engine's version 49
+ */
+export const ARMS_VERSION = { arms: 1 } as const;

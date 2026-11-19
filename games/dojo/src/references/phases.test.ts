@@ -1,19 +1,7 @@
 import { beforeAll, describe, expect, test } from 'vitest';
-import {
-  initPhysics,
-  NO_INPUT,
-  playReplay,
-  registryFor,
-  replayFromText,
-  replayOf,
-  replayToText,
-  Session,
-  SIMULATION_VERSION,
-  type Entity,
-  type PlayerInput,
-} from '@manifold/core';
-import { DojoCartridge } from './cartridge';
-import { REFERENCE_REPLAYS } from './replays';
+import { initPhysics, NO_INPUT, registryFor, Session, type Entity, type PlayerInput } from '@manifold/core';
+import { DojoCartridge } from '../cartridge';
+import { referenceText } from '@manifold/shell/references';
 
 beforeAll(initPhysics);
 
@@ -96,22 +84,6 @@ function run(recipe: string, acts: Act[]): { session: Session; seen: Seen } {
   return { session, seen };
 }
 
-/**
- * The replay as text, with a few comment lines after its header: what it is, and that it is not
- * edited by hand. (Comments are skipped when it is read.)
- */
-function referenceText(session: Session, about: string): string {
-  const [header, ...rest] = replayToText(replayOf(session)).split('\n');
-  return [
-    header,
-    `# ${about}`,
-    '# A reference replay (stage 2.5a): playing it must end with the hash on its last line. A refactor',
-    '# keeps it bit for bit. Recorded by games/dojo/src/reference.test.ts; recorded again (npm run',
-    '# references) only when the simulation changes on purpose, with SIMULATION_VERSION.',
-    ...rest,
-  ].join('\n');
-}
-
 /** Where the ferry is now (it is wherever its time says): to put a character on it. */
 const ferryX = (s: Session) =>
   [...s.world.entities.values()].find((e) => e.mover && e.transform!.position[2] === 6)!.transform!.position[0];
@@ -128,9 +100,13 @@ describe('the reference replays (stage 2.5a), recorded from their scripts', () =
       { lines: ['dojo.spin 0 0 0'], steps: 60 },
     ]);
     expect(session.world.entities.size).toBe(2);
-    await expect(referenceText(session, 'Phase 0: the empty Dojo, its cube spun from the console.')).toMatchFileSnapshot(
-      '../replays/phase-0.replay',
-    );
+    await expect(
+      referenceText(
+        session,
+        'Phase 0: the empty Dojo, its cube spun from the console.',
+        'games/dojo/src/references/phases.test.ts',
+      ),
+    ).toMatchFileSnapshot('../../replays/phase-0.replay');
     session.world.dispose();
   });
 
@@ -164,8 +140,9 @@ describe('the reference replays (stage 2.5a), recorded from their scripts', () =
       referenceText(
         session,
         'Phase 1: the character walking, running, jumping, turning and throwing; the gravity; a second player.',
+        'games/dojo/src/references/phases.test.ts',
       ),
-    ).toMatchFileSnapshot('../replays/phase-1.replay');
+    ).toMatchFileSnapshot('../../replays/phase-1.replay');
     session.world.dispose();
   });
 
@@ -203,8 +180,9 @@ describe('the reference replays (stage 2.5a), recorded from their scripts', () =
       referenceText(
         session,
         'Phase 2: the course with every capability: a checkpoint, falls, three stars, the goal, both platforms.',
+        'games/dojo/src/references/phases.test.ts',
       ),
-    ).toMatchFileSnapshot('../replays/phase-2.replay');
+    ).toMatchFileSnapshot('../../replays/phase-2.replay');
     session.world.dispose();
   });
 
@@ -228,8 +206,12 @@ describe('the reference replays (stage 2.5a), recorded from their scripts', () =
     expect(session.world.named('lift')!.transform!.position[1]).toBeCloseTo(0.15, 4);
     expect(seen.carried).toBeGreaterThan(150);
     await expect(
-      referenceText(session, 'Phase 3: the machines: a button that opens a door, plates that call a lift, a ride up to a star.'),
-    ).toMatchFileSnapshot('../replays/phase-3.replay');
+      referenceText(
+        session,
+        'Phase 3: the machines: a button that opens a door, plates that call a lift, a ride up to a star.',
+        'games/dojo/src/references/phases.test.ts',
+      ),
+    ).toMatchFileSnapshot('../../replays/phase-3.replay');
     session.world.dispose();
   });
 
@@ -272,8 +254,9 @@ describe('the reference replays (stage 2.5a), recorded from their scripts', () =
       referenceText(
         session,
         "Phase 3, the light and the phase's demonstration: seen in the light, lost in the dark, behind a pillar and in a fog; a lamp switched on, and one broken by a ball.",
+        'games/dojo/src/references/phases.test.ts',
       ),
-    ).toMatchFileSnapshot('../replays/phase-3-light.replay');
+    ).toMatchFileSnapshot('../../replays/phase-3-light.replay');
     session.world.dispose();
   });
 });
@@ -393,35 +376,9 @@ describe('the reference replays of phase 4, growing with it', () => {
       referenceText(
         session,
         'Phase 4, what a body can do: aiming up and down, a ball thrown where it aims; crouching under a low passage; seen later crouched; rolling, into the passage too; a training dummy hurt by balls, down, and back; a dart, a bolt and a stick.',
+        'games/dojo/src/references/phases.test.ts',
       ),
-    ).toMatchFileSnapshot('../replays/phase-4.replay');
+    ).toMatchFileSnapshot('../../replays/phase-4.replay');
     session.world.dispose();
   });
-});
-
-describe('the reference replays, as they are in their files', () => {
-  test('there is one per phase (two for phase 3: its machines and its light; and 4.5, the citadel), of this simulation version', () => {
-    expect(Object.keys(REFERENCE_REPLAYS)).toEqual([
-      'phase-0',
-      'phase-1',
-      'phase-2',
-      'phase-3',
-      'phase-3-light',
-      'phase-4',
-      'phase-4.5-citadel',
-    ]);
-    for (const text of Object.values(REFERENCE_REPLAYS))
-      expect(text.split('\n')[0]).toBe(`# Manifold replay ${SIMULATION_VERSION}`);
-  });
-
-  // (The citadel's is long: 5 s alone, past the 20 s a test is given with the whole suite running beside it.)
-  test.each(Object.entries(REFERENCE_REPLAYS))(
-    '%s plays to the hash on its last line',
-    (_, text) => {
-      const { session, same } = playReplay(DojoCartridge, replayFromText(text));
-      expect(same).toBe(true);
-      session.world.dispose();
-    },
-    60_000,
-  );
 });

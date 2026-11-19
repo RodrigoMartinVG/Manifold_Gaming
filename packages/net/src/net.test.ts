@@ -173,6 +173,16 @@ describe('the networking skeleton (stage 1e)', () => {
     open.dispose();
   });
 
+  test('a page with other rules does not join (stage 5.5c): the same engine is not enough, the game’s rules too', () => {
+    const ruled: Cartridge = { ...Arena, versions: { arena: 2 } };
+    const server = new Server({ ...Arena, versions: { arena: 3 } });
+    const { heard, welcomes } = join(server, ruled);
+    expect(welcomes).toEqual([]);
+    expect(heard.join('\n')).toMatch(/a match of other rules: arena 3 \(this game plays arena 2\)/);
+    // The same rules: in.
+    expect(join(new Server(ruled), ruled).welcomes).toHaveLength(1);
+  });
+
   test('a desync is caught: a copy that differs says at which step', () => {
     const server = new Server(Arena);
     const { client, desyncs } = join(server);

@@ -1,4 +1,4 @@
-import { characterParts } from '@manifold/character';
+import { characterParts, CHARACTER_VERSION } from '@manifold/character';
 import { quat, type Vec3 } from '@manifold/common';
 import {
   buildLevel,
@@ -116,6 +116,14 @@ export const ADVENTURE_PROGRESS: Progress<AdventureProgress> = {
 };
 
 /**
+ * THE VERSION OF ITS RULES (stage 5.5c, decision 0033): it goes up when they change what a replay gives;
+ * its replays are then recorded again, and no other game's. With the library's it uses, its `versions`.
+ *
+ *   1  stage 5.5c: as at the engine's version 49
+ */
+export const ADVENTURE_VERSION = 1;
+
+/**
  * THE ACTION ADVENTURE (decision 0012), its start (stage 3k): a dungeon made from a seed, rooms joined
  * by corridors, a gem in the rooms, a key, and an exit the key opens, down to the next depth (a new
  * dungeon from the same seed). The character carries what it takes (its inventory). Its progress is
@@ -125,6 +133,7 @@ export function createAdventure(): Cartridge {
   return {
     id: 'adventure',
     title: 'The adventure',
+    versions: { adventure: ADVENTURE_VERSION, ...CHARACTER_VERSION },
     zones: ADVENTURE_ZONES,
     progress: ADVENTURE_PROGRESS,
     onDeclare(registry) {

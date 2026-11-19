@@ -1,5 +1,5 @@
 import type { Level } from '@manifold/commands';
-import type { PlayerInput, SessionState } from '@manifold/core';
+import type { PlayerInput, SessionState, Versions } from '@manifold/core';
 
 /**
  * WHAT TRAVELS between a client and the server (stage 1e). Plain data, so any transport can carry it:
@@ -45,7 +45,15 @@ export interface Tick {
 /** What the server says to a client. */
 export type ToClient =
   /** Here is the match, and you are this player. Also after a restart, a snapshot load or a replay. */
-  | { type: 'welcome'; player: number; game: string; version: number; match: Match }
+  | {
+      type: 'welcome';
+      player: number;
+      game: string;
+      version: number;
+      /** The versions of its rules (stage 5.5c): a page with other rules does not join. */
+      versions?: Versions;
+      match: Match;
+    }
   | Tick
   /** Something for the console of whoever asked. */
   | { type: 'say'; text: string; level: Level };

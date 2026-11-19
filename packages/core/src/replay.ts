@@ -1,5 +1,5 @@
 import { splitLines } from '@manifold/commands';
-import type { Cartridge } from './cartridge';
+import type { Cartridge, Versions } from './cartridge';
 import { stateHash } from './hash';
 import { actionsFor, degreesOf, direction, inputProblem } from './input';
 import { profileFromText, profileText, VERIFIED, type Profile } from './profile';
@@ -25,6 +25,12 @@ export interface Replay {
   game: string;
   /** The profile it was played with (stage 2.5b). One without it (older) is the verified one. */
   profile: Profile;
+  /**
+   * The versions of the rules it was played with (stage 5.5c: the game's and the library's, `Cartridge.versions`).
+   * Absent (or null) in one that says nothing of them (before 5.5c, or of a game without versions): the
+   * engine's version alone decides for it.
+   */
+  versions?: Versions | null;
   birth: string;
   inputs: InputChange[];
   changes: WorldChange[];
@@ -36,6 +42,8 @@ export function replayOf(session: Session): Replay {
   return {
     game: session.cartridge.id,
     profile: session.world.profile,
+    versions:
+      session.cartridge.versions && Object.keys(session.cartridge.versions).length ? { ...session.cartridge.versions } : null,
     birth: session.birth,
     inputs: session.inputs.map((i) => ({ ...i, input: { ...i.input } })),
     changes: session.history.map((c) => ({ ...c })),
@@ -44,6 +52,30 @@ export function replayOf(session: Session): Replay {
 }
 
 const HEADER = '# Manifold replay';
+
+/** Versions as words, by name: `arms 1 dojo 1 kit 1`. */
+export const versionsText = (v: Versions) =>
+  Object.keys(v)
+    .sort()
+    .map((name) => `${name} ${v[name]}`)
+    .join(' ');
+
+/**
+ * WHETHER RULES RECORDED WITH SOME VERSIONS PLAY THE SAME HERE (stage 5.5c): each one named the same, at the
+ * same version (null: it said nothing of its rules, before 5.5c, and the engine's version decides). What
+ * differs, in words (`level 2 (this game plays level 3)`), or null.
+ */
+export function versionsProblem(recorded: Versions | null, here: Versions): string | null {
+  if (recorded === null) return null;
+  const names = [...new Set([...Object.keys(recorded), ...Object.keys(here)])].sort();
+  const differ = names.filter((name) => recorded[name] !== here[name]);
+  if (!differ.length) return null;
+  const said = (v: Versions) => {
+    const parts = differ.filter((name) => v[name] !== undefined).map((name) => `${name} ${v[name]}`);
+    return parts.length ? parts.join(', ') : 'none';
+  };
+  return `${said(recorded)} (this game plays ${said(here)})`;
+}
 const hex = (n: number) => n.toString(16).padStart(8, '0');
 
 /**
@@ -81,7 +113,8 @@ function inputText(i: InputChange): string {
 /**
  * As text, one thing per line, in step order: it can be read, and compared by eye.
  *
- *   # Manifold replay 3                     the simulation's version (version.ts)
+ *   # Manifold replay 3                     the engine's version (version.ts)
+ *   rules arms 1 dojo 1 kit 1                its rules' versions, by name (stage 5.5c)
  *   game dojo
  *   profile rapier-deterministic server 60   its physics, and who verified it (stage 2.5b)
  *   birth dojo.level course
@@ -96,6 +129,7 @@ function inputText(i: InputChange): string {
 export function replayToText(r: Replay): string {
   const lines = [
     `${HEADER} ${SIMULATION_VERSION}`,
+    ...(r.versions && Object.keys(r.versions).length ? [`rules ${versionsText(r.versions)}`] : []),
     `game ${r.game}`,
     `profile ${profileText(r.profile)}`,
     ...splitLines(r.birth).map((l) => `birth ${l}`),
@@ -112,7 +146,15 @@ export function replayToText(r: Replay): string {
 
 /** Back from text. A line that is not understood is an error, with its number. */
 export function replayFromText(text: string): Replay {
-  const replay: Replay = { game: '', profile: VERIFIED, birth: '', inputs: [], changes: [], end: { step: -1, hash: 0 } };
+  const replay: Replay = {
+    game: '',
+    profile: VERIFIED,
+    versions: null,
+    birth: '',
+    inputs: [],
+    changes: [],
+    end: { step: -1, hash: 0 },
+  };
   const birth: string[] = [];
   const rows = text.split(/\r?\n/);
   const fail = (n: number, why: string): never => {
@@ -139,6 +181,17 @@ export function replayFromText(text: string): Replay {
       case 'game':
         replay.game = rest.join(' ');
         break;
+      case 'rules': {
+        const versions: Record<string, number> = {};
+        if (rest.length % 2 !== 0) fail(n, 'each of its rules is a name and its version');
+        for (let at = 0; at < rest.length; at += 2) {
+          if (!/^[a-z][a-z0-9.]*$/.test(rest[at]!)) fail(n, `"${rest[at]}" is not the name of a game's rules`);
+          if (!/^\d+$/.test(rest[at + 1]!)) fail(n, `"${rest[at + 1]}" is not a version`);
+          versions[rest[at]!] = Number(rest[at + 1]);
+        }
+        replay.versions = versions;
+        break;
+      }
       case 'profile': {
         const profile = profileFromText(rest.join(' '));
         replay.profile = typeof profile === 'string' ? fail(n, profile) : profile;
@@ -232,6 +285,8 @@ export class ReplayPlayer {
  */
 export function sessionFor(cartridge: Cartridge, replay: Replay): Session {
   if (replay.game && replay.game !== cartridge.id) throw new Error(`a replay of "${replay.game}", not of "${cartridge.id}"`);
+  const rules = versionsProblem(replay.versions ?? null, cartridge.versions ?? {});
+  if (rules) throw new Error(`a replay recorded by other rules: ${rules}`);
   // Another physics is another simulation (decision 0014); who verified it is not: it does not change a step.
   const physics = (cartridge.profile ?? VERIFIED).physics;
   if (replay.profile.physics !== physics)

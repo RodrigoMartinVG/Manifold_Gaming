@@ -122,6 +122,32 @@ describe('replays (stage 1c)', () => {
     session.world.dispose();
   });
 
+  test('the versions of its rules (stage 5.5c): written and read; refused only by a game whose rules changed', () => {
+    const v = `# Manifold replay ${SIMULATION_VERSION}`;
+    const ruled: Cartridge = { ...Level, versions: { level: 2, kit: 1 } };
+    const session = new Session(ruled);
+    for (let step = 1; step <= 30; step++) session.step();
+    const text = replayToText(replayOf(session));
+    // After the engine's version, the rules': the game's and the library's, by name.
+    expect(text.split('\n').slice(0, 2)).toEqual([v, 'rules kit 1 level 2']);
+    expect(replayFromText(text).versions).toEqual({ kit: 1, level: 2 });
+    expect(playReplay(ruled, replayFromText(text)).same).toBe(true);
+    // The game's rules went up, or the library's: the replay was recorded by other rules.
+    expect(() => sessionFor({ ...Level, versions: { level: 3, kit: 1 } }, replayFromText(text))).toThrow(
+      /recorded by other rules: level 2 \(this game plays level 3\)/,
+    );
+    expect(() => sessionFor({ ...Level, versions: { level: 2, kit: 2 } }, replayFromText(text))).toThrow(
+      /kit 1 \(this game plays kit 2\)/,
+    );
+    expect(() => sessionFor({ ...Level, versions: { level: 2 } }, replayFromText(text))).toThrow(
+      /kit 1 \(this game plays none\)/,
+    );
+    // One that says nothing of its rules (before 5.5c) is checked by the engine's version alone.
+    expect(() => sessionFor(ruled, replayFromText(`${v}\ngame level\nend 5 00000000`))).not.toThrow();
+    expect(() => replayFromText(`${v}\nrules level two\nend 5 00000000`)).toThrow(/line 2.*"two" is not a version/);
+    session.world.dispose();
+  });
+
   test("a game's own button: pressed once per press, recorded by its name, played again to the same world", () => {
     // A game with a button of its own: each press drops a box (held, it drops only one).
     const Waving: Cartridge = {

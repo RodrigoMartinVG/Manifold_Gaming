@@ -51,3 +51,11 @@ export const KIT_TRIANGLES: Readonly<Record<string, number>> = Object.fromEntrie
   [...Object.entries((made as Made).pieces), ...Object.entries((made as Made).leaves)].map(([name, p]) => [name, p.triangles]),
 );
 export { levelFromPlan } from './plan';
+
+/**
+ * THE VERSION OF ITS RULES (stage 5.5c, decision 0033): the kit's pieces: the boxes each one collides with. It goes up when what they decide changes
+ * what a replay gives; every game whose rules use it names it in its `versions`, so its replays say so.
+ *
+ *   1  stage 5.5c: as at the engine's version 49
+ */
+export const KIT_VERSION = { kit: 1 } as const;

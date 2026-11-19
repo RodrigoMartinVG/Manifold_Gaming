@@ -4,39 +4,45 @@ import { expect, test } from '@playwright/test';
 import { CHECKED_DUNGEONS, dungeon, textHash } from '@manifold/adventure/dungeon';
 
 /**
- * THE DETERMINISM CHECK (stage 2.5a): the page "La misma huella" plays the Dojo's reference replays
- * (games/dojo/replays/, one per phase) without drawing anything, and compares each final hash with
- * the one Node gave when it was recorded. It needs no WebGL: it is the simulation alone, so it runs
- * in every browser, also in continuous integration (Chromium, Firefox and WebKit).
+ * THE DETERMINISM CHECK (stage 2.5a; every game's since 5.5c): the page "La misma huella" plays the reference
+ * replays of every game (each game's `replays/` folder: the Dojo's, one per phase, and each level of the tower, the
+ * fortress and the wall) without drawing anything, and compares each final hash with the one Node gave when
+ * it was recorded. It needs no WebGL: it is the simulation alone, so it runs in every browser, also in
+ * continuous integration (Chromium, Firefox and WebKit). Until 5.5c it played the Dojo's alone.
  */
-const folder = path.join(import.meta.dirname, '..', 'games', 'dojo', 'replays');
-// In the order of their names, as the page lists them (`phase-3` before `phase-3-light`; by the files'
-// names, with `.replay`, it would be the other way round).
-const references = readdirSync(folder)
-  .filter((f) => f.endsWith('.replay'))
-  .map((f) => ({
-    name: f.replace(/\.replay$/, ''),
-    hash: /^end \d+ ([0-9a-f]{8})$/m.exec(readFileSync(path.join(folder, f), 'utf8'))![1]!,
-  }))
-  .sort((a, b) => a.name.localeCompare(b.name));
+const games = path.join(import.meta.dirname, '..', 'games');
+// In the order the page plays them: the Dojo first, then the games as it lists them; in each, by name
+// (`phase-3` before `phase-3-light`: by the files' names, with `.replay`, it would be the other way round).
+const ORDER = ['dojo', 'tower', 'fortress', 'wall'];
+const references = ORDER.flatMap((game) => {
+  const folder = path.join(games, game, 'replays');
+  return readdirSync(folder)
+    .filter((f) => f.endsWith('.replay'))
+    .map((f) => ({
+      name: `${game}/${f.replace(/\.replay$/, '')}`,
+      hash: /^end \d+ ([0-9a-f]{8})$/m.exec(readFileSync(path.join(folder, f), 'utf8'))![1]!,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+});
 
-test('this browser plays every reference replay to the hash Node recorded, without drawing anything', async ({ page }) => {
+test('this browser plays every game’s reference replays to the hash Node recorded, without drawing anything', async ({
+  page,
+}) => {
+  // Every level of every game, in a browser that may draw on the CPU: minutes, not seconds.
+  test.setTimeout(480_000);
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('jugar/la-misma-huella/');
   const check = page.locator('.same-hash');
-  await expect(check).toHaveAttribute('data-state', 'done', { timeout: 60_000 });
+  await expect(check).toHaveAttribute('data-state', 'done', { timeout: 420_000 });
+  // Every replay of every game, none left out (a game with none would show here).
+  expect(new Set(references.map((r) => r.name.split('/')[0]))).toEqual(new Set(ORDER));
   await expect(check).toHaveAttribute('data-total', String(references.length));
-  // Each row: its name, and the hash in this browser, the same as the file's.
+  // Each row: its game and name, and the hash in this browser, the same as the file's.
   const rows = check.locator('tbody tr');
   await expect(rows).toHaveCount(references.length);
   for (const [i, r] of references.entries()) {
-    await expect(rows.nth(i).locator('td').first()).toHaveText(
-      r.name
-        .replace(/^phase-/, 'Fase ')
-        .replace(/-light$/, ', la luz')
-        .replace(/-citadel$/, ', la ciudadela'),
-    );
+    await expect(rows.nth(i)).toHaveAttribute('data-name', r.name);
     await expect(rows.nth(i).locator('td').nth(3)).toHaveText(r.hash);
   }
   await expect(check).toHaveAttribute('data-same', String(references.length));

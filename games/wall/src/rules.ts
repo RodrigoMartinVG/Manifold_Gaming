@@ -1,4 +1,4 @@
-import { characterParts, GROUNDED } from '@manifold/character';
+import { characterParts, GROUNDED, CHARACTER_VERSION } from '@manifold/character';
 import { quat, sinCosDegrees, vec3, type Vec3 } from '@manifold/common';
 import {
   ARMS_BRAINS,
@@ -19,6 +19,7 @@ import {
   type Gunner,
   type Weapon,
   type WeaponKind,
+  ARMS_VERSION,
 } from '@manifold/arms';
 import {
   buildLevel,
@@ -31,7 +32,7 @@ import {
   type World,
   type ZoneKinds,
 } from '@manifold/core';
-import { KIT } from '@manifold/kit';
+import { KIT, KIT_VERSION } from '@manifold/kit';
 
 /**
  * The zones a level of the wall understands (stage 5n, decision 0031: levels to advance through, as the
@@ -244,6 +245,14 @@ function wallDamage(world: World, d: Damage): number {
 }
 
 /**
+ * THE VERSION OF ITS RULES (stage 5.5c, decision 0033): it goes up when they change what a replay gives;
+ * its replays are then recorded again, and no other game's. With the library's it uses, its `versions`.
+ *
+ *   1  stage 5.5c: as at the engine's version 49
+ */
+export const WALL_VERSION = 1;
+
+/**
  * THE WALL'S RULES (stage 5h; levels to advance through since 5n, decision 0031): a level from its file, with
  * the games' kit; a defender at its start, with its arsenal; the attackers standing from the start, and each
  * group called in when the defender walks into its `trigger`. A key taken turns on its signal (the level's
@@ -256,6 +265,7 @@ export function createWall(levels: Readonly<Record<string, Level>>): Cartridge {
   return {
     id: 'wall',
     title: 'The wall',
+    versions: { wall: WALL_VERSION, ...ARMS_VERSION, ...CHARACTER_VERSION, ...KIT_VERSION },
     kit: KIT,
     zones: WALL_ZONES,
     brains: ARMS_BRAINS,

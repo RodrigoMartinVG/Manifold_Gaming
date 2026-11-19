@@ -4,6 +4,12 @@
  * inputs give another hash. So it goes up whenever the simulation changes what a replay or a
  * snapshot gives, and one of another version says so, instead of playing to a different world.
  *
+ * Since stage 5.5c (decision 0033) it is the ENGINE's version: what the core, its physics and its
+ * arithmetic decide. A game's rules and the library's have versions of their own (`Cartridge.versions`,
+ * written in a replay as its `rules` line): a change to one game goes up there, and only that game's
+ * replays are recorded again. (Versions 41 to 49 were each one game's or the library's change, made here
+ * because there was nowhere else; the rest played on "as before, to the bit".)
+ *
  *   1  stage 1c: the first replays
  *   2  stage 1c2: turning (`ahead`, `side`, `turn`), the character's `turnSpeed`
  *   3  stage 1d: inputs as named values; the hash includes the id counter and the previous inputs

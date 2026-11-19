@@ -8,19 +8,22 @@ import SameHash from '../../../components/SameHash.astro';
 
 Una regla del motor es que **una partida da exactamente el mismo mundo en cualquier lado**: en tu navegador, en otro, y en Node, sin pantalla. Para comprobarlo no hace falta mirar: alcanza con la **huella** (_hash_), un número que resume el mundo entero en un paso, cada posición y cada velocidad, bit por bit. Si dos simulaciones terminan con la misma huella, simularon lo mismo.
 
-Esta página lo comprueba ahora, en tu navegador. Juega las **repeticiones de referencia** del Dojo sin dibujar nada, y compara la huella con la que dio Node cuando se grabaron:
+Esta página lo comprueba ahora, en tu navegador. Juega las **repeticiones de referencia** del Dojo y de los tres juegos sin dibujar nada, y compara la huella con la que dio Node cuando se grabaron:
 
 <SameHash />
 
 ## Qué se juega
 
-Una repetición por fase del motor, cada una con lo que esa fase construyó:
+Del Dojo, una repetición por fase del motor, cada una con lo que esa fase construyó:
 
 - **Fase 0:** el Dojo vacío, y el giro de su cubo cambiado desde la consola en pasos dados.
 - **Fase 1:** el personaje camina, corre, salta, gira como en los juegos de antes y tira pelotas; la gravedad de la Luna y de vuelta la de la Tierra; un segundo jugador entra, se mueve y se va.
 - **Fase 2:** el recorrido con todas las capacidades: el punto de control, dos caídas, las tres estrellas (trepando, planeando y con el doble salto), la meta, el carrusel y el transbordador, y valores cambiados en vivo.
 - **Fase 3:** las máquinas: un botón que abre una puerta, placas que llaman a un ascensor, y el viaje hasta una estrella. Y **la luz:** visto en la luz, perdido en la oscuridad, detrás de un pilar y en la niebla; una lámpara prendida, y otra rota por una pelota.
 - **Fase 4**, que crece con la fase: apuntar hacia arriba y hacia abajo, aparte de hacia dónde mira, y una pelota tirada hacia donde apunta.
+- **Fase 4.5:** la ciudadela, de la puerta a la torre: la caja sobre la placa, un guardia que te sigue de piso en piso, los techos.
+
+Y de cada juego, cada uno de sus niveles jugado hasta el final: los seis pisos de **la torre**, los cuatro niveles de **la fortaleza** (sin que te vean) y los cuatro de **la muralla** (con sus atacantes, que piensan en cada paso). Desde la etapa 5.5c se juegan todas: antes, la de los juegos solo se comprobaba en Node, y sus reglas nunca se comparaban en otro navegador.
 
 Una repetición no guarda el mundo, sino cómo nació, qué pidió cada jugador y en qué paso, y la huella del final (cómo funciona lo cuenta [una lección guardada en el repositorio](https://github.com/RodrigoMartinVG/Manifold_Gaming/blob/7707772/site/src/content/docs/tutorial/archivo/etapa-1/05-repeticiones.mdx), y lo va a contar el capítulo 25 del [tutorial](../../tutorial/), _Lo mismo, otra vez_).
 

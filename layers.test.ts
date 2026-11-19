@@ -48,6 +48,58 @@ describe('the layers, in one table (stage 5.5b, decision 0003 as amended)', () =
     }
   });
 
+  test('every reference replay has its recorder in its game’s references/, and every game with replays plays them back', () => {
+    for (const [dir, w] of Object.entries(WORKSPACES).filter(([, w]) => w.layer === 'cartridge')) {
+      const folder = join(root, dir, 'replays');
+      if (!existsSync(folder)) continue;
+      const recorders = join(root, dir, 'src', 'references');
+      const written = readdirSync(recorders)
+        .filter((f) => f.endsWith('.test.ts'))
+        .flatMap((f) =>
+          [...readFileSync(join(recorders, f), 'utf8').matchAll(/toMatchFileSnapshot\('\.\.\/\.\.\/replays\/([^']+)'\)/g)].map(
+            (m) => m[1],
+          ),
+        );
+      for (const replay of readdirSync(folder).filter((f) => f.endsWith('.replay')))
+        expect(written, `${dir}/replays/${replay}: no test in src/references/ records it`).toContain(replay);
+      expect(readFileSync(join(root, dir, 'src', 'replays.test.ts'), 'utf8'), `${w.name} plays its references back`).toMatch(
+        /describeReferences\(/,
+      );
+    }
+  });
+
+  test('each game’s versions name its own rules and every library package they use, through the others too', () => {
+    const library = Object.entries(WORKSPACES).filter(([, w]) => w.layer === 'library');
+    const short = (name: string) => name.replace('@manifold/', '');
+    /** The rules files of a workspace: what is not named as view, brain or tool, and not a test. */
+    const rulesOf = (dir: string) => {
+      const w = WORKSPACES[dir]!;
+      return readdirSync(join(root, dir, 'src'))
+        .filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts') && (w.files?.[f] ?? 'rules') === 'rules')
+        .map((f) => readFileSync(join(root, dir, 'src', f), 'utf8'));
+    };
+    /** The library packages some sources import (by name), and those these import in turn. */
+    const used = (sources: string[], seen = new Set<string>()): Set<string> => {
+      for (const text of sources)
+        for (const [, name] of text.matchAll(/from '(@manifold\/[a-z]+)(?:\/[^']*)?'/g)) {
+          const lib = library.find(([, w]) => w.name === name);
+          if (!lib || seen.has(name!)) continue;
+          seen.add(name!);
+          used(rulesOf(lib[0]), seen);
+        }
+      return seen;
+    };
+    for (const [dir, w] of Object.entries(WORKSPACES).filter(([, w]) => w.layer === 'cartridge')) {
+      const sources = rulesOf(dir);
+      const declared = sources.map((t) => /versions: \{([^}]*)\}/.exec(t)?.[1]).find((v) => v !== undefined);
+      expect(declared, `${w.name} declares its versions`).toBeDefined();
+      const names = [...declared!.matchAll(/(?:^|,)\s*(?:\.\.\.([A-Z]+)_VERSION|([a-z]+):)/g)]
+        .map((m) => (m[1] ?? m[2])!.toLowerCase())
+        .sort();
+      expect(names, w.name).toEqual([short(w.name), ...[...used(sources)].map(short)].sort());
+    }
+  });
+
   test('a file added anywhere is guarded from its first line; the view and a brain keep what they may do', async () => {
     const eslint = new ESLint({ cwd: root });
     /** The rules a text breaks, as a file at that path (it need not exist). */

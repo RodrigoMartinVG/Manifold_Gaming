@@ -1,4 +1,9 @@
 # Manifold replay 49
+rules arms 1 character 1 dojo 1 kit 1
+# The citadel, played from its gate to its tower: the crate on the plate, a guard that follows, the roofs.
+# A reference replay (decision 0025): playing it must end with the hash on its last line.
+# Recorded by games/dojo/src/references/citadel.test.ts;
+# recorded again (npm run references) only when the engine or this game's rules change on purpose.
 game dojo
 profile rapier-deterministic server 60
 birth seed 45

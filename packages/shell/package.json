@@ -7,7 +7,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./credits": "./src/credits.ts",
-    "./progress": "./src/progress.ts"
+    "./progress": "./src/progress.ts",
+    "./references": "./src/references.ts"
   },
   "dependencies": {
     "@manifold/commands": "0.0.0",

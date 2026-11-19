@@ -1,5 +1,5 @@
 import type { Vec3 } from '@manifold/common';
-import { characterParts, PLATFORMER } from '@manifold/character';
+import { characterParts, PLATFORMER, CHARACTER_VERSION } from '@manifold/character';
 import { quat, vec3 } from '@manifold/common';
 import {
   buildLevel,
@@ -11,7 +11,7 @@ import {
   type World,
   type ZoneKinds,
 } from '@manifold/core';
-import { KIT } from '@manifold/kit';
+import { KIT, KIT_VERSION } from '@manifold/kit';
 
 /** The zones a floor of the tower understands: where you come back to, where you fall, a star, the goal. */
 export const TOWER_ZONES: ZoneKinds = { checkpoint: {}, fall: {}, star: {}, goal: {} };
@@ -47,6 +47,14 @@ function climber(world: World, player: number, at: Vec3, facing: Vec3) {
 const stars = (world: World) => [...world.entities.values()].filter((e) => e.sensor?.kind === 'star');
 
 /**
+ * THE VERSION OF ITS RULES (stage 5.5c, decision 0033): it goes up when they change what a replay gives;
+ * its replays are then recorded again, and no other game's. With the library's it uses, its `versions`.
+ *
+ *   1  stage 5.5c: as at the engine's version 49
+ */
+export const TOWER_VERSION = 1;
+
+/**
  * THE TOWER'S RULES (stage 5b; its climber, the platformer's since 5c: its jump by height and time,
  * walls slid down and leapt off, ledges grabbed): a floor from its file, with the games' kit, and a
  * climber at its start (each player who joins, beside the first); a fall brings it back to its last
@@ -60,6 +68,7 @@ export function createTower(levels: Readonly<Record<string, Level>>): Cartridge 
   return {
     id: 'tower',
     title: 'The tower',
+    versions: { tower: TOWER_VERSION, ...CHARACTER_VERSION, ...KIT_VERSION },
     kit: KIT,
     zones: TOWER_ZONES,
     onDeclare(registry) {

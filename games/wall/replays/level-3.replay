@@ -1,8 +1,9 @@
 # Manifold replay 49
+rules arms 1 character 1 kit 1 wall 1
 # The towers, played to their way out: the ferry, the moat, the lift, the bridge.
-# A reference replay (stage 5h, as the tower’s since 5d): playing it must end with the hash on its
-# last line. Recorded by games/wall/src/levels.test.ts; recorded again (npm run references) only
-# when the simulation changes on purpose, with SIMULATION_VERSION.
+# A reference replay (decision 0025): playing it must end with the hash on its last line.
+# Recorded by games/wall/src/references/level-3.test.ts;
+# recorded again (npm run references) only when the engine or this game's rules change on purpose.
 game wall
 profile rapier-deterministic server 60
 birth wall.level level-3

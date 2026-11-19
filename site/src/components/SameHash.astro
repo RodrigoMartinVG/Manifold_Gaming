@@ -1,7 +1,8 @@
 ---
 /**
- * THE SAME HASH, IN THIS BROWSER (stage 2.5a): plays the Dojo's reference replays here, without
- * drawing anything, and compares each final hash with the one Node gave when it was recorded. It is
+ * THE SAME HASH, IN THIS BROWSER (stage 2.5a; every game's since 5.5c): plays the reference replays of the
+ * Dojo, the tower, the fortress and the wall here, without drawing anything, and compares each final hash
+ * with the one Node gave when it was recorded. It is
  * the determinism check the browser tests run in Chromium, Firefox and WebKit (it needs no WebGL),
  * shown to whoever opens the page. The texts are the site's, in Spanish.
  */
@@ -24,35 +25,53 @@
 </div>
 
 <script>
-  import { checkReferences, type CheckResult } from '@manifold/dojo/check';
+  import { checkReplays, type CheckResult } from '@manifold/core';
+  import { DojoCartridge } from '@manifold/dojo/cartridge';
+  import { REFERENCE_REPLAYS } from '@manifold/dojo/replays';
+  import { FORTRESS_CARTRIDGE } from '@manifold/fortress/cartridge';
+  import { FORTRESS_REPLAYS } from '@manifold/fortress/replays';
+  import { TOWER_CARTRIDGE } from '@manifold/tower/cartridge';
+  import { TOWER_REPLAYS } from '@manifold/tower/replays';
+  import { WALL_CARTRIDGE } from '@manifold/wall/cartridge';
+  import { WALL_REPLAYS } from '@manifold/wall/replays';
 
   const box = document.querySelector<HTMLElement>('.same-hash')!;
   const status = box.querySelector<HTMLElement>('.same-hash-status')!;
   const body = box.querySelector('tbody')!;
   const hex = (n: number) => n.toString(16).padStart(8, '0');
-  // `phase-3` is "Fase 3"; a phase with more than one, its part too (`phase-3-light`: "Fase 3, la luz";
-  // `phase-4.5-citadel`: "Fase 4.5, la ciudadela").
+  // Every game's (stage 5.5c: until then, the Dojo's alone), each by its name in the site's words.
+  const GAMES = { dojo: 'El Dojo', tower: 'La torre', fortress: 'La fortaleza', wall: 'La muralla' } as const;
+  // `phase-3` is "fase 3"; a phase with more than one, its part too (`phase-3-light`: "fase 3, la luz";
+  // `phase-4.5-citadel`: "fase 4.5, la ciudadela"); `floor-2`, "piso 2"; `level-1`, "nivel 1".
   const PARTS: Record<string, string> = { light: 'la luz', citadel: 'la ciudadela' };
-  const label = (name: string) => {
+  const label = (game: string, name: string) => {
     const [, phase, part] = /^phase-(\d+(?:\.\d+)?)(?:-(\w+))?$/.exec(name) ?? [];
-    return phase === undefined ? name : part ? `Fase ${phase}, ${PARTS[part] ?? part}` : `Fase ${phase}`;
+    const own =
+      phase !== undefined
+        ? part
+          ? `fase ${phase}, ${PARTS[part] ?? part}`
+          : `fase ${phase}`
+        : name.replace(/^floor-/, 'piso ').replace(/^level-/, 'nivel ');
+    return `${GAMES[game as keyof typeof GAMES] ?? game}: ${own}`;
   };
   const rows = new Map<string, HTMLTableCellElement[]>();
 
-  /** The row of a replay (made the first time it is mentioned). */
-  function row(name: string) {
-    let cells = rows.get(name);
+  /** The row of a replay (made the first time it is mentioned), its game and name in `data-name`. */
+  function row(game: string, name: string) {
+    const key = `${game}/${name}`;
+    let cells = rows.get(key);
     if (!cells) {
       const tr = body.insertRow();
+      tr.dataset.name = key;
       cells = Array.from({ length: 5 }, () => tr.insertCell());
-      cells[0]!.textContent = label(name);
-      rows.set(name, cells);
+      cells[0]!.textContent = label(game, name);
+      rows.set(key, cells);
     }
     return cells;
   }
 
   function show(r: CheckResult) {
-    const [, steps, expected, got, verdict] = row(r.name);
+    const [, steps, expected, got, verdict] = row(r.game, r.name);
     steps!.textContent = r.steps.toLocaleString('es');
     expected!.innerHTML = `<code>${hex(r.expected)}</code>`;
     got!.innerHTML = `<code>${hex(r.got)}</code>`;
@@ -62,12 +81,22 @@
 
   box.dataset.state = 'running';
   const start = performance.now();
-  checkReferences({
-    onProgress(name, step, steps) {
-      row(name)[1]!.textContent = `${step.toLocaleString('es')} de ${steps.toLocaleString('es')}`;
-      status.textContent = `Jugando ${label(name)}: paso ${step.toLocaleString('es')} de ${steps.toLocaleString('es')}…`;
+  checkReplays(
+    [
+      { cartridge: DojoCartridge, replays: REFERENCE_REPLAYS },
+      { cartridge: TOWER_CARTRIDGE, replays: TOWER_REPLAYS },
+      { cartridge: FORTRESS_CARTRIDGE, replays: FORTRESS_REPLAYS },
+      { cartridge: WALL_CARTRIDGE, replays: WALL_REPLAYS },
+    ],
+    {
+      now: () => performance.now(),
+      pause: () => new Promise<void>((resolve) => setTimeout(resolve, 0)),
+      onProgress(game, name, step, steps) {
+        row(game, name)[1]!.textContent = `${step.toLocaleString('es')} de ${steps.toLocaleString('es')}`;
+        status.textContent = `Jugando ${label(game, name)}: paso ${step.toLocaleString('es')} de ${steps.toLocaleString('es')}…`;
+      },
     },
-  })
+  )
     .then((results) => {
       results.forEach(show);
       const same = results.filter((r) => r.same).length;

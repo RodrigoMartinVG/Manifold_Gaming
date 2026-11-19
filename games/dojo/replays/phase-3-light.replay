@@ -1,8 +1,9 @@
 # Manifold replay 49
+rules arms 1 character 1 dojo 1 kit 1
 # Phase 3, the light and the phase's demonstration: seen in the light, lost in the dark, behind a pillar and in a fog; a lamp switched on, and one broken by a ball.
-# A reference replay (stage 2.5a): playing it must end with the hash on its last line. A refactor
-# keeps it bit for bit. Recorded by games/dojo/src/reference.test.ts; recorded again (npm run
-# references) only when the simulation changes on purpose, with SIMULATION_VERSION.
+# A reference replay (decision 0025): playing it must end with the hash on its last line.
+# Recorded by games/dojo/src/references/phases.test.ts;
+# recorded again (npm run references) only when the engine or this game's rules change on purpose.
 game dojo
 profile rapier-deterministic server 60
 birth seed 8

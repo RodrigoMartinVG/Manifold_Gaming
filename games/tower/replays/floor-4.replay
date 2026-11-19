@@ -1,8 +1,9 @@
 # Manifold replay 49
+rules character 1 kit 1 tower 1
 # The tower's third floor, played to its goal: two carousels, the bar, three turntables.
-# A reference replay (stage 5d, as the Dojo’s since 2.5a): playing it must end with the hash on its
-# last line. Recorded by games/tower/src/floors.test.ts; recorded again (npm run references) only
-# when the simulation changes on purpose, with SIMULATION_VERSION.
+# A reference replay (decision 0025): playing it must end with the hash on its last line.
+# Recorded by games/tower/src/references/floor-4.test.ts;
+# recorded again (npm run references) only when the engine or this game's rules change on purpose.
 game tower
 profile rapier-deterministic server 60
 birth tower.floor floor-4

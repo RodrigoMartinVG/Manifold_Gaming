@@ -4,6 +4,7 @@ import {
   sameInput,
   Session,
   SIMULATION_VERSION,
+  versionsProblem,
   stateHash,
   type Cartridge,
   type PlayerInput,
@@ -126,6 +127,12 @@ export class Client {
           `a match of "${m.game}", version ${m.version}: this page is "${this.cartridge.id}", version ${SIMULATION_VERSION}`,
           'error',
         );
+        return;
+      }
+      // (Stage 5.5c) The same engine, and the same game's rules: with others, the copies would part.
+      const rules = versionsProblem(m.versions ?? null, this.cartridge.versions ?? {});
+      if (rules) {
+        this.on.say(`a match of other rules: ${rules}`, 'error');
         return;
       }
       this.player = m.player;

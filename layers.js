@@ -41,12 +41,17 @@ export const WORKSPACES = {
   'packages/character': { name: '@manifold/character', layer: 'library', files: { 'models.ts': 'view', 'glb.ts': 'view' } },
   'packages/kit': { name: '@manifold/kit', layer: 'library', files: { 'models.ts': 'view' } },
   'packages/arms': { name: '@manifold/arms', layer: 'library', files: { 'models.ts': 'view', 'brain.ts': 'brain' } },
-  'packages/shell': { name: '@manifold/shell', layer: 'library', files: { 'index.ts': 'view', 'words.ts': 'view' } },
+  'packages/shell': {
+    name: '@manifold/shell',
+    layer: 'library',
+    // (`references.ts`: the reference replays' test kit, stage 5.5c.)
+    files: { 'index.ts': 'view', 'words.ts': 'view', 'references.ts': 'tool' },
+  },
   'games/dojo': {
     name: '@manifold/dojo',
     layer: 'cartridge',
     // (`declarations.ts` reads the view's catalog, for the console's reference.)
-    files: { 'index.ts': 'view', 'interface.ts': 'view', 'declarations.ts': 'view', 'check.ts': 'tool' },
+    files: { 'index.ts': 'view', 'interface.ts': 'view', 'declarations.ts': 'view' },
   },
   'games/adventure': { name: '@manifold/adventure', layer: 'cartridge', files: { 'index.ts': 'view' } },
   'games/tower': {

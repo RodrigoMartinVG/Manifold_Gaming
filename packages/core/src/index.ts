@@ -63,6 +63,8 @@ export {
   type InputAction,
 } from './input';
 export { SIMULATION_VERSION } from './version';
+export { checkReplays, type CheckedGame, type CheckResult } from './determinism';
+export { resimulateOwn, type Resimulated } from './reconcile';
 export {
   buildLevel,
   buildPiece,
@@ -87,10 +89,20 @@ export {
   type Turn,
   type ZoneKinds,
 } from './level';
-export { playReplay, replayFromText, replayOf, ReplayPlayer, replayToText, sessionFor, type Replay } from './replay';
+export {
+  playReplay,
+  replayFromText,
+  replayOf,
+  ReplayPlayer,
+  replayToText,
+  sessionFor,
+  versionsProblem,
+  versionsText,
+  type Replay,
+} from './replay';
 export { Clock } from './clock';
 export { stateHash } from './hash';
-export type { Brain, Cartridge, Memory } from './cartridge';
+export type { Brain, Cartridge, Memory, Versions } from './cartridge';
 export { BotHost } from './bots';
 export { CHARACTER_GAP, initPhysics, PHYSICS, RapierPhysics, STANDS_ON, STEP_UP, type PhysicsBackend } from './physics';
 export { metricsOf, metricsOfEntity, type Metrics } from './metrics';

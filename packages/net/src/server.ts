@@ -253,7 +253,14 @@ export class Server {
     const s = this.session;
     const atBirth = s.world.tick === 0;
     const match: Match = { birth: s.birth, ...(atBirth ? {} : { session: s.state() }), ...(replay ? { replay } : {}) };
-    c.channel.send({ type: 'welcome', player: c.player!, game: this.cartridge.id, version: SIMULATION_VERSION, match });
+    c.channel.send({
+      type: 'welcome',
+      player: c.player!,
+      game: this.cartridge.id,
+      version: SIMULATION_VERSION,
+      versions: this.cartridge.versions ?? {},
+      match,
+    });
   }
 
   private snapshot(c: Connection, action: 'save' | 'load') {

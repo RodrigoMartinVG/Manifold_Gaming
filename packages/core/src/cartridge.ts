@@ -17,10 +17,21 @@ import type { World } from './world';
  * weapons, saving the game, travelling between levels, the ending, teams...), and every new thing
  * comes with its test and its tutorial lesson.
  */
+/** The versions of a game's rules, by name (`{ tower: 1, kit: 1 }`). */
+export type Versions = Readonly<Record<string, number>>;
+
 export interface Cartridge {
   /** For addresses and replays: "dojo". */
   readonly id: string;
   readonly title: string;
+  /**
+   * THE VERSIONS OF ITS RULES (stage 5.5c, decision 0033), by name: its own and those of the library's
+   * packages its rules use (`{ tower: 1, character: 1, kit: 1 }`), each going up when what it decides
+   * changes what a replay gives. A replay carries them, and a game whose versions differ refuses it; the
+   * engine's own is `SIMULATION_VERSION`. So one game's change re-writes only its own replays, not every
+   * game's. Without it, none.
+   */
+  readonly versions?: Versions;
   /** Its kit of level pieces (stage 4.5e, decision 0026), if it has one: its levels' `kit` lines build with it. */
   readonly kit?: KitPieces;
   /**

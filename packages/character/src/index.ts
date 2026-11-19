@@ -138,3 +138,11 @@ export function characterParts(o: { player: number; facing: Vec3; color: number 
     appearance: { shape: 'capsule', size: [0.6, 1.6, 0.6], color: o.color, model: MANNEQUIN },
   };
 }
+
+/**
+ * THE VERSION OF ITS RULES (stage 5.5c, decision 0033): the games' character: its parts and its presets by genre. It goes up when what they decide changes
+ * what a replay gives; every game whose rules use it names it in its `versions`, so its replays say so.
+ *
+ *   1  stage 5.5c: as at the engine's version 49
+ */
+export const CHARACTER_VERSION = { character: 1 } as const;

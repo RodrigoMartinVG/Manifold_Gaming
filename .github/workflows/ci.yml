@@ -41,8 +41,8 @@ jobs:
         run: npm run lint
       - name: Format
         run: npm run format:check
-      - name: Headless tests
-        run: npm run test
+      - name: Headless tests (units, every level's playthrough, the site)
+        run: npm run test:all
       # Alone, after the others: with tests running alongside, times go up to five times. Each budget
       # is measured against Rapier's own step on this machine (perf/budgets.perf.ts).
       - name: Performance budgets

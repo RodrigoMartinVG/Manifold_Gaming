@@ -1,20 +1,10 @@
 import { beforeAll, describe, expect, test } from 'vitest';
 import { vec3, type Vec3 } from '@manifold/common';
-import {
-  BotHost,
-  eyeHeightOf,
-  initPhysics,
-  NO_INPUT,
-  registryFor,
-  replayOf,
-  replayToText,
-  Session,
-  type Entity,
-  type PlayerInput,
-} from '@manifold/core';
-import { DojoCartridge } from './cartridge';
-import { weapon } from './rules';
-import { ROOMS } from './rooms';
+import { BotHost, eyeHeightOf, initPhysics, NO_INPUT, registryFor, Session, type Entity, type PlayerInput } from '@manifold/core';
+import { DojoCartridge } from '../cartridge';
+import { weapon } from '../rules';
+import { ROOMS } from '../rooms';
+import { referenceText } from '@manifold/shell/references';
 
 beforeAll(initPhysics);
 
@@ -295,7 +285,13 @@ describe('the citadel (stage 4.5f)', () => {
       // The run, a reference replay (decision 0025; recorded again with `npm run references`): the guards'
       // inputs in it, as anyone's (decision 0023), the heaviest replay the site plays in every browser to
       // the hash Node gave (e2e/determinism.e2e.ts).
-      await expect(replayToText(replayOf(session))).toMatchFileSnapshot('../replays/phase-4.5-citadel.replay');
+      await expect(
+        referenceText(
+          session,
+          'The citadel, played from its gate to its tower: the crate on the plate, a guard that follows, the roofs.',
+          'games/dojo/src/references/citadel.test.ts',
+        ),
+      ).toMatchFileSnapshot('../../replays/phase-4.5-citadel.replay');
       session.world.dispose();
     },
   );

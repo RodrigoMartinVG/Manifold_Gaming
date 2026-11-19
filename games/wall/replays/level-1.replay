@@ -1,8 +1,9 @@
 # Manifold replay 49
+rules arms 1 character 1 kit 1 wall 1
 # The wall walk, played to its way out: the balcony, the armory, the bridge, the dais.
-# A reference replay (stage 5h, as the tower’s since 5d): playing it must end with the hash on its
-# last line. Recorded by games/wall/src/levels.test.ts; recorded again (npm run references) only
-# when the simulation changes on purpose, with SIMULATION_VERSION.
+# A reference replay (decision 0025): playing it must end with the hash on its last line.
+# Recorded by games/wall/src/references/level-1.test.ts;
+# recorded again (npm run references) only when the engine or this game's rules change on purpose.
 game wall
 profile rapier-deterministic server 60
 input 1 1 face @0 pitch -0.015 arms.attack

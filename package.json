@@ -19,10 +19,11 @@
     "lint": "eslint .",
     "format:check": "prettier --check .",
     "format": "prettier --write .",
-    "test": "vitest run",
+    "test": "vitest run --project units --project site",
+    "test:all": "vitest run",
     "test:watch": "vitest",
     "perf": "vitest run --config vitest.perf.config.ts",
-    "references": "vitest run games/dojo/src/reference.test.ts games/dojo/src/citadel.test.ts games/tower/src/floors.test.ts games/fortress/src/levels.test.ts games/wall/src/levels.test.ts --update",
+    "references": "vitest run --project playthroughs references/ --update",
     "art": "npm run art:mannequin && npm run art:door && npm run art:lamp && npm run art:kit && npm run art:weapons",
     "art:mannequin": "${BLENDER:-/Applications/Blender.app/Contents/MacOS/Blender} --background --factory-startup --python art/mannequin.py -- packages/character/assets/mannequin.glb",
     "art:door": "${BLENDER:-/Applications/Blender.app/Contents/MacOS/Blender} --background --factory-startup --python art/door.py -- games/dojo/assets/door.glb",
@@ -30,7 +31,7 @@
     "art:kit": "${BLENDER:-/Applications/Blender.app/Contents/MacOS/Blender} --background --factory-startup --python art/kit.py -- packages/kit/assets/kit.glb",
     "art:weapons": "${BLENDER:-/Applications/Blender.app/Contents/MacOS/Blender} --background --factory-startup --python art/weapons.py -- packages/arms/assets/weapons.glb",
     "e2e": "playwright test",
-    "verify": "npm run check && npm run lint && npm run format:check && npm run test && npm run perf",
+    "verify": "npm run check && npm run lint && npm run format:check && npm run test:all && npm run perf",
     "serve:site": "vite preview --outDir site/dist --base /Manifold_Gaming/ --port 4321 --strictPort"
   },
   "devDependencies": {

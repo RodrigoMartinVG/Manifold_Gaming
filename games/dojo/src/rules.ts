@@ -1,6 +1,6 @@
 import { quat, vec3, type Vec3 } from '@manifold/common';
-import { characterParts, PLATFORMER } from '@manifold/character';
-import { KIT } from '@manifold/kit';
+import { characterParts, PLATFORMER, CHARACTER_VERSION } from '@manifold/character';
+import { KIT, KIT_VERSION } from '@manifold/kit';
 import {
   ARMS_INPUTS,
   arms,
@@ -20,6 +20,7 @@ import {
   type Gunner,
   type Thrown,
   type Weapon,
+  ARMS_VERSION,
 } from '@manifold/arms';
 // (The weapons and the guards, the games' since stage 5e: the Dojo's tests and interface read them here too.)
 export {
@@ -382,6 +383,14 @@ function joinedPlayers(world: World) {
 }
 
 /**
+ * THE VERSION OF ITS RULES (stage 5.5c, decision 0033): it goes up when they change what a replay gives;
+ * its replays are then recorded again, and no other game's. With the library's it uses, its `versions`.
+ *
+ *   1  stage 5.5c: as at the engine's version 49
+ */
+export const DOJO_VERSION = 1;
+
+/**
  * THE DOJO'S CARTRIDGE: the first game, the engine's lab. A floor, a big cube that spins (a
  * kinematic body: it pushes what it touches), small cubes that fall from the world's randomness, and
  * balls on demand. Or a level, which brings its whole ground (stage 3b: before, the floor and the big
@@ -403,6 +412,7 @@ export function createDojo(levels: Readonly<Record<string, Level>>, brains: Read
   return {
     id: 'dojo',
     title: 'Dojo',
+    versions: { dojo: DOJO_VERSION, ...ARMS_VERSION, ...CHARACTER_VERSION, ...KIT_VERSION },
     // The games' kit of level pieces (stage 4.5e): its levels' `kit` lines build with it.
     kit: KIT,
     // Its guards' brains (stage 4e): given here by whoever hosts its matches (the page, a test); a
