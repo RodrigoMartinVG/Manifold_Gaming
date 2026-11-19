@@ -58,7 +58,7 @@ Un cambio solo en documentos (`docs/`, `ROADMAP.md`, `README.md`, `CLAUDE.md`) n
 
 - `scratch/` para el trabajo descartable: fuera de git, del lint y de las pruebas.
 - `sitio/` (las cachés de un sitio viejo), borrado.
-- Los tres worktrees viejos de `.claude/worktrees`, de sesiones anteriores, todavía están: se borran solo con la palabra del autor.
+- Los tres worktrees viejos de `.claude/worktrees`, de sesiones anteriores, borrados con la palabra del autor: estaban limpios, sin nada sin commitear, y lo que tenían está en main o en su rama, que queda. Eran unos 1,2 GB.
 
 ## El arte, comprobable
 
@@ -115,5 +115,4 @@ Quedan presupuestos con un tercio de margen sobre lo medido, para que nada empeo
   Las project references esperan a que los assets se exporten de otra forma. La parte lenta de los tests son pruebas pesadas que no son recorridos (las reglas de la muralla, el curso del tutorial).
 
 - **Continuous integration** se verifica con el primer push.
-- **Los tres worktrees viejos** esperan la palabra del autor.
 - Lo que sigue es la **5.5e**: la forma de la simulación, sin cambiar un bit.
