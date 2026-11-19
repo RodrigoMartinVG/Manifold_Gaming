@@ -1,11 +1,18 @@
 # Continuous integration (decision 0009): every change to main is verified.
 # If it passes, the site is published on GitHub Pages.
+#
+# Since stage 5.5d, in jobs side by side (one after another it took 15 to 46 minutes): the static checks, the
+# headless tests and budgets, the browser tests by browser (in Playwright's own image, its browsers and their
+# libraries already in it: installing them was 30 minutes of the slowest run), and the site for Pages. A change
+# to the documents alone (docs/, ROADMAP.md, README.md, CLAUDE.md) runs nothing: the site does not read them.
 name: CI
 
 on:
   push:
     branches: [main]
+    paths-ignore: ['docs/**', 'ROADMAP.md', 'README.md', 'CLAUDE.md']
   pull_request:
+    paths-ignore: ['docs/**', 'ROADMAP.md', 'README.md', 'CLAUDE.md']
   workflow_dispatch:
 
 permissions:
@@ -23,11 +30,10 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  verify:
-    name: Verify
+  static:
+    name: Types, linter (and the boundaries between layers), format
     runs-on: ubuntu-latest
-    # The longest run so far took 46 minutes (installing the browsers, 30 of them): past this, something hangs.
-    timeout-minutes: 60
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -41,41 +47,100 @@ jobs:
         run: npm run lint
       - name: Format
         run: npm run format:check
-      - name: Headless tests (units, every level's playthrough, the site)
+
+  headless:
+    name: Headless tests (units, every level's playthrough, the site) and the performance budgets
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Headless tests
         run: npm run test:all
-      # Alone, after the others: with tests running alongside, times go up to five times. Each budget
-      # is measured against Rapier's own step on this machine (perf/budgets.perf.ts).
+      # Alone, after the tests: with tests running alongside, times go up to five times. Each budget is
+      # measured against Rapier's own step on this machine (perf/*.perf.ts).
       - name: Performance budgets
         run: npm run perf
-      - name: Browsers for the tests
-        run: npx playwright install --with-deps chromium firefox webkit
-      # Every test in Chromium; in Firefox and WebKit, the determinism check and the physics tests, which
-      # draw. Under a virtual display (Xvfb): headless Firefox on Linux finds GL only through a display,
-      # and this machine has none. Without one, no WebGL at all ("Exhausted GL driver options", even with
-      # WebGL forced): three can't make its renderer and the pages never step (0 of 9 on 2026-11-17).
-      # With one, still headless, it draws on the CPU (Mesa's llvmpipe): 9 of 9, twice, in the step that
-      # checked it here before it was required. (Chromium and WebKit pass with it as without: the physics
-      # and determinism tests, 33 of 33 in the three browsers, under Xvfb in Playwright's Ubuntu 24.04 image.)
-      - name: Browser tests (builds the site)
-        run: xvfb-run -a npm run e2e
-      - name: Keep the built site
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: actions/upload-pages-artifact@v5
+      # Each run's numbers, kept (stage 5.5d): a trend can be read across runs.
+      - name: The performance numbers
+        if: always()
+        uses: actions/upload-artifact@v7
         with:
-          path: site/dist
+          name: performance
+          path: perf/results
+          if-no-files-found: ignore
+          retention-days: 30
+
+  browsers:
+    name: Browser tests (${{ matrix.browser }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    # Playwright's image, its version the one in package-lock.json: the browsers and every library they need,
+    # and Xvfb. As user 1001, as Playwright's guide runs it (Firefox does not run as root in a user's home).
+    container:
+      image: mcr.microsoft.com/playwright:v1.65.0-noble
+      options: --user 1001
+    strategy:
+      fail-fast: false
+      matrix:
+        # Every test in Chromium (its timing-sensitive ones after the rest, `@quiet`); in Firefox and WebKit,
+        # the determinism check and the physics tests, which draw (playwright.config.ts).
+        include:
+          - browser: chromium
+            projects: --project chromium --project chromium-quiet
+          - browser: firefox
+            projects: --project firefox
+          - browser: webkit
+            projects: --project webkit
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+      - run: npm ci
+      # Under a virtual display (Xvfb): headless Firefox on Linux finds GL only through a display, and this
+      # machine has none. Without one, no WebGL at all ("Exhausted GL driver options", even with WebGL
+      # forced): three can't make its renderer and the pages never step (0 of 9 on 2026-11-17). With one,
+      # still headless, it draws on the CPU (Mesa's llvmpipe): 9 of 9, twice, in the step that checked it
+      # here before it was required. (Chromium and WebKit pass with it as without: the physics and
+      # determinism tests, 33 of 33 in the three browsers, under Xvfb in Playwright's Ubuntu 24.04 image.)
+      - name: Browser tests (builds the site)
+        run: xvfb-run -a npx playwright test ${{ matrix.projects }}
       # The browser tests' HTML report, with each failed test's trace (playwright.config.ts): download it,
       # then `npx playwright show-report <its folder>`.
       - name: Playwright report (if something failed)
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.browser }}
           path: playwright-report
           retention-days: 7
 
+  site:
+    name: The site, for GitHub Pages
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Keep the built site
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: site/dist
+
   publish:
     name: Publish to GitHub Pages
-    needs: verify
+    needs: [static, headless, browsers, site]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10

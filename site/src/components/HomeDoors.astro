@@ -75,9 +75,9 @@ const latest = (await reports())[0]!;
   <span class="mg-stages-label">En qué etapa está</span>
   <ol start="0">
     {
-      STAGES.map((name, i) => (
+      STAGES.map(({ number, name }, i) => (
         <li aria-current={i === CURRENT_STAGE ? 'step' : undefined} data-done={i < CURRENT_STAGE ? '' : undefined}>
-          <b>{i}</b> {name}
+          <b>{number ?? '·'}</b> {name}
         </li>
       ))
     }

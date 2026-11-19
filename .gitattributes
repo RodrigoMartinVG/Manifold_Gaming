@@ -1,0 +1,9 @@
+# What a test or a script writes, never a hand (stage 5.5d): shown as generated in a review, so a diff of
+# rules is not buried under the replays it re-recorded.
+games/*/replays/*.replay linguist-generated=true
+packages/kit/assets/kit.json linguist-generated=true
+# The fortress's and the wall's levels, drawn from their plans (plans.test.ts writes them).
+games/fortress/levels/*.level linguist-generated=true
+games/wall/levels/*.level linguist-generated=true
+# Models: bytes, never text.
+*.glb binary

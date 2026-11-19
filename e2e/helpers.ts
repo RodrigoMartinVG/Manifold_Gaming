@@ -36,3 +36,28 @@ export async function settled(page: Page, name: 'player' | 'camera' | 'facing', 
   }
   throw new Error(`data-${name} did not settle in ${timeout} ms (last read at step ${at}: ${a.join(' ')})`);
 }
+
+/** Collects the page's errors (exceptions and `console.error`) to demand there are none. */
+export function errors(page: Page) {
+  const list: string[] = [];
+  page.on('pageerror', (e) => list.push(`exception: ${e.message}`));
+  page.on('console', (m) => {
+    if (m.type() === 'error') list.push(`console: ${m.text()}`);
+  });
+  return list;
+}
+
+/** How many meshes the page draws (`data-meshes`). */
+export const meshes = (page: Page) => page.locator('#game').getAttribute('data-meshes').then(Number);
+
+export const consoleLog = (page: Page) => page.locator('.mg-console-log');
+
+export async function typeInConsole(page: Page, ...lines: string[]) {
+  for (const line of lines) {
+    await page.locator('.mg-console input').fill(line);
+    await page.locator('.mg-console input').press('Enter');
+  }
+}
+
+/** Where a camera looks along the ground: its heading, in radians (0 looking along −Z, the floors' ahead). */
+export const heading = (look: number[]) => Math.atan2(-look[0]!, -look[2]!);

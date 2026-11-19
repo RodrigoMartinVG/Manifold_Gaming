@@ -7,5 +7,5 @@
     "allowJs": true,
     "checkJs": true
   },
-  "files": ["layers.js", "layers.test.ts"]
+  "files": ["layers.js", "layers.test.ts", "status.test.ts", "site/src/stages.ts"]
 }

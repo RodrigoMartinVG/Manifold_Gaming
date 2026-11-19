@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { afterSteps, position } from './helpers';
+import { afterSteps, position, typeInConsole } from './helpers';
 import { initPhysics, levelFromText, playReplay, registryFor, replayFromText, Session, stateHash } from '@manifold/core';
 import { replayFromFragment } from '@manifold/presentation';
 import { createDojo } from '@manifold/dojo/rules';
@@ -27,13 +27,6 @@ const DojoCartridge = createDojo(
  */
 
 const hex = (n: number) => n.toString(16).padStart(8, '0');
-
-async function typeInConsole(page: Page, ...lines: string[]) {
-  for (const line of lines) {
-    await page.locator('.mg-console input').fill(line);
-    await page.locator('.mg-console input').press('Enter');
-  }
-}
 
 /** Pauses, exports the run as a replay link from the console, and gives the link and its text. */
 async function exportReplay(page: Page) {

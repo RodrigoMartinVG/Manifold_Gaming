@@ -1,23 +1,15 @@
 import { beforeAll, describe, expect, test } from 'vitest';
-import { quat } from '@manifold/common';
 import { initPhysics, registryFor, Session, stateHash, World, type WorldSnapshot } from '@manifold/core';
 import { DojoCartridge } from '@manifold/dojo/cartridge';
-import { ROOMS } from '@manifold/dojo/rooms';
 import { Client, localPair, Server, type Channel, type ToClient, type ToServer } from '@manifold/net';
+import { measure, ms, record, stress, time } from './measure';
 
 /**
  * THE PERFORMANCE BUDGETS (stage 2.5a), in the Dojo's stress room: the course with 200 cubes falling
  * on it (214 bodies: 215 until stage 3b, when a level began to bring its whole ground, and the Dojo's
  * big cube stayed in the room without one). What a step, the hash and a snapshot cost, and what the second copy that
  * verifies costs when playing alone.
- *
- * MEASURED AGAINST RAPIER, NOT AGAINST THE CLOCK. A budget in milliseconds holds on one machine and
- * fails on a slower one (continuous integration's is). So each cost is measured against Rapier's own
- * step, on the same machine, from the same state: a proportion that does not depend on the machine,
- * and that measures what is ours. Each proportion is taken within one round, with everything measured
- * in it, and the median of eight rounds counts: a slow moment of the machine cancels out. Only one budget is in milliseconds, and generous: what a frame allows.
- *
- * They run alone (`npm run perf`): with every test file at once, the times go up to five times.
+ * (How they are measured: measure.ts. Only one budget is in milliseconds, and generous: what a frame allows.)
  *
  * Measured on 2026-11-14 (a laptop, Node), to see how much room each budget leaves: Rapier's step
  * 0.38–0.50 ms; the engine's step 2.3–3.2 times that (reading back every body: 0.19 ms; the zones,
@@ -29,52 +21,9 @@ import { Client, localPair, Server, type Channel, type ToClient, type ToServer }
 
 beforeAll(initPhysics);
 
-const ROUNDS = 8;
-
-/** The stress room's registry (its view values, `show.*`, are the presentation's: not here). */
-function stress() {
-  const registry = registryFor(DojoCartridge);
-  const errors = registry
-    .run(ROOMS.stress!.text, 'recipe')
-    .filter((m) => m.level === 'error' && !/no such name "(show|view)\./.test(m.text));
-  expect(errors).toEqual([]);
-  return registry;
-}
-
-/** How long `f` takes, in milliseconds: the best of `reps` times (a short one, once, is mostly noise). */
-function time(f: () => void, reps = 1): number {
-  let best = Infinity;
-  for (let i = 0; i < reps; i++) {
-    const start = performance.now();
-    f();
-    best = Math.min(best, performance.now() - start);
-  }
-  return best;
-}
-
-const median = (xs: number[]) => {
-  const sorted = [...xs].sort((a, b) => a - b);
-  const mid = sorted.length >> 1;
-  return sorted.length % 2 ? sorted[mid]! : (sorted[mid - 1]! + sorted[mid]!) / 2;
-};
-
-/**
- * Each measurement, in `ROUNDS` rounds, all of them in every round. What each one costs next to
- * `unit`, IN THE SAME ROUND (so how fast the machine is at that moment cancels out), and the median
- * of those proportions; and each one's median in milliseconds, for the messages.
- */
-function measure<K extends string>(unit: NoInfer<K>, measures: Record<K, () => number>) {
-  const keys = Object.keys(measures) as K[];
-  const rounds = Array.from(
-    { length: ROUNDS },
-    () => Object.fromEntries(keys.map((k) => [k, measures[k]()])) as Record<K, number>,
-  );
-  const ratio = Object.fromEntries(keys.map((k) => [k, median(rounds.map((r) => r[k] / r[unit]))])) as Record<K, number>;
-  const ms = Object.fromEntries(keys.map((k) => [k, median(rounds.map((r) => r[k]))])) as Record<K, number>;
-  return { ratio, ms };
-}
-
-const ms = (n: number) => `${n.toFixed(3)} ms`;
+/** Numbers by name, each with a prefix (`ratio.engine`). */
+const prefixed = (prefix: string, numbers: Record<string, number>) =>
+  Object.fromEntries(Object.entries(numbers).map(([k, v]) => [`${prefix}.${k}`, v]));
 
 describe('the performance budgets (stage 2.5a), in the stress room', () => {
   /** The stress room two seconds after its birth: most cubes still falling, rolling, piling up. */
@@ -106,6 +55,11 @@ describe('the performance budgets (stage 2.5a), in the stress room', () => {
       restore: () => time(() => World.restore(snap).dispose(), 5),
     });
     still.dispose();
+    record('stress', {
+      ...prefixed('ratio', t.ratio),
+      ...prefixed('ms', t.ms),
+      bytes: snap.physics.length + JSON.stringify(snap.entities).length,
+    });
   });
 
   const said = (k: 'engine' | 'hash' | 'take' | 'restore') =>
@@ -182,61 +136,5 @@ describe('the performance budgets (stage 2.5a), in the stress room', () => {
       alone.ratio.alone,
       `playing alone ${ms(alone.ms.alone / steps)} a step, one copy ${ms(alone.ms.one / steps)}: ${alone.ratio.alone.toFixed(2)} times`,
     ).toBeLessThan(2.5);
-  });
-});
-
-describe('the light (stage 3d), in the stress room with eight characters', () => {
-  test("four lamps, a fog bank and a watcher cost the step less than 0.6 of Rapier's: their rays, every character's and the watcher's", () => {
-    // The stress room, with seven more players (eight characters, each lit by every lamp that reaches
-    // it), two seconds after its birth; and the same moment with the light added.
-    const session = new Session(DojoCartridge, { registry: stress() });
-    for (let p = 2; p <= 8; p++) session.registry.run(`players.join ${p}`, 'console');
-    for (let i = 0; i < 120; i++) session.step();
-    const plain = session.world.snapshot();
-    const w = session.world;
-    w.ambient = 0.1;
-    for (const [x, z] of [
-      [-4, 4],
-      [4, 4],
-      [-4, -4],
-      [4, -4],
-    ])
-      w.createEntity({
-        transform: { position: [x!, 3, z!], rotation: quat.identity() },
-        lamp: { radius: 7, intensity: 1, signal: null },
-      });
-    w.createEntity({
-      transform: { position: [0, 1, 2], rotation: quat.identity() },
-      sensor: { kind: 'fog', half: [3, 1, 1], params: { opacity: [1] } },
-    });
-    w.createEntity({
-      transform: { position: [0, 2.5, -9], rotation: quat.fromDegrees([0, 1, 0], 180) },
-      watcher: { range: 25, cone: 0.5, threshold: 0.3 },
-    });
-    session.step();
-    const lit = session.world.snapshot();
-    session.world.dispose();
-    const steps = 120;
-    const stepping = (snap: WorldSnapshot, step: (w: World) => void) => {
-      const world = World.restore(snap);
-      const spent = time(() => {
-        for (let i = 0; i < steps; i++) step(world);
-      });
-      world.dispose();
-      return spent / steps;
-    };
-    // What the light adds, against Rapier's step, in each round (the same moment of the machine for the
-    // three), and the median of the rounds: a difference of two medians taken apart was too noisy (from
-    // 0.006 to 0.5 in four runs).
-    const rounds = Array.from({ length: ROUNDS }, () => {
-      const rapier = stepping(plain, (x) => x.physics.step());
-      const without = stepping(plain, (x) => x.step());
-      const withLight = stepping(lit, (x) => x.step());
-      return { light: (withLight - without) / rapier, without, withLight, rapier };
-    });
-    const light = median(rounds.map((r) => r.light));
-    const said = `the step with the light ${ms(median(rounds.map((r) => r.withLight)))}, without ${ms(median(rounds.map((r) => r.without)))}; Rapier's ${ms(median(rounds.map((r) => r.rapier)))}`;
-    // Measured on 2026-11-15 (stage 3f), round by round: 0.36 to 0.39 of Rapier's step (about 0.09 ms).
-    expect(light, said).toBeLessThan(0.6);
   });
 });

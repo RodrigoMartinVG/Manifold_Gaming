@@ -17,6 +17,12 @@ import sys
 
 import bpy
 
+# The Blender these bytes come from (stage 5.5d): another version may write other bytes for the same script,
+# and `npm run art:check` compares them with the committed files. Bumped by hand, with every asset made again.
+BLENDER = (4, 5)
+if tuple(bpy.app.version[:2]) != BLENDER:
+    sys.exit(f"{os.path.basename(__file__)}: made with Blender {BLENDER[0]}.{BLENDER[1]}, and this is {bpy.app.version_string}")
+
 OUT = sys.argv[sys.argv.index("--") + 1] if "--" in sys.argv else "games/dojo/assets/lamp.glb"
 
 bpy.ops.wm.read_factory_settings(use_empty=True)

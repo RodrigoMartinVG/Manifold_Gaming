@@ -17,6 +17,9 @@ updates:
       # @astrojs/check do not support 7 yet. Bumped by hand, when they do.
       - dependency-name: 'typescript'
         update-types: ['version-update:semver-major']
+      # Rapier's deterministic build is the simulation (decision 0000): another version is another engine,
+      # a SIMULATION_VERSION and every reference recorded again. Bumped by hand, on purpose (stage 5.5d).
+      - dependency-name: '@dimforge/*'
   - package-ecosystem: github-actions
     directory: /
     schedule:

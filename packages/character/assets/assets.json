@@ -1,6 +1,7 @@
 {
   "mannequin.glb": {
     "what": "The games' character (shared since stage 4a): a mannequin the capsule's size, with the animations the presentation mixes: walking and running forward, back and to each side, turning on the spot, climbing up and to each side, rising, falling, gliding, a somersault and a landing.",
-    "madeBy": "art/mannequin.py"
+    "madeBy": "art/mannequin.py",
+    "sha256": "eb3a7d8d2e56895e13ec6fefeff158bac62382994514aba4b12f336247876f3f"
   }
 }

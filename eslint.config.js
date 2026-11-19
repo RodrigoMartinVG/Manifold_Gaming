@@ -240,6 +240,7 @@ export default defineConfig(
       'books/**',
       'borradores_ideas/**',
       'sitio/**',
+      'scratch/**',
     ],
   },
   js.configs.recommended,

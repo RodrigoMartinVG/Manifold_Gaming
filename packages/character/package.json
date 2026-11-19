@@ -12,10 +12,11 @@
   },
   "dependencies": {
     "@manifold/common": "0.0.0",
-    "@manifold/core": "0.0.0"
+    "@manifold/core": "0.0.0",
+    "@manifold/presentation": "0.0.0"
   },
   "devDependencies": {
-    "@manifold/presentation": "0.0.0"
+    "three": "^0.187.0"
   },
   "scripts": {
     "check": "tsc -p tsconfig.json && tsc -p tsconfig.rules.json"

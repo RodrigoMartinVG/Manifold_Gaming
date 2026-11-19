@@ -4,24 +4,22 @@
 
 🌐 **Site:** https://rodrigomartinvg.github.io/Manifold_Gaming/ (in Spanish for now)
 
-> Status: **phase 3 is done** (a world that responds): what the program moves made solid, levels with names, materials and zones with data, signals that move doors and lifts, the light of the simulation and a watcher that sees by it, things that break in layers, sound from the simulation's events, mass and grabbing, a camera that never ends behind a wall, the game's interface and the player's settings, levels built from the console and written back, and saved games as versioned data, with the action adventure's start (dungeons from a seed). It closed with the keep, the phase's demonstration in one room, played from start to goal by a test, and the tutorial's five lessons of stage 3. In the Dojo, a character runs, jumps, climbs, glides and double-jumps in levels written as text, and rides platforms that move and turn; its replay gives the same hash in Chromium, Firefox, WebKit and Node. Next: phase 4, combat and bots.
+**Where it is:** the site's home page and the [roadmap](ROADMAP.md) (its table and its "Now"), checked against each other by a test (`status.test.ts`). This README keeps no status of its own: it went stale.
 
-## How it is organized
+## Where things are
 
-```
-packages/common         seeded randomness and math on plain data
-packages/commands       the registry and interpreter behind the console (no screen)
-packages/core           the simulation: the world, its fixed step, its events (no screen)
-packages/net            the match: the server that orders the inputs, and the clients that check their copy (no screen, no transport)
-packages/presentation   what is seen: Three.js, and the console
-games/dojo              the first game (the lab), with its saved rooms in recipes/
-site                    the website: home, the project, play, the tutorial and the Bitácora (Astro + Starlight)
-site/src/lessons        the lessons' code (edited and run in the page)
-docs/decisions          the architecture decisions, with their why
-e2e                     tests in a real browser (Playwright)
-```
-
-The layers only depend inward: the core knows neither the presentation nor the games. The compiler and the linter guard it ([decision 0003](docs/decisions/0003-boundaries.md)).
+| What                                      | Where                                                                                                                    |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| The plan, and how far it got              | [ROADMAP.md](ROADMAP.md)                                                                                                 |
+| Why each piece is as it is                | [docs/decisions](docs/decisions/README.md)                                                                               |
+| What each stage found and measured        | [the Bitácora](https://rodrigomartinvg.github.io/Manifold_Gaming/bitacora/) (Spanish), `site/src/content/docs/bitacora/` |
+| Audits of the code                        | [docs/audits](docs/audits)                                                                                               |
+| The layers, and the role of each file     | [layers.js](layers.js) (the linter's boundaries are made from it, [decision 0003](docs/decisions/0003-boundaries.md))    |
+| The engine                                | `packages/common`, `commands`, `core` (the simulation, no screen), `bots`, `net`, `presentation` (what is seen)          |
+| The games' library                        | `packages/character`, `kit`, `arms`, `shell`                                                                             |
+| The games                                 | `games/dojo` (the lab), `tower`, `fortress`, `wall`, `adventure`                                                         |
+| The site and the tutorial                 | `site/` (Astro and Starlight); the tutorial's plan in [docs/tutorial-roadmap.md](docs/tutorial-roadmap.md)               |
+| Starting to work on it (people, sessions) | [CLAUDE.md](CLAUDE.md): the commands, the rules, the map                                                                 |
 
 **Languages:** the site (the tutorial, the Bitácora, its pages) is in Spanish; everything else, the code, the console, the tests, the decisions and the commits, is in English ([decision 0011](docs/decisions/0011-languages.md)).
 
@@ -32,21 +30,13 @@ You need [mise](https://mise.jdx.dev) (or Node 26).
 ```bash
 mise install          # Node 26, this project's
 npm install
-npm run dev           # the site and the Dojo, with hot reload
+npm run dev           # the site and the Dojo, with hot reload, at http://localhost:4321/Manifold_Gaming/
+npm run verify        # types, linter, formatting, every headless test and the performance budgets
 ```
 
-| Command                | What it does                                                                                                                                            |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `npm run dev`          | The site at http://localhost:4321/Manifold_Gaming/                                                                                                      |
-| `npm run verify`       | Types, linter, formatting and headless tests                                                                                                            |
-| `npm run test:watch`   | The tests, run again on every save                                                                                                                      |
-| `npm run e2e`          | Builds the site and tests it in Chromium, and the physics also in Firefox and WebKit (the first time: `npx playwright install chromium firefox webkit`) |
-| `npm run build`        | The site ready to publish, in `site/dist`                                                                                                               |
-| `npm run draw -w site` | Generates the site's drawings again (background, logo, gears) from their geometry                                                                       |
+The rest of the commands, and how to run the browser tests on a port of your own: [CLAUDE.md](CLAUDE.md).
 
-Where it is going and how far it got: [ROADMAP.md](ROADMAP.md).
-
-How we work: straight on `main`, checking on the machine first ([decision 0009](docs/decisions/0009-straight-to-main.md)); commits and tags per stage in [decision 0005](docs/decisions/0005-way-of-working.md). All the decisions: [docs/decisions](docs/decisions/README.md).
+How we work: straight on `main`, checking on the machine first ([decision 0009](docs/decisions/0009-straight-to-main.md)); the way of working in [decision 0005](docs/decisions/0005-way-of-working.md).
 
 ## Where it comes from
 

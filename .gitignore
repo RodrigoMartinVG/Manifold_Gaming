@@ -26,3 +26,10 @@ borradores_ideas/
 
 # Reference books, kept locally (not part of the project)
 books/
+
+# Scratch work of either session (stage 5.5d): throwaway tests, probes, notes. Never committed, never in a
+# test run's include, never linted.
+scratch/
+
+# Each performance run's numbers (stage 5.5d): continuous integration keeps them as an artifact.
+perf/results/

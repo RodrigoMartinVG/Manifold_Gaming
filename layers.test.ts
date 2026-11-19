@@ -100,6 +100,41 @@ describe('the layers, in one table (stage 5.5b, decision 0003 as amended)', () =
     }
   });
 
+  test('versions that must move together do (stage 5.5d): Rapier, the core’s and the site’s; Playwright, the lock’s and continuous integration’s image', () => {
+    const json = (p: string) => JSON.parse(readFileSync(join(root, p), 'utf8'));
+    const rapier = '@dimforge/rapier3d-deterministic-compat';
+    expect(json('packages/core/package.json').dependencies[rapier]).toMatch(/^\d+\.\d+\.\d+$/);
+    const site = json('site/package.json');
+    expect({ ...site.dependencies, ...site.devDependencies }[rapier]).toBe(
+      json('packages/core/package.json').dependencies[rapier],
+    );
+    const playwright = json('package-lock.json').packages['node_modules/@playwright/test'].version;
+    expect(readFileSync(join(root, '.github/workflows/ci.yml'), 'utf8')).toContain(
+      `mcr.microsoft.com/playwright:v${playwright}-`,
+    );
+  });
+
+  test('every listed asset is the bytes its list says (stage 5.5d): made by its script, its hash recorded', async () => {
+    const { createHash } = await import('node:crypto');
+    for (const top of ['packages', 'games'])
+      for (const dir of readdirSync(join(root, top))) {
+        const list = join(root, top, dir, 'assets', 'assets.json');
+        if (!existsSync(list)) continue;
+        const entries: Record<string, { madeBy?: string; sha256?: string }> = JSON.parse(readFileSync(list, 'utf8'));
+        for (const [file, entry] of Object.entries(entries)) {
+          const at = `${top}/${dir}/assets/${file}`;
+          if (entry.madeBy) expect(existsSync(join(root, entry.madeBy)), `${at}: its script`).toBe(true);
+          expect(entry.sha256, `${at}: its hash (npm run art:hashes)`).toMatch(/^[0-9a-f]{64}$/);
+          expect(
+            createHash('sha256')
+              .update(readFileSync(join(root, at)))
+              .digest('hex'),
+            `${at}: other bytes than its list says`,
+          ).toBe(entry.sha256);
+        }
+      }
+  });
+
   test('a file added anywhere is guarded from its first line; the view and a brain keep what they may do', async () => {
     const eslint = new ESLint({ cwd: root });
     /** The rules a text breaks, as a file at that path (it need not exist). */

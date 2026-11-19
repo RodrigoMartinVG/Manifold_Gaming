@@ -62,7 +62,7 @@ export default defineConfig({
         test: {
           name: 'units',
           // (And the repository's own: the table of layers, stage 5.5b.)
-          include: ['packages/*/src/**/*.test.ts', 'games/*/src/**/*.test.ts', 'layers.test.ts'],
+          include: ['packages/*/src/**/*.test.ts', 'games/*/src/**/*.test.ts', 'layers.test.ts', 'status.test.ts'],
           exclude: [...configDefaults.exclude, ...PLAYTHROUGHS],
         },
       },

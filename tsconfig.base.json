@@ -12,6 +12,9 @@
     "isolatedModules": true,
     "skipLibCheck": true,
     "noEmit": true,
+    // (Stage 5.5d) Checked again only where something changed: each configuration keeps what it found in a
+    // `.tsbuildinfo` beside it (never committed).
+    "incremental": true,
     "allowImportingTsExtensions": false,
     "resolveJsonModule": true,
     "forceConsistentCasingInFileNames": true

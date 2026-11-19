@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { typeInConsole } from './helpers';
 
 /**
  * THE NETWORKING SKELETON (stage 1e), in the browser: two tabs of the same browser, one match. One
@@ -7,12 +8,6 @@ import { expect, test, type Page } from '@playwright/test';
  * with the host's hash.
  */
 
-async function typeInConsole(page: Page, ...lines: string[]) {
-  for (const line of lines) {
-    await page.locator('.mg-console input').fill(line);
-    await page.locator('.mg-console input').press('Enter');
-  }
-}
 const data = (page: Page, name: string) => page.locator('#game').getAttribute(`data-${name}`);
 const xyz = async (page: Page, name: string) => ((await data(page, name)) ?? '').split(' ').map(Number);
 /** The other players' characters, as this page sees them: player → position. */
