@@ -15,14 +15,19 @@ env:
   # No Astro usage statistics from continuous integration.
   ASTRO_TELEMETRY_DISABLED: '1'
 
+# One run at a time per branch. On `main` a push waits for the run before it instead of cancelling it
+# (stage 5.5a): cancelled, a commit was never verified on its own (stage 5k's was not); a pull request's
+# newer push still cancels its older run, which nobody will merge.
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   verify:
     name: Verify
     runs-on: ubuntu-latest
+    # The longest run so far took 46 minutes (installing the browsers, 30 of them): past this, something hangs.
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -73,6 +78,7 @@ jobs:
     needs: verify
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       pages: write
       id-token: write

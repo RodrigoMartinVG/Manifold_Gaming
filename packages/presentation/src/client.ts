@@ -12,6 +12,7 @@ import { loadModels } from './models';
 import { createMatch } from './match';
 import { mountNotices } from './notices';
 import type { Frame, GamePage, Piece } from './page';
+import { pieceCaller } from './pieces';
 import { mountPlayerControls, type GameButton } from './player';
 import { mountProbe } from './probe';
 import { mountReplays } from './replays';
@@ -135,6 +136,11 @@ export function mount(cartridge: Cartridge, container: HTMLElement, o: MountOpti
   let gameConsole: GameConsole | null = null;
   const say = (text: string, level: 'info' | 'warn' | 'error' = 'info') =>
     gameConsole ? gameConsole.write(text, level) : level !== 'info' && console.warn(text);
+  // Every piece called on its own (stage 5.5a): one that throws is told once, and the frame goes on.
+  const pieceCalls = pieceCaller(pieces, (text, error) => {
+    console.error(error);
+    say(text, 'warn');
+  });
   // The games' words (decision 0019): the game's tables first, then the engine's, in the page's language.
   const language = languageOf();
   const tables = o.words ? [o.words, ENGINE_WORDS] : [ENGINE_WORDS];
@@ -155,9 +161,9 @@ export function mount(cartridge: Cartridge, container: HTMLElement, o: MountOpti
     container,
     say,
     hooks: {
-      before: () => pieces.forEach((p) => p.beforeStep?.()),
+      before: () => pieceCalls.call('beforeStep'),
       after: () => {
-        [...pieces].reverse().forEach((p) => p.afterStep?.());
+        pieceCalls.callReversed('afterStep');
         registry.stepped();
       },
     },
@@ -167,7 +173,7 @@ export function mount(cartridge: Cartridge, container: HTMLElement, o: MountOpti
     },
     welcome(session, m) {
       session.world.takeEvents(); // the world is already there: what it emitted until now is not news
-      for (const p of pieces) p.welcome?.(session, m);
+      pieceCalls.call('welcome', session, m);
     },
   });
   const page: GamePage = {
@@ -320,14 +326,14 @@ export function mount(cartridge: Cartridge, container: HTMLElement, o: MountOpti
     const dt = (now - last) / 1000;
     last = now;
     const before: Frame = { now, dt, alpha: 1, world: match.session.world, hero: page.player() };
-    for (const p of pieces) p.beforeSteps?.(before);
+    pieceCalls.call('beforeSteps', before);
     match.advance(dt);
     const world = match.session.world;
-    for (const ev of world.takeEvents()) for (const p of pieces) p.event?.(ev, world);
+    for (const ev of world.takeEvents()) pieceCalls.call('event', ev, world);
     const f: Frame = { now, dt, alpha: match.alpha, world, hero: page.player() };
-    for (const p of pieces) p.frame?.(f);
+    pieceCalls.call('frame', f);
     stage.render();
-    for (const p of pieces) p.afterRender?.(f);
+    pieceCalls.call('afterRender', f);
   };
   request = requestAnimationFrame(frame);
 
@@ -342,7 +348,7 @@ export function mount(cartridge: Cartridge, container: HTMLElement, o: MountOpti
       cancelAnimationFrame(request);
       gameConsole?.stop();
       playerControls.stop();
-      for (const p of pieces) p.stop?.();
+      pieceCalls.call('stop');
       mixer.stop();
       match.stop();
       stage.stop();

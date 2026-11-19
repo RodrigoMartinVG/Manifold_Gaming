@@ -113,9 +113,10 @@ export function mountFire(page: GamePage, bodies: Bodies, o: { timeScale(): numb
   let flashes = 0;
   let flames = 0;
   let readies = 0;
-  // The flash's light: one, kept in the scene and lit only for an instant.
-  const light = new THREE.PointLight(0xffd08a, 0, 9, 2);
-  scene.add(light);
+  // The flash's light: a slot of the stage's light pool, reserved (stage 5.5a: before, a light of its own,
+  // a seventh), asked for only while it is lit. What it would light now: where, how far, how bright, its color.
+  page.stage.lights.reserve('flash', 1);
+  const light = { position: new THREE.Vector3(), color: new THREE.Color(0xffd08a), distance: 9, intensity: 0 };
   let lightLeft = 0;
   let lightMost = 0;
   // (5k) A blast's flare: the same light, orange and larger, for longer.
@@ -306,6 +307,17 @@ export function mountFire(page: GamePage, bodies: Bodies, o: { timeScale(): numb
         lightLeft -= dt;
         light.intensity = lightLeft > 0 ? lightMost * (lightLeft / LIGHT) : 0;
       }
+      // Asked for while lit, as it is this frame (the stage gives the pool's lights out before it draws).
+      if (light.intensity > 0)
+        page.stage.lights.ask({
+          key: 'flash',
+          at: light.position.toArray(),
+          radius: light.distance,
+          intensity: light.intensity,
+          color: light.color.getHex(),
+          decay: 2,
+          priority: 1,
+        });
       // The shake, on the camera as the camera piece placed it for this frame: its square, smooth, and the
       // trauma going down.
       if (trauma > 0) {
@@ -330,8 +342,6 @@ export function mountFire(page: GamePage, bodies: Bodies, o: { timeScale(): numb
     },
     stop() {
       marker.remove();
-      light.removeFromParent();
-      light.dispose();
       adds.mesh.removeFromParent();
       covers.mesh.removeFromParent();
       adds.dispose();

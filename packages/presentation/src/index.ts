@@ -43,3 +43,4 @@ export { cadenceAt, dipAt, mountSway, SWAY, SWAY_VARIABLE, swayAt } from './sway
 export { mountWariness, type Noticed, type WarinessOptions } from './wariness';
 export { heardFrom, impulseResponse, SPEED_OF_SOUND } from './synth';
 export { ATMOSPHERE, GLOW_VARIABLE, nightOf } from './stage';
+export { MOST_LIGHTS, type LightAsk, type LightPool } from './light-pool';

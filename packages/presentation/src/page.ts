@@ -3,6 +3,7 @@ import type { Registry } from '@manifold/commands';
 import type { Cartridge, Entity, Event, Session, World } from '@manifold/core';
 import type { Match } from '@manifold/net';
 import type { GameConsole } from './console';
+import type { LightPool } from './light-pool';
 import type { Mixer } from './mixer';
 import type { Language, Say } from './words';
 
@@ -62,6 +63,11 @@ export interface Stage {
   readonly renderer: THREE.WebGLRenderer;
   readonly scene: THREE.Scene;
   readonly camera: THREE.PerspectiveCamera;
+  /**
+   * The scene's real lights (stage 5.5a): pieces ask for the lights they would like each frame, and the
+   * stage gives them out before drawing; their number is set when a world is born, never while playing.
+   */
+  readonly lights: LightPool;
   /** How much of the day's light there is (stage 3d): the world's ambient light, from 0 to 1. */
   daylight(amount: number): void;
   /**

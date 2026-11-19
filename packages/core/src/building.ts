@@ -237,11 +237,14 @@ export function declareBuilding(registry: Registry<World>, cartridge?: Cartridge
       const world = registry.world?.();
       if (!world || !cartridge) return out.write('level.diff: there is no world yet', 'error');
       // A world born from the same values, to compare with.
-      const born = new World({ seed: Number(registry.value('seed')), profile: world.profile });
-      cartridge.onStart(born, registry);
-      const lines = levelDiff(levelOfWorld(born), levelOfWorld(world));
-      born.dispose();
-      out.write(lines.length ? lines.join('\n') : 'nothing changed since it was born');
+      const born = new World({ seed: Number(registry.value('seed')), profile: world.profile }).attach(cartridge);
+      try {
+        cartridge.onStart(born, registry);
+        const lines = levelDiff(levelOfWorld(born), levelOfWorld(world));
+        out.write(lines.length ? lines.join('\n') : 'nothing changed since it was born');
+      } finally {
+        born.dispose();
+      }
     },
   });
 }

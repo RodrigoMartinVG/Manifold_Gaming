@@ -1,11 +1,7 @@
 import * as THREE from 'three';
-import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
-import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-import { VignetteShader } from 'three/addons/shaders/VignetteShader.js';
+import { createLightPool } from './light-pool';
 import type { Stage } from './page';
+import { createPostChain, type PostChain } from './post';
 import { skyAt, type Rgb } from './sky';
 
 /**
@@ -21,22 +17,11 @@ export const ATMOSPHERE = Object.freeze({
   fog: { day: [60, 180], night: [18, 85] } as const,
   exposure: { day: 1, night: 1.15 } as const,
   glow: { strength: 0.55, radius: 0.45, threshold: 0.82 } as const,
-  vignette: { offset: 1, darkness: 1.1 } as const,
+  // (Stage 5.5a) Its darkness at most 1: it mixes towards 1 − darkness, and at 1.1 it made colours negative.
+  vignette: { offset: 1, darkness: 1 } as const,
+  // (Stage 5.5a) How many samples a pixel of the scene takes through the passes: its anti-aliasing.
+  samples: 4,
 });
-
-/**
- * THE SCENE'S PASS, COUNTED (stage 5j): three counts what each `render` draws and starts again at the next;
- * with passes after the scene, the last count was the last pass's (one triangle over the screen). This
- * pass keeps what the scene alone cost, for the budgets (the counts are reset by the stage, once a frame).
- */
-class CountedRenderPass extends RenderPass {
-  counted = { calls: 0, triangles: 0 };
-  override render(...args: Parameters<RenderPass['render']>) {
-    super.render(...args);
-    const info = args[0].info.render;
-    this.counted = { calls: info.calls, triangles: info.triangles };
-  }
-}
 
 /** Whether the glow is drawn (stage 5j): a setting, on as it comes; off for looks, or a slow machine. */
 export const GLOW_VARIABLE = {
@@ -175,6 +160,8 @@ export function createStage(container: HTMLElement): Stage {
   let hour: number | null = null;
   let renderMs = 0;
   const camera = new THREE.PerspectiveCamera(60, 1, 0.05, 200);
+  // The scene's real lights, one owner (stage 5.5a): given out before each frame is drawn.
+  const lights = createLightPool(scene);
   const fill = new THREE.HemisphereLight(0xc8d4ff, 0x3a3028, 1.4);
   scene.add(fill);
   const sun = new THREE.DirectionalLight(0xfff2e0, 1.8);
@@ -189,10 +176,10 @@ export function createStage(container: HTMLElement): Stage {
   const cool = new THREE.Color(ATMOSPHERE.coolFill);
   let atmosphere = false;
   let glowOn = true;
-  let composer: EffectComposer | null = null;
-  let bloom: UnrealBloomPass | null = null;
-  let vignette: ShaderPass | null = null;
-  let scenePass: CountedRenderPass | null = null;
+  let composer: PostChain['composer'] | null = null;
+  let bloom: PostChain['bloom'] | null = null;
+  let vignette: PostChain['vignette'] | null = null;
+  let scenePass: PostChain['scene'] | null = null;
   let drawn = { calls: 0, triangles: 0 };
   // (The counts, reset once a frame by the stage, not by each pass: stage 5j.)
   renderer.info.autoReset = false;
@@ -282,23 +269,13 @@ export function createStage(container: HTMLElement): Stage {
     container.dataset.fog = `${fog.near.toFixed(0)} ${fog.far.toFixed(0)}`;
     renderer.toneMappingExposure = ATMOSPHERE.exposure.day + (ATMOSPHERE.exposure.night - ATMOSPHERE.exposure.day) * n;
   };
-  /** The finished image's passes (stage 5j): made the first time the atmosphere is on. */
+  /** The finished image's passes (stage 5j; `post.ts` since 5.5a): made the first time the atmosphere is on. */
   const passes = () => {
     if (composer) return composer;
-    composer = new EffectComposer(renderer);
-    scenePass = new CountedRenderPass(scene, camera);
-    composer.addPass(scenePass);
-    const size = renderer.getSize(new THREE.Vector2());
-    const g = ATMOSPHERE.glow;
-    bloom = new UnrealBloomPass(size, g.strength, g.radius, g.threshold);
+    const chain = createPostChain(renderer, scene, camera, ATMOSPHERE);
+    ({ composer, bloom, vignette } = chain);
+    scenePass = chain.scene;
     bloom.enabled = glowOn;
-    composer.addPass(bloom);
-    vignette = new ShaderPass(VignetteShader);
-    vignette.uniforms.offset!.value = ATMOSPHERE.vignette.offset;
-    vignette.uniforms.darkness!.value = ATMOSPHERE.vignette.darkness;
-    composer.addPass(vignette);
-    composer.addPass(new OutputPass());
-    composer.setSize(size.x, size.y);
     return composer;
   };
 
@@ -320,6 +297,7 @@ export function createStage(container: HTMLElement): Stage {
     renderer,
     scene,
     camera,
+    lights,
     daylight(amount) {
       const a = Math.max(0, Math.min(1, amount));
       if (a === day) return;
@@ -347,6 +325,7 @@ export function createStage(container: HTMLElement): Stage {
     },
     render() {
       const start = performance.now();
+      lights.assign(camera);
       camera.getWorldPosition(dome.position);
       renderer.info.reset();
       if (atmosphere && composer && scenePass) {
@@ -367,6 +346,7 @@ export function createStage(container: HTMLElement): Stage {
     },
     stop() {
       observer.disconnect();
+      lights.dispose();
       bloom?.dispose();
       vignette?.dispose();
       composer?.dispose();

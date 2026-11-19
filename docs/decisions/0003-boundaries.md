@@ -45,7 +45,7 @@ measure and the game its meaning**: the simulation computes the light a body rec
 another feeds a flyer, a third lets a guard see. Two signs of a piece in the wrong layer: a game that has to copy a
 mechanism to tune it (the engine lacks a parameter), and the core needing a game's word (it went too far down).
 
-What is left of this amendment is stage 5.5b's ([decision 0033](0033-the-shape-before-the-forest.md), proposed): one
+What is left of this amendment is stage 5.5b's ([decision 0033](0033-the-shape-before-the-forest.md), accepted the same day): one
 table of layers read by the linter, guards by default (a new file is guarded unless it is named out), the library's
 rules compiled without the DOM so that the compiler, this decision's strongest guard, reaches them too, and each
 game's rules in files of their own.

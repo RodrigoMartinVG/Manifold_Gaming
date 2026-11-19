@@ -238,3 +238,42 @@ describe('recipes that wait and check (stage 3j)', () => {
     expect(registry.run('wait x').map((m) => m.level)).toEqual(['error']);
   });
 });
+
+describe('a game with a kit, in every world it is in (stage 5.5a)', () => {
+  // A kit of one piece, a wall with a doorway, as a game gives it.
+  const KIT = {
+    door: {
+      boxes: [
+        { center: [-0.75, 1.5, 0] as [number, number, number], half: [0.25, 1.5, 0.15] as [number, number, number] },
+        { center: [0.75, 1.5, 0] as [number, number, number], half: [0.25, 1.5, 0.15] as [number, number, number] },
+      ],
+      size: [2, 3, 0.3] as [number, number, number],
+      model: 'kit.door',
+    },
+  };
+  const kitted: Cartridge = {
+    id: 'kitted',
+    title: 'Kitted',
+    kit: KIT,
+    onStart(world) {
+      buildLevel(world, levelFromText('# Manifold level 9\nbox 0 -0.5 0  6 0.5 6\nkit door  0 0 -3  name gate\n', { kit: KIT }));
+    },
+  };
+
+  test('`level.diff` compares with a world born with the game’s kit (it threw: born without one)', () => {
+    const session = new Session(kitted);
+    session.step();
+    expect(session.registry.run('level.diff')).toEqual([{ level: 'info', text: 'nothing changed since it was born' }]);
+    session.world.dispose();
+  });
+
+  test('a world loaded from a save keeps its game’s kit: a piece is added there as on the host (it was refused)', () => {
+    const session = new Session(kitted);
+    session.step();
+    session.load(session.save());
+    expect(session.registry.run('add kit door  3 0 0')).toEqual([]);
+    session.step();
+    expect(levelOfWorld(session.world).kits.map((k) => k.piece)).toEqual(['door', 'door']);
+    session.world.dispose();
+  });
+});

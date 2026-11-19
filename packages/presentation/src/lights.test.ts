@@ -1,29 +1,49 @@
+import * as THREE from 'three';
 import { describe, expect, test } from 'vitest';
-import { lampsToLight, MOST_LIGHTS, type DrawnLamp } from './lights';
+import { glow } from './lights';
+import { release } from './owned';
 
-const lamp = (id: number, x: number, radius = 4, intensity = 1): DrawnLamp => ({ id, at: [x, 2, 0], radius, intensity });
-const everywhere = () => true;
+describe('what glows is each copy’s own (stage 5.5a)', () => {
+  /** A model as it loads, and two copies as the bodies make them: its glass on two pieces, shared. */
+  function lamps() {
+    const glass = new THREE.MeshStandardMaterial({ name: 'glass' });
+    const iron = new THREE.MeshStandardMaterial({ name: 'iron' });
+    const model = new THREE.Group().add(
+      new THREE.Mesh(new THREE.BoxGeometry(), glass),
+      new THREE.Mesh(new THREE.BoxGeometry(), glass),
+      new THREE.Mesh(new THREE.BoxGeometry(), iron),
+    );
+    return { glass, iron, a: model.clone(), b: model.clone() };
+  }
+  const emissives = (o: THREE.Object3D) =>
+    (o.children as THREE.Mesh[]).map((m) => (m.material as THREE.MeshStandardMaterial).emissive.getHex());
 
-describe('which lamps get a light (stage 4.5f)', () => {
-  test('at most as many as there are lights, the nearest first: by how far the camera is from their reach', () => {
-    const lamps = [lamp(1, 30), lamp(2, 10), lamp(3, 20), lamp(4, 50), lamp(5, 40)];
-    expect(lampsToLight(lamps, [0, 2, 0], everywhere, 3).map((l) => l.id)).toEqual([2, 3, 1]);
-    // A wide reach far away can be nearer than a small one close by: 3 m from the one, 4 from the other.
-    expect(lampsToLight([lamp(1, 5, 1), lamp(2, 14, 11)], [0, 2, 0], everywhere, 1).map((l) => l.id)).toEqual([2]);
+  test('a lamp turned on lights its own glass, not every lamp’s (they shared it: all showed the last one’s)', () => {
+    const { a, b } = lamps();
+    glow(a, 0xb08a40);
+    glow(b, 0x000000);
+    expect(emissives(a)).toEqual([0xb08a40, 0xb08a40, 0x000000]);
+    expect(emissives(b)).toEqual([0x000000, 0x000000, 0x000000]);
+    // Its glass is one material for its two pieces, as the model's was; the iron, not glowing, stays shared.
+    const [g1, g2, i] = (a.children as THREE.Mesh[]).map((m) => m.material);
+    expect(g1).toBe(g2);
+    expect(i).toBe((b.children[2] as THREE.Mesh).material);
   });
 
-  test('inside several reaches, the brighter first; a lamp that is off, or whose reach is out of view, gets none', () => {
-    const lamps = [lamp(1, 1, 8, 0.5), lamp(2, 2, 8, 1), lamp(3, 0, 8, 0), lamp(4, 3, 8, 0.8)];
-    const notFour = (l: DrawnLamp) => l.id !== 4;
-    expect(lampsToLight(lamps, [0, 2, 0], everywhere, 6).map((l) => l.id)).toEqual([2, 4, 1]);
-    expect(lampsToLight(lamps, [0, 2, 0], notFour, 6).map((l) => l.id)).toEqual([2, 1]);
-  });
-
-  test('the same choice for the same view, whatever order the lamps come in', () => {
-    const lamps = Array.from({ length: 14 }, (_, i) => lamp(i + 1, (i * 7) % 23, 3 + (i % 4)));
-    const once = lampsToLight(lamps, [4, 2, 0], everywhere, MOST_LIGHTS).map((l) => l.id);
-    const again = lampsToLight([...lamps].reverse(), [4, 2, 0], everywhere, MOST_LIGHTS).map((l) => l.id);
-    expect(again).toEqual(once);
-    expect(once).toHaveLength(MOST_LIGHTS);
+  test('without glass, all of it glows (a watcher), its own; made its own once, freed with it, the model’s kept', () => {
+    const iron = new THREE.MeshStandardMaterial({ name: 'iron' });
+    const model = new THREE.Group().add(new THREE.Mesh(new THREE.BoxGeometry(), iron));
+    const [a, b] = [model.clone(), model.clone()];
+    glow(a, 0x902020);
+    expect(emissives(a)).toEqual([0x902020]);
+    expect(emissives(b)).toEqual([0x000000]);
+    const mine = (a.children[0] as THREE.Mesh).material;
+    glow(a, 0x000000);
+    expect((a.children[0] as THREE.Mesh).material).toBe(mine);
+    let freed = 0;
+    (mine as THREE.Material).addEventListener('dispose', () => freed++);
+    iron.addEventListener('dispose', () => (freed += 10));
+    release(a);
+    expect(freed).toBe(1);
   });
 });

@@ -3,6 +3,7 @@ import { quat, vec3, type Vec3 } from '@manifold/common';
 import type { VariableInfo } from '@manifold/commands';
 import type { EntityId, World } from '@manifold/core';
 import type { Bodies } from './bodies';
+import { ownedMaterials } from './owned';
 import type { GamePage, Piece } from './page';
 
 /** What looking at the light and the vision lets people change, as data (the site's console reference reads it). */
@@ -36,57 +37,32 @@ export const LIGHTS_VARIABLES = {
 /** How bright three.js draws a lamp of intensity 1 (decay 1: about linear, as the simulation's). */
 const DRAWN_INTENSITY = 6;
 
-/**
- * HOW MANY LAMPS LIGHT WITH A REAL LIGHT (stage 4.5f): every point light three.js has is worked out for
- * every pixel of every lit material, wherever it is, and each one more recompiles them all. The
- * citadel's fourteen cost a frame 9.5 ms on the author's Iris Plus, four of them 5.5 (0.4 ms a light,
- * the screen full). So the drawing keeps this many lights, at most (fewer if the world has fewer lamps),
- * and gives them each frame to the lamps that matter most to what the camera sees; every lamp still
- * glows, and the simulation's light (what a watcher sees by) is all of them, as always.
- */
-export const MOST_LIGHTS = 6;
-
-/** A lamp, as the drawing sees it. */
-export interface DrawnLamp {
-  id: EntityId;
-  at: Vec3;
-  radius: number;
-  intensity: number;
-}
-
-/**
- * WHICH LAMPS GET A LIGHT (stage 4.5f): at most `most`, among those that are on and whose reach the
- * camera sees some of (`seen`), the nearest first (by how far the camera is from their reach: inside
- * it, 0), and of two as near, the brighter. Pure, for the tests.
- */
-export function lampsToLight(
-  lamps: readonly DrawnLamp[],
-  camera: Vec3,
-  seen: (l: DrawnLamp) => boolean,
-  most: number,
-): DrawnLamp[] {
-  const away = (l: DrawnLamp) => Math.max(0, vec3.length(vec3.sub(l.at, camera)) - l.radius);
-  return lamps
-    .filter((l) => l.intensity > 0 && seen(l))
-    .sort((a, b) => away(a) - away(b) || b.intensity - a.intensity || a.id - b.id)
-    .slice(0, most);
-}
 const LAMP_LIGHT = 0xffd9a0;
 
 /**
+ * What glows of something drawn: a model's `glass` (stage 3e: the lamp's bulb), if it has one; if not,
+ * all of it. Its own materials (stage 5.5a, `ownedMaterials`): the model's are every copy's.
+ */
+export function glow(drawn: THREE.Object3D, color: number) {
+  let glass = false;
+  drawn.traverse((o) => {
+    if ((o as THREE.Mesh).material && ((o as THREE.Mesh).material as THREE.Material).name === 'glass') glass = true;
+  });
+  const glows = (m: THREE.Material) => 'emissive' in m && (!glass || m.name === 'glass');
+  for (const m of ownedMaterials(drawn, glows) as THREE.MeshLambertMaterial[])
+    if (m.emissive.getHex() !== color) m.emissive.setHex(color);
+}
+
+/**
  * THE LIGHT, DRAWN (stage 3d): the simulation's, read and never written. The stage's daylight is the
- * world's ambient light; every lamp lights with a point light of its radius while it is on, and its
- * ball glows; a watcher that sees someone glows red. `show.light` draws the lamps' reach and
+ * world's ambient light; every lamp asks the stage's light pool for a light of its radius while it is on
+ * (stage 5.5a: the pool gives its few lights to the nearest, `light-pool.ts`), and its ball glows; a
+ * watcher that sees someone glows red. `show.light` draws the lamps' reach and
  * `show.vision` what each watcher looks at. (For the browser tests: how lit the player is, and how
  * many watchers see it.)
  */
 export function mountLights(page: GamePage, bodies: Bodies): Piece {
-  const { scene, camera } = page.stage;
-  /** The lights the drawing keeps (as many as the world has lamps, at most MOST_LIGHTS), given out each frame. */
-  const lights: THREE.PointLight[] = [];
-  const frustum = new THREE.Frustum();
-  const view = new THREE.Matrix4();
-  const sphere = new THREE.Sphere();
+  const { scene, lights } = page.stage;
   const lines = (color: number) => {
     const l = new THREE.LineSegments(
       new THREE.BufferGeometry(),
@@ -115,21 +91,6 @@ export function mountLights(page: GamePage, bodies: Bodies): Piece {
   let hour = -1;
   page.registry.declareVariable({ ...LIGHTS_VARIABLES.sky, onChange: (v) => (hour = Number(v)) });
 
-  /** As many lights as `count` (adding or taking away recompiles every lit material: only when it changes). */
-  const keep = (count: number) => {
-    while (lights.length < count) {
-      const light = new THREE.PointLight(LAMP_LIGHT, 0, 1, 1);
-      scene.add(light);
-      lights.push(light);
-    }
-    while (lights.length > count) {
-      const light = lights.pop()!;
-      scene.remove(light);
-      light.dispose();
-    }
-    // For the browser tests: how many lights it draws with.
-    page.container.dataset.lights = String(lights.length);
-  };
   /** A circle of `segments` around `axis` through `center`, of `radius`, as line pairs. */
   const circle = (out: number[], center: Vec3, a: Vec3, b: Vec3, radius: number, segments = 24) => {
     for (let i = 0; i < segments; i++)
@@ -144,45 +105,37 @@ export function mountLights(page: GamePage, bodies: Bodies): Piece {
 
   return {
     welcome(session) {
-      keep(0);
-      void session;
+      // The pool's size for this world (stage 5.5a): its lamps at the start, and what is reserved (the flash).
+      let lamps = 0;
+      for (const e of session.world.entities.values()) if (e.lamp) lamps++;
+      lights.resize(lamps);
+      // For the browser tests: how many lights it draws with.
+      page.container.dataset.lights = String(lights.size);
     },
     frame({ world, hero }) {
       page.stage.daylight(world.ambient);
       page.stage.sky(hour >= 0 ? hour : (world.origin?.sky ?? null));
-      // What glows: a model's `glass` (stage 3e: the lamp's bulb), if it has one; if not, all of it.
-      const glow = (id: EntityId, color: number) => {
+      const glowing = (id: EntityId, color: number) => {
         const drawn = bodies.meshes.get(id);
-        if (!drawn) return;
-        const parts: THREE.MeshLambertMaterial[] = [];
-        drawn.traverse((o) => {
-          const m = (o as THREE.Mesh).material as THREE.MeshLambertMaterial | undefined;
-          if (m && 'emissive' in m) parts.push(m);
-        });
-        const glass = parts.filter((m) => m.name === 'glass');
-        for (const m of glass.length ? glass : parts) if (m.emissive.getHex() !== color) m.emissive.setHex(color);
+        if (drawn) glow(drawn, color);
       };
-      const all: DrawnLamp[] = [];
       for (const e of world.entities.values()) {
         if (e.lamp && e.transform) {
-          all.push({ id: e.id, at: e.transform.position, radius: e.lamp.radius, intensity: e.lamp.on ? e.lamp.intensity : 0 });
-          glow(e.id, e.lamp.on ? 0xb08a40 : 0x000000);
+          glowing(e.id, e.lamp.on ? 0xb08a40 : 0x000000);
+          // A light asked for: the pool gives its few to those that matter most to what the camera sees.
+          if (e.lamp.on && e.lamp.intensity > 0)
+            lights.ask({
+              key: `lamp:${e.id}`,
+              at: e.transform.position,
+              radius: e.lamp.radius,
+              intensity: e.lamp.intensity * DRAWN_INTENSITY,
+              color: LAMP_LIGHT,
+              decay: 1,
+              priority: 0,
+            });
         }
-        if (e.watcher) glow(e.id, e.watcher.sees.length ? 0x902020 : 0x000000);
+        if (e.watcher) glowing(e.id, e.watcher.sees.length ? 0x902020 : 0x000000);
       }
-      // The lights, to the lamps that matter most to what the camera sees (its last frame's view).
-      keep(Math.min(MOST_LIGHTS, all.length));
-      camera.updateMatrixWorld();
-      frustum.setFromProjectionMatrix(view.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
-      const seenBy = (l: DrawnLamp) => frustum.intersectsSphere(sphere.set(new THREE.Vector3(...l.at), l.radius));
-      const lit = lampsToLight(all, camera.position.toArray(), seenBy, lights.length);
-      lights.forEach((light, i) => {
-        const l = lit[i];
-        light.intensity = l ? l.intensity * DRAWN_INTENSITY : 0;
-        if (!l) return;
-        light.position.set(...l.at);
-        light.distance = l.radius;
-      });
       if (reachOn.visible) {
         const on: number[] = [];
         const off: number[] = [];
@@ -204,9 +157,7 @@ export function mountLights(page: GamePage, bodies: Bodies): Piece {
       const seen = hero ? String([...world.entities.values()].filter((e) => e.watcher?.sees.includes(hero.id)).length) : '';
       if (page.container.dataset.seen !== seen) page.container.dataset.seen = seen;
     },
-    stop() {
-      keep(0);
-    },
+    stop() {},
   };
 
   /** The edge of each watcher's field of view, as far as it sees, and a line to every character in it. */

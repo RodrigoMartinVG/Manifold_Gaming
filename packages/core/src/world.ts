@@ -9,6 +9,7 @@ import { HIT_HEARD, hitRadius } from './sound';
 import { bodyMass, PHYSICS, type PhysicsBackend, type PhysicsHit } from './physics';
 
 import { VERIFIED, type Profile } from './profile';
+import type { Cartridge } from './cartridge';
 import type { KitPieces } from './level';
 import type {
   CollisionGroups,
@@ -748,6 +749,18 @@ export class World {
    * a hit is taken. Without one, all of it.
    */
   filterDamage: ((world: World, damage: Damage) => number) | null = null;
+
+  /**
+   * WHAT A WORLD TAKES FROM ITS GAME (stage 5.5a): its damage filter and its kit, set in one place for
+   * every world a game is in: born with the session, loaded from a save or a match joined, born again to
+   * compare (`level.diff`). Before, each of those set what it remembered: a loaded world lost its kit
+   * (and refused the host's `add kit`), and `level.diff`'s world was born without one (and threw).
+   */
+  attach(cartridge: Pick<Cartridge, 'filterDamage' | 'kit'>): this {
+    this.filterDamage = cartridge.filterDamage?.bind(cartridge) ?? null;
+    this.kit = cartridge.kit ?? {};
+    return this;
+  }
 
   /**
    * A HIT TAKEN (stage 4c): through the game's filter, it takes points from what has health and is

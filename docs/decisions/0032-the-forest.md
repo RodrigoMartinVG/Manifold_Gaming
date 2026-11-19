@@ -8,7 +8,7 @@
   closes, the audit of what assumes the mannequin moved to F1, the shooter as levels to advance, the look designed for
   the floor first), with a test for the reconciliation table and a rule for what is tried in the Dojo and what in the
   games. The review, aspect by aspect, is at the end.
-- **Date:** 2026-11-18 (revised 2026-11-19)
+- **Date:** 2026-11-18 (revised 2026-11-19; stage 5.5 put before it by decision 0033 the same day)
 
 ## Context
 
@@ -60,8 +60,8 @@ pass, which instancing, levels of detail and a shorter shadow radius attack.
 
 **The forest** is a phase of its own between phase 5 and phase 6, named, not numbered: "phase 6" names networking in
 fourteen lines of the roadmap and in nine decisions, and renumbering would make the written ones wrong. Its stages are
-**F0 to F8** (below), and a second version, the fairy's, comes after them (F9 on). It starts when 0031's stages are
-done, not beside them: it would touch the same packages (`arms`, `presentation`, `shell`).
+**F0 to F8** (below), and a second version, the fairy's, comes after them (F9 on). It starts when stage 5.5 closes
+(decision 0033), not beside it: it would touch the same packages (`arms`, `presentation`, `shell`, `core`).
 
 It is chosen for what it makes the engine do. **The games are the vehicle:** each mechanic is kept for the engine
 capability it forces, and the story bends to them. A capability that is costly is measured first, not cut.
@@ -363,6 +363,15 @@ stage's report says where each of its pieces landed.
 | **F7**    | The shooter, the night of the Rot: its design (levels to advance: the valley taken back region by region, beacons as checkpoints and keys, the nests as objectives); its rooms (swarms in 3D, packs, cover found in the relief, purifying as damage); the night's lights; the game                                                                                                                                                                                                                                                           | Yes                        |
 | **F8**    | The close: frame times on both tiers in five places, bytes and GPU memory, the reference picture's series, the roadmap's table, the book's chapters that now have something to point at                                                                                                                                                                                                                                                                                                                                                      | No                         |
 | **F9 on** | The second version, the fairy: its decision first (flight, the view from the air, a character's size as data finished on F1's audit), then her game, in the same three parts                                                                                                                                                                                                                                                                                                                                                                 | Yes                        |
+
+**What stage 5.5 leaves these stages** (decision 0033, accepted 2026-11-19, which comes first): F1's audit of what
+assumes the mannequin is that audit's S2, fixed in 5.5e, so F1 confirms it; F2's `terrain` line is a kind in S5's
+registry, the height field a collider through S7's shape adapter, the water a zone in the core (G5), and the
+re-simulation test exists (P4), F2 adding the terrain's case; F3 builds the scenery service on 5.5g's registry of what
+stands still and its assets service, and adds the high tier to its quality tier's module, the light pool already
+there; F4 to F7's ways of moving (the rope, swimming, diving, riding, and the fairy's flight) are new records of S1,
+F5's beam, reflection and "lit" extend S8's emitter, and the creatures' sounds and affordances are namespaced words
+(S6).
 
 Each stage keeps the project's rules: a decision before code where the tail is long, grey before beautiful, its
 mechanisms shown in the Dojo's rooms and its game played to its end, checked by tests, the same hash in the four, its

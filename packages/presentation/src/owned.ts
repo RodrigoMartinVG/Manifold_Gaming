@@ -37,3 +37,25 @@ export function release(object: THREE.Object3D) {
   });
   for (const thing of owned) thing.dispose();
 }
+
+/**
+ * THE MATERIALS ONE COPY MAY CHANGE (stage 5.5a): those `pick` chooses, made its own the first time it
+ * asks (one copy of each, shared by its pieces as the original was) and kept after, freed with it by
+ * `release`. What glows per entity changes its materials: shared with every other copy of the model, a
+ * lamp put out put out every lamp's glass, and a guard who saw someone turned every character's visor red.
+ */
+export function ownedMaterials(object: THREE.Object3D, pick: (m: THREE.Material) => boolean): THREE.Material[] {
+  const made = new Map<THREE.Material, THREE.Material>();
+  const mine = new Set<THREE.Material>();
+  object.traverse((o) => {
+    if (!(o instanceof THREE.Mesh) || Array.isArray(o.material)) return;
+    const m = o.material as THREE.Material;
+    if (!pick(m)) return;
+    if (o.userData.ownMaterial) return void mine.add(m);
+    let copy = made.get(m);
+    if (!copy) made.set(m, (copy = m.clone()));
+    ownMaterial(o, copy);
+    mine.add(copy);
+  });
+  return [...mine];
+}
