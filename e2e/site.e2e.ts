@@ -1122,7 +1122,7 @@ test('the tower: its title and credits, its lines, a floor done (its gold time) 
   test.setTimeout(120_000);
   const list = errors(page);
   const game = page.locator('#game');
-  await page.goto(`jugar/torre/#${atGoal(0, 6.9, -16)}`);
+  await page.goto(`jugar/torre/#${atGoal(0, 15.9, -46)}`);
   await expect(game).toHaveAttribute('data-dialog', 'La torre', { timeout: 20_000 });
   await expect(game).toHaveAttribute('data-sky', '18.6');
   // Its credits, from the asset lists of what it draws, and the engine's.
@@ -1137,7 +1137,7 @@ test('the tower: its title and credits, its lines, a floor done (its gold time) 
   await page.getByRole('button', { name: 'Seguir' }).click();
   await expect(game).toHaveAttribute('data-level', 'floor-1');
   await expect(game).toHaveAttribute('data-dialog', 'La entrada: listo', { timeout: 60_000 });
-  await expect(page.locator('.mg-panel')).toContainText('Tiempo de oro: 0:09,0');
+  await expect(page.locator('.mg-panel')).toContainText('Tiempo de oro: 0:20,0');
   await expect(page.locator('.mg-panel')).toContainText('¡Mejor que el tiempo de oro!');
   expect(JSON.parse((await game.getAttribute('data-progress'))!)).toMatchObject({ version: 1, started: true, reached: 1 });
   // Its ghost, as a link: shown (copied, where the browser lets).
@@ -1155,7 +1155,7 @@ test('the tower: a ghost’s link races it on its floor, and opens no floor', as
   const list = errors(page);
   const game = page.locator('#game');
   // A run of the first floor, its ghost's link made by the page.
-  await page.goto(`jugar/torre/#${atGoal(0, 6.9, -16)}`);
+  await page.goto(`jugar/torre/#${atGoal(0, 15.9, -46)}`);
   await expect(game).toHaveAttribute('data-dialog', 'La torre', { timeout: 20_000 });
   await page.getByRole('button', { name: 'Jugar', exact: true }).click();
   await page.getByRole('button', { name: 'Seguir' }).click();
@@ -1234,26 +1234,32 @@ test('the tower’s camera is steady: a run to a side and a jump on its first fl
   await settled(page, 'camera');
   expect(Math.abs((await position(page, 'player'))[0]! - from[0]!), 'it ran to its right').toBeGreaterThan(0.5);
   expect(Math.abs(heading(await position(page, 'look')) - before)).toBeLessThan(0.01);
+  // (Stage 5p) Its feet left the ground and struck it again: dust, seen.
+  expect(Number(await game.getAttribute('data-dust'))).toBeGreaterThan(0);
   expect(list).toEqual([]);
 });
 
-test('the tower’s end: the top done, the thread’s last lines, the credits, and the title again', async ({ page }) => {
+test('the tower’s end: the top done, the camera pulled out over the land (5p), the thread’s last lines, the credits, and the title again', async ({
+  page,
+}) => {
   test.setTimeout(120_000);
   const list = errors(page);
   const game = page.locator('#game');
-  // Three floors already done, kept in this browser.
+  // Five floors already done, kept in this browser (stage 5p: six floors).
   await page.addInitScript(() => {
     if (!sessionStorage.getItem('kept')) {
-      localStorage.setItem('manifold.tower.progress', JSON.stringify({ version: 1, started: true, reached: 3, best: {} }));
+      localStorage.setItem('manifold.tower.progress', JSON.stringify({ version: 1, started: true, reached: 5, best: {} }));
       sessionStorage.setItem('kept', '1');
     }
   });
-  await page.goto(`jugar/torre/#${atGoal(0, 18.9, -33)}`);
+  await page.goto(`jugar/torre/#${atGoal(0, 27.9, -45.5)}`);
   await expect(game).toHaveAttribute('data-dialog', 'La torre', { timeout: 20_000 });
   await page.getByRole('button', { name: 'Seguir: La cima' }).click();
-  await expect(game).toHaveAttribute('data-level', 'floor-4');
+  await expect(game).toHaveAttribute('data-level', 'floor-6');
   await expect(game).toHaveAttribute('data-sky', '19.7');
   await expect(game).toHaveAttribute('data-dialog', 'La cima: listo', { timeout: 60_000 });
+  // (Stage 5p) The summit reached: the camera pulls out over the land, behind the panel.
+  await expect.poll(() => game.getAttribute('data-finale').then(Number), { timeout: 30_000 }).toBeGreaterThan(1);
   await page.getByRole('button', { name: 'Seguir', exact: true }).click();
   await expect(game).toHaveAttribute('data-dialog', 'La guardiana');
   await page.getByRole('button', { name: 'Seguir' }).click();
@@ -1261,7 +1267,7 @@ test('the tower’s end: the top done, the thread’s last lines, the credits, a
   await expect(game).toHaveAttribute('data-dialog', 'Créditos');
   await page.getByRole('button', { name: 'Volver' }).click();
   await expect(game).toHaveAttribute('data-dialog', 'La torre');
-  expect(JSON.parse((await game.getAttribute('data-progress'))!).reached).toBe(4);
+  expect(JSON.parse((await game.getAttribute('data-progress'))!).reached).toBe(6);
   expect(list).toEqual([]);
 });
 

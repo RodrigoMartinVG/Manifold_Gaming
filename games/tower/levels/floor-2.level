@@ -1,9 +1,11 @@
 # Manifold level 10
-# The tower's first floor (stage 5d): the second beat, demanded, over the void (a fall, back to the
-# last checkpoint). Up a chimney 2.4 m wide to a terrace 6 m up; across 2.5 m to a pillar (walking,
-# 3.4); a ledge 3 m up (up to 3.25); and up a chimney 3.2 m wide over nothing to the goal, 15 m up.
-# Stars: at the top of a chimney 2.4 m wide and 12 m high beside the start; on a pillar a running
-# jump off the first terrace (5 m); and on a block 3 m high on the goal's terrace (its ledge).
+# The tower's first floor (stage 5d; lengthened in 5p, decision 0031: floors as rhythm): the wall jump,
+# demanded, over the void (a fall, back to the last checkpoint). Up a chimney 2.4 m wide to a terrace 6 m
+# up; across 2.5 m to a pillar (walking, 3.75); a ledge 3 m up (up to 3.25); up a chimney 3.2 m wide over
+# nothing to a terrace 15 m up (a rest, its checkpoint); across 2.5 m to another pillar, and up a chimney
+# 4 m wide over nothing to the goal, 24 m up, its beacon lit from the start. Stars: at the top of a chimney
+# 2.4 m wide and 12 m high beside the start; on a pillar a running jump off the first terrace (5 m); and on
+# a block 3 m high on the terrace 15 m up (its ledge).
 title The first floor
 spawn 0 1 7
 facing 0 0 -1
@@ -110,7 +112,41 @@ box 0 -40.5 -10   160 0.5 160   color #3d4a36  name land
 sensor fall  0 -10 -10   80 2 80
 sensor checkpoint  0 6.8 -8      4 0.8 2
 sensor checkpoint  0 9.8 -18     2 0.8 2
-sensor goal        0 15.8 -25    4 0.8 1
+
+# (Stage 5p) Off the goal’s old terrace: a pillar 2.5 m on; a chimney 4 m wide over nothing; the last terrace.
+kit platform_2  0 14 -31.5
+kit wall_4  -2.15 15 -34.5  rotate y 90
+kit wall_4  2.15 15 -34.5  rotate y 90
+kit wall_4  -2.15 18 -34.5  rotate y 90
+kit wall_4  2.15 18 -34.5  rotate y 90
+kit wall_4  -2.15 21 -34.5  rotate y 90
+kit wall_4  2.15 21 -34.5  rotate y 90
+kit wall_4  -2 15 -36.65
+kit wall_4  -2 15 -40.35
+kit wall_4  2 15 -36.65
+kit wall_4  2 15 -40.35
+kit wall_4  -3.85 15 -38.5  rotate y 90
+kit wall_4  3.85 15 -38.5  rotate y 90
+kit wall_4  -2 18 -36.65
+kit wall_4  -2 18 -40.35
+kit wall_4  2 18 -36.65
+kit wall_4  2 18 -40.35
+kit wall_4  -3.85 18 -38.5  rotate y 90
+kit wall_4  3.85 18 -38.5  rotate y 90
+kit wall_4  -2 21 -36.65
+kit wall_4  -2 21 -40.35
+kit wall_4  2 21 -36.65
+kit wall_4  2 21 -40.35
+kit wall_4  -3.85 21 -38.5  rotate y 90
+kit wall_4  3.85 21 -38.5  rotate y 90
+kit floor_4  -2 24 -38.5
+kit floor_4  2 24 -38.5
+kit column  3 24 -39
+lamp 3 27.6 -39  10 1.6  name beacon
+lamp 0 21 -34.5  7 1
+
+sensor checkpoint  0 15.8 -26    4 0.8 2
+sensor goal        0 24.8 -38.5  4 0.8 2
 sensor star        6 11.4 4      0.8 0.8 1.6
 sensor star        9 6.8 -8      0.6 0.8 0.6
 sensor star        -3 18.8 -27   0.6 0.8 0.6

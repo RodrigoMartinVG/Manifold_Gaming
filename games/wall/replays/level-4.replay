@@ -1,4 +1,4 @@
-# Manifold replay 48
+# Manifold replay 49
 # The gate, played to its way out: the shelf, the flame lance, the rampart, the hoist.
 # A reference replay (stage 5h, as the tower’s since 5d): playing it must end with the hash on its
 # last line. Recorded by games/wall/src/levels.test.ts; recorded again (npm run references) only

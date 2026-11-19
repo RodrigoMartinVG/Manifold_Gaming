@@ -1,9 +1,12 @@
 # Manifold level 10
-# The tower's entrance (stage 5d): the first beat, shown, on the ground, where a fall costs nothing.
-# A hop onto a platform; a wall 3 m high whose ledge is grabbed (the gym: up to 3.25 m); and the
-# wall jump: a chimney 2.4 m wide (up to 4 m climbs) up to the terrace 6 m up, the goal. Stars: on
-# a pillar 3 m high (its ledge), on an island a running jump away (4 m: walking, 3.4; running, 5.6),
-# and at the top of a chimney 3.2 m wide and 9 m high.
+# The tower's entrance (stage 5d; lengthened in 5p, decision 0031: floors as rhythm, each one idea taught,
+# developed, twisted and concluded): the jump, on the ground, where a fall costs only the way back. A hop
+# onto a platform; a wall 3 m high whose ledge is grabbed (the gym: up to 3.25 m); a chimney 2.4 m wide up
+# to the terrace 6 m up (a rest, its checkpoint). Then, over the ground: a pillar 2 m off, one a meter
+# lower 2 m on, one 4.5 m on (walking, a jump goes 3.75: running, 6.25); a block 3 m higher 1.5 m on (its
+# ledge, grabbed); on it, a chimney 2.4 m wide up to the last terrace, 15 m up, the goal, its beacon lit
+# from the start. Stars: on a pillar 3 m high (its ledge), on an island a running jump away, and at the top
+# of a chimney 3.2 m wide and 9 m high.
 title The entrance
 spawn 0 1 7
 facing 0 0 -1
@@ -130,8 +133,132 @@ kit wall_4  9.75 0 -12  rotate y 90
 kit wall_4  9.75 3 -12  rotate y 90
 kit wall_4  9.75 6 -12  rotate y 90
 
+# (Stage 5p) Over the ground from the terrace: three pillars; the block with its ledge; its chimney; the last terrace.
+kit platform_2  0 0 -21
+kit platform_2  0 1 -21
+kit platform_2  0 2 -21
+kit platform_2  0 3 -21
+kit platform_2  0 4 -21
+kit platform_2  0 5 -21
+kit platform_2  0 0 -25
+kit platform_2  0 1 -25
+kit platform_2  0 2 -25
+kit platform_2  0 3 -25
+kit platform_2  0 4 -25
+kit platform_2  0 0 -31.5
+kit platform_2  0 1 -31.5
+kit platform_2  0 2 -31.5
+kit platform_2  0 3 -31.5
+kit platform_2  0 4 -31.5
+kit platform_2  0 5 -31.5
+kit platform_2  0 0 -33.5
+kit platform_2  0 1 -33.5
+kit platform_2  0 2 -33.5
+kit platform_2  0 3 -33.5
+kit platform_2  0 4 -33.5
+kit platform_2  0 5 -33.5
+kit wall_4  0 0 -36.15
+kit wall_4  0 0 -43.85
+kit wall_4  -1.85 0 -42  rotate y 90
+kit wall_4  1.85 0 -42  rotate y 90
+kit wall_4  -1.85 0 -38  rotate y 90
+kit wall_4  1.85 0 -38  rotate y 90
+kit wall_4  0 3 -36.15
+kit wall_4  0 3 -43.85
+kit wall_4  -1.85 3 -42  rotate y 90
+kit wall_4  1.85 3 -42  rotate y 90
+kit wall_4  -1.85 3 -38  rotate y 90
+kit wall_4  1.85 3 -38  rotate y 90
+kit wall_4  0 6 -36.15
+kit wall_4  0 6 -43.85
+kit wall_4  -1.85 6 -42  rotate y 90
+kit wall_4  1.85 6 -42  rotate y 90
+kit wall_4  -1.85 6 -38  rotate y 90
+kit wall_4  1.85 6 -38  rotate y 90
+kit floor_4  0 9 -42
+kit floor_4  0 9 -38
+kit wall_4  -1.35 9 -42  rotate y 90
+kit wall_4  1.35 9 -42  rotate y 90
+kit wall_4  -1.35 12 -42  rotate y 90
+kit wall_4  1.35 12 -42  rotate y 90
+kit wall_4  -2 0 -44.15
+kit wall_4  -2 0 -47.85
+kit wall_4  2 0 -44.15
+kit wall_4  2 0 -47.85
+kit wall_4  -3.85 0 -46  rotate y 90
+kit wall_4  3.85 0 -46  rotate y 90
+kit wall_4  -2 3 -44.15
+kit wall_4  -2 3 -47.85
+kit wall_4  2 3 -44.15
+kit wall_4  2 3 -47.85
+kit wall_4  -3.85 3 -46  rotate y 90
+kit wall_4  3.85 3 -46  rotate y 90
+kit wall_4  -2 6 -44.15
+kit wall_4  -2 6 -47.85
+kit wall_4  2 6 -44.15
+kit wall_4  2 6 -47.85
+kit wall_4  -3.85 6 -46  rotate y 90
+kit wall_4  3.85 6 -46  rotate y 90
+kit wall_4  -2 9 -44.15
+kit wall_4  -2 9 -47.85
+kit wall_4  2 9 -44.15
+kit wall_4  2 9 -47.85
+kit wall_4  -3.85 9 -46  rotate y 90
+kit wall_4  3.85 9 -46  rotate y 90
+kit wall_4  -2 12 -44.15
+kit wall_4  -2 12 -47.85
+kit wall_4  2 12 -44.15
+kit wall_4  2 12 -47.85
+kit wall_4  -3.85 12 -46  rotate y 90
+kit wall_4  3.85 12 -46  rotate y 90
+kit floor_4  -2 15 -46
+kit floor_4  2 15 -46
+kit column  3 15 -46.5
+lamp 3 18.6 -46.5  10 1.6  name beacon
+lamp 0 10 -38  7 1
+lamp 0 4 -27  7 0.9
+# (The ground, on under them.)
+kit floor_4  -6 0 -30
+kit floor_4  -2 0 -30
+kit floor_4  2 0 -30
+kit floor_4  6 0 -30
+kit floor_4  10 0 -30
+kit floor_4  14 0 -30
+kit floor_4  -6 0 -34
+kit floor_4  -2 0 -34
+kit floor_4  2 0 -34
+kit floor_4  6 0 -34
+kit floor_4  10 0 -34
+kit floor_4  14 0 -34
+kit floor_4  -6 0 -38
+kit floor_4  -2 0 -38
+kit floor_4  2 0 -38
+kit floor_4  6 0 -38
+kit floor_4  10 0 -38
+kit floor_4  14 0 -38
+kit floor_4  -6 0 -42
+kit floor_4  -2 0 -42
+kit floor_4  2 0 -42
+kit floor_4  6 0 -42
+kit floor_4  10 0 -42
+kit floor_4  14 0 -42
+kit floor_4  -6 0 -46
+kit floor_4  -2 0 -46
+kit floor_4  2 0 -46
+kit floor_4  6 0 -46
+kit floor_4  10 0 -46
+kit floor_4  14 0 -46
+kit floor_4  -6 0 -50
+kit floor_4  -2 0 -50
+kit floor_4  2 0 -50
+kit floor_4  6 0 -50
+kit floor_4  10 0 -50
+kit floor_4  14 0 -50
+
 sensor checkpoint  0 3.8 -4      8 0.8 2
-sensor goal        0 6.8 -16     4 0.8 2
+sensor checkpoint  0 6.8 -16     4 0.8 2
+sensor checkpoint  0 9.8 -38     2 0.8 2
+sensor goal        0 15.8 -46    4 0.8 2
 sensor star        5 3.8 6       0.6 0.8 0.6
 sensor star        13 3.8 -4     0.6 0.8 0.6
 sensor star        8 8.4 -12     0.8 0.8 1

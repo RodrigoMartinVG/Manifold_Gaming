@@ -21,6 +21,7 @@ import { mountAmbience } from './ambience';
 import { mountAudio } from './audio';
 import { createMixer } from './mixer';
 import { mountDebris } from './debris';
+import { mountContact } from './contact';
 import { mountFire } from './fire';
 import { mountSway } from './sway';
 import { mountLights } from './lights';
@@ -248,6 +249,8 @@ export function mount(cartridge: Cartridge, container: HTMLElement, o: MountOpti
     mountSignals(page, bodies),
     mountLights(page, bodies),
     mountDebris(page, { timeScale: () => (match.paused ? 0 : match.timescale) }),
+    // (Stage 5p) Dust where feet strike or leave the ground, and off a wall slid down.
+    mountContact(page, { timeScale: () => (match.paused ? 0 : match.timescale) }),
     mountAudio(page),
     mountSubtitles(page),
     mountTouchNotice(page),

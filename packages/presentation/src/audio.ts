@@ -66,6 +66,11 @@ const ROOM = { seconds: 1.6, gain: 0.5 };
 const WHIZ = 4;
 /** How far a rocket in flight is heard (m), and how loud its hiss is up close. */
 const ROCKET = { heard: 30, gain: 0.22 };
+/**
+ * (Stage 5p, decision 0031: "a slide sound") How far a body sliding down a wall is heard (m), how loud its
+ * scrape is up close at the fastest slide, and the band of its noise (Hz): a rough rasp, higher the faster.
+ */
+const SCRAPE = { heard: 15, gain: 0.2, low: 700, high: 1500 };
 
 /**
  * THE SOUND (stage 3f, decision 0015; rebuilt in 5k, decision 0031): what the simulation says happened,
@@ -97,6 +102,10 @@ export function mountAudio(page: GamePage): Piece {
   let whizzes = 0;
   /** The rockets heard in flight: each its hiss, its pan, its gain, its rate. */
   const rockets = new Map<number, { source: AudioBufferSourceNode; gain: GainNode; pan: StereoPannerNode; last: number }>();
+  const scrapes = new Map<
+    number,
+    { source: AudioBufferSourceNode; band: BiquadFilterNode; gain: GainNode; pan: StereoPannerNode }
+  >();
   page.mixer.volume('sounds', Number(AUDIO_VARIABLES.volume.default));
   page.registry.declareVariable({ ...AUDIO_VARIABLES.volume, onChange: (v) => page.mixer.volume('sounds', Number(v)) });
   page.mixer.onStart((c) => {
@@ -306,6 +315,60 @@ export function mountAudio(page: GamePage): Piece {
       }
   };
 
+  /**
+   * (Stage 5p) Whoever slides down a wall, heard: a rasp of noise while it slides, louder and higher the
+   * faster it goes down (to the wall's fastest slide), to its side; gone as it leaves the wall.
+   */
+  const scrapesHeard = (world: World) => {
+    const seen = new Set<number>();
+    if (live()) {
+      const c = context!;
+      const { at: l, right } = ears();
+      for (const e of world.entities.values()) {
+        const ch = e.character;
+        if (ch?.mode !== 'slide' || !e.transform) continue;
+        const [x, y, z] = e.transform.position;
+        const d = Math.hypot(x - l.x, y - l.y, z - l.z);
+        const h = synth.heardFrom(d, SCRAPE.heard);
+        if (!h) continue;
+        seen.add(e.id);
+        let s = scrapes.get(e.id);
+        if (!s) {
+          const source = c.createBufferSource();
+          source.buffer = kit!.pink;
+          source.loop = true;
+          const band = c.createBiquadFilter();
+          band.type = 'bandpass';
+          band.Q.value = 0.9;
+          const gain = c.createGain();
+          gain.gain.value = 0;
+          const pan = c.createStereoPanner();
+          source.connect(band).connect(gain).connect(pan).connect(bus!);
+          source.start(c.currentTime, kit!.random());
+          s = { source, band, gain, pan };
+          scrapes.set(e.id, s);
+          page.container.dataset.scraping = String(scrapes.size);
+        }
+        const fast = Math.min(1, Math.max(0, -ch.velocity[1]!) / Math.max(0.1, ch.movement.wall.slide));
+        s.band.frequency.setTargetAtTime(SCRAPE.low + (SCRAPE.high - SCRAPE.low) * fast, c.currentTime, 0.05);
+        s.gain.gain.setTargetAtTime(SCRAPE.gain * h.dry * (0.3 + 0.7 * fast), c.currentTime, 0.03);
+        s.pan.pan.setTargetAtTime(
+          d > 1e-6 ? (0.8 * ((x - l.x) * right[0] + (y - l.y) * right[1] + (z - l.z) * right[2])) / d : 0,
+          c.currentTime,
+          0.03,
+        );
+      }
+    }
+    for (const [id, s] of scrapes)
+      if (!seen.has(id)) {
+        if (context) {
+          s.gain.gain.setTargetAtTime(0, context.currentTime, 0.03);
+          s.source.stop(context.currentTime + 0.15);
+        }
+        scrapes.delete(id);
+      }
+  };
+
   return {
     event(ev) {
       if (!live()) return;
@@ -343,10 +406,13 @@ export function mountAudio(page: GamePage): Piece {
     },
     frame({ world }) {
       rocketsHeard(world);
+      scrapesHeard(world);
     },
     stop() {
       for (const r of rockets.values()) r.source.stop();
       rockets.clear();
+      for (const s of scrapes.values()) s.source.stop();
+      scrapes.clear();
     },
   };
 }

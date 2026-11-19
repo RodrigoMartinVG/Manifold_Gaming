@@ -49,4 +49,15 @@ describe('what a character can do, in meters (stage 5a)', () => {
     // jump's step and the 14 its lock keeps, then steered down to 4.5 at 14 m/s², for the jump's 45 steps.
     expect(p.wall.chimney).toBeCloseTo(4.4583, 4);
   });
+
+  test('(stage 5p) hung 0.08 s at its top, the jump held: the same 2 m at step 24, back 5 steps later, at 50; 3.75 m on walking; chimneys to 4.83 m', () => {
+    const arc = { height: 2, time: 0.42, release: 2.5, fall: 1.5, terminal: 16, corner: 0.25, hang: 0.08 };
+    const p = metricsOf({ ...DEFAULT_MOVEMENT, arc }, BODY, 9.81);
+    expect(p.jump).toMatchObject({ top: 24, back: 50 });
+    expect(p.jump.height).toBeCloseTo(2, 12);
+    expect(p.reach.walk).toBeCloseTo((4.5 * 50) / 60, 12);
+    expect(p.ledge).toBeCloseTo(2 + 0.02 + 0.8 + 0.5, 12);
+    // The same sums for 50 steps: 4.5 m/s steered, five steps more (the gym: up to 4.5 m, not 5).
+    expect(p.wall.chimney).toBeCloseTo(4.4583 + (5 * 4.5) / 60, 4);
+  });
 });

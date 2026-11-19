@@ -1,9 +1,10 @@
 # Manifold level 10
-# The tower's second floor (stage 5d): the third beat, twisted: what moves. A ferry across the void
-# and under a chimney hanging over it (its walls from 1 m up, over the ferry's last 2 m: from the
-# ferry, a jump between them); up it, 2.4 m wide, to a terrace 10 m up; a lift that rises 6 m and
-# comes back, to a terrace 14 m up, the goal. Stars: over the lift's top; on an island a second
-# ferry reaches; on a ledge 3 m over the terrace.
+# The tower's second floor (stage 5d; lengthened in 5p, decision 0031: floors as rhythm): what moves. A
+# ferry across the void and under a chimney hanging over it (its walls from 1 m up, over the ferry's last
+# 2 m: from the ferry, a jump between them); up it, 2.4 m wide, to a terrace 10 m up; a lift that rises 6 m
+# and comes back, to a terrace 14 m up (a rest, its checkpoint); a ferry from its far edge across 8 m to a
+# landing; and a lift from it 6 m up to the goal, 20 m up, its beacon lit from the start. Stars: over the
+# first lift's top; on an island a second ferry reaches; on a ledge 3 m over the first terrace.
 title The second floor
 spawn 0 1 7
 facing 0 0 -1
@@ -83,7 +84,40 @@ lamp 0 16 -26  7 1
 box 0 -40.5 -10   160 0.5 160   color #3d4a36  name land
 sensor fall  0 -10 -10   80 2 80
 sensor checkpoint  0 10.8 -18    4 0.8 2
-sensor goal        0 14.8 -26    4 0.8 2
+
+# (Stage 5p) Off the old goal’s terrace: a ferry across 8 m to a landing; a lift from it 6 m up to the last terrace.
+box 0 13.85 -29   1 0.15 1   move 0 0 -8 4   color #7a5a3a  name ferry_3
+kit wall_4  0 8 -38.15
+kit wall_4  0 8 -41.85
+kit wall_4  -1.85 8 -40  rotate y 90
+kit wall_4  1.85 8 -40  rotate y 90
+kit wall_4  0 11 -38.15
+kit wall_4  0 11 -41.85
+kit wall_4  -1.85 11 -40  rotate y 90
+kit wall_4  1.85 11 -40  rotate y 90
+kit floor_4  0 14 -40
+box 0 13.85 -43   1 0.15 1   move 0 6 0 3   color #7a5a3a  name lift_2
+kit wall_4  -2 14 -44.15
+kit wall_4  -2 14 -47.85
+kit wall_4  2 14 -44.15
+kit wall_4  2 14 -47.85
+kit wall_4  -3.85 14 -46  rotate y 90
+kit wall_4  3.85 14 -46  rotate y 90
+kit wall_4  -2 17 -44.15
+kit wall_4  -2 17 -47.85
+kit wall_4  2 17 -44.15
+kit wall_4  2 17 -47.85
+kit wall_4  -3.85 17 -46  rotate y 90
+kit wall_4  3.85 17 -46  rotate y 90
+kit floor_4  -2 20 -46
+kit floor_4  2 20 -46
+kit column  3 20 -46.5
+lamp 3 23.6 -46.5  10 1.6  name beacon
+lamp 0 17 -40  7 1
+
+sensor checkpoint  0 14.8 -26    4 0.8 2
+sensor checkpoint  0 14.8 -40    2 0.8 2
+sensor goal        0 20.8 -46    4 0.8 2
 sensor star        0 15.6 -22    0.6 0.6 0.6
 sensor star        14 10.8 -18   0.6 0.8 0.6
 sensor star        -3 13.8 -19   0.6 0.8 0.6

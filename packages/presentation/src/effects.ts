@@ -227,6 +227,61 @@ export function muzzleEffect(
 }
 
 /**
+ * (Stage 5p, decision 0031: contact) A BODY'S DUST where its feet strike the ground or leave it: a ring of
+ * low puffs pushed out along the ground (perpendicular to `up`), rising a little, more and larger the harder
+ * (`strength`: 0, a step off; 1, a landing at 10 m/s; more, harder still).
+ */
+export function dustEffect(at: THREE.Vector3, up: THREE.Vector3, strength: number, random: () => number = Math.random): Effect {
+  const s = Math.max(0, Math.min(1.5, strength));
+  const count = Math.round(4 + 8 * s);
+  const side = Math.abs(up.y) < 0.9 ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(1, 0, 0);
+  const a = side.clone().cross(up).normalize();
+  const b = up.clone().cross(a).normalize();
+  const covers: ParticleSpec[] = [];
+  for (let i = 0; i < count; i++) {
+    const turn = ((i + random() * 0.6) / count) * Math.PI * 2;
+    const out = a.clone().multiplyScalar(Math.cos(turn)).addScaledVector(b, Math.sin(turn));
+    covers.push({
+      kind: 'puff',
+      at: at.clone().addScaledVector(out, 0.15).addScaledVector(up, 0.05),
+      velocity: out.multiplyScalar(between(random, 1, 2.2) * (0.6 + s)).addScaledVector(up, between(random, 0.2, 0.6)),
+      drag: 3.5,
+      gravity: -0.3,
+      life: between(random, 0.45, 0.8) * (0.8 + 0.4 * s),
+      size: [0.12, between(random, 0.35, 0.55) + 0.3 * s],
+      spin: between(random, -1.5, 1.5),
+      stops: DUST,
+    });
+  }
+  return { adds: [], covers };
+}
+
+/**
+ * (Stage 5p) WHAT A WALL GIVES OFF where a body slides down it (`out`: from the wall towards the body): a
+ * puff or two blown off it, drifting up a little as it slides on.
+ */
+export function wallDustEffect(at: THREE.Vector3, out: THREE.Vector3, random: () => number = Math.random): Effect {
+  const covers: ParticleSpec[] = [];
+  for (let i = 0; i < 2; i++)
+    covers.push({
+      kind: 'puff',
+      at: at.clone().addScaledVector(out, 0.05),
+      velocity: out
+        .clone()
+        .multiplyScalar(between(random, 0.4, 0.9))
+        .add(direction(random).multiplyScalar(0.25))
+        .add(new THREE.Vector3(0, between(random, 0.3, 0.7), 0)),
+      drag: 3,
+      gravity: -0.2,
+      life: between(random, 0.35, 0.65),
+      size: [0.08, between(random, 0.25, 0.4)],
+      spin: between(random, -2, 2),
+      stops: DUST,
+    });
+  return { adds: [], covers };
+}
+
+/**
  * (Stage 5o) THE FLAME LANCE'S BREATH, one of fifteen a second: puffs of fire thrown along `forward` and
  * slowed by the air (a strong drag: thrown at 14 m/s, they stop about 6 m out, the lance's reach), growing
  * as they go, rising a little (hot), white-yellow to red to nothing; a wisp of smoke after.

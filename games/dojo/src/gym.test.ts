@@ -224,13 +224,14 @@ describe('the metrics gym (stage 5a)', () => {
       }
   });
 
-  test('the platformer (stage 5c, the tower’s: dojo.arc, dojo.walljump, dojo.ledge): its jump exactly 2 m, back at step 45; ledges grabbed to 3.25 m (its hands reach 3.32); chimneys climbed to 4 m wide, not 5 (metricsOf: 4.46)', () => {
+  test('the platformer (stage 5c, the tower’s: dojo.arc, dojo.walljump, dojo.ledge): its jump exactly 2 m, back at step 50 (5p: hung 0.08 s at its top); ledges grabbed to 3.25 m (its hands reach 3.32); chimneys climbed to 4.5 m wide, not 5 (metricsOf: 4.83)', () => {
     const { session, me } = g;
     for (const line of ['dojo.arc on', 'dojo.walljump on', 'dojo.ledge on'])
       expect(session.registry.run(line, 'console').filter((x) => x.level === 'error')).toEqual([]);
     g.step();
     const p = metricsOfEntity(session.world, me())!;
-    // On flat ground, the jump held: its feet exactly 2 m up, back at step 45, 3.375 m on walking.
+    // On flat ground, the jump held: its feet exactly 2 m up, back at step 50, 3.75 m on walking (5p: with
+    // its hang at the top; 45 steps and 3.375 m before).
     g.put(-30, 1, 19.5);
     g.walk({ move: [1, 0, 0] }, 60);
     const from = g.at();
@@ -282,10 +283,11 @@ describe('the metrics gym (stage 5a)', () => {
       return high;
     });
     const climbed = CHIMNEYS.filter((_, k) => heights[k]! >= 7.9);
-    expect(climbed).toEqual([2.0, 3.0, 4.0]);
-    // Past 4.46 m its jumps come back lower than they left: at 4.5 it still climbs a while, not to the top; at 5, hardly.
-    expect(p.wall.chimney).toBeGreaterThan(4);
-    expect(p.wall.chimney).toBeLessThan(4.5);
+    expect(climbed).toEqual([2.0, 3.0, 4.0, 4.5]);
+    // Past 4.83 m its jumps come back lower than they left (5p: its hang at the top gives it the 4.5 m one;
+    // 4.46 m before): at 5, hardly.
+    expect(p.wall.chimney).toBeGreaterThan(4.5);
+    expect(p.wall.chimney).toBeLessThan(5);
     expect(heights[4]!).toBeLessThan(heights[3]!);
     for (const line of ['dojo.arc off', 'dojo.walljump off', 'dojo.ledge off']) session.registry.run(line, 'console');
     g.step();

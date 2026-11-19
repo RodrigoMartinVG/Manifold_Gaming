@@ -32,8 +32,8 @@ function referenceText(session: Session, about: string): string {
   ].join('\n');
 }
 
-describe('the tower’s four floors, played to their goal (stage 5d)', () => {
-  test('the entrance: a hop, a ledge 3 m up, a chimney 2.4 m wide to the terrace 6 m up', async () => {
+describe('the tower’s six floors, played to their goal (stage 5d; six, longer, since 5p)', () => {
+  test('the entrance: a hop, a ledge 3 m up, a chimney to the terrace 6 m up; three pillars (a running jump), a ledge, a chimney to the goal 15 m up', async () => {
     const f = floorOf(0);
     f.go(NO_INPUT, () => f.c().grounded, 60);
     f.go({ move: AHEAD }, () => f.at()[2]! < 4.2);
@@ -43,6 +43,25 @@ describe('the tower’s four floors, played to their goal (stage 5d)', () => {
     expect(f.go({ move: AHEAD }, () => f.c().grounded && f.feet() > 2.5, 120)).toBe(true);
     f.go({ move: AHEAD }, () => f.c().grounded && f.at()[2]! < -12.5);
     f.chimney(6, AHEAD);
+    // (Stage 5p) From the terrace: a pillar 2 m off; one a meter lower; one 4.5 m off, a running jump away.
+    f.walkTo(0, -17.6);
+    f.jump(AHEAD, 30);
+    expect(f.go({ move: AHEAD }, () => f.c().grounded, 90)).toBe(true);
+    f.walkTo(0, -21.7);
+    f.jump(AHEAD, 25);
+    expect(f.go({ move: AHEAD }, () => f.c().grounded, 90)).toBe(true);
+    expect(f.feet()).toBeGreaterThan(4.5);
+    f.walkTo(0, -24.3);
+    f.go({ move: AHEAD, run: true }, () => f.at()[2]! < -25.8, 60);
+    for (let i = 0; i < 30; i++) f.step({ move: AHEAD, run: true, jump: true });
+    expect(f.go({ move: AHEAD }, () => f.c().grounded, 90)).toBe(true);
+    expect(f.feet()).toBeGreaterThan(5.5);
+    // The block's ledge, 3 m up across 1.5 m; its chimney, to the goal.
+    f.walkTo(0, -34.3);
+    f.jump(AHEAD, 40);
+    expect(f.go({ move: AHEAD }, () => f.c().grounded && f.feet() > 8.5, 160)).toBe(true);
+    f.walkTo(0, -43.4);
+    f.chimney(15, AHEAD);
     expect(f.go({ move: AHEAD }, () => f.done(), 240)).toBe(true);
     await expect(
       referenceText(f.session, "The tower's entrance, played to its goal: a hop, a ledge, a chimney."),
@@ -67,6 +86,14 @@ describe('the tower’s four floors, played to their goal (stage 5d)', () => {
     f.walkTo(0, -19.6);
     f.jump(AHEAD, 8);
     f.chimney(15, AHEAD);
+    // (Stage 5p) Across 2.5 m to a pillar; into a chimney 4 m wide over nothing, up it to the goal.
+    f.walkTo(0, -27.6);
+    f.jump(AHEAD, 30);
+    expect(f.go({ move: AHEAD }, () => f.c().grounded, 90)).toBe(true);
+    expect(f.feet()).toBeGreaterThan(14.5);
+    f.walkTo(0, -32.4);
+    f.jump(AHEAD, 8);
+    f.chimney(24, AHEAD);
     expect(f.go({ move: AHEAD }, () => f.done(), 240)).toBe(true);
     expect(runner(f.me())!.falls).toBe(0);
     await expect(
@@ -102,16 +129,140 @@ describe('the tower’s four floors, played to their goal (stage 5d)', () => {
     expect(f.go(NO_INPUT, () => f.c().grounded, 60)).toBe(true);
     f.go(NO_INPUT, () => lift() > 12.8, 600);
     f.jump(AHEAD, 30);
+    expect(f.go({ move: AHEAD }, () => f.c().grounded, 120)).toBe(true);
+    expect(f.feet()).toBeGreaterThan(13.5);
+    // (Stage 5p) The ferry off the terrace's far edge, waited for: onto it, across, onto the landing; the
+    // lift from it, waited for at the bottom, up to the goal.
+    const ferry3 = () => f.named('ferry_3').transform!.position;
+    const lift2 = () => f.named('lift_2').transform!.position[1]! + 0.15;
+    f.walkTo(0, -27.6);
+    f.go(NO_INPUT, () => ferry3()[2]! < -33, 900);
+    f.go(NO_INPUT, () => ferry3()[2]! > -29.2, 900);
+    for (let i = 0; i < 20 && f.at()[2]! > -28.9; i++) f.step({ move: AHEAD, jump: i < 3 });
+    expect(f.go(NO_INPUT, () => f.c().grounded, 60)).toBe(true);
+    f.go(NO_INPUT, () => ferry3()[2]! < -36.8, 600);
+    for (let i = 0; i < 40 && f.at()[2]! > -38.8; i++) f.step({ move: AHEAD, jump: i < 3 });
+    expect(f.go(NO_INPUT, () => f.c().grounded, 60)).toBe(true);
+    expect(f.at()[2]!).toBeLessThan(-38.2);
+    f.walkTo(0, -41.6);
+    f.go(NO_INPUT, () => lift2() < 14.3, 900);
+    for (let i = 0; i < 40 && f.at()[2]! > -42.9; i++) f.step({ move: AHEAD, jump: i < 3 });
+    expect(f.go(NO_INPUT, () => f.c().grounded, 60)).toBe(true);
+    f.go(NO_INPUT, () => lift2() > 19.8, 600);
+    f.jump(AHEAD, 30);
     expect(f.go({ move: AHEAD }, () => f.done(), 240)).toBe(true);
     expect(runner(f.me())!.falls).toBe(0);
     await expect(
-      referenceText(f.session, "The tower's second floor, played to its goal: a ferry, a hanging chimney, a lift."),
+      referenceText(
+        f.session,
+        "The tower's second floor, played to its goal: a ferry, a hanging chimney, a lift, a ferry, a lift.",
+      ),
     ).toMatchFileSnapshot('../replays/floor-3.replay');
     f.session.world.dispose();
   });
 
-  test('the top: a ledge 3 m up, a chimney 3 m wide, a ferry to a landing and a lift from it, the last chimney 3.6 m wide to the top 18 m up', async () => {
+  test('the third floor: a carousel, a faster one, a bar ridden half a turn, three turntables up to the goal', async () => {
     const f = floorOf(3);
+    /** The bar's long side, from its yaw: along z (pointing this way and the other), |cos| near 0. */
+    const barAcross = () => {
+      const q = f.named('bar').transform!.rotation;
+      return Math.abs(Math.cos(2 * Math.atan2(q[1]!, q[3]!)));
+    };
+    f.go(NO_INPUT, () => f.c().grounded, 60);
+    // The carousel: off the balcony's edge onto it; near its far side; off it onto the landing.
+    f.walkTo(0, 2.3);
+    f.jump(AHEAD, 25);
+    expect(f.go({ move: AHEAD }, () => f.c().grounded, 90)).toBe(true);
+    f.walkTo(0, -3);
+    f.jump(AHEAD, 30);
+    expect(f.go({ move: AHEAD }, () => f.c().grounded, 90)).toBe(true);
+    expect(f.at()[2]!).toBeLessThan(-6.4);
+    // The faster one, a meter up; off it onto the second landing, a meter higher.
+    f.walkTo(0, -10.3);
+    f.jump(AHEAD, 30);
+    expect(f.go({ move: AHEAD }, () => f.c().grounded, 90)).toBe(true);
+    f.walkTo(0, -15.6);
+    f.jump(AHEAD, 30);
+    expect(f.go({ move: AHEAD }, () => f.c().grounded, 90)).toBe(true);
+    expect(f.feet()).toBeGreaterThan(1.5);
+    // The bar: as it comes to point this way, onto its end; ridden half a turn; off at the other side.
+    f.walkTo(0, -24.3);
+    f.go(NO_INPUT, () => barAcross() > 0.5, 900);
+    f.go(NO_INPUT, () => barAcross() < 0.12, 900);
+    f.walkTo(0, -25.6, 0.2, 40);
+    f.go(NO_INPUT, () => f.at()[2]! < -34.3, 600);
+    f.walkTo(0, -36.3, 0.2, 60);
+    expect(f.go(NO_INPUT, () => f.c().grounded, 60)).toBe(true);
+    expect(f.at()[2]!).toBeLessThan(-35.4);
+    // Three turntables, each a meter higher: onto each, to its middle, and on.
+    f.walkTo(0, -39.3);
+    for (const [name, z] of [
+      ['turntable_1', -43],
+      ['turntable_2', -46.5],
+      ['turntable_3', -50],
+    ] as const) {
+      f.jump(AHEAD, 30);
+      expect(
+        f.go({ move: AHEAD }, () => f.c().grounded, 90),
+        name,
+      ).toBe(true);
+      f.walkTo(0, z);
+    }
+    f.jump(AHEAD, 30);
+    expect(f.go({ move: AHEAD }, () => f.done(), 240)).toBe(true);
+    expect(runner(f.me())!.falls).toBe(0);
+    await expect(
+      referenceText(f.session, "The tower's third floor, played to its goal: two carousels, the bar, three turntables."),
+    ).toMatchFileSnapshot('../replays/floor-4.replay');
+    f.session.world.dispose();
+  });
+
+  test('the fourth floor: a wall’s ledge, one across a gap, a running jump to a pillar, a drop, a stair of ledges to the goal', async () => {
+    const f = floorOf(4);
+    f.go(NO_INPUT, () => f.c().grounded, 60);
+    f.walkTo(0, 2.6);
+    f.jump(AHEAD, 40);
+    expect(f.go({ move: AHEAD }, () => f.c().grounded && f.feet() > 2.5, 160)).toBe(true);
+    // Across 2 m, a block 2.5 m higher: its ledge, grabbed leaping.
+    f.walkTo(0, -1.9);
+    f.jump(AHEAD, 40);
+    expect(f.go({ move: AHEAD }, () => f.c().grounded && f.feet() > 5, 160)).toBe(true);
+    // A running jump across 4 m onto a pillar a meter higher.
+    f.walkTo(0, -4.3);
+    f.go({ move: AHEAD, run: true }, () => f.at()[2]! < -7.8, 60);
+    for (let i = 0; i < 30; i++) f.step({ move: AHEAD, run: true, jump: true });
+    expect(f.go({ move: AHEAD }, () => f.c().grounded && f.feet() > 6, 160)).toBe(true);
+    // Down 3 m onto the landing.
+    f.walkTo(0, -13.8);
+    f.jump(AHEAD, 20);
+    expect(f.go({ move: AHEAD }, () => f.c().grounded && f.feet() < 4, 120)).toBe(true);
+    // The stair of ledges, each 3 m higher a meter on.
+    for (const [edge, top] of [
+      [-19.7, 6.5],
+      [-23.9, 9.5],
+      [-28.9, 12.5],
+      [-33.9, 15.5],
+    ] as const) {
+      f.walkTo(0, edge);
+      f.jump(AHEAD, 40);
+      expect(
+        f.go({ move: AHEAD }, () => f.done() || (f.c().grounded && f.feet() > top - 0.5), 160),
+        `up to ${top}`,
+      ).toBe(true);
+    }
+    expect(f.go({ move: AHEAD }, () => f.done(), 240)).toBe(true);
+    expect(runner(f.me())!.falls).toBe(0);
+    await expect(
+      referenceText(
+        f.session,
+        "The tower's fourth floor, played to its goal: ledges, a running jump, a drop, a stair of ledges.",
+      ),
+    ).toMatchFileSnapshot('../replays/floor-5.replay');
+    f.session.world.dispose();
+  });
+
+  test('the top: a ledge 3 m up, a chimney 3 m wide, a ferry to a landing and a lift from it, a chimney 3.6 m wide to a terrace 18 m up; a pillar, the last chimney 4.5 m wide to the summit 27 m up', async () => {
+    const f = floorOf(5);
     const ferry = () => f.named('ferry').transform!.position;
     const lift = () => f.named('lift').transform!.position[1]! + 0.15;
     f.go(NO_INPUT, () => f.c().grounded, 60);
@@ -142,6 +293,14 @@ describe('the tower’s four floors, played to their goal (stage 5d)', () => {
     expect(f.feet()).toBeGreaterThan(14.5);
     f.walkTo(0, -30.4);
     f.chimney(18, AHEAD);
+    // (Stage 5p) Across 2.5 m to a pillar; into the last chimney, 4.5 m wide, up it to the summit.
+    f.walkTo(0, -34.6);
+    f.jump(AHEAD, 30);
+    expect(f.go({ move: AHEAD }, () => f.c().grounded, 90)).toBe(true);
+    expect(f.feet()).toBeGreaterThan(17.5);
+    f.walkTo(0, -39.4);
+    f.jump(AHEAD, 8);
+    f.chimney(27, AHEAD);
     expect(f.go({ move: AHEAD }, () => f.done(), 240)).toBe(true);
     expect(runner(f.me())!.falls).toBe(0);
     await expect(
@@ -149,7 +308,7 @@ describe('the tower’s four floors, played to their goal (stage 5d)', () => {
         f.session,
         "The tower's top, played to its goal: a ledge, a chimney, a ferry, a landing, a lift, the last chimney.",
       ),
-    ).toMatchFileSnapshot('../replays/floor-4.replay');
+    ).toMatchFileSnapshot('../replays/floor-6.replay');
     f.session.world.dispose();
   });
 });

@@ -1,5 +1,5 @@
-# Manifold replay 48
-# The tower's top, played to its goal: a ledge, a chimney, a ferry, a landing, a lift, the last chimney.
+# Manifold replay 49
+# The tower's third floor, played to its goal: two carousels, the bar, three turntables.
 # A reference replay (stage 5d, as the Dojo’s since 2.5a): playing it must end with the hash on its
 # last line. Recorded by games/tower/src/floors.test.ts; recorded again (npm run references) only
 # when the simulation changes on purpose, with SIMULATION_VERSION.
@@ -7,53 +7,115 @@ game tower
 profile rapier-deterministic server 60
 birth tower.floor floor-4
 input 6 1 move @0
-input 59 1 move @0:0.97
-input 60 1 move @0:0.73
-input 61 1 move @0:0.53
-input 62 1 move @0 jump
-input 102 1 move @0
-input 214 1 move @0:0.81
-input 215 1 move @0:0.6
-input 216 1 move @0:0.44
-input 217 1 move @90 jump
-input 243 1 move @90
-input 244 1 move @90 jump
-input 245 1 move @270 jump
-input 270 1 move @270
-input 271 1 move @270 jump
-input 272 1 move @90 jump
-input 302 1 move @340
-input 303 1 move @339
-input 304 1 move @338
-input 306 1 move @337
-input 309 1 move @336
-input 353 1 move @335
-input 362 1 move @335:0.76
-input 363 1 move @335:0.56
-input 364 1 move @335:0.4
-input 365 1
-input 718 1 move @0 jump
-input 721 1 move @0
-input 751 1
-input 898 1 move @0 jump
-input 901 1 move @0
-input 938 1
-input 1072 1 move @0 jump
-input 1075 1 move @0
-input 1108 1
-input 1257 1 move @0
-input 1303 1 move @359
-input 1320 1 move @359:0.78
-input 1321 1 move @359:0.58
-input 1322 1 move @359:0.42
-input 1323 1 move @359
-input 1326 1 move @0
-input 1372 1 move @0:0.87
-input 1373 1 move @0:0.65
-input 1374 1 move @0:0.48
-input 1375 1 move @90 jump
-input 1401 1 move @90
-input 1402 1 move @90 jump
-input 1403 1 move @270 jump
-input 1410 1 move @0 jump
-end 1432 3f7ab582
+input 67 1 move @0:0.97
+input 68 1 move @0:0.73
+input 69 1 move @0:0.53
+input 70 1 move @0 jump
+input 95 1 move @0
+input 129 1 move @1
+input 131 1 move @2
+input 133 1 move @4
+input 135 1 move @5
+input 136 1 move @6
+input 137 1 move @8
+input 138 1 move @10
+input 139 1 move @12:0.99
+input 140 1 move @16:0.75
+input 141 1 move @20:0.57
+input 142 1 move @27:0.43
+input 143 1 move @0 jump
+input 173 1 move @0
+input 193 1 move @1
+input 234 1 move @2
+input 240 1 move @2:0.86
+input 241 1 move @2:0.65
+input 242 1 move @2:0.48
+input 243 1 move @0 jump
+input 273 1 move @0
+input 290 1 move @359
+input 303 1 move @0
+input 305 1 move @2
+input 307 1 move @4
+input 308 1 move @5
+input 309 1 move @7
+input 310 1 move @9
+input 311 1 move @12
+input 312 1 move @15
+input 313 1 move @20:0.9
+input 314 1 move @26:0.71
+input 315 1 move @33:0.57
+input 316 1 move @41:0.49
+input 317 1 move @50:0.43
+input 318 1 move @0 jump
+input 348 1 move @0
+input 362 1 move @1
+input 402 1 move @2
+input 435 1 move @2:0.87
+input 436 1 move @2:0.65
+input 437 1 move @2:0.48
+input 438 1
+input 528 1 move @0
+input 538 1 move @357
+input 539 1 move @354
+input 540 1 move @351
+input 541 1 move @347
+input 542 1 move @343
+input 543 1 move @339
+input 544 1 move @334
+input 545 1 move @329
+input 546 1 move @324
+input 547 1 move @318
+input 548 1 move @312:0.96
+input 549 1 move @305:0.82
+input 550 1 move @299:0.73
+input 551 1
+input 880 1 move @332
+input 882 1 move @333
+input 884 1 move @335
+input 886 1 move @337
+input 887 1 move @338
+input 888 1 move @339
+input 889 1 move @341
+input 890 1 move @342
+input 891 1 move @344
+input 892 1 move @346
+input 893 1 move @348
+input 894 1 move @350
+input 895 1 move @352
+input 896 1 move @358
+input 897 1 move @3
+input 898 1 move @7
+input 899 1 move @8
+input 906 1 move @9
+input 909 1 move @9:0.89
+input 910 1 move @9:0.67
+input 911 1 move @0
+input 939 1 move @1
+input 950 1 move @1:0.77
+input 951 1 move @1:0.57
+input 952 1 move @1:0.41
+input 953 1 move @0 jump
+input 983 1 move @0
+input 997 1 move @359
+input 998 1 move @357
+input 999 1 move @355
+input 1000 1 move @353
+input 1001 1 move @351
+input 1002 1 move @349:0.76
+input 1003 1 move @347:0.56
+input 1004 1 move @0 jump
+input 1034 1 move @0
+input 1049 1 move @4
+input 1050 1 move @9:0.77
+input 1051 1 move @16:0.57
+input 1052 1 move @25:0.43
+input 1053 1 move @0 jump
+input 1083 1 move @0
+input 1097 1 move @9
+input 1098 1 move @4
+input 1099 1 move @0:0.8
+input 1100 1 move @353:0.6
+input 1101 1 move @345:0.45
+input 1102 1 move @0 jump
+input 1132 1 move @0
+end 1138 bcd8555f

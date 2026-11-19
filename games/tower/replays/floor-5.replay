@@ -1,0 +1,50 @@
+# Manifold replay 49
+# The tower's fourth floor, played to its goal: ledges, a running jump, a drop, a stair of ledges.
+# A reference replay (stage 5d, as the Dojo’s since 2.5a): playing it must end with the hash on its
+# last line. Recorded by games/tower/src/floors.test.ts; recorded again (npm run references) only
+# when the simulation changes on purpose, with SIMULATION_VERSION.
+game tower
+profile rapier-deterministic server 60
+birth tower.floor floor-5
+input 6 1 move @0
+input 63 1 move @0:0.97
+input 64 1 move @0:0.73
+input 65 1 move @0:0.53
+input 66 1 move @0 jump
+input 106 1 move @0
+input 176 1 move @0:0.89
+input 177 1 move @0:0.67
+input 178 1 move @0:0.49
+input 179 1 move @0 jump
+input 219 1 move @0
+input 249 1 move @0:0.84
+input 250 1 move @0:0.59
+input 251 1 move @0 run
+input 285 1 move @0 jump run
+input 315 1 move @0
+input 337 1 move @0:0.84
+input 338 1 move @0:0.63
+input 339 1 move @0:0.47
+input 340 1 move @0 jump
+input 360 1 move @0
+input 418 1 move @0:0.85
+input 419 1 move @0:0.64
+input 420 1 move @0:0.47
+input 421 1 move @0 jump
+input 461 1 move @0
+input 531 1 move @0:0.89
+input 532 1 move @0:0.67
+input 533 1 move @0:0.49
+input 534 1 move @0 jump
+input 574 1 move @0
+input 644 1 move @0:0.89
+input 645 1 move @0:0.67
+input 646 1 move @359:0.49
+input 647 1 move @0 jump
+input 687 1 move @0
+input 757 1 move @0:0.89
+input 758 1 move @0:0.67
+input 759 1 move @0:0.49
+input 760 1 move @0 jump
+input 800 1 move @0
+end 819 e38a9d54

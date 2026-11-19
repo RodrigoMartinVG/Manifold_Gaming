@@ -412,18 +412,21 @@ export interface Movement {
   /**
    * On a wall (stage 5c, `can.wallJump`): the fastest it slides down it while it pushes against it
    * (m/s), how fast a jump from it takes it away (m/s), and for how long after that jump (s) it cannot
-   * steer back towards the wall it left (or it would be back on it at once).
+   * steer back towards the wall it left (or it would be back on it at once). (Stage 5p, decision 0031:
+   * forgiveness, as Celeste's) How far off its body a wall may be for a jump to leap off it, whichever
+   * way it is asked to go (m; without it, only the one it pushes against, 25 cm off).
    */
-  wall: { slide: number; off: number; lock: number };
+  wall: { slide: number; off: number; lock: number; reach?: number };
   /**
    * THE PLATFORMER'S JUMP (stage 5c), if its game gives one: how high its feet rise (m) and how long
    * they take to get there (s), from which its own gravity and its jump's speed follow (`arcOf`); how
    * many times stronger that gravity is when the jump is let go while it rises (a short hop) and while
    * it falls (it comes down sooner than it went up); the fastest it falls (m/s); and how far (m) it is
    * nudged round a corner its head clips while it rises. Without it, the world's gravity and
-   * `jump.speed`, as always.
+   * `jump.speed`, as always. (Stage 5p, decision 0031: forgiveness) And for how long (s) it hangs at its
+   * top while the jump is held, if it does: a moment to aim the landing, its height the same.
    */
-  arc?: { height: number; time: number; release: number; fall: number; terminal: number; corner: number };
+  arc?: { height: number; time: number; release: number; fall: number; terminal: number; corner: number; hang?: number };
 }
 
 /** The ways of moving (stage 2b): exactly one at each step. Gliding and climbing came with stage 2c; crouching and rolling with 4b. */
@@ -536,6 +539,14 @@ export interface Character {
   ledge: { at: Vec3; wall: Vec3; steps: number; climb: number } | null;
   /** For how many more steps it does not grab a ledge again (having let one go). */
   regrab: number;
+  /**
+   * (Stage 5p, decision 0031: forgiveness, for whoever jumps off walls) The last wall it was against in
+   * the air, and how many steps ago: for as long as a jump off the ground may come late (`jump.coyote`), a
+   * jump off it may too. Only while it matters (none on the ground, nor long after).
+   */
+  nearWall?: { wall: Vec3; since: number };
+  /** (Stage 5p) While it hangs at a jump's top (`arc.hang`), how many more steps it may. */
+  hung?: number;
   /**
    * How much the platforms it stood on have turned it, all of it put together (stage 2d), as a
    * rotation. Where it is told to look (the `face` input) is read INSIDE this turn: so a character

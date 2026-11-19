@@ -27,7 +27,17 @@ export {
   type Words,
 } from './words';
 export { ambienceAt, mountAmbience, type AmbienceLayers } from './ambience';
-export { blastEffect, flameEffect, impactEffect, muzzleEffect, trailEffect, type Effect } from './effects';
+export {
+  blastEffect,
+  dustEffect,
+  flameEffect,
+  impactEffect,
+  muzzleEffect,
+  trailEffect,
+  wallDustEffect,
+  type Effect,
+} from './effects';
+export { mountContact } from './contact';
 export { colorAt, createParticles, type ParticleSpec, type Particles, type Stop } from './particles';
 export { cadenceAt, dipAt, mountSway, SWAY, SWAY_VARIABLE, swayAt } from './sway';
 export { mountWariness, type Noticed, type WarinessOptions } from './wariness';

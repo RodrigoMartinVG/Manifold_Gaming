@@ -20,12 +20,14 @@ export const CHARACTER_SHAPE = { kind: 'capsule', halfHeight: 0.5, radius: 0.3 }
  * speed, 10 m/s, from `arcOf`), half as strong again falling and 2.5 times let go rising (a short hop),
  * no faster down than 16 m/s, and nudged up to 25 cm round a corner its head clips; down a wall no
  * faster than 2.5 m/s, and off it at 6 m/s; and ledges grabbed. The metrics gym measures it
- * (`dojo.arc`, `dojo.walljump`, `dojo.ledge`).
+ * (`dojo.arc`, `dojo.walljump`, `dojo.ledge`). (Stage 5p, decision 0031: forgiveness, as Celeste's) A
+ * jump leaps off a wall up to 45 cm off its body whichever way it is asked to go, and as late after
+ * leaving it as one off the ground; held, it hangs at its top 0.08 s.
  */
 export const PLATFORMER = {
   movement: {
-    arc: { height: 2, time: 0.42, release: 2.5, fall: 1.5, terminal: 16, corner: 0.25 },
-    wall: { slide: 2.5, off: 6, lock: 0.25 },
+    arc: { height: 2, time: 0.42, release: 2.5, fall: 1.5, terminal: 16, corner: 0.25, hang: 0.08 },
+    wall: { slide: 2.5, off: 6, lock: 0.25, reach: 0.45 },
   },
   can: { wallJump: true, ledge: true },
 } as const satisfies Pick<CharacterSpec, 'movement' | 'can'>;

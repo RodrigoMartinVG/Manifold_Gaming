@@ -1,4 +1,4 @@
-# Manifold replay 48
+# Manifold replay 49
 # The tower's first floor, played to its goal: two chimneys, a jump over the void, a ledge.
 # A reference replay (stage 5d, as the Dojo’s since 2.5a): playing it must end with the hash on its
 # last line. Recorded by games/tower/src/floors.test.ts; recorded again (npm run references) only
@@ -15,34 +15,63 @@ input 227 1 move @270
 input 228 1 move @270 jump
 input 229 1 move @90 jump
 input 251 1 move @343
-input 253 1 move @342
-input 254 1 move @341
+input 253 1 move @341
 input 256 1 move @340
-input 269 1 move @339
-input 307 1 move @339:0.94
-input 308 1 move @339:0.71
-input 309 1 move @339:0.52
+input 259 1 move @339
+input 307 1 move @339:0.96
+input 308 1 move @339:0.72
+input 309 1 move @338:0.53
 input 310 1 move @0 jump
 input 340 1 move @0
-input 369 1 move @359:0.87
-input 370 1 move @359:0.66
-input 371 1 move @359:0.48
+input 367 1 move @359
+input 369 1 move @359:0.86
+input 370 1 move @359:0.64
+input 371 1 move @359:0.47
 input 372 1 move @0 jump
 input 412 1 move @0
-input 473 1 move @0:0.89
-input 474 1 move @0:0.67
-input 475 1 move @0:0.49
-input 476 1 move @0 jump
-input 484 1 move @90 jump
-input 513 1 move @90
-input 514 1 move @90 jump
-input 515 1 move @270 jump
-input 540 1 move @270
-input 541 1 move @270 jump
-input 542 1 move @90 jump
-input 570 1 move @90
-input 571 1 move @90 jump
-input 572 1 move @270 jump
-input 578 1 move @0 jump
-input 610 1 move @0
-end 631 a4abc998
+input 478 1 move @0:0.89
+input 479 1 move @0:0.67
+input 480 1 move @0:0.49
+input 481 1 move @0 jump
+input 489 1 move @90 jump
+input 518 1 move @90
+input 519 1 move @90 jump
+input 520 1 move @270 jump
+input 545 1 move @270
+input 546 1 move @270 jump
+input 547 1 move @90 jump
+input 583 1 move @346
+input 586 1 move @345
+input 590 1 move @344
+input 628 1 move @345
+input 632 1 move @346
+input 660 1 move @345
+input 663 1 move @344
+input 702 1 move @343
+input 707 1 move @343:0.8
+input 708 1 move @343:0.6
+input 709 1 move @343:0.44
+input 710 1 move @0 jump
+input 740 1 move @0
+input 774 1 move @0:0.75
+input 775 1 move @0:0.55
+input 776 1 move @0 jump
+input 784 1 move @90 jump
+input 818 1 move @90
+input 819 1 move @90 jump
+input 820 1 move @270 jump
+input 856 1 move @270
+input 857 1 move @270 jump
+input 858 1 move @90 jump
+input 894 1 move @90
+input 895 1 move @90 jump
+input 896 1 move @270 jump
+input 932 1 move @270
+input 933 1 move @270 jump
+input 934 1 move @90 jump
+input 970 1 move @90
+input 971 1 move @90 jump
+input 972 1 move @270 jump
+input 978 1 move @0 jump
+input 1042 1 move @0
+end 1048 d1bf4329

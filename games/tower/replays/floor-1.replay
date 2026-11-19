@@ -1,4 +1,4 @@
-# Manifold replay 48
+# Manifold replay 49
 # The tower's entrance, played to its goal: a hop, a ledge, a chimney.
 # A reference replay (stage 5d, as the Dojo’s since 2.5a): playing it must end with the hash on its
 # last line. Recorded by games/tower/src/floors.test.ts; recorded again (npm run references) only
@@ -10,12 +10,49 @@ input 46 1 move @0 jump
 input 71 1 move @0
 input 114 1 move @0 jump
 input 154 1 move @0
-input 311 1 move @90 jump
-input 337 1 move @90
-input 338 1 move @90 jump
-input 339 1 move @270 jump
-input 364 1 move @270
-input 365 1 move @270 jump
-input 366 1 move @90 jump
-input 388 1 move @0
-end 399 992db3aa
+input 316 1 move @90 jump
+input 342 1 move @90
+input 343 1 move @90 jump
+input 344 1 move @270 jump
+input 369 1 move @270
+input 370 1 move @270 jump
+input 371 1 move @90 jump
+input 392 1 move @345
+input 393 1 move @344
+input 395 1 move @343
+input 397 1 move @342
+input 403 1 move @341
+input 452 1 move @341:0.91
+input 453 1 move @341:0.68
+input 454 1 move @341:0.5
+input 455 1 move @0 jump
+input 485 1 move @0
+input 509 1 move @0:0.81
+input 510 1 move @359:0.6
+input 511 1 move @359:0.45
+input 512 1 move @0 jump
+input 537 1 move @0
+input 561 1 move @180
+input 579 1 move @180:0.84
+input 580 1 move @180:0.63
+input 581 1 move @180:0.46
+input 582 1 move @0 run
+input 600 1 move @0 jump run
+input 630 1 move @0
+input 686 1 move @0:0.82
+input 687 1 move @0:0.61
+input 688 1 move @0:0.45
+input 689 1 move @0 jump
+input 729 1 move @0
+input 846 1 move @0:0.81
+input 847 1 move @0:0.6
+input 848 1 move @0:0.44
+input 849 1 move @90 jump
+input 875 1 move @90
+input 876 1 move @90 jump
+input 877 1 move @270 jump
+input 902 1 move @270
+input 903 1 move @270 jump
+input 904 1 move @90 jump
+input 925 1 move @0
+end 934 5851b054

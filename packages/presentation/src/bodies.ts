@@ -53,7 +53,8 @@ const below = (s: Shape): number =>
       : s.kind === 'compound'
         ? Math.max(...s.parts.map((p) => p.halfExtents[1] - p.offset[1]))
         : s.halfExtents[1];
-/** A shadow's disc lies on +Y; it is turned to the surface it falls on. */
+/** A shadow's disc lies on +Y; it is turned to the surface it falls on. (Stage 5p) Never smaller nor fainter than this. */
+export const SHADOW = { smallest: 0.5, faintest: 0.15 } as const;
 const FLAT = new THREE.Vector3(0, 1, 0);
 const normal = new THREE.Vector3();
 
@@ -662,7 +663,9 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
       // Its shadow, straight under it ("down" is where the world says): on what a ray down from its
       // center finds, lying on that surface (a ramp too), smaller and fainter the higher its feet are
       // (as far as 20 m; beyond, none). From inside something (another character's capsule), the ray
-      // finds no surface (it hits at 0, with no normal): no shadow.
+      // finds no surface (it hits at 0, with no normal): no shadow. (Stage 5p, decision 0031: "a blob
+      // shadow under the climber always": never smaller than half, nor fainter than 0.15; at 10 m it
+      // had faded to 0.07, just when where it would land mattered most.)
       for (const [id, shadow] of shadows) {
         const e = world.entities.get(id);
         const drawn = meshes.get(id);
@@ -676,8 +679,8 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
         const [nx, ny, nz] = hit.normal;
         shadow.position.set(hit.point[0] + nx * 0.01, hit.point[1] + ny * 0.01, hit.point[2] + nz * 0.01);
         shadow.quaternion.setFromUnitVectors(FLAT, normal.set(nx, ny, nz));
-        shadow.scale.setScalar(1 / (1 + height * 0.25));
-        (shadow.material as THREE.MeshBasicMaterial).opacity = 0.35 / (1 + height * 0.4);
+        shadow.scale.setScalar(Math.max(SHADOW.smallest, 1 / (1 + height * 0.25)));
+        (shadow.material as THREE.MeshBasicMaterial).opacity = Math.max(SHADOW.faintest, 0.35 / (1 + height * 0.4));
       }
     },
   };

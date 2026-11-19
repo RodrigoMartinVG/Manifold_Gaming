@@ -15,7 +15,14 @@ const input = (move: Vec3 = [0, 0, 0], jump = false): PlayerInput => ({ ...NO_IN
 
 /** A world with a floor (its top at y = 0), boxes, and a platformer's character. */
 function setUp(
-  o: { at?: Vec3; boxes?: [center: Vec3, half: Vec3][]; arc?: typeof ARC | null; wallJump?: boolean; ledge?: boolean } = {},
+  o: {
+    at?: Vec3;
+    boxes?: [center: Vec3, half: Vec3][];
+    arc?: (typeof ARC & { hang?: number }) | null;
+    wallJump?: boolean;
+    ledge?: boolean;
+    reach?: number;
+  } = {},
 ) {
   const world = new World({ seed: 1 });
   world.createEntity({
@@ -31,7 +38,11 @@ function setUp(
   const hero = world.createEntity({
     transform: { position: o.at ?? [0, STAND, 0], rotation: quat.identity() },
     body: { type: 'character', shape: { kind: 'capsule', halfHeight: 0.5, radius: 0.3 } },
-    character: { player: 1, movement: arc ? { arc } : {}, can: { wallJump: o.wallJump ?? false, ledge: o.ledge ?? false } },
+    character: {
+      player: 1,
+      movement: { ...(arc ? { arc } : {}), ...(o.reach !== undefined ? { wall: { reach: o.reach } } : {}) },
+      can: { wallJump: o.wallJump ?? false, ledge: o.ledge ?? false },
+    },
   });
   return { world, hero };
 }
@@ -247,5 +258,94 @@ describe('a ledge, grabbed and climbed onto (stage 5c, `ledge`)', () => {
     const { world, hero } = setUp({ at: [0.55, 2.6, 0], boxes: [BLOCK] });
     for (let i = 0; i < 80; i++) step(world, input([1, 0, 0]));
     expect(feet(hero)).toBeCloseTo(0, 1);
+  });
+});
+
+describe('forgiveness (stage 5p, decision 0031: as Celeste’s)', () => {
+  /** A wall 10 m high whose face is at x = 1. */
+  const WALL: [Vec3, Vec3] = [
+    [1.5, 5, 0],
+    [0.5, 5, 3],
+  ];
+  /** Sliding down it, pushing against it. */
+  const sliding = (o: { reach?: number } = {}) => {
+    const s = setUp({ at: [0.6, 7, 0], boxes: [WALL], wallJump: true, ...o });
+    for (let i = 0; i < 40; i++) step(s.world, input([1, 0, 0]));
+    expect(s.hero.character!.mode).toBe('slide');
+    return s;
+  };
+
+  test('held, it hangs at its top 0.08 s more (5 steps at 2 m), its height the same; let go there, it falls at once', () => {
+    const steady = setUp();
+    const hanging = setUp({ arc: { ...ARC, hang: 0.08 } });
+    const atTop = (s: ReturnType<typeof setUp>) => {
+      settle(s.world);
+      const from = feet(s.hero);
+      const heights: number[] = [];
+      for (let i = 0; i < 45; i++) {
+        step(s.world, input([0, 0, 0], true));
+        heights.push(feet(s.hero) - from);
+      }
+      const top = Math.max(...heights);
+      return { top, steps: heights.filter((h) => top - h < 1e-6).length };
+    };
+    const [a, b] = [atTop(steady), atTop(hanging)];
+    expect(b.top).toBeCloseTo(2, 3);
+    expect(b.top).toBeCloseTo(a.top, 9);
+    expect(b.steps - a.steps).toBe(5);
+    // Let go as it starts to hang: down at once.
+    const s = setUp({ arc: { ...ARC, hang: 0.08 } });
+    settle(s.world);
+    for (let i = 0; i < 40 && s.hero.character!.hung === undefined; i++) step(s.world, input([0, 0, 0], true));
+    expect(s.hero.character!.hung).toBe(5);
+    step(s.world);
+    expect(s.hero.character!.velocity[1]).toBeLessThan(0);
+    expect(s.hero.character!.hung).toBeUndefined();
+  });
+
+  test('a jump off a wall asked for pushing away from it leaps off it (until 5p, only one pushing towards it did)', () => {
+    for (const reach of [0.45, undefined]) {
+      const s = sliding(reach === undefined ? {} : { reach });
+      step(s.world, input([-1, 0, 0], true));
+      expect(s.hero.character!.velocity[0]).toBeCloseTo(-6, 9);
+      expect(s.hero.character!.velocity[1]).toBeGreaterThan(9);
+    }
+  });
+
+  test('a wall 40 cm off its body: a jump, pushing nowhere, leaps off it with the reach; at 60 cm, it does not', () => {
+    for (const [gap, leaps] of [
+      [0.4, true],
+      [0.6, false],
+    ] as const) {
+      // (Falling past it, its body `gap` from its face.)
+      const s = setUp({ at: [1 - 0.3 - gap, 7, 0], boxes: [WALL], wallJump: true, reach: 0.45 });
+      for (let i = 0; i < 10; i++) step(s.world);
+      step(s.world, input([0, 0, 0], true));
+      expect(s.hero.character!.velocity[1]! > 0, `${gap} m off`).toBe(leaps);
+    }
+  });
+
+  test('coyote time off a wall: pushed away for up to 6 steps, a jump still leaps off it; after 8, it does not', () => {
+    for (const [away, leaps] of [
+      [3, true],
+      [6, true],
+      [8, false],
+    ] as const) {
+      const s = sliding();
+      for (let i = 0; i < away; i++) step(s.world, input([-1, 0, 0]));
+      step(s.world, input([-1, 0, 0], true));
+      expect(s.hero.character!.velocity[1]! > 0, `${away} steps away`).toBe(leaps);
+      if (leaps) expect(s.hero.character!.velocity[0]).toBeLessThan(-5);
+    }
+  });
+
+  test('not twice off the same wall: leapt off it, a late jump does not leap off it again', () => {
+    const s = sliding({ reach: 0.45 });
+    step(s.world, input([-1, 0, 0], true));
+    for (let i = 0; i < 3; i++) step(s.world, input([1, 0, 0]));
+    // (Released and pressed again, still in the lock: no second leap off it, nor a coyote one.)
+    step(s.world, input([1, 0, 0], true));
+    expect(s.hero.character!.velocity[0]).toBeLessThan(-4);
+    expect(s.hero.character!.nearWall).toBeUndefined();
   });
 });

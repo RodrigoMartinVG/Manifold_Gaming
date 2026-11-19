@@ -35,13 +35,33 @@ describe('the tower, on the games’ shell (stages 5b to 5d)', () => {
     for (const key of named) expect(TOWER_WORDS.es, key).toHaveProperty([key]);
   });
 
-  test('its music, sparse (decision 0027): over a minute, a note begins on fewer than a fifth of the beats; quiet once a floor is done', () => {
+  test('its music, sparse (decision 0027): over a minute, a note begins on fewer than a fifth of the beats; a layer more each floor (5p); resolved at the top, quiet once a lower floor is done', () => {
     const beats = TOWER_THEME.tempo;
-    for (const mood of ['climb', 'top']) {
+    const moods = ['floor-1', 'floor-2', 'floor-3', 'floor-4', 'floor-5', 'top'];
+    for (const mood of moods) {
       const onsets = new Set(notesBetween(TOWER_THEME, mood, 0, beats).map((n) => n.beat));
       expect(onsets.size, mood).toBeGreaterThan(0);
       expect(onsets.size / beats, mood).toBeLessThan(0.2);
     }
+    // Each floor up, more voices than the one under it.
+    const voices = moods.map((m) => TOWER_THEME.moods[m]!.voices.length);
+    for (let k = 1; k < voices.length; k++) expect(voices[k]!).toBeGreaterThan(voices[k - 1]!);
+    // At the top, done: a chord of three on the first beat, held; below, done, nothing.
+    expect(notesBetween(TOWER_THEME, 'resolve', 0, 32).map((n) => n.beat)).toEqual([0, 0, 0]);
     expect(notesBetween(TOWER_THEME, 'done', 0, beats)).toEqual([]);
+  });
+
+  test('which floor’s music plays (5p): by the floor’s hour, its own layers; done, the top resolves and the others go quiet', () => {
+    const at = (sky: number, finish = -1) =>
+      TOWER_THEME.mood({ origin: { sky } } as never, { game: { 'tower.runner': { finish } } } as never);
+    expect([18.6, 19.0, 19.35, 19.45, 19.55, 19.7].map((s) => at(s))).toEqual([
+      'floor-1',
+      'floor-2',
+      'floor-3',
+      'floor-4',
+      'floor-5',
+      'top',
+    ]);
+    expect([at(19.7, 100), at(19.0, 100)]).toEqual(['resolve', 'done']);
   });
 });

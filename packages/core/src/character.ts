@@ -880,6 +880,52 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
   // (Just off a wall, not back on it: the lock lasts its time.)
   const backOn = beside !== null && c.offSteps > 0 && vec3.dot(beside, c.offWall) > 0.7;
   const sliding = beside !== null && !backOn && vUp <= 0 && pushingWay !== null && vec3.dot(move, beside) > 0.5;
+  // (Stage 5p, decision 0031: forgiveness) The last wall it pushed against in the air, and how long ago
+  // (counted at the step's end, as its steps in the air are): a jump off it may come as late as one off
+  // the ground (`jump.coyote`). None on the ground, nor after.
+  let againstWall = false;
+  if (c.can.wallJump) {
+    if (c.grounded) delete c.nearWall;
+    else if (beside !== null && !backOn && pushingWay !== null && vec3.dot(move, beside) > 0.5) {
+      c.nearWall = { wall: [...beside], since: 0 };
+      againstWall = true;
+    }
+  }
+  /**
+   * The wall a jump in the air leaps off (stage 5c): the one beside it, that it pushes against. (Stage 5p,
+   * decision 0031: forgiveness, as Celeste's) Or, where it reaches farther (`wall.reach`), the nearest within
+   * that of its body, whichever way round it is (the way it is asked to go and the other, a jump off a wall
+   * being often asked for pushing away from it; and eight ways round where it looks, 45° apart); or the last
+   * it pushed against, if a jump off the ground could still come so late. Never the one it just left, while
+   * it cannot steer back to it.
+   */
+  const wallToLeap = (): Vec3 | null => {
+    if (beside !== null && !backOn) return beside;
+    if (!c.can.wallJump) return null;
+    const left = (w: Vec3) => c.offSteps > 0 && vec3.dot(w, c.offWall) > 0.7;
+    const reach = c.movement.wall.reach;
+    if (reach !== undefined) {
+      let best: { wall: Vec3; distance: number } | null = null;
+      // (Its own √½ for the ways between: the same bits everywhere.)
+      const across = vec3.cross(up, lookingWay);
+      const ways: Vec3[] = [lookingWay, across, vec3.scale(lookingWay, -1), vec3.scale(across, -1)];
+      for (const [a, b] of [
+        [1, 1],
+        [1, -1],
+        [-1, 1],
+        [-1, -1],
+      ] as const)
+        ways.push(vec3.add(vec3.scale(lookingWay, a * Math.SQRT1_2), vec3.scale(across, b * Math.SQRT1_2)));
+      if (pushingWay) ways.unshift(pushingWay, vec3.scale(pushingWay, -1));
+      for (const d of ways) {
+        const found = wallAhead(world, e, here, d, radius + reach, up);
+        if (!isZero(found.wall) && !left(found.wall) && (best === null || found.distance < best.distance)) best = found;
+      }
+      if (best) return best.wall;
+    }
+    const n = c.nearWall;
+    return n && n.since <= c.movement.jump.coyote && !left(n.wall) ? n.wall : null;
+  };
   if (c.ledge === null && c.can.ledge && !c.grounded && vUp <= 0 && c.regrab === 0 && before !== 'climb') {
     const grab = ledgeAhead(world, e, here, pushingWay ?? lookingWay, radius, hands, Math.max(0.25, -vUp * dt + 0.05), up);
     if (grab) c.ledge = grab;
@@ -1024,6 +1070,7 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
   }
   // (Rolling, it does not jump: a jump asked for is kept as long as ever, `jump.buffer` steps, and if
   // the roll ends before that, it jumps then.)
+  let leapOff: Vec3 | null;
   if (c.jumpPending > 0 && c.mode === 'roll') c.jumpPending--;
   else if (c.jumpPending > 0) {
     if (c.mode === 'climb') {
@@ -1042,17 +1089,18 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
       c.leaping = true;
       c.jumpPending = 0;
       c.stepsInAir = jump.coyote + 1; // the coyote time is over: from now on, only a jump in the air
-    } else if (beside !== null && !backOn) {
+    } else if (!c.grounded && (leapOff = wallToLeap()) !== null) {
       // OFF A WALL (stage 5c): sliding down it, or beside it in the air: up as a jump, and away from it
       // at `wall.off`, keeping what it had along it; for `wall.lock` it cannot steer back towards it.
       vUp = jumpSpeed;
-      vH = vec3.add(vec3.onPlane(vH, beside), vec3.scale(beside, -c.movement.wall.off));
-      c.offWall = [...beside];
+      vH = vec3.add(vec3.onPlane(vH, leapOff), vec3.scale(leapOff, -c.movement.wall.off));
+      c.offWall = [...leapOff];
       c.offSteps = Math.round(c.movement.wall.lock / dt);
       c.leaping = true;
       c.mode = 'air';
       mode = MODES.air;
       c.jumpPending = 0;
+      delete c.nearWall;
     } else if (c.can.doubleJump && c.airJumps > 0) {
       vUp = jumpSpeed;
       c.airJumps--;
@@ -1083,7 +1131,18 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
   } else {
     // (Stage 5c: the arc's gravity, stronger once the jump is let go rising, and falling; and its top speed down.)
     const pull = arced && arc ? arced.gravity * (vUp > 0 ? (c.leaping && !jumping ? arc.release : 1) : arc.fall) : gravity;
-    vUp -= pull * dt;
+    // (Stage 5p, decision 0031: forgiveness) At a jump's top, the jump held: it hangs there `arc.hang`, its
+    // height what it was; let go, it falls at once.
+    if (arc?.hang && c.hung !== undefined && c.hung > 0 && jumping) {
+      vUp = 0;
+      c.hung--;
+    } else if (arc?.hang && c.leaping && jumping && vUp > 0 && vUp - pull * dt <= 0) {
+      vUp = 0;
+      c.hung = Math.round(arc.hang / dt);
+    } else {
+      if (c.hung !== undefined) delete c.hung;
+      vUp -= pull * dt;
+    }
     const fall = mode.fall?.(c);
     if (fall !== undefined) vUp = Math.max(vUp, -fall);
     if (arc) vUp = Math.max(vUp, -arc.terminal);
@@ -1168,6 +1227,8 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
   // (Stage 5c: a jump's rise is over at its top or on the ground; the lock off a wall and the pause
   // before grabbing again count down, and end on the ground.)
   if (grounded || vUp <= 0) c.leaping = false;
+  if (grounded && c.hung !== undefined) delete c.hung;
+  if (c.nearWall && (grounded || (!againstWall && ++c.nearWall.since > c.movement.jump.coyote))) delete c.nearWall;
   c.offSteps = grounded ? 0 : Math.max(0, c.offSteps - 1);
   c.regrab = Math.max(0, c.regrab - 1);
   // A platform that moves or turns carries it (stage 2d), if it stood on it and did not jump off it:

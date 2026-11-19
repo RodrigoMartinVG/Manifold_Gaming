@@ -1,0 +1,98 @@
+# Manifold level 10
+# The tower's fourth floor (stage 5p, decision 0031: floors as rhythm): hands. A wall 3 m high at the
+# balcony's end, its ledge grabbed and climbed; across 2 m, a block 2.5 m higher (its ledge, grabbed
+# leaping); a running jump across 4 m onto a pillar a meter higher; down 3 m onto a landing, a rest; and a
+# stair of ledges, each 3 m higher a meter on, up to the goal 15.5 m up, its beacon lit from the start.
+# Stars: on a pillar beside the first block, its ledge; on a ledge off the stair; on a block 3 m over the goal.
+title The fourth floor
+spawn 0 1 7
+facing 0 0 -1
+ambient 0.5
+sky 19.55
+
+# The start, a balcony.
+kit floor_4  -2 0 4
+kit floor_4  2 0 4
+kit floor_4  -2 0 8
+kit floor_4  2 0 8
+
+# The wall at the balcony’s end, 3 m: its ledge.
+kit wall_4  -2 0 1.85
+kit wall_4  -2 0 -1.85
+kit wall_4  2 0 1.85
+kit wall_4  2 0 -1.85
+kit wall_4  -3.85 0 0  rotate y 90
+kit wall_4  3.85 0 0  rotate y 90
+kit floor_4  -2 3 0
+kit floor_4  2 3 0
+
+# Across 2 m, a block 2.5 m higher.
+kit wall_4  0 2.5 -4.15
+kit wall_4  0 2.5 -7.85
+kit wall_4  -1.85 2.5 -6  rotate y 90
+kit wall_4  1.85 2.5 -6  rotate y 90
+kit floor_4  0 5.5 -6
+
+# A running jump across 4 m: a pillar a meter higher.
+kit wall_2  0 3.5 -12.15
+kit wall_2  0 3.5 -13.85
+kit wall_2  -0.85 3.5 -13  rotate y 90
+kit wall_2  0.85 3.5 -13  rotate y 90
+kit floor_2  0 6.5 -13
+
+# Down 3 m onto a landing, a rest.
+kit wall_4  0 0.5 -16.15
+kit wall_4  0 0.5 -19.85
+kit wall_4  -1.85 0.5 -18  rotate y 90
+kit wall_4  1.85 0.5 -18  rotate y 90
+kit floor_4  0 3.5 -18
+
+# The stair of ledges, each 3 m higher a meter on; the goal’s terrace.
+kit wall_4  0 3.5 -20.15
+kit wall_4  0 3.5 -23.85
+kit wall_4  -1.85 3.5 -22  rotate y 90
+kit wall_4  1.85 3.5 -22  rotate y 90
+kit floor_4  0 6.5 -22
+kit wall_4  0 6.5 -25.15
+kit wall_4  0 6.5 -28.85
+kit wall_4  -1.85 6.5 -27  rotate y 90
+kit wall_4  1.85 6.5 -27  rotate y 90
+kit floor_4  0 9.5 -27
+kit wall_4  0 9.5 -30.15
+kit wall_4  0 9.5 -33.85
+kit wall_4  -1.85 9.5 -32  rotate y 90
+kit wall_4  1.85 9.5 -32  rotate y 90
+kit floor_4  0 12.5 -32
+kit wall_4  -2 12.5 -35.15
+kit wall_4  -2 12.5 -38.85
+kit wall_4  2 12.5 -35.15
+kit wall_4  2 12.5 -38.85
+kit wall_4  -3.85 12.5 -37  rotate y 90
+kit wall_4  3.85 12.5 -37  rotate y 90
+kit floor_4  -2 15.5 -37
+kit floor_4  2 15.5 -37
+kit column  3 15.5 -37.5
+lamp 3 19.1 -37.5  10 1.6  name beacon
+
+# The stars’ places.
+kit platform_2  5 2.5 -6
+kit platform_2  5 3.5 -6
+kit platform_2  5 4.5 -6
+kit platform_2  4.5 8.5 -27
+kit platform_2  -2.5 15.5 -38
+kit platform_2  -2.5 16.5 -38
+kit platform_2  -2.5 17.5 -38
+lamp 0 6 -6  7 1
+lamp 0 7 -18  7 1
+lamp 0 12 -28  8 1
+
+# The land, far below; falling, back to the last checkpoint.
+box 0 -40.5 -20   160 0.5 160   color #3d4a36  name land
+sensor fall  0 -10 -20   90 2 90
+sensor checkpoint  0 3.8 0      4 0.8 1.5
+sensor checkpoint  0 4.3 -18    2 0.8 2
+sensor checkpoint  0 7.3 -22    2 0.8 2
+sensor goal        0 16.3 -37    4 0.8 2
+sensor star        5 6.3 -6     0.6 0.8 0.6
+sensor star        4.5 10.3 -27  0.6 0.8 0.6
+sensor star        -2.5 19.3 -38  0.6 0.8 0.6

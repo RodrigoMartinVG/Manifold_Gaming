@@ -119,5 +119,9 @@
  *      heard twice: `reload`), what fires while held (the repeater, the flame lance), two weapons (the
  *      longshot, the flame lance and its oil); the wall's levels of floors above floors, and a horn where
  *      the defender is when a group is called in. What has no arsenal as in 47
+ *  49  stage 5p: forgiveness for whoever jumps off walls (decision 0031, as Celeste's): a jump leaps off a
+ *      wall within `wall.reach` of its body whichever way it is asked to go, and as late after leaving it
+ *      as one off the ground (`nearWall`); held, a jump hangs at its top `arc.hang` (`hung`), its height
+ *      the same. Only the platformer has them (the tower: its six floors); the rest as in 48
  */
-export const SIMULATION_VERSION = 48;
+export const SIMULATION_VERSION = 49;

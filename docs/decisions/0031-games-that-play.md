@@ -190,6 +190,14 @@ two flights of the stair that turns back keeps the bots' smoothed routes from cu
 (the navigation's smoothing does not yet know a stair's side: a follow-up). Magazines are the arsenal's (`loaded`,
 `reloading`), so what has none keeps its hashes; the sway's cadence follows the speed, not a step's length.
 
+As it went (5p): the forgiveness lives in the controller, for whoever jumps off walls (`wall.reach`, `nearWall`) or
+hangs at a jump's top (`arc.hang`, `hung`), as optional state, so the other games' characters and replays are as
+they were; the hang holds the top where the arc already put it, so the jump's height stays its design's, and the
+metrics model counts it (`metricsOf`). A blob shadow was already under every character since 4a: it only needed a
+floor to how faint it gets high up. The floors grew from the four of 5d (their old goals now rests), with two new
+ones between, what turns and hands; each goal has a beacon. The finale is the tower's own piece (`pieces`), over
+the camera's place and given back, as the sway is.
+
 ## The author's answers
 
 The author took every recommendation (2026-11-18):

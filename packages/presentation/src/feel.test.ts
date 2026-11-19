@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import * as THREE from 'three';
-import { blastEffect, flameEffect, impactEffect, muzzleEffect } from './effects';
+import { blastEffect, dustEffect, flameEffect, impactEffect, muzzleEffect, wallDustEffect } from './effects';
 import { colorAt, type Stop } from './particles';
 import { cadenceAt, dipAt, SWAY, swayAt } from './sway';
 import { heardFrom, impulseResponse, passedBy, SPEED_OF_SOUND } from './synth';
@@ -135,6 +135,24 @@ describe('a blast, seen', () => {
       expect(p.velocity!.length() / p.drag!).toBeGreaterThanOrEqual(5);
       expect(p.velocity!.length() / p.drag!).toBeLessThanOrEqual(6.9);
     }
+  });
+
+  test('(stage 5p) dust where feet strike the ground: a ring out along it, more and larger the harder; a wall slid down gives off a puff or two away from it', () => {
+    const up = new THREE.Vector3(0, 1, 0);
+    const soft = dustEffect(at, up, 0, seeded()).covers;
+    const hard = dustEffect(at, up, 1, seeded()).covers;
+    expect([soft.length, hard.length, dustEffect(at, up, 9, seeded()).covers.length]).toEqual([4, 12, 16]);
+    for (const p of hard) {
+      // Out along the ground from where it struck, rising only a little.
+      const out = p.at.clone().sub(at).setY(0);
+      expect(p.velocity!.clone().setY(0).dot(out)).toBeGreaterThan(0);
+      expect(p.velocity!.y).toBeLessThan(p.velocity!.clone().setY(0).length());
+    }
+    expect(Math.max(...hard.map((p) => p.size[1]))).toBeGreaterThan(Math.max(...soft.map((p) => p.size[1])));
+    const out = new THREE.Vector3(-1, 0, 0);
+    const puffs = wallDustEffect(at, out, seeded()).covers;
+    expect(puffs).toHaveLength(2);
+    for (const p of puffs) expect(p.velocity!.dot(out)).toBeGreaterThan(0);
   });
 
   test('a shot on stone throws sparks back the way it came and stone dust; on someone, a pale burst and no sparks', () => {

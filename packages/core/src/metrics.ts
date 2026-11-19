@@ -22,7 +22,8 @@ import type { Entity, Movement, Shape } from './types';
  * With the platformer's arc (stage 5c, `arcOf`), its own gravity and speed bring its feet exactly its
  * height up in its steps; it falls under a stronger gravity and no faster than its top speed, so the
  * way down is worked out as the step does it, one step after another (the closed form above still
- * holds without the arc, and a test holds the two together).
+ * holds without the arc, and a test holds the two together). (Stage 5p) With its hang at the top, the
+ * jump held: the step where it would start down, and `arc.hang` after it, its velocity up is 0.
  */
 export interface Metrics {
   /**
@@ -110,11 +111,18 @@ export function metricsOf(
     // than its top speed; then the height.
     let up = v;
     let y = 0;
+    let hung = -1;
     height = 0;
     top = 0;
     back = 0;
     for (let n = 1; n < 100_000; n++) {
-      up = Math.max(up - g * (up > 0 ? 1 : arc.fall) * dt, -arc.terminal);
+      if (arc.hang && hung > 0) {
+        up = 0;
+        hung--;
+      } else if (arc.hang && hung < 0 && up > 0 && up - g * dt <= 0) {
+        up = 0;
+        hung = Math.round(arc.hang / dt);
+      } else up = Math.max(up - g * (up > 0 ? 1 : arc.fall) * dt, -arc.terminal);
       y += up * dt;
       if (y > height) {
         height = y;
