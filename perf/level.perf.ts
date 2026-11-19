@@ -64,7 +64,9 @@ describe('a game’s level (stage 5.5d): the wall’s first, its attackers think
   // Measured on 2026-11-19 (a laptop, Node), two runs: the engine's step 10.4 and 10.6 times Rapier's (1.3 to 1.6
   // ms: here Rapier's step is cheap, a still level with few bodies that move, and what is around it is not);
   // the bots' thinking 1.25 and 1.28; the first step 99 and 101 (15 to 16 ms). The budgets leave about a third
-  // more; stage 5.5e (the systems with indexes, every body seen from the first step) should bring them down.
+  // more. After stage 5.5e, three runs: the engine's step 9.3 (1.3 ms, the same: what costs is the character's
+  // controller); the first step 54, 47 and 47 (7.2 to 7.7 ms): a query before Rapier sees a body asks it only if
+  // its way comes near it. What is left of it is Rapier's first step (1.5 ms) and code run for the first time.
   test("the engine's step costs less than 14 of Rapier's, and fits in half a frame (8 ms)", () => {
     expect(t.ratio.engine, `the engine's step ${said('engine')}`).toBeLessThan(14);
     expect(t.ms.engine, `the engine's step ${ms(t.ms.engine)}`).toBeLessThan(8);
@@ -74,7 +76,7 @@ describe('a game’s level (stage 5.5d): the wall’s first, its attackers think
     expect(t.ratio.bots, `the bots' thinking ${said('bots')}`).toBeLessThan(2);
   });
 
-  test("the level's first step costs less than 140 of Rapier's (the slow first step, measured until 5.5e mends it)", () => {
-    expect(t.ratio.first, `the first step ${said('first')}`).toBeLessThan(140);
+  test("the level's first step costs less than 75 of Rapier's (the slow first step, 100 until stage 5.5e)", () => {
+    expect(t.ratio.first, `the first step ${said('first')}`).toBeLessThan(75);
   });
 });

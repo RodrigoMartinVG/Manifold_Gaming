@@ -132,6 +132,30 @@ const collidersOf = (rigid: RAPIER.RigidBody | null | undefined): RAPIER.Collide
 const ZERO = { x: 0, y: 0, z: 0 };
 
 /**
+ * HOW FAR A SHAPE REACHES from its center (stage 5.5e): the radius of a sphere that holds all of it (a
+ * compound's parts from its center, each part's own reach added to how far its center is). What a query
+ * leaves out of the bodies Rapier's queries do not see yet, when its way cannot come that near
+ * (`RapierPhysics.mayTouch`). A grid of voxels covers the parts' cells, no more: half a cell's diagonal
+ * on top, to be sure.
+ */
+export function reachOf(shape: Shape): number {
+  const length = (v: Vec3) => Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+  switch (shape.kind) {
+    case 'ball':
+      return shape.radius;
+    case 'capsule':
+      return shape.halfHeight + shape.radius;
+    case 'box':
+      return length(shape.halfExtents);
+    case 'compound':
+      return (
+        shape.parts.reduce((most, p) => Math.max(most, length(p.offset) + length(p.halfExtents)), 0) +
+        (shape.cell ? length(shape.cell) / 2 : 0)
+      );
+  }
+}
+
+/**
  * A ray's normal as the engine gives it: Rapier's, where it hit a surface. A ray that starts inside a
  * body hits it at distance 0, where there is no surface, and Rapier's is then anything (measured):
  * zero (a box, a capsule), not even a number (a ball, from its center), or a direction that is no
@@ -298,6 +322,13 @@ export class RapierPhysics implements PhysicsBackend {
    */
   private readonly unseen = new Set<number>();
   /**
+   * How far each collider reaches from its center (`reachOf`), by its handle, from the shape it was made
+   * with or last given (a character's pose). With it, a query asks an unseen body on its own only if its
+   * way comes that near (stage 5.5e: a big level's first step asked every one of its bodies, for every
+   * query of every character, and took a hundred times a step). One that is not here is always asked.
+   */
+  private readonly reaches = new Map<number, number>();
+  /**
    * The colliders of what the physics moves lighter than `LIGHT` (stage 4.5b): what a character's
    * controller does not run into. Kept by their handles, since the controller's filter cannot ask Rapier
    * about a body while it computes (it holds the world).
@@ -384,6 +415,7 @@ export class RapierPhysics implements PhysicsBackend {
     // What the physics moves says when a contact of its begins (`struck`).
     if (body.type === 'dynamic') collider.setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS);
     const made = this.world.createCollider(collider, rigid);
+    this.reaches.set(made.handle, reachOf(body.shape));
     if (body.type === 'dynamic' && bodyMass(body) < LIGHT) this.lightColliders.add(made.handle);
     body.handle = rigid.handle;
     this.unseen.add(rigid.handle);
@@ -392,7 +424,11 @@ export class RapierPhysics implements PhysicsBackend {
 
   removeBody(handle: number) {
     const rigid = this.world.getRigidBody(handle);
-    if (rigid) for (let i = 0; i < rigid.numColliders(); i++) this.lightColliders.delete(rigid.collider(i).handle);
+    if (rigid)
+      for (let i = 0; i < rigid.numColliders(); i++) {
+        this.lightColliders.delete(rigid.collider(i).handle);
+        this.reaches.delete(rigid.collider(i).handle);
+      }
     if (rigid) this.world.removeRigidBody(rigid);
     this.asleep.delete(handle);
     this.unseen.delete(handle);
@@ -510,6 +546,7 @@ export class RapierPhysics implements PhysicsBackend {
     const collider = rigid?.collider(0);
     if (!rigid || !collider) return;
     collider.setShape(shapeOf(shape));
+    this.reaches.set(collider.handle, reachOf(shape));
     collider.setTranslationWrtParent(v(offset));
     // Where it is in the world, now: Rapier would put it there at its next step, and the controller,
     // this step, would move the new shape from the old place (the low body, 30 cm in the air).
@@ -534,6 +571,8 @@ export class RapierPhysics implements PhysicsBackend {
       const body = this.world.getRigidBody(other);
       if (light(body)) continue;
       for (const part of collidersOf(body)) {
+        if (!this.mayTouch(part, collider.translation(), direction, free + CHARACTER_GAP, this.reaches.get(collider.handle)))
+          continue;
         const hit = part.castShape(
           ZERO,
           collider.shape,
@@ -572,7 +611,9 @@ export class RapierPhysics implements PhysicsBackend {
       };
     }
     let found = seen && { collider: seen.collider, distance: seen.timeOfImpact, normal: seen.normal };
+    const way = { x: direction[0], y: direction[1], z: direction[2] };
     for (const collider of this.unseenColliders(o)) {
+      if (!this.mayTouch(collider, ray.origin, way, found ? found.distance : reach, 0)) continue;
       const hit = collider.castRayAndGetNormal(ray, found ? found.distance : reach, true);
       if (hit && (!found || hit.timeOfImpact < found.distance))
         found = { collider, distance: hit.timeOfImpact, normal: hit.normal };
@@ -581,6 +622,33 @@ export class RapierPhysics implements PhysicsBackend {
     if (!found || !body) return null;
     const at = ray.pointAt(found.distance);
     return { handle: body.handle, distance: found.distance, point: toVec(at), normal: rayNormal(found.distance, found.normal) };
+  }
+
+  /**
+   * WHETHER A QUERY'S WAY COMES NEAR A COLLIDER (stage 5.5e): from `from` along `way` (length 1) as far as
+   * `length`, with what it casts reaching `own` around that line (a ray, 0; unknown, always), and the
+   * collider its own reach around its center, with a centimeter to spare. If not, asking it could only
+   * say it is not hit: the answer is the same, without the cast.
+   */
+  private mayTouch(
+    collider: RAPIER.Collider,
+    from: { x: number; y: number; z: number },
+    way: { x: number; y: number; z: number },
+    length: number,
+    own: number | undefined,
+  ): boolean {
+    const reach = this.reaches.get(collider.handle);
+    if (reach === undefined || own === undefined) return true;
+    const c = collider.translation();
+    const px = c.x - from.x;
+    const py = c.y - from.y;
+    const pz = c.z - from.z;
+    const t = Math.min(Math.max(px * way.x + py * way.y + pz * way.z, 0), length);
+    const dx = px - way.x * t;
+    const dy = py - way.y * t;
+    const dz = pz - way.z * t;
+    const near = reach + own + 0.01;
+    return dx * dx + dy * dy + dz * dz <= near * near;
   }
 
   /**
@@ -625,8 +693,12 @@ export class RapierPhysics implements PhysicsBackend {
     if (seen && body)
       found = { handle: body.handle, distance: seen.time_of_impact, point: toVec(seen.witness1), normal: toVec(seen.normal1) };
     if (this.unseen.size === 0) return found;
+    const from = v(position);
+    const way = v(direction);
+    const own = reachOf(shape);
     for (const collider of this.unseenColliders(o)) {
       const max = found ? found.distance : reach;
+      if (!this.mayTouch(collider, from, way, max, own)) continue;
       const hit = collider.castShape(ZERO, cast, v(position), q(rotation), v(direction), 0, max, true);
       if (!hit || (found && hit.time_of_impact >= found.distance)) continue;
       // (On the collider's own axes, from its center: turned and moved to the world's.)
