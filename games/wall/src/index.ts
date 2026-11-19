@@ -10,4 +10,6 @@ export function startWall(container: HTMLElement): Promise<Mount> {
   return startGame(container, { ...WALL, models: { ...CHARACTER_MODELS, ...KIT_MODELS, ...ARMS_MODELS } });
 }
 
-export { WALL, WALL_CARTRIDGE, WALL_LEVELS, WALL_THEME, WALL_WORDS } from './game';
+export { WALL, WALL_THEME, WALL_WORDS } from './game';
+export { WALL_CARTRIDGE, WALL_LEVEL_LIST, wallDone } from './cartridge';
+export { WALL_LEVELS } from './levels';

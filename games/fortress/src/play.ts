@@ -1,7 +1,7 @@
 import type { Vec3 } from '@manifold/common';
 import { ATTACK, PEBBLE_INPUT, SMOKE_INPUT } from '@manifold/arms';
 import { BotHost, NO_INPUT, registryFor, Session, withoutView, type Entity, type PlayerInput } from '@manifold/core';
-import { FORTRESS } from './game';
+import { FORTRESS_CARTRIDGE, FORTRESS_LEVEL_LIST, fortressDone } from './cartridge';
 import { run, standing } from './rules';
 
 /**
@@ -11,17 +11,17 @@ import { run, standing } from './rules';
  * took, by its run; and the inputs (the guards' too), for its reference replay.
  */
 export function levelOf(index: number) {
-  const registry = registryFor(FORTRESS.cartridge);
-  const errors = registry.run(withoutView(FORTRESS.levels[index]!.recipe), 'recipe').filter((m) => m.level === 'error');
+  const registry = registryFor(FORTRESS_CARTRIDGE);
+  const errors = registry.run(withoutView(FORTRESS_LEVEL_LIST[index]!.recipe), 'recipe').filter((m) => m.level === 'error');
   if (errors.length) throw new Error(errors.map((m) => m.text).join('; '));
-  const session = new Session(FORTRESS.cartridge, { registry });
+  const session = new Session(FORTRESS_CARTRIDGE, { registry });
   const bots = new BotHost();
   const world = () => session.world;
   const me = (): Entity => [...world().entities.values()].find((e) => e.character?.player === 1 && !e.brain)!;
   const named = (name: string) => world().named(name)!;
   const at = () => me().transform!.position;
   const r = () => run(me())!;
-  const done = () => FORTRESS.done(world(), me()) !== null;
+  const done = () => fortressDone(world(), me()) !== null;
   const step = (input: PlayerInput = NO_INPUT) => {
     bots.think(session);
     session.setInput(1, input);

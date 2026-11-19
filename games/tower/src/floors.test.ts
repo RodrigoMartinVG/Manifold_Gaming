@@ -10,7 +10,7 @@ import {
   Session,
   SIMULATION_VERSION,
 } from '@manifold/core';
-import { TOWER } from './game';
+import { TOWER_CARTRIDGE, TOWER_LEVEL_LIST } from './cartridge';
 import { floorOf } from './play';
 import { TOWER_REPLAYS } from './replays';
 import { runner } from './rules';
@@ -315,12 +315,12 @@ describe('the tower’s six floors, played to their goal (stage 5d; six, longer,
 
 describe('the tower’s reference replays (stage 5d)', () => {
   test('one for each floor, of this simulation version', () => {
-    expect(Object.keys(TOWER_REPLAYS).sort()).toEqual(TOWER.levels.map((l) => l.id));
+    expect(Object.keys(TOWER_REPLAYS).sort()).toEqual(TOWER_LEVEL_LIST.map((l) => l.id));
     for (const text of Object.values(TOWER_REPLAYS)) expect(text.split('\n')[0]).toBe(`# Manifold replay ${SIMULATION_VERSION}`);
   });
 
   test.each(Object.entries(TOWER_REPLAYS))('%s plays to the hash on its last line', (_, text) => {
-    const { session, same } = playReplay(TOWER.cartridge, replayFromText(text));
+    const { session, same } = playReplay(TOWER_CARTRIDGE, replayFromText(text));
     expect(same).toBe(true);
     session.world.dispose();
   });

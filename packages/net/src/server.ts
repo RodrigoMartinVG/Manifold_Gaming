@@ -72,6 +72,8 @@ export class Server {
     readonly cartridge: Cartridge,
     o: ServerOptions = {},
   ) {
+    // How long taking a snapshot took, said to people: a measure of this machine, never the world's time.
+    // eslint-disable-next-line no-restricted-properties
     this.now = o.now ?? Date.now;
     this.session = this.born(o.birth ?? '');
   }

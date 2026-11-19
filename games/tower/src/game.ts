@@ -1,23 +1,11 @@
 import characters from '@manifold/character/assets';
-import { STEP, levelFromText, type Cartridge, type Level } from '@manifold/core';
-import { KIT } from '@manifold/kit';
+import { STEP } from '@manifold/core';
 import kit from '@manifold/kit/assets';
 import { timeIn, type Hud, type Theme, type Voice, type Words } from '@manifold/presentation';
 import type { Game } from '@manifold/shell';
 import { mountFinale } from './finale';
-import { createTower, runner, TOWER_ZONES } from './rules';
-
-/** The tower's floors: text files in `games/tower/levels/`, read with its zones and the games' kit. */
-const files = import.meta.glob<string>('../levels/*.level', { query: '?raw', import: 'default', eager: true });
-export const TOWER_LEVELS: Readonly<Record<string, Level>> = Object.fromEntries(
-  Object.entries(files).map(([path, text]) => [
-    path.replace(/^.*\/(.+)\.level$/, '$1'),
-    levelFromText(text, { zones: TOWER_ZONES, kit: KIT }),
-  ]),
-);
-
-/** Its rules (rules.ts), with its floors. */
-export const TOWER_CARTRIDGE: Cartridge = createTower(TOWER_LEVELS);
+import { runner } from './rules';
+import { TOWER_CARTRIDGE, TOWER_LEVEL_LIST, towerDone } from './cartridge';
 
 /** ITS WORDS (decision 0019). The thread's lines are a first draft: 5d writes them with the tower. */
 export const TOWER_WORDS = {
@@ -161,18 +149,8 @@ export const TOWER: Game = {
   // run (floors.test.ts: 15.6, 17.5, 45.7, 19, 13.7 and 32.1 s; the third waiting for what moves, as anyone must).
   // The camera steady (after phase 5): it goes along with the climber without turning by itself, so the
   // direction held for a run up a wall and the jump off it stays the same (`view.camera`, camera.ts).
-  levels: [
-    { id: 'floor-1', recipe: 'tower.floor floor-1\nview.camera steady', name: 'tower.floor.1', gold: 20 },
-    { id: 'floor-2', recipe: 'tower.floor floor-2\nview.camera steady', name: 'tower.floor.2', gold: 23 },
-    { id: 'floor-3', recipe: 'tower.floor floor-3\nview.camera steady', name: 'tower.floor.3', gold: 59 },
-    { id: 'floor-4', recipe: 'tower.floor floor-4\nview.camera steady', name: 'tower.floor.4', gold: 25 },
-    { id: 'floor-5', recipe: 'tower.floor floor-5\nview.camera steady', name: 'tower.floor.5', gold: 18 },
-    { id: 'floor-6', recipe: 'tower.floor floor-6\nview.camera steady', name: 'tower.floor.6', gold: 42 },
-  ],
-  done: (_, hero) => {
-    const run = hero && runner(hero);
-    return run && run.finish >= 0 ? { steps: run.finish - run.start, stars: run.stars, falls: run.falls } : null;
-  },
+  levels: TOWER_LEVEL_LIST,
+  done: towerDone,
   thread: {
     opening: [
       { who: 'tower.who.keeper', say: 'tower.open.1' },

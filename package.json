@@ -15,7 +15,7 @@
     "dev": "npm run dev -w site",
     "build": "npm run build -w site",
     "preview": "npm run preview -w site",
-    "check": "npm run check --workspaces --if-present && tsc -p e2e/tsconfig.json && tsc -p perf/tsconfig.json",
+    "check": "npm run check --workspaces --if-present && tsc -p e2e/tsconfig.json && tsc -p perf/tsconfig.json && tsc -p tsconfig.repo.json",
     "lint": "eslint .",
     "format:check": "prettier --check .",
     "format": "prettier --write .",

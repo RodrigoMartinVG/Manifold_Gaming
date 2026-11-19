@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, test } from 'vitest';
 import { initPhysics, playReplay, replayFromText, replayOf, replayToText, Session, SIMULATION_VERSION } from '@manifold/core';
 import { arsenal, raised, RELOAD } from '@manifold/arms';
-import { WALL } from './game';
+import { WALL_CARTRIDGE } from './cartridge';
 import { levelOf } from './play';
 import { WALL_REPLAYS } from './replays';
 
@@ -323,7 +323,7 @@ describe('the wall’s reference replays (stage 5h)', () => {
   });
 
   test.each(Object.entries(WALL_REPLAYS))('%s plays to the hash on its last line', (_, text) => {
-    const { session, same } = playReplay(WALL.cartridge, replayFromText(text));
+    const { session, same } = playReplay(WALL_CARTRIDGE, replayFromText(text));
     expect(same).toBe(true);
     session.world.dispose();
   });

@@ -1,24 +1,12 @@
 import characters from '@manifold/character/assets';
 import { AMMO_OF, armsTool, arsenal, ATTACK, MAGAZINES, RELOAD, SLOTS, weapon } from '@manifold/arms';
-import { STEP, levelFromText, type Cartridge, type Level } from '@manifold/core';
-import { KIT } from '@manifold/kit';
+import { STEP } from '@manifold/core';
 import kit from '@manifold/kit/assets';
 import weapons from '@manifold/arms/assets';
 import { timeIn, type Hud, type Theme, type Words } from '@manifold/presentation';
 import type { Game } from '@manifold/shell';
-import { attackers, createWall, hold, WALL_ZONES } from './rules';
-
-/** The wall's levels: text files in `games/wall/levels/`, read with its zones and the games' kit. */
-const files = import.meta.glob<string>('../levels/*.level', { query: '?raw', import: 'default', eager: true });
-export const WALL_LEVELS: Readonly<Record<string, Level>> = Object.fromEntries(
-  Object.entries(files).map(([path, text]) => [
-    path.replace(/^.*\/(.+)\.level$/, '$1'),
-    levelFromText(text, { zones: WALL_ZONES, kit: KIT }),
-  ]),
-);
-
-/** Its rules (rules.ts), with its levels. */
-export const WALL_CARTRIDGE: Cartridge = createWall(WALL_LEVELS);
+import { attackers, hold } from './rules';
+import { WALL_CARTRIDGE, WALL_LEVEL_LIST, wallDone } from './cartridge';
 
 /**
  * ITS WORDS (decision 0019). The thread goes on from the fortress's last lines: while the flame was being
@@ -195,21 +183,8 @@ export const WALL: Game = {
   // Its four levels (stage 5n, decision 0031: levels to advance through, a key or two, secrets), the
   // night's last hours to the dawn, the pace rising with them (rules.ts: paceOf). Each with its gold time
   // (s): about 1.3 times its test's run (levels.test.ts).
-  levels: [
-    { id: 'walk', recipe: 'wall.level level-1\nview.camera first', name: 'wall.level.1', gold: 82 },
-    { id: 'gatehouse', recipe: 'wall.level level-2\nview.camera first', name: 'wall.level.2', gold: 106 },
-    { id: 'towers', recipe: 'wall.level level-3\nview.camera first', name: 'wall.level.3', gold: 148 },
-    { id: 'gate', recipe: 'wall.level level-4\nview.camera first', name: 'wall.level.4', gold: 129 },
-  ],
-  done: (_, hero) => {
-    const h = hero && hold(hero);
-    if (!h || h.finish < 0) return null;
-    const notes: [string, ...string[]][] = [
-      ...(h.secretsHere > 0 ? [['wall.recap.secrets', String(h.secrets), String(h.secretsHere)] as [string, ...string[]]] : []),
-      ['wall.recap.felled', String(h.felled), String(h.attackersHere)],
-    ];
-    return { steps: h.finish - h.start, stars: h.downs === 0 ? 1 : 0, falls: h.downs, notes };
-  },
+  levels: WALL_LEVEL_LIST,
+  done: wallDone,
   thread: {
     opening: [
       { who: 'wall.who.keeper', say: 'wall.open.1' },

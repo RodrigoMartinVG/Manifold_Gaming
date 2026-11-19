@@ -1,7 +1,7 @@
 import { vec3, type Vec3 } from '@manifold/common';
 import { ATTACK, EYE } from '@manifold/arms';
 import { BotHost, NO_INPUT, registryFor, Session, withoutView, type Entity, type PlayerInput } from '@manifold/core';
-import { WALL } from './game';
+import { WALL_CARTRIDGE, WALL_LEVEL_LIST, wallDone } from './cartridge';
 import { attackers, hold } from './rules';
 
 const flat = (a: Vec3, b: Vec3) => Math.hypot(a[0] - b[0], a[2] - b[2]);
@@ -13,17 +13,17 @@ const flat = (a: Vec3, b: Vec3) => Math.hypot(a[0] - b[0], a[2] - b[2]);
  * told. What it took, by its hold; and the inputs (the attackers' too), for its reference replay.
  */
 export function levelOf(index: number) {
-  const registry = registryFor(WALL.cartridge);
+  const registry = registryFor(WALL_CARTRIDGE);
   // (The recipe's view lines are the page's: a headless session has no camera.)
-  const errors = registry.run(withoutView(WALL.levels[index]!.recipe), 'recipe').filter((m) => m.level === 'error');
+  const errors = registry.run(withoutView(WALL_LEVEL_LIST[index]!.recipe), 'recipe').filter((m) => m.level === 'error');
   if (errors.length) throw new Error(errors.map((m) => m.text).join('; '));
-  const session = new Session(WALL.cartridge, { registry });
+  const session = new Session(WALL_CARTRIDGE, { registry });
   const bots = new BotHost();
   const world = () => session.world;
   const me = (): Entity => [...world().entities.values()].find((e) => e.character?.player === 1 && !e.brain)!;
   const at = () => me().transform!.position;
   const h = () => hold(me())!;
-  const done = () => WALL.done(world(), me()) !== null;
+  const done = () => wallDone(world(), me()) !== null;
   const step = (input: PlayerInput = NO_INPUT) => {
     bots.think(session);
     session.setInput(1, input);

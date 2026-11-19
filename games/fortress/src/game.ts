@@ -1,24 +1,12 @@
 import characters from '@manifold/character/assets';
 import { armsTool, ATTACK, FLARE_INPUT, GUARD, noticeOf, PEBBLE_INPUT, pouch, SMOKE_INPUT } from '@manifold/arms';
-import { STEP, levelFromText, type Cartridge, type Level } from '@manifold/core';
-import { KIT } from '@manifold/kit';
+import { STEP } from '@manifold/core';
 import kit from '@manifold/kit/assets';
 import weapons from '@manifold/arms/assets';
 import { mountWariness, timeIn, type GamePage, type Hud, type Theme, type Words } from '@manifold/presentation';
 import type { Game } from '@manifold/shell';
-import { createFortress, FORTRESS_ZONES, run, standing } from './rules';
-
-/** The fortress's levels: text files in `games/fortress/levels/`, read with its zones and the games' kit. */
-const files = import.meta.glob<string>('../levels/*.level', { query: '?raw', import: 'default', eager: true });
-export const FORTRESS_LEVELS: Readonly<Record<string, Level>> = Object.fromEntries(
-  Object.entries(files).map(([path, text]) => [
-    path.replace(/^.*\/(.+)\.level$/, '$1'),
-    levelFromText(text, { zones: FORTRESS_ZONES, kit: KIT }),
-  ]),
-);
-
-/** Its rules (rules.ts), with its levels. */
-export const FORTRESS_CARTRIDGE: Cartridge = createFortress(FORTRESS_LEVELS);
+import { run, standing } from './rules';
+import { FORTRESS_CARTRIDGE, FORTRESS_LEVEL_LIST, fortressDone } from './cartridge';
 
 /**
  * ITS WORDS (decision 0019). The thread goes on from the tower's last lines (the fortress lights its
@@ -191,24 +179,8 @@ export const FORTRESS: Game = {
   // off the safe way): the outer wall (the dark, a pebble), the courtyard (a blow from behind), the
   // barracks (waiting while a round goes by), the keep (the flame carried out). Each with its gold time
   // (s): about 1.3 times its test's run, unseen (levels.test.ts), as anyone who knows it could.
-  levels: [
-    { id: 'wall', recipe: 'fortress.level level-1', name: 'fortress.level.1', gold: 32 },
-    { id: 'yard', recipe: 'fortress.level level-2', name: 'fortress.level.2', gold: 28 },
-    { id: 'barracks', recipe: 'fortress.level level-3', name: 'fortress.level.3', gold: 59 },
-    { id: 'keep', recipe: 'fortress.level level-4', name: 'fortress.level.4', gold: 60 },
-  ],
-  done: (_, hero) => {
-    const r = hero && run(hero);
-    if (!r || r.finish < 0) return null;
-    // (Stage 5m) Its recap: the scrolls taken of those the level has (if it has any), the guards taken down.
-    const notes: [string, ...string[]][] = [
-      ...(r.scrollsHere > 0
-        ? [['fortress.recap.scrolls', String(r.scrolls), String(r.scrollsHere)] as [string, ...string[]]]
-        : []),
-      ['fortress.recap.downs', String(r.downs)],
-    ];
-    return { steps: r.finish - r.start, stars: r.seen === 0 ? 1 : 0, falls: r.caught, notes };
-  },
+  levels: FORTRESS_LEVEL_LIST,
+  done: fortressDone,
   thread: {
     opening: [
       { who: 'fortress.who.keeper', say: 'fortress.open.1' },

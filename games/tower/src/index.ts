@@ -9,4 +9,6 @@ export function startTower(container: HTMLElement): Promise<Mount> {
   return startGame(container, { ...TOWER, models: { ...CHARACTER_MODELS, ...KIT_MODELS } });
 }
 
-export { TOWER, TOWER_CARTRIDGE, TOWER_LEVELS, TOWER_THEME, TOWER_WORDS } from './game';
+export { TOWER, TOWER_THEME, TOWER_WORDS } from './game';
+export { TOWER_CARTRIDGE, TOWER_LEVEL_LIST, towerDone } from './cartridge';
+export { TOWER_LEVELS } from './levels';

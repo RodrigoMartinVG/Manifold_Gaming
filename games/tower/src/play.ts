@@ -1,6 +1,6 @@
 import type { Vec3 } from '@manifold/common';
 import { NO_INPUT, registryFor, Session, withoutView, type Entity, type PlayerInput } from '@manifold/core';
-import { TOWER } from './game';
+import { TOWER_CARTRIDGE, TOWER_LEVEL_LIST, towerDone } from './cartridge';
 import { runner } from './rules';
 
 const STAND = 0.82;
@@ -11,16 +11,16 @@ const STAND = 0.82;
  * for what moves. What it took, by its runner; and the inputs, for its reference replay.
  */
 export function floorOf(index: number) {
-  const registry = registryFor(TOWER.cartridge);
-  const errors = registry.run(withoutView(TOWER.levels[index]!.recipe), 'recipe').filter((m) => m.level === 'error');
+  const registry = registryFor(TOWER_CARTRIDGE);
+  const errors = registry.run(withoutView(TOWER_LEVEL_LIST[index]!.recipe), 'recipe').filter((m) => m.level === 'error');
   if (errors.length) throw new Error(errors.map((m) => m.text).join('; '));
-  const session = new Session(TOWER.cartridge, { registry });
+  const session = new Session(TOWER_CARTRIDGE, { registry });
   const me = (): Entity => [...session.world.entities.values()].find((e) => e.character?.player === 1)!;
   const named = (name: string) => session.world.named(name)!;
   const c = () => me().character!;
   const at = () => me().transform!.position;
   const feet = () => at()[1]! - STAND;
-  const done = () => TOWER.done(session.world, me()) !== null;
+  const done = () => towerDone(session.world, me()) !== null;
   const step = (input: PlayerInput = NO_INPUT) => {
     session.setInput(1, input);
     session.step();

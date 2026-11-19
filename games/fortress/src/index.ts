@@ -10,4 +10,6 @@ export function startFortress(container: HTMLElement): Promise<Mount> {
   return startGame(container, { ...FORTRESS, models: { ...CHARACTER_MODELS, ...KIT_MODELS, ...ARMS_MODELS } });
 }
 
-export { FORTRESS, FORTRESS_CARTRIDGE, FORTRESS_LEVELS, FORTRESS_THEME, FORTRESS_WORDS } from './game';
+export { FORTRESS, FORTRESS_THEME, FORTRESS_WORDS } from './game';
+export { FORTRESS_CARTRIDGE, FORTRESS_LEVEL_LIST, fortressDone } from './cartridge';
+export { FORTRESS_LEVELS } from './levels';

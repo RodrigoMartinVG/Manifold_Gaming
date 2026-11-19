@@ -1,0 +1,11 @@
+{
+  // The repository's own files (stage 5.5b): the table of layers and its test, in Node.
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023"],
+    "types": ["node"],
+    "allowJs": true,
+    "checkJs": true
+  },
+  "files": ["layers.js", "layers.test.ts"]
+}

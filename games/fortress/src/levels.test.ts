@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, test } from 'vitest';
 import { initPhysics, playReplay, replayFromText, replayOf, replayToText, Session, SIMULATION_VERSION } from '@manifold/core';
-import { FORTRESS } from './game';
+import { FORTRESS_CARTRIDGE } from './cartridge';
 import { levelOf } from './play';
 import { FORTRESS_REPLAYS } from './replays';
 
@@ -125,7 +125,7 @@ describe('the fortress’s reference replays (stage 5f; four since 5m)', () => {
   });
 
   test.each(Object.entries(FORTRESS_REPLAYS))('%s plays to the hash on its last line', (_, text) => {
-    const { session, same } = playReplay(FORTRESS.cartridge, replayFromText(text));
+    const { session, same } = playReplay(FORTRESS_CARTRIDGE, replayFromText(text));
     expect(same).toBe(true);
     session.world.dispose();
   });

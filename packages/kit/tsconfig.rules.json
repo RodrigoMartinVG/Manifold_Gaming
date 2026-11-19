@@ -1,0 +1,12 @@
+{
+  // Its rules without the DOM or Node's types (stage 5.5b): what runs in the step cannot reach for the page, and
+  // the compiler says so, as for the core (decision 0003). Its view files (layers.js) and its tests apart; a
+  // rules file that imported a view file would bring it in here, and fail.
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023"],
+    "types": []
+  },
+  "include": ["src"],
+  "exclude": ["src/**/*.test.ts", "src/models.ts"]
+}

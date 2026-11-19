@@ -43,6 +43,8 @@ export function saveGame(
   cartridge: Cartridge,
   world: World,
   player: number,
+  // The day it was made, the player's calendar (decision 0020), never the world's time: out of the step.
+  // eslint-disable-next-line no-restricted-syntax
   made = new Date().toISOString().slice(0, 10),
 ): SavedGame | null {
   const progress = cartridge.progress?.write(world, player);
