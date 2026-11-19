@@ -16,11 +16,17 @@ import type { Body, BodySpec, CharacterSettings, CollisionGroups, CompoundPart, 
  * creating any world (in the browser, in the tests, on a server).
  */
 let ready = false;
+let loading: Promise<void> | null = null;
 
-export async function initPhysics(): Promise<void> {
-  if (ready) return;
-  await RAPIER.init();
-  ready = true;
+/**
+ * (One load for every caller, the forest's F0a: two pieces of a page that asked at once, "La misma huella"'s
+ * replays and its terrain, both found it not ready and both loaded Rapier; the second load took the memory
+ * from under the first one's worlds, which stopped with "unreachable".)
+ */
+export function initPhysics(): Promise<void> {
+  return (loading ??= RAPIER.init().then(() => {
+    ready = true;
+  }));
 }
 
 const v = (x: Vec3) => ({ x: x[0], y: x[1], z: x[2] });
