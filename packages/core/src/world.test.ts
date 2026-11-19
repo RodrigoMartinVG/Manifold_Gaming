@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, test } from 'vitest';
 import { approx, quat } from '@manifold/common';
-import { component } from './components';
+import { component, MAKERS, setComponent, unsettable } from './components';
 import { World, STEP } from './world';
 import { stateHash } from './hash';
 import { initPhysics } from './physics';
@@ -306,6 +306,57 @@ describe("a game's components (stage 2.5b): by name, as deep as they need", () =
     expect(() => world.createEntity({ game: { inventory: { items: [] } } })).toThrow(/<game>\.<component>/);
     expect(() => world.createEntity({ game: { 'dojo.runner': { falls: 0 }, 'dojo.inventory': { items: [] } } })).not.toThrow();
     world.dispose();
+  });
+
+  test('a game sets its component after the entity is born, checked as at its birth (stage 5.5e)', () => {
+    const world = new World({ seed: 1 });
+    const e = world.createEntity({});
+    // Without its game, refused (before, `e.game = {…}` took any name).
+    expect(() => setComponent(e, 'wave', { wave: 1 })).toThrow(/<game>\.<component>/);
+    expect(e.game).toBeUndefined();
+    // With it: kept (the game's components made if it had none), read back, in the hash.
+    const before = stateHash(world);
+    expect(setComponent(e, 'wall.wave', { wave: 1 })).toEqual({ wave: 1 });
+    expect(component<{ wave: number }>(e, 'wall.wave')).toEqual({ wave: 1 });
+    expect(stateHash(world)).not.toBe(before);
+    setComponent(e, 'wall.wave', { wave: 2 });
+    expect(e.game).toEqual({ 'wall.wave': { wave: 2 } });
+    world.dispose();
+  });
+});
+
+/**
+ * THE COMPONENTS' TABLE (stage 5.5e): what the world makes from what is asked for (`MAKERS`, one for each
+ * of `ComponentSpecs`), and what the console's `set` may change of each (`SETTABLE`).
+ */
+describe("the components' table (stage 5.5e)", () => {
+  test('each component the world makes, made from what is asked for, in its order: a character after its body', () => {
+    expect(Object.keys(MAKERS).at(-2)).toBe('body');
+    expect(Object.keys(MAKERS).at(-1)).toBe('character');
+    const world = new World({ seed: 1 });
+    const e = world.createEntity({
+      transform: { position: [0, 2, 0], rotation: quat.identity() },
+      health: { most: 50 },
+      lamp: { radius: 4, intensity: 1, signal: null },
+      body: { type: 'character', shape: { kind: 'capsule', halfHeight: 0.5, radius: 0.3 } },
+      character: { player: 1 },
+    });
+    expect(e.health).toEqual({ points: 50, most: 50, down: -1 });
+    expect(e.lamp!.on).toBe(true);
+    expect(e.character!.player).toBe(1);
+    // A maker that refuses throws with its own words.
+    expect(() => world.createEntity({ health: { most: 0 } })).toThrow('its most must be more than 0');
+    world.dispose();
+  });
+
+  test('what `set` may not change, and why: only a body’s velocities, not a turn, nothing of a level line’s motion', () => {
+    expect(unsettable('body', 'linearVelocity')).toBeNull();
+    expect(unsettable('body', 'shape')).toMatch(/physics/);
+    expect(unsettable('transform', 'position')).toBeNull();
+    expect(unsettable('transform', 'rotation')).toMatch(/rotate y 45/);
+    for (const c of ['mechanism', 'mover', 'source'])
+      expect(unsettable(c, 'seconds')).toBe(`${c} is the level line's: delete it and add it again`);
+    expect(unsettable('lamp', 'intensity')).toBeNull();
   });
 });
 

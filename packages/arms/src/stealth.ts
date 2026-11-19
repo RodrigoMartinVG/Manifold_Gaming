@@ -3,6 +3,7 @@ import {
   aimOf,
   component,
   pressed,
+  setComponent,
   upAt,
   type Damage,
   type Entity,
@@ -346,16 +347,17 @@ export function noticing(world: World, events: readonly Event[]) {
   for (const g of world.entities.values()) {
     const aware = wary(g)?.aware;
     if (!aware || !g.transform || !g.watcher || !g.character) continue;
-    g.game ??= {};
-    const n = (g.game[NOTICE] ??= {
-      level: 0,
-      state: 'calm',
-      at: [],
-      who: -1,
-      seen: -1,
-      since: world.tick,
-      until: -1,
-    } satisfies Notice) as Notice;
+    const n =
+      component<Notice>(g, NOTICE) ??
+      setComponent(g, NOTICE, {
+        level: 0,
+        state: 'calm',
+        at: [],
+        who: -1,
+        seen: -1,
+        since: world.tick,
+        until: -1,
+      } satisfies Notice);
     const set = (state: NoticeState) => {
       n.state = state;
       n.since = world.tick;

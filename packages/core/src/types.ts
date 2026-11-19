@@ -705,26 +705,34 @@ export interface Appearance {
   opacity?: number;
 }
 
-/** The components an entity is created with (everything but the id, which the world gives; a body and a character as they are asked for). */
-export type Components = Omit<
-  Entity,
-  'id' | 'body' | 'character' | 'sensor' | 'mechanism' | 'lamp' | 'watcher' | 'breakable' | 'health'
-> & {
-  /** Health (stage 4c): its most points (it starts with all of them, standing). */
-  health?: Pick<Health, 'most'>;
+/**
+ * WHAT IS ASKED FOR, of the components the world makes from less than they hold (stage 5.5e, S4): health
+ * by its most points (it starts with all of them, standing), a lamp without whether it is on, a body and a
+ * character as they are asked for… One list: the `Components` an entity is created with, and the makers
+ * `createEntity` runs (components.ts, checked against it), are both made from it. Before, the list was
+ * written twice (this type's omit list and `createEntity`'s destructuring), and the two had to match.
+ */
+export interface ComponentSpecs {
+  /** Health (stage 4c): its most points. */
+  health: Pick<Health, 'most'>;
+  /** A program's back and forth (stage 2d), as it is. */
+  mover: Mover;
   /** What breaks it: the energy of a hit, in joules (it starts whole). */
-  breakable?: Pick<Breakable, 'threshold'>;
+  breakable: Pick<Breakable, 'threshold'>;
   /** A lamp: how far it reaches, how bright, and the signal it follows (on: from its first step). */
-  lamp?: Pick<Lamp, 'radius' | 'intensity' | 'signal'>;
+  lamp: Pick<Lamp, 'radius' | 'intensity' | 'signal'>;
   /** A watcher: how far it sees, the cosine of half its field of view, and how lit it needs things. */
-  watcher?: Pick<Watcher, 'range' | 'cone' | 'threshold'>;
+  watcher: Pick<Watcher, 'range' | 'cone' | 'threshold'>;
   /** A mechanism: its signal, its time, and a door's hinge or a lift's way (closed: where it is created). */
-  mechanism?: Pick<Mechanism, 'signal' | 'seconds' | 'door' | 'lift'>;
-  body?: BodySpec;
-  character?: CharacterSpec;
+  mechanism: Pick<Mechanism, 'signal' | 'seconds' | 'door' | 'lift'>;
   /** A zone: what it is for, half its size, and what it carries (who is inside starts empty). */
-  sensor?: Pick<Sensor, 'kind' | 'half'> & { params?: Sensor['params'] };
-};
+  sensor: Pick<Sensor, 'kind' | 'half'> & { params?: Sensor['params'] };
+  body: BodySpec;
+  character: CharacterSpec;
+}
+
+/** The components an entity is created with: everything but the id, which the world gives, those of `ComponentSpecs` as they are asked for. */
+export type Components = Omit<Entity, 'id' | keyof ComponentSpecs> & Partial<ComponentSpecs>;
 
 /**
  * GRAVITY, as data (decision 0012): a field that says, at every point, where "down" is and how

@@ -1,6 +1,7 @@
 import type { Registry, Value } from '@manifold/commands';
 import type { Vec3 } from '@manifold/common';
 import type { Cartridge } from './cartridge';
+import { unsettable } from './components';
 import {
   buildPiece,
   emptyLevel,
@@ -259,12 +260,9 @@ export function setField(world: World, which: string, field: string, words: stri
     return null;
   }
   const [component, ...rest] = path;
-  if (component === 'body' && rest[0] !== 'linearVelocity' && rest[0] !== 'angularVelocity')
-    return "a body's shape, kind and material are the physics': delete it and add it again";
-  if (component === 'transform' && rest[0] === 'rotation')
-    return "a turn is its line's (`rotate y 45`): delete it and add it again";
-  if (component === 'mechanism' || component === 'mover' || component === 'source')
-    return `${component} is the level line's: delete it and add it again`;
+  // What it may change of a component, as the components' table says (stage 5.5e).
+  const why = unsettable(component ?? '', rest[0]);
+  if (why) return why;
   const holder = (e as unknown as Record<string, unknown>)[component ?? ''];
   if (holder === undefined || holder === null || typeof holder !== 'object') return `${which} has no ${component}`;
   // Down the way, to the object that holds the value.

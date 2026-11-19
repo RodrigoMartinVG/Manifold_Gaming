@@ -29,6 +29,7 @@ import {
   type Entity,
   type Event,
   type Level,
+  setComponent,
   type World,
   type ZoneKinds,
 } from '@manifold/core';
@@ -219,7 +220,8 @@ function callIn(world: World, wave: number, place: number): number {
       const at = vec3.add(zone.transform.position, vec3.scale(side, (k - (n - 1) / 2) * 1.2));
       const g = guard(world, at, facing, null, role.kind);
       const fair = { ...pace.fair!, windup: Math.max(pace.fair!.windup, role.windup), flinch: role.flinch };
-      g.game = { ...g.game, [GUNNER_KEY]: { ...pace, fair } satisfies Gunner, [WAVE]: { wave } };
+      setComponent(g, GUNNER_KEY, { ...pace, fair } satisfies Gunner);
+      setComponent(g, WAVE, { wave });
       g.health = { ...g.health!, most: role.health, points: role.health };
       g.character!.movement.walk = { ...g.character!.movement.walk, speed: role.walk, run: role.run };
       g.watcher!.range = WALL.sight.range;

@@ -1,7 +1,7 @@
 import { Random, quat, vec3, type Quat, type Vec3 } from '@manifold/common';
-import { moveCharacter, newCharacter } from './character';
+import { moveCharacter } from './character';
 
-import { COMPONENT_NAME } from './components';
+import { COMPONENT_NAME, MAKERS } from './components';
 import { EARTH, gravityAt } from './gravity';
 import { MATERIAL_NAME, MATERIALS, materialProblem, type Material } from './materials';
 
@@ -12,6 +12,7 @@ import type { Cartridge } from './cartridge';
 import type { KitPieces } from './level';
 import type {
   CollisionGroups,
+  ComponentSpecs,
   Components,
   Damage,
   Entity,
@@ -619,82 +620,30 @@ export class World {
   }
 
   createEntity(components: Components): Entity {
-    const { body, character, sensor, mover, mechanism, lamp, watcher, breakable, health, ...rest } = components;
-    for (const name of Object.keys(rest.game ?? {}))
+    for (const name of Object.keys(components.game ?? {}))
       if (!COMPONENT_NAME.test(name))
         throw new Error(
           `"${name}" is not a game component's name: it goes with its game, \`<game>.<component>\`, like \`dojo.runner\``,
         );
     // A name names one entity in its world (stage 3b): two with one name, and `inspect` or a signal
     // would find either.
-    if (rest.name !== undefined) {
-      if (!ENTITY_NAME.test(rest.name)) throw new Error(`"${rest.name}" is not a name: one word, like \`door_north\``);
-      if (this.named(rest.name)) throw new Error(`"${rest.name}" is already another entity's name`);
+    if (components.name !== undefined) {
+      if (!ENTITY_NAME.test(components.name))
+        throw new Error(`"${components.name}" is not a name: one word, like \`door_north\``);
+      if (this.named(components.name)) throw new Error(`"${components.name}" is already another entity's name`);
     }
     // Made of a material it does not know, its friction would be a guess (stage 3b).
-    const material = body?.material === undefined ? undefined : this.table[body.material];
-    if (body?.material !== undefined && !material)
-      throw new Error(`no material "${body.material}" in this world (${Object.keys(this.table).join(', ')})`);
-    const entity: Entity = { id: ++this.lastId, ...rest };
-    if (health) {
-      if (!(health.most > 0)) throw new Error('Health has some points: its most must be more than 0');
-      entity.health = { points: health.most, most: health.most, down: -1 };
-    }
-    if (mover) entity.mover = { from: [...mover.from], to: [...mover.to], seconds: mover.seconds };
-    if (breakable) {
-      if (!(breakable.threshold >= 0)) throw new Error('What breaks it is an energy, 0 or more');
-      entity.breakable = { threshold: breakable.threshold, broken: false };
-    }
-    if (lamp) {
-      if (!entity.transform) throw new Error('A lamp needs a transform: where is it?');
-      if (!(lamp.radius > 0) || !(lamp.intensity >= 0))
-        throw new Error('A lamp reaches somewhere (a radius over 0), with some light (0 or more)');
-      entity.lamp = { radius: lamp.radius, intensity: lamp.intensity, signal: lamp.signal, on: lamp.signal === null };
-    }
-    if (watcher) {
-      if (!entity.transform) throw new Error('A watcher needs a transform: where is its eye, and where does it look?');
-      if (!(watcher.range > 0) || !(watcher.cone >= -1 && watcher.cone <= 1))
-        throw new Error('A watcher sees somewhere: a range over 0, a cone between -1 and 1');
-      entity.watcher = { range: watcher.range, cone: watcher.cone, threshold: watcher.threshold, sees: [] };
-    }
-    if (mechanism) {
-      if (!entity.transform) throw new Error('A mechanism needs a transform: where is it, closed?');
-      if (!(mechanism.seconds > 0)) throw new Error('A mechanism takes some time: its seconds must be more than 0');
-      if (!mechanism.door === !mechanism.lift) throw new Error('A mechanism is a door or a lift');
-      entity.mechanism = {
-        signal: mechanism.signal,
-        seconds: mechanism.seconds,
-        closed: { position: [...entity.transform.position], rotation: [...entity.transform.rotation] },
-        ...(mechanism.door
-          ? { door: { hinge: [...mechanism.door.hinge], axis: [...mechanism.door.axis], degrees: mechanism.door.degrees } }
-          : {}),
-        ...(mechanism.lift ? { lift: { by: [...mechanism.lift.by] } } : {}),
-        toward: 0,
-        since: this.tick,
-        from: 0,
-      };
-    }
-    if (sensor) {
-      if (!entity.transform) throw new Error('A zone needs a transform: where is it?');
-      const params = Object.fromEntries(Object.entries(sensor.params ?? {}).map(([k, v]) => [k, [...v]]));
-      entity.sensor = { kind: sensor.kind, half: [...sensor.half], inside: [], params };
-    }
-    if (body) {
-      if (!entity.transform) throw new Error('A body needs a transform: where is it?');
-      // What it is made of gives it its friction, its bounce and (stage 3g) what it weighs for its size.
-      const spec = material
-        ? {
-            ...body,
-            friction: body.friction ?? material.friction,
-            restitution: body.restitution ?? material.bounce,
-            density: body.density ?? material.density,
-          }
-        : body;
-      entity.body = this.physics.addBody(spec, entity.transform);
-    }
-    if (character) {
-      if (entity.body?.type !== 'character') throw new Error("A character needs a body of type 'character'.");
-      entity.character = newCharacter(character);
+    const material = components.body?.material;
+    if (material !== undefined && !this.table[material])
+      throw new Error(`no material "${material}" in this world (${Object.keys(this.table).join(', ')})`);
+    // What is kept as it is given; then what the world makes from what is asked for, in its makers' order (stage 5.5e).
+    const entity: Entity = {
+      id: ++this.lastId,
+      ...(Object.fromEntries(Object.entries(components).filter(([k]) => !(k in MAKERS))) as Omit<Entity, 'id'>),
+    };
+    for (const [k, make] of Object.entries(MAKERS) as [keyof ComponentSpecs, (spec: unknown, e: Entity, w: World) => unknown][]) {
+      const spec = components[k];
+      if (spec) (entity as unknown as Record<string, unknown>)[k] = make(spec, entity, this);
     }
     this.entities.set(entity.id, entity);
     this.indexBody(entity);

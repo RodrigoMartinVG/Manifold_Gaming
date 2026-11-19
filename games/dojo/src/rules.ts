@@ -45,6 +45,7 @@ import {
   isDown,
   NO_INPUT,
   released,
+  setComponent,
   STEP,
   upAt,
   type Brain,
@@ -534,8 +535,7 @@ export function createDojo(levels: Readonly<Record<string, Level>>, brains: Read
           type: { kind: 'number', min, max },
           default: GUNNER[name] / scale,
           onWorld(world, value) {
-            for (const e of guardsOf(world))
-              e.game = { ...e.game, [GUNNER_KEY]: { ...gunnerOf(e), [name]: told(Number(value)) } };
+            for (const e of guardsOf(world)) setComponent(e, GUNNER_KEY, { ...gunnerOf(e), [name]: told(Number(value)) });
           },
         });
       };

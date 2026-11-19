@@ -121,6 +121,7 @@ export type {
   Pose,
   CompoundPart,
   Components,
+  ComponentSpecs,
   Entity,
   Event,
   EntityId,
@@ -149,7 +150,7 @@ export type {
   BrainOf,
 } from './types';
 export { AFFORDANCES } from './types';
-export { component, COMPONENT_NAME } from './components';
+export { component, COMPONENT_NAME, setComponent } from './components';
 export { VERIFIED, profileFromText, profileText, type Profile } from './profile';
 export { entityNamed, levelDiff, levelOfWorld, pieceFromLine, setField, declareBuilding } from './building';
 export { assertThat, declareChecks, readValue } from './checks';
