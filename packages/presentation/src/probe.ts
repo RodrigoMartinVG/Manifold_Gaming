@@ -16,7 +16,14 @@ import type { GamePage, Piece } from './page';
  * started, numbered.)
  */
 export function mountProbe(page: GamePage, match: PageMatch): Piece {
-  const data = page.container.dataset;
+  const dataset = page.container.dataset;
+  // (Written only when it changed, stage 5.5g, the audit's V13: ten writes to the page a frame, most the same.)
+  const data = new Proxy(dataset, {
+    set(target, key: string, value: string) {
+      if (target[key] !== value) target[key] = value;
+      return true;
+    },
+  });
   const fixed = (v: readonly number[]) => v.map((n) => n.toFixed(2)).join(' ');
   let frames = 0;
   return {
@@ -40,13 +47,20 @@ export function mountProbe(page: GamePage, match: PageMatch): Piece {
       const drawn = page.stage.drawn;
       data.draws = String(drawn.calls);
       data.triangles = String(drawn.triangles);
+      // (Stage 5.5g) What the GPU keeps (three.js's count) and what the scene holds, for what leaks: a world
+      // born again and again must not leave either growing.
+      const memory = page.stage.renderer.info.memory;
+      data.geometries = String(memory.geometries);
+      data.textures = String(memory.textures);
+      data.scene = String(page.stage.scene.children.length);
       if (++frames % 10 !== 0) return;
       data.frames = String(frames);
       data.checks = String(match.checks);
       // And what handing them to the GPU costs the page (stage 4.5f), in milliseconds.
       data.render = page.stage.renderMs.toFixed(2);
-      data.others = [...world.entities.values()]
-        .filter((e) => e.character && e.character.player !== match.me && e.transform)
+      data.others = page.index
+        .with('character')
+        .filter((e) => e.character.player !== match.me && e.transform)
         .map((e) => `${e.character!.player}:${fixed(e.transform!.position)}`)
         .join('|');
     },

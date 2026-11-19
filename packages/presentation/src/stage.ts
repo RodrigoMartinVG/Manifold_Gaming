@@ -1,16 +1,33 @@
 import * as THREE from 'three';
 import { createLightPool } from './light-pool';
-import type { Stage } from './page';
+import type { CameraEffects, Stage } from './page';
+import { FLOOR, type Tier } from './quality';
 import { createPostChain, type PostChain } from './post';
 import { skyAt, type Rgb } from './sky';
 
 /**
- * THE ATMOSPHERE'S NUMBERS (stage 5j, decision 0031; the research's "make it feel dark, don't make it
- * dark"): at full night, a cool fill of at least this much, a moonlight for silhouettes, the fog's
- * near and far (m), the exposure; by day, the fog farther. The glow: how strong, how wide, and from
- * how bright (what gives light: lamps, the flame, flashes, the sun's disc).
+ * A LOOK (stage 5.5g, the audit's V4: until then a boolean and a block of constants), as data: at full
+ * night, a cool fill of at least `nightFill`, of `coolFill`'s hue; a moonlight for silhouettes; the fog's
+ * near and far (m) by day and at night, the night's amount mixing them; the exposure the same way; the
+ * glow (how strong, how wide, from how bright) and the vignette. A game or a level gives one (`Stage.atmosphere`);
+ * the camera's far plane and the sky's dome come from its fog, so the three no longer agree by picking.
  */
-export const ATMOSPHERE = Object.freeze({
+export interface Look {
+  readonly nightFill: number;
+  readonly coolFill: number;
+  readonly moonlight: number;
+  readonly fog: { readonly day: readonly [number, number]; readonly night: readonly [number, number] };
+  readonly exposure: { readonly day: number; readonly night: number };
+  readonly glow: { readonly strength: number; readonly radius: number; readonly threshold: number };
+  readonly vignette: { readonly offset: number; readonly darkness: number };
+}
+
+/**
+ * THE GAMES' LOOK (stage 5j, decision 0031; the research's "make it feel dark, don't make it dark"): at
+ * full night, a cool fill, a moonlight for silhouettes, fog nearer, the exposure a little up; by day, the
+ * fog farther. The glow from what gives light (lamps, the flame, flashes, the sun's disc).
+ */
+export const ATMOSPHERE: Look = Object.freeze({
   nightFill: 0.5,
   coolFill: 0x8fa6d8,
   moonlight: 0.45,
@@ -19,9 +36,17 @@ export const ATMOSPHERE = Object.freeze({
   glow: { strength: 0.55, radius: 0.45, threshold: 0.82 } as const,
   // (Stage 5.5a) Its darkness at most 1: it mixes towards 1 − darkness, and at 1.1 it made colours negative.
   vignette: { offset: 1, darkness: 1 } as const,
-  // (Stage 5.5a) How many samples a pixel of the scene takes through the passes: its anti-aliasing.
-  samples: 4,
 });
+
+/**
+ * The camera's far plane for a fog's end (stage 5.5g): the fog's end 90% of the way, so nothing the fog has
+ * not hidden is cut, and nothing it has hidden is drawn (at night, the games' fog ends at 85 m: the 200 m the
+ * far plane was drew the rest of a level only to cover it with fog); and the sky's dome three quarters of
+ * the way, inside it. Without a look, 200 m, as it was. `farOf(look)`: its farthest, by day (200 m).
+ */
+export const farFor = (fogEnd: number | null): number => (fogEnd === null ? 200 : fogEnd / 0.9);
+export const farOf = (look: Look | null): number => farFor(look ? Math.max(look.fog.day[1], look.fog.night[1]) : null);
+const domeOf = (far: number) => far * 0.75;
 
 /** Whether the glow is drawn (stage 5j): a setting, on as it comes; off for looks, or a slow machine. */
 export const GLOW_VARIABLE = {
@@ -36,7 +61,7 @@ export const GLOW_VARIABLE = {
 /** How much it is night at an hour's sky, from the sun's height (0 by day, 1 with the sun 15° below). */
 export const nightOf = (sunUp: number) => Math.max(0, Math.min(1, -sunUp * 4));
 
-/** The sky's dome (m): inside the camera's far plane (200), wherever the camera goes. */
+/** The sky's dome's mesh (m), scaled to three quarters of the camera's far plane (`farOf`), wherever the camera goes. */
 const DOME = 150;
 
 /**
@@ -148,10 +173,14 @@ const SKY_FRAGMENT = /* glsl */ `
  * it is in (and refitted when it changes size). Where the camera goes is the camera's piece. (Until
  * stage 3b it drew a grid too, 20 m square, under any level; now a floor is drawn as one, if it says so.)
  */
-export function createStage(container: HTMLElement): Stage {
-  // 1× resolution (an integrated GPU, like the Iris Plus, struggles with 2×: four times the pixels).
+export function createStage(container: HTMLElement, quality: Tier = FLOOR): Stage {
+  // The tier's resolution (the floor's: 1×, an integrated GPU like the Iris Plus struggles with 2×).
   const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(1);
+  renderer.setPixelRatio(quality.pixelRatio);
+  // What a frame may cost, said on the page (stage 5.5g): what the browser tests check against.
+  container.dataset.quality = quality.name;
+  container.dataset.budgetDraws = String(quality.budget.draws);
+  container.dataset.budgetTriangles = String(quality.budget.triangles);
   container.append(renderer.domElement);
   const scene = new THREE.Scene();
   const flat = new THREE.Color(0x14161c);
@@ -159,9 +188,9 @@ export function createStage(container: HTMLElement): Stage {
   let day = 1;
   let hour: number | null = null;
   let renderMs = 0;
-  const camera = new THREE.PerspectiveCamera(60, 1, 0.05, 200);
+  const camera = new THREE.PerspectiveCamera(60, 1, 0.05, farOf(null));
   // The scene's real lights, one owner (stage 5.5a): given out before each frame is drawn.
-  const lights = createLightPool(scene);
+  const lights = createLightPool(scene, quality.lights);
   const fill = new THREE.HemisphereLight(0xc8d4ff, 0x3a3028, 1.4);
   scene.add(fill);
   const sun = new THREE.DirectionalLight(0xfff2e0, 1.8);
@@ -174,7 +203,7 @@ export function createStage(container: HTMLElement): Stage {
   // One fog and one cool color, changed in place: the light changes with the day, every frame in a cycle.
   const fog = new THREE.Fog(0x000000, ATMOSPHERE.fog.day[0], ATMOSPHERE.fog.day[1]);
   const cool = new THREE.Color(ATMOSPHERE.coolFill);
-  let atmosphere = false;
+  let atmosphere: Look | null = null;
   let glowOn = true;
   let composer: PostChain['composer'] | null = null;
   let bloom: PostChain['bloom'] | null = null;
@@ -221,6 +250,13 @@ export function createStage(container: HTMLElement): Stage {
     scene.fog = null;
     moonlight.intensity = 0;
     renderer.toneMapping = atmosphere ? THREE.ACESFilmicToneMapping : THREE.NoToneMapping;
+    const reach = (far: number) => {
+      camera.far = far;
+      camera.updateProjectionMatrix();
+      dome.scale.setScalar(domeOf(far) / DOME);
+      container.dataset.far = far.toFixed(0);
+    };
+    reach(farFor(null));
     renderer.toneMappingExposure = 1;
     delete container.dataset.fog;
     if (hour === null) {
@@ -258,21 +294,87 @@ export function createStage(container: HTMLElement): Stage {
     // (Stage 5j) Dark, and readable: the fill does not go below a floor at night, turned cool; the moon
     // lights silhouettes; fog of the horizon's color, nearer at night; the exposure a little up.
     const n = nightOf(look.sun[1]);
-    fill.intensity = Math.max(fill.intensity, ATMOSPHERE.nightFill * n);
+    const a = atmosphere;
+    cool.setHex(a.coolFill);
+    fill.intensity = Math.max(fill.intensity, a.nightFill * n);
     fill.color.lerp(cool, 0.6 * n);
     moonlight.position.set(look.moon[0] * 10, Math.max(0.2, look.moon[1]) * 10, look.moon[2] * 10);
-    moonlight.intensity = ATMOSPHERE.moonlight * n * (0.4 + 0.6 * look.moonGlow);
+    moonlight.intensity = a.moonlight * n * (0.4 + 0.6 * look.moonGlow);
     rgb(fog.color, look.horizon).lerp(night, 0.4 * n);
-    fog.near = ATMOSPHERE.fog.day[0] + (ATMOSPHERE.fog.night[0] - ATMOSPHERE.fog.day[0]) * n;
-    fog.far = ATMOSPHERE.fog.day[1] + (ATMOSPHERE.fog.night[1] - ATMOSPHERE.fog.day[1]) * n;
+    fog.near = a.fog.day[0] + (a.fog.night[0] - a.fog.day[0]) * n;
+    fog.far = a.fog.day[1] + (a.fog.night[1] - a.fog.day[1]) * n;
     scene.fog = fog;
     container.dataset.fog = `${fog.near.toFixed(0)} ${fog.far.toFixed(0)}`;
-    renderer.toneMappingExposure = ATMOSPHERE.exposure.day + (ATMOSPHERE.exposure.night - ATMOSPHERE.exposure.day) * n;
+    // The far plane from this fog, by the night's amount (stage 5.5g).
+    reach(farFor(fog.far));
+    renderer.toneMappingExposure = a.exposure.day + (a.exposure.night - a.exposure.day) * n;
   };
+  // The camera's effects (`effects`): asked this frame, and the base pose they were applied over.
+  const moves: { by: THREE.Vector3; weight: number }[] = [];
+  const turns: { axis: 'x' | 'y' | 'z'; angle: number }[] = [];
+  let taken: { position: THREE.Vector3; quaternion: THREE.Quaternion; priority: number } | null = null;
+  /**
+   * What was applied over the camera's base pose, to give it back at `settle`: the base pose itself if one took
+   * the camera, else only what the moves added. (Not the turns: the camera piece turns the camera anew every
+   * frame, as before. And not more: what moves it between frames, the wheel, a drag, the mouse aiming, stays.)
+   */
+  const base = {
+    position: new THREE.Vector3(),
+    quaternion: new THREE.Quaternion(),
+    moved: new THREE.Vector3(),
+    applied: 'none' as 'none' | 'take' | 'moves',
+  };
+  const looking = new THREE.Matrix4();
+  const effects: CameraEffects = {
+    move: (by, weight = 1) => void moves.push({ by: by.clone(), weight }),
+    turn: (axis, angle, weight = 1) => void turns.push({ axis, angle: angle * weight }),
+    take(position, quaternion, priority) {
+      if (!taken || priority > taken.priority) taken = { position: position.clone(), quaternion: quaternion.clone(), priority };
+    },
+    look(from, to, priority) {
+      // (As a camera looks: along its −Z, its up the camera's.)
+      const at = new THREE.Vector3(...from);
+      effects.take(
+        at,
+        new THREE.Quaternion().setFromRotationMatrix(looking.lookAt(at, new THREE.Vector3(...to), camera.up)),
+        priority,
+      );
+    },
+  };
+  /** Every effect asked, applied once over the camera's base pose (kept, to be given back at `settle`). */
+  const applyEffects = () => {
+    base.applied = 'none';
+    if (taken) {
+      base.position.copy(camera.position);
+      base.quaternion.copy(camera.quaternion);
+      base.applied = 'take';
+      camera.position.copy(taken.position);
+      camera.quaternion.copy(taken.quaternion);
+    } else {
+      base.moved.set(0, 0, 0);
+      for (const m of moves) base.moved.addScaledVector(m.by, m.weight);
+      if (moves.length) {
+        camera.position.add(base.moved);
+        base.applied = 'moves';
+      }
+      for (const t of turns)
+        if (t.axis === 'x') camera.rotateX(t.angle);
+        else if (t.axis === 'y') camera.rotateY(t.angle);
+        else camera.rotateZ(t.angle);
+    }
+    moves.length = 0;
+    turns.length = 0;
+    taken = null;
+  };
+  // The place's light, worked out once a frame (`placeLight`): the frame it was for.
+  const place = new THREE.Color();
+  const part = new THREE.Color();
+  let frames = 0;
+  let placeFrame = -1;
   /** The finished image's passes (stage 5j; `post.ts` since 5.5a): made the first time the atmosphere is on. */
   const passes = () => {
     if (composer) return composer;
-    const chain = createPostChain(renderer, scene, camera, ATMOSPHERE);
+    const chain = createPostChain(renderer, scene, camera, { ...(atmosphere ?? ATMOSPHERE), samples: quality.samples });
     ({ composer, bloom, vignette } = chain);
     scenePass = chain.scene;
     bloom.enabled = glowOn;
@@ -294,6 +396,7 @@ export function createStage(container: HTMLElement): Stage {
   container.dataset.sky = 'none';
 
   return {
+    quality,
     renderer,
     scene,
     camera,
@@ -311,11 +414,12 @@ export function createStage(container: HTMLElement): Stage {
       light();
     },
     atmosphere(on) {
-      if (on === atmosphere) return;
-      atmosphere = on;
-      container.dataset.atmosphere = on ? 'on' : 'off';
-      if (on) passes();
-      container.dataset.glow = on && glowOn ? 'on' : 'off';
+      const look = on === true ? ATMOSPHERE : on === false ? null : on;
+      if (look === atmosphere) return;
+      atmosphere = look;
+      container.dataset.atmosphere = look ? 'on' : 'off';
+      if (look) passes();
+      container.dataset.glow = look && glowOn ? 'on' : 'off';
       light();
     },
     glow(on) {
@@ -323,7 +427,30 @@ export function createStage(container: HTMLElement): Stage {
       if (bloom) bloom.enabled = on;
       container.dataset.glow = on ? 'on' : 'off';
     },
+    placeLight() {
+      if (placeFrame === frames) return place;
+      placeFrame = frames;
+      place.copy(
+        part
+          .copy(fill.color)
+          .lerp(fill.groundColor, 0.5)
+          .multiplyScalar(fill.intensity * 0.7),
+      );
+      place.add(part.copy(sun.color).multiplyScalar(sun.intensity * 0.35));
+      place.add(part.copy(moonlight.color).multiplyScalar(moonlight.intensity * 0.35));
+      return place;
+    },
+    effects,
+    settle() {
+      if (base.applied === 'take') {
+        camera.position.copy(base.position);
+        camera.quaternion.copy(base.quaternion);
+      } else if (base.applied === 'moves') camera.position.sub(base.moved);
+      base.applied = 'none';
+    },
     render() {
+      frames++;
+      applyEffects();
       const start = performance.now();
       lights.assign(camera);
       camera.getWorldPosition(dome.position);

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { CommandInfo, VariableInfo } from '@manifold/commands';
 import type { Quat, Vec3 } from '@manifold/common';
-import { eyeHeightOf, upAt, type World } from '@manifold/core';
+import { eyeHeightOf, upAt, type Entity } from '@manifold/core';
 import type { Bodies } from './bodies';
 import type { PageMatch } from './match';
 import type { GamePage, Piece } from './page';
@@ -137,8 +137,8 @@ const HIGHEST = 80;
 const FRAMED = 0.35;
 
 /** Where a zone the character is in suggests looking (stage 3h: its `view`, a direction), if one does. */
-function viewOf(world: World, id: number): THREE.Vector3 | null {
-  for (const zone of world.entities.values()) {
+function viewOf(zones: readonly Entity[], id: number): THREE.Vector3 | null {
+  for (const zone of zones) {
     const view = zone.sensor?.params.view;
     if (view?.length === 3 && zone.sensor!.inside.includes(id)) return new THREE.Vector3(view[0], view[1], view[2]).normalize();
   }
@@ -621,7 +621,7 @@ export function mountCamera(
           // little by little, to look along it, unless it was just turned by hand.
           const untouched = pointers.size === 0 && now - turnedByHand > 600;
           // (Steady turns only by hand: not even where a zone suggests looking.)
-          const suggested = untouched && mode !== 'steady' ? viewOf(world, hero.id) : null;
+          const suggested = untouched && mode !== 'steady' ? viewOf(page.index.with('sensor'), hero.id) : null;
           // Locked on someone (stage 4.5d), behind the character, on the far side from the other, both
           // in sight; chasing, behind where it goes (not where it looks: stage 4.5d), as much as it goes:
           // turning on the spot, or walking backwards, it stays.

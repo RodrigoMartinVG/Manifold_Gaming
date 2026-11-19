@@ -5,6 +5,7 @@ import type { Bodies } from './bodies';
 import type { HoldKind } from './hands';
 import { rootOf } from './ik';
 import type { GamePage, Piece } from './page';
+import { own } from './owned';
 
 const view = (name: string, description: string) =>
   ({ name, description, scope: 'view', type: { kind: 'boolean' }, default: false }) as const satisfies VariableInfo;
@@ -50,12 +51,16 @@ const IK_COLORS: Record<'foot' | HoldKind | 'free', THREE.Color> = {
  */
 export function mountViews(page: GamePage, bodies: Bodies): Piece {
   const { scene } = page.stage;
+  // (Through its scope, stage 5.5g: what it drew, given back when the page stops.)
+  const scope = page.scope();
+  const mine = <T extends THREE.Line | THREE.Points>(o: T) => scope.add(scene, own(o, { geometry: true, material: true }));
   const declare = (info: VariableInfo, show: (on: boolean) => void) =>
     page.registry.declareVariable({ ...info, onChange: (v) => show(v === true) });
 
   const axes = new THREE.AxesHelper(3);
   axes.visible = false;
-  scene.add(axes);
+  scope.add(scene, axes);
+  scope.defer(() => axes.dispose());
   // What the physics sees (show.physics): Rapier's colliders, as lines, redrawn on every frame.
   const physicsLines = new THREE.LineSegments(
     new THREE.BufferGeometry(),
@@ -64,7 +69,7 @@ export function mountViews(page: GamePage, bodies: Bodies): Piece {
   physicsLines.visible = false;
   physicsLines.renderOrder = 1;
   physicsLines.frustumCulled = false;
-  scene.add(physicsLines);
+  mine(physicsLines);
   /** Lines drawn on top of everything, rebuilt on every frame while they are shown (show.vectors, show.contacts). */
   const overlay = (color: number) => {
     const lines = new THREE.LineSegments(
@@ -74,7 +79,7 @@ export function mountViews(page: GamePage, bodies: Bodies): Piece {
     lines.visible = false;
     lines.renderOrder = 2;
     lines.frustumCulled = false;
-    scene.add(lines);
+    mine(lines);
     return lines;
   };
   const setLines = (lines: THREE.LineSegments, xyz: number[]) =>
@@ -91,7 +96,7 @@ export function mountViews(page: GamePage, bodies: Bodies): Piece {
   contactPoints.visible = false;
   contactPoints.renderOrder = 2;
   contactPoints.frustumCulled = false;
-  scene.add(contactPoints);
+  mine(contactPoints);
   // show.ik (stage 4a): each limb's line to its target, and the contacts that persist.
   const ikLines = new THREE.LineSegments(
     new THREE.BufferGeometry(),
@@ -105,7 +110,7 @@ export function mountViews(page: GamePage, bodies: Bodies): Piece {
     o.visible = false;
     o.renderOrder = 2;
     o.frustumCulled = false;
-    scene.add(o);
+    mine(o);
   }
   // show.gravity: the field, as arrows on a grid above the floor (in phase 7 they will point to a planet).
   const gravityArrows = new THREE.Group();
@@ -115,7 +120,10 @@ export function mountViews(page: GamePage, bodies: Bodies): Piece {
       const arrow = new THREE.ArrowHelper(new THREE.Vector3(0, -1, 0), new THREE.Vector3(x, 4, z), 1, 0x8a7ae0, 0.3, 0.15);
       gravityArrows.add(arrow);
     }
-  scene.add(gravityArrows);
+  scope.add(scene, gravityArrows);
+  scope.defer(() => {
+    for (const arrow of gravityArrows.children) (arrow as THREE.ArrowHelper).dispose();
+  });
 
   declare(VIEWS_VARIABLES.axes, (on) => (axes.visible = on));
   declare(VIEWS_VARIABLES.physics, (on) => (physicsLines.visible = on));

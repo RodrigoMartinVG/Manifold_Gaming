@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { vec3, type Vec3 } from '@manifold/common';
+import { FLOOR } from './quality';
 
 /**
  * HOW MANY REAL LIGHTS (stage 4.5f): every point light three.js has is worked out for every pixel of
@@ -8,7 +9,7 @@ import { vec3, type Vec3 } from '@manifold/common';
  * drawing keeps this many at most, and gives them each frame to what matters most to what the camera sees;
  * every lamp still glows, and the simulation's light (what a watcher sees by) is all of them, as always.
  */
-export const MOST_LIGHTS = 6;
+export const MOST_LIGHTS = FLOOR.lights;
 
 /**
  * How much nearer (m) a light asked for must be than one already lit to take its place (stage 5.5a): the

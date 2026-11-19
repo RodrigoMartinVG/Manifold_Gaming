@@ -10,10 +10,10 @@ export const WALL_CARTRIDGE: Cartridge = createWall(WALL_LEVELS);
 
 /** Its levels, in order: each one's recipe, its name's key and its gold time (s). */
 export const WALL_LEVEL_LIST = [
-  { id: 'walk', recipe: 'wall.level level-1\nview.camera first', name: 'wall.level.1', gold: 82 },
-  { id: 'gatehouse', recipe: 'wall.level level-2\nview.camera first', name: 'wall.level.2', gold: 106 },
-  { id: 'towers', recipe: 'wall.level level-3\nview.camera first', name: 'wall.level.3', gold: 148 },
-  { id: 'gate', recipe: 'wall.level level-4\nview.camera first', name: 'wall.level.4', gold: 129 },
+  { id: 'walk', recipe: 'wall.level level-1', name: 'wall.level.1', gold: 82 },
+  { id: 'gatehouse', recipe: 'wall.level level-2', name: 'wall.level.2', gold: 106 },
+  { id: 'towers', recipe: 'wall.level level-3', name: 'wall.level.3', gold: 148 },
+  { id: 'gate', recipe: 'wall.level level-4', name: 'wall.level.4', gold: 129 },
 ];
 
 /** Whether the level being played is done, and how it went (the shell reads it on every frame). */

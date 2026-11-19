@@ -8,7 +8,7 @@ import { DOJO_WORDS, dojoGoal, dojoHud, dojoTool } from './interface';
 // The characters' models (stage 4a: the mannequin, shared with the other games).
 import { CHARACTER_MODELS } from '@manifold/character/models';
 import { KIT_MODELS } from '@manifold/kit/models';
-import { ARMS_MODELS } from '@manifold/arms/models';
+import { ARMS_FEEL, ARMS_MODELS } from '@manifold/arms/models';
 // The door (stage 3c), made by art/door.py: what the machines room's door is drawn with.
 import door from '../assets/door.glb?url';
 // The lamp (stage 3e), whole and broken, made by art/lamp.py.
@@ -65,6 +65,8 @@ export async function startDojo(container: HTMLElement, o: DojoOptions = {}): Pr
     pieces: [dojoGoal],
     // What each character carries, drawn in its hands (stage 4c).
     tools: dojoTool,
+    // How its weapons feel (stage 5.5g: the arms library's).
+    feel: ARMS_FEEL,
     console: {
       game: 'dojo',
       rooms: ROOMS,

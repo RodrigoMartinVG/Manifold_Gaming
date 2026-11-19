@@ -1,7 +1,8 @@
 import type { VariableInfo } from '@manifold/commands';
-import type { Event, World } from '@manifold/core';
+import type { Event } from '@manifold/core';
 import type { GamePage, Piece } from './page';
 import * as synth from './synth';
+import { projectileFeel, weaponFeel } from './feel';
 
 /** What the sound lets people change, as data (the site's console reference reads it). */
 export const AUDIO_VARIABLES = {
@@ -16,22 +17,6 @@ export const AUDIO_VARIABLES = {
 } as const satisfies Record<string, VariableInfo>;
 
 type Sound = Extract<Event, { type: 'sound' }>;
-
-/**
- * How far a weapon used (stage 5g: `fired`) is heard (m), by its kind: what fires loudly, far; what is
- * swung or thrown, near. Only the view's (its sound, its subtitle): the world's sounds are its own.
- */
-const FIRED_HEARD: Readonly<Record<string, number>> = {
-  dart: 30,
-  bolt: 20,
-  shotgun: 45,
-  launcher: 40,
-  repeater: 30,
-  orb: 25,
-  longshot: 50,
-  flamer: 12,
-};
-export const firedHeard = (kind: string) => FIRED_HEARD[kind] ?? 8;
 
 /**
  * How much of each kind of sound goes to the place's echo (stage 5k): a step hardly, a shot a good
@@ -152,6 +137,10 @@ export function mountAudio(page: GamePage): Piece {
    * A sound at `at`, heard as far as `radius`: its chain from the ears' point of view (late by the
    * distance, its highs taken off, to its side, and its share to the echo), or null if it is not heard.
    */
+  /** The sounds playing now (stage 5.5g): when each is over (`VOICE`, a blast's tail at most) and how loud it reaches the ear. */
+  const voices: { end: number; dry: number }[] = [];
+  const VOICE = 2;
+  let unheard = 0;
   const placed = (at: readonly number[], radius: number, kind: string, loud = 1): { out: AudioNode; when: number } | null => {
     if (!live()) return null;
     const c = context!;
@@ -163,6 +152,15 @@ export function mountAudio(page: GamePage): Piece {
     // (A little more room than its radius, for how far the camera is behind the player.)
     const h = synth.heardFrom(d, radius + 6);
     if (!h) return null;
+    // A budget of voices (stage 5.5g, the audit's V13: there was none, and a firefight made dozens at once):
+    // past the tier's, a sound fainter at the ear than every one playing is not made.
+    const now = c.currentTime;
+    for (let i = voices.length - 1; i >= 0; i--) if (voices[i]!.end <= now) voices.splice(i, 1);
+    if (voices.length >= page.stage.quality.voices && voices.every((v) => v.dry >= h.dry)) {
+      page.container.dataset.unheard = String(++unheard);
+      return null;
+    }
+    voices.push({ end: now + VOICE, dry: h.dry });
     const pan = d > 1e-6 ? Math.max(-1, Math.min(1, (dx * right[0] + dy * right[1] + dz * right[2]) / d)) : 0;
     const input = c.createGain();
     input.gain.value = loud;
@@ -262,13 +260,13 @@ export function mountAudio(page: GamePage): Piece {
   };
 
   /** A rocket's hiss, following it: louder near, to its side, its pitch by how fast it comes or goes. */
-  const rocketsHeard = (world: World) => {
+  const rocketsHeard = () => {
     const seen = new Set<number>();
     if (live()) {
       const c = context!;
       const { at: l, right } = ears();
-      for (const e of world.entities.values()) {
-        if (e.projectile?.kind !== 'rocket' || !e.transform) continue;
+      for (const e of page.index.with('projectile')) {
+        if (!projectileFeel(page.feel, e.projectile.kind).hiss || !e.transform) continue;
         const [x, y, z] = e.transform.position;
         const d = Math.hypot(x - l.x, y - l.y, z - l.z);
         const h = synth.heardFrom(d, ROCKET.heard);
@@ -319,14 +317,14 @@ export function mountAudio(page: GamePage): Piece {
    * (Stage 5p) Whoever slides down a wall, heard: a rasp of noise while it slides, louder and higher the
    * faster it goes down (to the wall's fastest slide), to its side; gone as it leaves the wall.
    */
-  const scrapesHeard = (world: World) => {
+  const scrapesHeard = () => {
     const seen = new Set<number>();
     if (live()) {
       const c = context!;
       const { at: l, right } = ears();
-      for (const e of world.entities.values()) {
+      for (const e of page.index.with('character')) {
         const ch = e.character;
-        if (ch?.mode !== 'slide' || !e.transform) continue;
+        if (ch.mode !== 'slide' || !e.transform) continue;
         const [x, y, z] = e.transform.position;
         const d = Math.hypot(x - l.x, y - l.y, z - l.z);
         const h = synth.heardFrom(d, SCRAPE.heard);
@@ -380,9 +378,11 @@ export function mountAudio(page: GamePage): Piece {
         return;
       }
       if (ev.type === 'fired') {
-        const p = placed(ev.at, firedHeard(ev.kind), 'fired');
+        // (How far, and how: the weapon's feel, the game's library gives it: stage 5.5g.)
+        const feel = weaponFeel(page.feel, ev.kind);
+        const p = placed(ev.at, feel.heard, 'fired');
         if (!p) return;
-        synth.fired(kit!, p.out, p.when, ev.kind);
+        synth.fired(kit!, p.out, p.when, feel.sound);
         counted(`fired ${ev.kind}`);
         return;
       }
@@ -395,7 +395,7 @@ export function mountAudio(page: GamePage): Piece {
         return;
       }
       if (ev.type === 'impact') {
-        if (ev.kind === 'rocket') return;
+        if (projectileFeel(page.feel, ev.kind).blasts) return;
         const surface = struckSurface(ev.hit);
         if (surface === false) return;
         const p = placed(ev.at, 18, 'impact');
@@ -404,9 +404,9 @@ export function mountAudio(page: GamePage): Piece {
       }
       if (ev.type === 'sound') make(ev);
     },
-    frame({ world }) {
-      rocketsHeard(world);
-      scrapesHeard(world);
+    frame() {
+      rocketsHeard();
+      scrapesHeard();
     },
     stop() {
       for (const r of rockets.values()) r.source.stop();

@@ -1,4 +1,6 @@
 export { mount, type Mount, type MountOptions, type InitialRecipe } from './client';
+export { FLOOR, TIERS, type Tier } from './quality';
+export { NO_FEEL, SWUNG, type Feel, type FiredSound, type ProjectileFeel, type WeaponFeel } from './feel';
 export type { GameButton } from './player';
 export { mountConsole, type GameConsole, type ConsoleOptions } from './console';
 export type { Frame, GamePage, Piece, Stage } from './page';
@@ -42,5 +44,5 @@ export { colorAt, createParticles, type ParticleSpec, type Particles, type Stop 
 export { cadenceAt, dipAt, mountSway, SWAY, SWAY_VARIABLE, swayAt } from './sway';
 export { mountWariness, type Noticed, type WarinessOptions } from './wariness';
 export { heardFrom, impulseResponse, SPEED_OF_SOUND } from './synth';
-export { ATMOSPHERE, GLOW_VARIABLE, nightOf } from './stage';
+export { ATMOSPHERE, farFor, farOf, GLOW_VARIABLE, nightOf, type Look } from './stage';
 export { MOST_LIGHTS, type LightAsk, type LightPool } from './light-pool';

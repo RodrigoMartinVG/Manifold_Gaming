@@ -2,7 +2,6 @@ import * as THREE from 'three';
 import { upAt, type EntityId, type Event } from '@manifold/core';
 import { dustEffect, wallDustEffect, type Effect } from './effects';
 import type { GamePage, Piece } from './page';
-import { createParticles } from './particles';
 
 /**
  * CONTACT (stage 5p, decision 0031: "depth and contact", what the platformer's research asks first): where
@@ -19,14 +18,11 @@ import { createParticles } from './particles';
  * tests: `data-dust` (the rings thrown) and `data-scrapes` (the puffs off walls).
  */
 export function mountContact(page: GamePage, o: { timeScale(): number } = { timeScale: () => 1 }): Piece {
-  const { scene, camera } = page.stage;
-  const covers = createParticles(400, false);
-  scene.add(covers.mesh);
+  // (The page's, stage 5.5g: particle-service.ts, moved on and lit once a frame by the page.)
+  const { covers } = page.particles;
   const throwing = (e: Effect) => {
     for (const p of e.covers) covers.spawn(p);
   };
-  const placeLight = new THREE.Color();
-  const lit = new THREE.Color();
   /** What each character was at the last frame: on the ground, its way of moving; and how long since its last puff off a wall. */
   const was = new Map<EntityId, { grounded: boolean; mode: string; scrape: number }>();
   let dust = 0;
@@ -36,7 +32,6 @@ export function mountContact(page: GamePage, o: { timeScale(): number } = { time
 
   return {
     welcome() {
-      covers.clear();
       was.clear();
     },
     event(ev: Event) {
@@ -50,9 +45,9 @@ export function mountContact(page: GamePage, o: { timeScale(): number } = { time
     frame({ dt, world }) {
       const pace = dt * o.timeScale();
       const seen = new Set<EntityId>();
-      for (const e of world.entities.values()) {
+      for (const e of page.index.with('character')) {
         const c = e.character;
-        if (!c || !e.transform || !e.body) continue;
+        if (!e.transform || !e.body) continue;
         seen.add(e.id);
         const before = was.get(e.id);
         const now = { grounded: c.grounded, mode: c.mode, scrape: before?.scrape ?? 0 };
@@ -82,25 +77,6 @@ export function mountContact(page: GamePage, o: { timeScale(): number } = { time
         was.set(e.id, now);
       }
       for (const id of was.keys()) if (!seen.has(id)) was.delete(id);
-      // The place's light, for the dust (as fire.ts's smoke): the sky's fill, the sun, the moon.
-      placeLight.setRGB(0, 0, 0);
-      for (const l of scene.children) {
-        if (l instanceof THREE.HemisphereLight)
-          placeLight.add(
-            lit
-              .copy(l.color)
-              .lerp(l.groundColor, 0.5)
-              .multiplyScalar(l.intensity * 0.7),
-          );
-        else if (l instanceof THREE.AmbientLight) placeLight.add(lit.copy(l.color).multiplyScalar(l.intensity));
-        else if (l instanceof THREE.DirectionalLight) placeLight.add(lit.copy(l.color).multiplyScalar(l.intensity * 0.35));
-      }
-      covers.light(placeLight);
-      covers.update(pace, camera);
-    },
-    stop() {
-      scene.remove(covers.mesh);
-      covers.dispose();
     },
   };
 }

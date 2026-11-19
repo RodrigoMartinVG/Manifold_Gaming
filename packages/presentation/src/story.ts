@@ -1,4 +1,3 @@
-import type { World } from '@manifold/core';
 import type { GamePage, Piece } from './page';
 import { addInterfaceStyles } from './ui';
 
@@ -20,7 +19,10 @@ export function mountStory(page: GamePage): Piece {
   const box = document.createElement('div');
   box.className = 'mg-scene';
   box.hidden = true;
-  page.container.append(goal, box);
+  // (Through its scope, stage 5.5g: its boxes and its key listener given back when the page stops.)
+  const scope = page.scope();
+  scope.append(page.container, goal);
+  scope.append(page.container, box);
   let queue: { who: string; say: string }[] = [];
   let left = 0;
 
@@ -45,26 +47,26 @@ export function mountStory(page: GamePage): Piece {
     left = lineTime(text);
     page.container.dataset.scene = line.say;
   };
-  const active = (world: World) => {
-    for (const e of world.entities.values()) if (e.objective?.state === 'active') return e.objective.say;
+  const active = () => {
+    for (const e of page.index.with('objective')) if (e.objective.state === 'active') return e.objective.say;
     return null;
   };
   const skip = () => {
     if (!box.hidden) next();
   };
-  box.addEventListener('click', skip);
-  window.addEventListener('keydown', (ev) => {
+  scope.listen(box, 'click', skip);
+  scope.listen(window, 'keydown', (ev) => {
     if (!box.hidden && (ev.code === 'Enter' || ev.code === 'Space')) skip();
   });
 
   return {
-    welcome(session) {
+    welcome() {
       queue = [];
       next();
-      showObjective(active(session.world));
+      showObjective(active());
     },
-    event(ev, world) {
-      if (ev.type === 'objective') showObjective(active(world));
+    event(ev) {
+      if (ev.type === 'objective') showObjective(active());
       if (ev.type === 'scene') {
         const playing = !box.hidden;
         queue.push(...ev.lines);

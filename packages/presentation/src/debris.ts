@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { quat, Random, vec3, type Vec3 } from '@manifold/common';
-import { gravityAt, RapierPhysics, STEP, type Body, type Transform, type World } from '@manifold/core';
+import type { Body, PhysicsBackend, Transform } from '@manifold/core';
 import { own, release } from './owned';
 import type { GamePage, Piece } from './page';
 
@@ -30,30 +30,16 @@ interface Fragment {
  */
 export function mountDebris(page: GamePage, o: { timeScale(): number }): Piece {
   const { scene } = page.stage;
-  let physics: RapierPhysics | null = null;
+  /** The page's physics of what is only seen (stage 5.5g: cosmetic.ts), the one its fragments are in. */
+  let physics: PhysicsBackend | null = null;
   const fragments: Fragment[] = [];
   const shape = new THREE.BoxGeometry(1, 1, 1);
-  let pending = 0;
-
-  /** Its physics, with the world's fixed boxes in it (once per world: the level does not move them). */
-  const debrisWorld = (world: World) => {
-    if (physics) return physics;
-    physics = new RapierPhysics(gravityAt(world.gravity, [0, 0, 0]), STEP);
-    for (const e of world.entities.values())
-      if (e.body?.type === 'fixed' && (e.body.shape.kind === 'box' || e.body.shape.kind === 'compound') && e.transform)
-        physics.addBody(
-          { type: 'fixed', shape: e.body.shape },
-          { position: [...e.transform.position], rotation: [...e.transform.rotation] },
-        );
-    return physics;
-  };
   const clear = () => {
     for (const f of fragments) {
       scene.remove(f.mesh);
       release(f.mesh);
     }
     fragments.length = 0;
-    physics?.dispose();
     physics = null;
   };
   const count = () => {
@@ -68,7 +54,7 @@ export function mountDebris(page: GamePage, o: { timeScale(): number }): Piece {
     },
     event(ev, world) {
       if (ev.type !== 'broke' && ev.type !== 'blast') return;
-      const p = debrisWorld(world);
+      const p = (physics = page.cosmetic.of(world));
       const blast = ev.type === 'blast';
       const random = new Random(
         blast
@@ -101,14 +87,10 @@ export function mountDebris(page: GamePage, o: { timeScale(): number }): Piece {
       }
       count();
     },
-    frame({ dt }) {
+    frame({ now, dt }) {
       if (!physics || fragments.length === 0) return;
-      // Their own time, at the world's pace (paused, they stop; at half speed, they fall at half).
-      pending = Math.min(pending + dt * o.timeScale(), STEP * 5);
-      while (pending >= STEP) {
-        physics.step();
-        pending -= STEP;
-      }
+      // At the world's pace (paused, they stop; at half speed, they fall at half), once a frame for the page.
+      page.cosmetic.advance(now, dt * o.timeScale());
       for (let i = fragments.length - 1; i >= 0; i--) {
         const f = fragments[i]!;
         physics.read(f.body.handle, f.transform, f.body);

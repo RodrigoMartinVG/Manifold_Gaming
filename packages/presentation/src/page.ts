@@ -3,9 +3,16 @@ import type { Registry } from '@manifold/commands';
 import type { Cartridge, Entity, Event, Session, World } from '@manifold/core';
 import type { Match } from '@manifold/net';
 import type { GameConsole } from './console';
+import type { CosmeticPhysics } from './cosmetic';
+import type { Scope } from './scope';
+import type { EntityIndex } from './entities';
 import type { LightPool } from './light-pool';
+import type { Tier } from './quality';
+import type { Look } from './stage';
 import type { Mixer } from './mixer';
 import type { Language, Say } from './words';
+import type { Feel } from './feel';
+import type { ParticleService } from './particle-service';
 
 /**
  * THE PAGE A GAME IS MOUNTED IN (stage 2.5a): what every piece of the presentation shares. The
@@ -34,6 +41,16 @@ export interface GamePage {
   readonly me: number;
   /** This page's player's character, if the world has one (an entity with `character`). */
   player(): Entity | undefined;
+  /** The entities of the world drawn now by what they have (stage 5.5g, entities.ts): what a piece looks in, not the whole world. */
+  readonly index: EntityIndex;
+  /** The physics of what is only seen (stage 5.5g, cosmetic.ts): fragments, rubble, the falls. */
+  readonly cosmetic: CosmeticPhysics;
+  /** The page's particles (stage 5.5g, particle-service.ts): what adds light, what covers; spawned into, moved on by the page. */
+  readonly particles: ParticleService;
+  /** How its game's weapons and projectiles feel (stage 5.5g, feel.ts: the library gives it; none, every one plain). */
+  readonly feel: Feel;
+  /** A scope for a piece (stage 5.5g, scope.ts): what it adds through it is given back when the page stops. */
+  scope(): Scope;
   /** Says something: in the console if there is one; if not, warnings and errors go to the browser's. */
   say(text: string, level?: 'info' | 'warn' | 'error'): void;
   /** The player's language (stage 3i, decision 0019: the page's). */
@@ -58,8 +75,22 @@ export interface GamePage {
   readonly held: boolean;
 }
 
+/** What moves the camera besides the camera piece, asked during a frame (stage 5.5g: `Stage.effects`). */
+export interface CameraEffects {
+  /** A move (in the world) this frame, times `weight`. */
+  move(by: THREE.Vector3, weight?: number): void;
+  /** A turn about one of the camera's own axes this frame (radians), times `weight`. */
+  turn(axis: 'x' | 'y' | 'z', angle: number, weight?: number): void;
+  /** The camera taken over this frame, at this pose: of those that ask, the highest `priority`. */
+  take(position: THREE.Vector3, quaternion: THREE.Quaternion, priority: number): void;
+  /** The same, from `from` looking at `to` (plain numbers: a game needs no three.js for it). */
+  look(from: readonly [number, number, number], to: readonly [number, number, number], priority: number): void;
+}
+
 /** What the 3D is drawn with: the renderer, the scene and the camera (stage.ts). */
 export interface Stage {
+  /** The quality tier it draws at (stage 5.5g, quality.ts): what a frame may cost, and every knob that decides it. */
+  readonly quality: Tier;
   readonly renderer: THREE.WebGLRenderer;
   readonly scene: THREE.Scene;
   readonly camera: THREE.PerspectiveCamera;
@@ -80,12 +111,32 @@ export interface Stage {
    * THE ATMOSPHERE (stage 5j, decision 0031), for a game's page (a lab's stays as it is): with a sky,
    * fog of the horizon's color, nearer at night; a night that feels dark and stays readable (a cool
    * fill that does not go below a floor, a weak moonlight for silhouettes); tone mapping; and, unless
-   * `glow` turns it off, a glow on what gives light and a vignette, over the finished image.
+   * `glow` turns it off, a glow on what gives light and a vignette, over the finished image. A look as
+   * data (stage 5.5g): `true` is the games' (`ATMOSPHERE`), a `Look` another, `false` none; the camera's
+   * far plane and the sky's dome follow its fog (`farOf`).
    */
-  atmosphere(on: boolean): void;
+  atmosphere(on: boolean | Look): void;
   /** The glow over the finished image (stage 5j): a setting, for looks or for a slow machine. */
   glow(on: boolean): void;
   render(): void;
+  /**
+   * THE CAMERA'S EFFECTS, ONE PIPELINE (stage 5.5g, the audit's V8). The camera piece places the camera each
+   * frame (its base pose); what moves it besides asks here during its frame, and the stage applies it once, as
+   * it draws: a pose that takes it over (the highest priority wins: the tower's finale), or else every move
+   * (the walk's sway), then every turn about its own axes, in the order they were asked (the sway's lean, a
+   * blast's shake, a shot's kick), each times its weight. At the next frame's start the camera is back at its
+   * base pose (`settle`). Before, each effect moved the camera and put it back its own way, in the order the
+   * pieces happened to be listed.
+   */
+  readonly effects: CameraEffects;
+  /** The camera back at its base pose, as the camera piece left it (the page calls it as a frame starts). */
+  settle(): void;
+  /**
+   * THE PLACE'S LIGHT (stage 5.5g: what the dust and the smoke were each working out from the scene's lights
+   * on every frame): the sky's fill (half its ground's colour), the sun and the moon, as one colour, for what
+   * covers rather than shines. Worked out once a frame; the colour is the stage's, to be read, not kept.
+   */
+  placeLight(): THREE.Color;
   /**
    * What drawing costs the page itself (stage 4.5f): the milliseconds `render` took, averaged over the
    * last frames (the draw calls handed to the GPU, not the GPU's own time, which the page cannot see).

@@ -150,6 +150,8 @@ export const TOWER: Game = {
   // The camera steady (after phase 5): it goes along with the climber without turning by itself, so the
   // direction held for a run up a wall and the jump off it stays the same (`view.camera`, camera.ts).
   levels: TOWER_LEVEL_LIST,
+  // Its camera, every floor's (stage 5.5h: given once, not in each floor's recipe).
+  view: 'view.camera steady',
   done: towerDone,
   thread: {
     opening: [

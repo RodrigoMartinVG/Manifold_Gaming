@@ -4,8 +4,8 @@ import type { Event } from '@manifold/core';
 import type { Bodies } from './bodies';
 import { blastEffect, flameEffect, impactEffect, muzzleEffect, trailEffect, type Effect } from './effects';
 import type { GamePage, Piece } from './page';
-import { createParticles } from './particles';
 import { addInterfaceStyles } from './ui';
+import { largestFlash, projectileFeel, weaponFeel } from './feel';
 
 /**
  * HOW A WEAPON FEELS (stage 5g; decision 0029: in a shooter the weapons are the heart). What the world
@@ -41,24 +41,6 @@ import { addInterfaceStyles } from './ui';
  * light's brightest yet); (5o) `data-flames`, the flame lance's breaths seen.
  */
 
-/** Each kind's flash (m across; none for what is thrown or swung) and kick (degrees up). */
-export const FEEL: Readonly<Record<string, { flash: number; kick: number }>> = Object.freeze({
-  dart: { flash: 0.14, kick: 1.2 },
-  bolt: { flash: 0.1, kick: 2 },
-  shotgun: { flash: 0.34, kick: 6 },
-  launcher: { flash: 0.28, kick: 4.5 },
-  // (Stage 5n) Quick and light; the orb's, an attacker's, has no flash (it glows itself).
-  repeater: { flash: 0.12, kick: 0.7 },
-  orb: { flash: 0, kick: 0 },
-  // (Stage 5o) The longshot, a heavy flash and a hard kick; the flame lance, its flames instead (`flameEffect`).
-  longshot: { flash: 0.2, kick: 3.5 },
-  flamer: { flash: 0, kick: 0.2 },
-  stick: { flash: 0, kick: 0 },
-  grenade: { flash: 0, kick: 0.6 },
-  smoke: { flash: 0, kick: 0.6 },
-  flare: { flash: 0, kick: 0.6 },
-});
-
 /** How long a marker shows (s); how fast a kick comes back (its time constant, s). */
 const MARKER = 0.18;
 const KICK_BACK = 0.09;
@@ -76,7 +58,6 @@ const SETTLE = 1.4;
  * goes (its time constant, s) and for how long it flickers (s). How many particles each system holds.
  */
 const FLARE = { most: 60, reach: 7, fade: 0.11, life: 0.6 };
-const CAPACITY = { adds: 900, covers: 500 };
 
 /** Whether a hit shakes the view (stage 5i): a comfort setting, on as it comes. */
 export const SHAKE_VARIABLE = {
@@ -92,12 +73,12 @@ export const SHAKE_VARIABLE = {
 const wobble = (t: number, k: number) => 0.6 * Math.sin(13.1 * t + 1.7 * k) + 0.4 * Math.sin(7.3 * t + 4.1 * k);
 
 export function mountFire(page: GamePage, bodies: Bodies, o: { timeScale(): number } = { timeScale: () => 1 }): Piece {
+  // The largest flash the game's weapons have: what the loudest flash's light is measured against.
+  const largest = Math.max(1e-6, largestFlash(page.feel));
   addInterfaceStyles();
-  const { scene, camera } = page.stage;
-  // (5k) The two systems of particles: what adds light, and what covers.
-  const adds = createParticles(CAPACITY.adds, true);
-  const covers = createParticles(CAPACITY.covers, false);
-  scene.add(covers.mesh, adds.mesh);
+  // (5k) The two systems of particles, what adds light and what covers: the page's since stage 5.5g
+  // (particle-service.ts: as many as the stage's tier holds, moved on and lit once a frame by the page).
+  const { adds, covers } = page.particles;
   const throwing = (e: Effect) => {
     for (const p of e.adds) adds.spawn(p);
     for (const p of e.covers) covers.spawn(p);
@@ -129,8 +110,6 @@ export function mountFire(page: GamePage, bodies: Bodies, o: { timeScale(): numb
   let scorches = 0;
   // (5k) Where each rocket was last frame, for its trail.
   const rockets = new Map<number, THREE.Vector3>();
-  // The place's light, for the smoke: what fills the scene, and the flare.
-  const placeLight = new THREE.Color();
   const lit = new THREE.Color();
   // The shake.
   let trauma = 0;
@@ -179,18 +158,16 @@ export function mountFire(page: GamePage, bodies: Bodies, o: { timeScale(): numb
       lightLeft = 0;
       light.intensity = 0;
       marker.hidden = true;
-      adds.clear();
-      covers.clear();
       rockets.clear();
       flareAge = FLARE.life;
     },
     event(ev: Event) {
       const hero = page.player();
       if (ev.type === 'fired') {
-        const feel = FEEL[ev.kind];
-        if (!feel) return;
-        // (Stage 5o) The flame lance: its flames, from where its end is drawn.
-        if (ev.kind === 'flamer') {
+        // (How it feels, as the game's library gives it: stage 5.5g, feel.ts.)
+        const feel = weaponFeel(page.feel, ev.kind);
+        // (Stage 5o) What breathes flames (the flame lance): its flames, from where its end is drawn.
+        if (feel.flames) {
           throwing(flameEffect(muzzleOf(ev.from, ev.at), new THREE.Vector3(...ev.direction).normalize()));
           page.container.dataset.flames = String(++flames);
         }
@@ -205,7 +182,7 @@ export function mountFire(page: GamePage, bodies: Bodies, o: { timeScale(): numb
             light.position.copy(at);
             light.color.copy(MUZZLE_COLOR);
             light.distance = 9;
-            lightMost = LIGHT_MOST * (feel.flash / FEEL.shotgun!.flash);
+            lightMost = LIGHT_MOST * (feel.flash / largest);
             lightLeft = LIGHT;
           }
         }
@@ -215,14 +192,14 @@ export function mountFire(page: GamePage, bodies: Bodies, o: { timeScale(): numb
         }
       } else if (ev.type === 'shot') {
         // (The flame lance's strikes are its flames: no sparks.)
-        if (ev.hit === null || ev.kind === 'flamer') return;
+        if (ev.hit === null || weaponFeel(page.feel, ev.kind).flames) return;
         const end = new THREE.Vector3(...ev.end);
         const back = new THREE.Vector3(...ev.start).sub(end).normalize();
         sparks(end, back, ev.hit);
       } else if (ev.type === 'impact') {
         const at = new THREE.Vector3(...ev.at);
         const back = new THREE.Vector3(...ev.velocity).normalize().negate();
-        if (ev.kind !== 'rocket') sparks(at, back, ev.hit);
+        if (!projectileFeel(page.feel, ev.kind).blasts) sparks(at, back, ev.hit);
       } else if (ev.type === 'blast') {
         blast(new THREE.Vector3(...ev.at), ev.radius);
         // Near the page's character, it shakes the view: more the nearer, up to half again its radius.
@@ -257,11 +234,11 @@ export function mountFire(page: GamePage, bodies: Bodies, o: { timeScale(): numb
         page.container.dataset.downs = String(++downs);
       }
     },
-    frame({ dt, world }) {
+    frame({ dt }) {
       // (5k) Each rocket's trail, from where it was to where it is.
       const flying = new Set<number>();
-      for (const e of world.entities.values()) {
-        if (e.projectile?.kind !== 'rocket' || !e.transform) continue;
+      for (const e of page.index.with('projectile')) {
+        if (!projectileFeel(page.feel, e.projectile.kind).trail || !e.transform) continue;
         flying.add(e.id);
         const now = new THREE.Vector3(...e.transform.position);
         const was = rockets.get(e.id);
@@ -276,26 +253,8 @@ export function mountFire(page: GamePage, bodies: Bodies, o: { timeScale(): numb
         light.intensity =
           flareAge < FLARE.life ? flareMost * Math.exp(-flareAge / FLARE.fade) * (0.75 + 0.25 * Math.random()) : 0;
       }
-      // The place's light, for what covers: what fills the scene, and the flare near it, for an instant.
-      placeLight.setRGB(0, 0, 0);
-      // (The stage's lights, at the scene's top: the sky's fill, the sun, the moon.)
-      for (const o of scene.children) {
-        if (o instanceof THREE.HemisphereLight)
-          placeLight.add(
-            lit
-              .copy(o.color)
-              .lerp(o.groundColor, 0.5)
-              .multiplyScalar(o.intensity * 0.7),
-          );
-        else if (o instanceof THREE.AmbientLight) placeLight.add(lit.copy(o.color).multiplyScalar(o.intensity));
-        else if (o instanceof THREE.DirectionalLight) placeLight.add(lit.copy(o.color).multiplyScalar(o.intensity * 0.35));
-      }
-      if (flareAge < FLARE.life) placeLight.add(lit.copy(light.color).multiplyScalar(light.intensity * 0.04));
-      covers.light(placeLight);
-      // (At the world's pace, as the debris: paused, they hold; at half speed, half as fast.)
-      const pace = dt * o.timeScale();
-      adds.update(pace, camera);
-      covers.update(pace, camera);
+      // What covers is lit by the place's light (the page's) and, for an instant, the flare near it.
+      if (flareAge < FLARE.life) page.particles.glow(lit.copy(light.color).multiplyScalar(light.intensity * 0.04));
       const live = String(adds.count + covers.count);
       if (page.container.dataset.particles !== live) page.container.dataset.particles = live;
       if (markerLeft > 0) {
@@ -324,9 +283,9 @@ export function mountFire(page: GamePage, bodies: Bodies, o: { timeScale(): numb
         shakeTime += dt;
         if (shakeOn) {
           const a = THREE.MathUtils.degToRad(SHAKE * trauma * trauma);
-          camera.rotateZ(a * wobble(shakeTime, 1));
-          camera.rotateX(0.6 * a * wobble(shakeTime, 2));
-          camera.rotateY(0.6 * a * wobble(shakeTime, 3));
+          page.stage.effects.turn('z', a * wobble(shakeTime, 1));
+          page.stage.effects.turn('x', 0.6 * a * wobble(shakeTime, 2));
+          page.stage.effects.turn('y', 0.6 * a * wobble(shakeTime, 3));
         }
         trauma = Math.max(0, trauma - SETTLE * dt);
         page.container.dataset.trauma = trauma.toFixed(2);
@@ -334,7 +293,7 @@ export function mountFire(page: GamePage, bodies: Bodies, o: { timeScale(): numb
       // The kick, put on the camera as the camera piece placed it for this frame (it places it anew every
       // frame: mounted after it, this turns it up by what is left of the kick), and eased back.
       if (kick > 1e-3) {
-        camera.rotateX(THREE.MathUtils.degToRad(kick));
+        page.stage.effects.turn('x', THREE.MathUtils.degToRad(kick));
         kick *= Math.exp(-dt / KICK_BACK);
         if (kick <= 1e-3) kick = 0;
         page.container.dataset.kick = kick.toFixed(2);
@@ -342,10 +301,6 @@ export function mountFire(page: GamePage, bodies: Bodies, o: { timeScale(): numb
     },
     stop() {
       marker.remove();
-      adds.mesh.removeFromParent();
-      covers.mesh.removeFromParent();
-      adds.dispose();
-      covers.dispose();
     },
   };
 }

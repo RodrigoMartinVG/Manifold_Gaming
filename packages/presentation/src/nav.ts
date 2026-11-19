@@ -4,6 +4,7 @@ import type { CommandInfo, VariableInfo } from '@manifold/commands';
 import type { Vec3 } from '@manifold/common';
 import type { World } from '@manifold/core';
 import type { GamePage, Piece } from './page';
+import { own } from './owned';
 
 /** What the navigation's view lets people change, as data (the site's console reference reads it). */
 export const NAV_VARIABLES = {
@@ -53,6 +54,8 @@ const signatureOf = (world: World) =>
  */
 export function mountNav(page: GamePage): Piece {
   const { scene } = page.stage;
+  // (Through its scope, stage 5.5g: what it drew, given back when the page stops.)
+  const scope = page.scope();
   let nav: Nav | null = null;
   let builtFor: { world: World; signature: string } | null = null;
   let path: Path | null = null;
@@ -62,7 +65,11 @@ export function mountNav(page: GamePage): Piece {
     o.visible = false;
     o.renderOrder = 2;
     o.frustumCulled = false;
-    scene.add(o);
+    scope.add(scene, o);
+    o.traverse((d) => {
+      if (d instanceof THREE.Mesh || d instanceof THREE.Line || d instanceof THREE.Points)
+        own(d, { geometry: true, material: true });
+    });
     return o;
   };
   const cells = overlay(

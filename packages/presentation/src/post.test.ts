@@ -4,6 +4,7 @@ import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { describe, expect, test } from 'vitest';
 import { createPostChain, CountedRenderPass, SANITIZE_SHADER } from './post';
+import { FLOOR } from './quality';
 import { ATMOSPHERE } from './stage';
 
 /** What the chain asks of a renderer, without a GPU: its size, its ratio, how many samples it can take. */
@@ -13,7 +14,10 @@ const renderer = (maxSamples = 8) => ({
   capabilities: { maxSamples } as THREE.WebGLRenderer['capabilities'],
 });
 const chain = (maxSamples?: number) =>
-  createPostChain(renderer(maxSamples), new THREE.Scene(), new THREE.PerspectiveCamera(), ATMOSPHERE);
+  createPostChain(renderer(maxSamples), new THREE.Scene(), new THREE.PerspectiveCamera(), {
+    ...ATMOSPHERE,
+    samples: FLOOR.samples,
+  });
 
 describe('the finished image’s passes (stage 5j; made sound in 5.5a)', () => {
   test('three’s composer, as it comes, draws the scene with one sample a pixel: no anti-aliasing (5j to 5.5a)', () => {

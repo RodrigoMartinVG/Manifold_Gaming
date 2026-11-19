@@ -7,10 +7,12 @@
   "exports": {
     ".": "./src/index.ts",
     "./catalog": "./src/catalog.ts",
+    "./feel": "./src/feel.ts",
     "./hands": "./src/hands.ts",
     "./ik": "./src/ik.ts",
     "./locomotion": "./src/locomotion.ts",
     "./models": "./src/models.ts",
+    "./quality": "./src/quality.ts",
     "./ragdoll": "./src/ragdoll.ts",
     "./tools": "./src/tools.ts"
   },

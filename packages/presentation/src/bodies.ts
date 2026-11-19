@@ -1,17 +1,6 @@
 import * as THREE from 'three';
 import type { Quat, Vec3 } from '@manifold/common';
-import {
-  gravityAt,
-  RapierPhysics,
-  STEP,
-  upAt,
-  type Appearance,
-  type Entity,
-  type EntityId,
-  type PhysicsBackend,
-  type Shape,
-  type World,
-} from '@manifold/core';
+import { upAt, type Appearance, type Entity, type EntityId, type PhysicsBackend, type Shape, type World } from '@manifold/core';
 import type { VariableInfo } from '@manifold/commands';
 import { surroundingsOf } from './hands';
 import { inertialize } from './inertia';
@@ -20,6 +9,7 @@ import { poseRagdoll, startRagdoll, stopRagdoll } from './ragdoll';
 import type { Tools } from './tools';
 import { own, ownMaterial, release } from './owned';
 import type { GamePage, Piece } from './page';
+import { weaponFeel } from './feel';
 
 /** An entity's pose at the previous step: it is drawn halfway between that one and the current one. */
 interface Pose {
@@ -94,22 +84,13 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
   const meshes = new Map<EntityId, THREE.Object3D>();
   /** The model copies, by entity (their animations move on every frame). */
   const instances = new Map<EntityId, ModelInstance>();
-  // The falls (stage 4c: ragdoll.ts), in a physics of their own with the level's fixed boxes, made when
-  // the first one falls; and the way each character's last hit went (the push of its fall).
+  /** The entities drawn with their model (a rig or a plain copy), not with their shape. */
+  const withModel = new Set<EntityId>();
+  // The falls (stage 4c: ragdoll.ts), in the page's physics of what is only seen (stage 5.5g: cosmetic.ts,
+  // with the level's still pieces; the one they were started in); and the way each character's last hit went.
   let falls: PhysicsBackend | null = null;
-  let fallTime = 0;
   const lastHit = new Map<EntityId, THREE.Vector3>();
-  const fallsOf = (world: World) => {
-    if (falls) return falls;
-    falls = new RapierPhysics(gravityAt(world.gravity, [0, 0, 0]), STEP);
-    for (const e of world.entities.values())
-      if (e.body?.type === 'fixed' && (e.body.shape.kind === 'box' || e.body.shape.kind === 'compound') && e.transform)
-        falls.addBody(
-          { type: 'fixed', shape: e.body.shape },
-          { position: [...e.transform.position], rotation: [...e.transform.rotation] },
-        );
-    return falls;
-  };
+  const fallsOf = (world: World) => (falls = page.cosmetic.of(world));
   // What each character carries (stage 4c: tools.ts), a box drawn where its model holds it, by entity
   // (with its size and color, to make it again if they change); and each shot's tracer as it fades.
   const tools = new Map<EntityId, { mesh: THREE.Object3D; look: string }>();
@@ -123,8 +104,8 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
   };
   /** A copy of a tool's model (stage 5g): its meshes share the model's geometry and materials, and cast shadows. */
   const toolModel = (name: string): THREE.Object3D | null => {
-    const object = models.instance(name)?.object ?? null;
-    object?.traverse((o) => (o.castShadow = true));
+    const object = (models.rigged(name) ? models.instance(name)?.object : models.copy(name)) ?? null;
+    if (page.stage.quality.shadows) object?.traverse((o) => (o.castShadow = true));
     return object;
   };
   const drawTool = (id: EntityId, model: ModelInstance) => {
@@ -145,7 +126,7 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
           geometry: true,
           material: true,
         });
-      mesh.castShadow = true;
+      mesh.castShadow = page.stage.quality.shadows;
       scene.add(mesh);
       tools.set(id, (tool = { mesh, look }));
     }
@@ -187,6 +168,29 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
   };
   /** Up to this size (m), a sphere is drawn with the simpler one. */
   const SMALL = 0.5;
+  /**
+   * The primitives' materials (stage 5.5g, the audit's V2), one for each colour and opacity, shared by every
+   * mesh of it: before, each mesh had its own (a level of 300 grey boxes, 300 materials). A mesh does not own
+   * it (owned.ts): what glows takes a copy of its own (`ownedMaterials`), and the page frees them when it stops.
+   */
+  const materials = new Map<string, THREE.MeshLambertMaterial>();
+  const materialFor = (color: number, opacity?: number) => {
+    const key = `${color} ${opacity ?? 1}`;
+    let material = materials.get(key);
+    if (!material) {
+      material = new THREE.MeshLambertMaterial({ color, wireframe });
+      // Translucent (stage 3d: a fog bank): what is behind shows through, and it does not hide what is in it.
+      if (opacity !== undefined) Object.assign(material, { transparent: true, opacity, depthWrite: false });
+      materials.set(key, material);
+    }
+    return material;
+  };
+  /**
+   * WHAT CAN MOVE (stage 5.5g): what the physics or a program moves, a character, a projectile. Only these
+   * keep their pose of the step before, to be drawn between the two; the rest is drawn where it is.
+   */
+  const moves = (e: Entity) =>
+    !!(e.character || e.projectile || e.mover || e.spin || e.mechanism || (e.body && e.body.type !== 'fixed'));
 
   page.registry.declareVariable({
     ...BODIES_VARIABLES.wireframe,
@@ -210,11 +214,14 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
    * Its model's copy, if it names one that loaded; if not, its shape. A model's body takes the
    * appearance's color (each player's), in a material of its own; the rest stays shared.
    */
-  const meshFor = (a: Appearance) => {
-    const model = a.model ? models.instance(a.model) : null;
-    if (!model) return { object: shapeFor(a), model: null };
+  const meshFor = (a: Appearance): { object: THREE.Object3D; model: ModelInstance | null; drawn: boolean } => {
+    // (Stage 5.5g) A rig only for a model with animations (a character); a plain shared copy for the rest.
+    const rigged = a.model ? models.rigged(a.model) : null;
+    const model = rigged ? models.instance(a.model!) : null;
+    const object = model ? model.object : rigged === false ? models.copy(a.model!) : null;
+    if (!object) return { object: shapeFor(a), model: null, drawn: false };
     let color: THREE.MeshStandardMaterial | null = null;
-    model.object.traverse((o) => {
+    object.traverse((o) => {
       if (!(o instanceof THREE.Mesh) || (o.material as THREE.Material).name !== 'body') return;
       if (!color) {
         color = (o.material as THREE.MeshStandardMaterial).clone();
@@ -223,7 +230,7 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
       }
       ownMaterial(o, color);
     });
-    return { object: model.object, model };
+    return { object, model, drawn: true };
   };
   /**
    * A mesh for an appearance's shape. Boxes and spheres are one shared shape, scaled; a capsule is
@@ -232,15 +239,12 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
    */
   const shapeFor = (a: Appearance): THREE.Object3D => {
     if (a.shape === 'grid') return gridFor(a);
-    const material = new THREE.MeshLambertMaterial({ color: a.color, wireframe });
-    // Translucent (stage 3d: a fog bank): what is behind shows through, and it does not hide what is in it.
-    if (a.opacity !== undefined) Object.assign(material, { transparent: true, opacity: a.opacity, depthWrite: false });
+    const material = materialFor(a.color, a.opacity);
     // Several boxes (stage 4a: a compound body, as a map's floor), each the shared box, scaled and placed.
     if (a.shape === 'boxes') {
       const group = new THREE.Group();
-      // (Their one material is theirs, freed once: `release` frees each thing once.)
       for (const p of a.parts ?? []) {
-        const mesh = own(new THREE.Mesh(geometries.box, material), { material: true });
+        const mesh = new THREE.Mesh(geometries.box, material);
         mesh.scale.set(...p.size);
         mesh.position.set(...p.offset);
         group.add(mesh);
@@ -249,20 +253,16 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
     }
     if (a.shape !== 'capsule') {
       const geometry = a.shape === 'sphere' && Math.max(...a.size) <= SMALL ? geometries.small : geometries[a.shape];
-      const mesh = own(new THREE.Mesh(geometry, material), { material: true });
+      const mesh = new THREE.Mesh(geometry, material);
       mesh.scale.set(...a.size);
       return mesh;
     }
     const radius = a.size[0] / 2;
     const capsule = new THREE.CapsuleGeometry(radius, a.size[1] - a.size[0], 6, 16);
-    const mesh = own(new THREE.Mesh(capsule, material), { geometry: true, material: true });
-    const visor = own(
-      new THREE.Mesh(
-        new THREE.BoxGeometry(radius * 1.2, radius * 0.45, radius * 0.5),
-        new THREE.MeshLambertMaterial({ color: 0x1a1714, wireframe }),
-      ),
-      { geometry: true, material: true },
-    );
+    const mesh = own(new THREE.Mesh(capsule, material), { geometry: true });
+    const visor = own(new THREE.Mesh(new THREE.BoxGeometry(radius * 1.2, radius * 0.45, radius * 0.5), materialFor(0x1a1714)), {
+      geometry: true,
+    });
     visor.position.set(0, a.size[1] * 0.28, -radius * 0.85);
     mesh.add(visor);
     return mesh;
@@ -310,37 +310,54 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
    * its models' meshes in each square of the level `CHUNK` m on a side, however many pieces share it there
    * (by squares, so what is out of the camera's sight is left out a square at a time: one batch for the
    * whole citadel drew all its triangles from anywhere, 46,000 of the budget's 50,000); their copies stay,
-   * hidden, for what reads them (a click on one, the tests' count). Batched again only when one comes, goes
-   * or is moved (the console's `set`). For the browser tests: `data-batches`, how many batches there are.
+   * hidden, for what reads them (a click on one, the tests' count). Batched again only the squares where one
+   * comes, goes or is moved (the console's `set`; stage 5.5g: before, every batch on any change). For the
+   * browser tests: `data-batches`, how many batches there are.
    */
-  const CHUNK = 16;
+  const CHUNK = page.stage.quality.cell;
+  /** Each still piece, and where it was batched (null: not yet). */
   const still = new Map<EntityId, { position: Vec3; rotation: Quat } | null>();
-  let batches: THREE.InstancedMesh[] = [];
-  let stillDirty = false;
+  /** The batches, by square; and (stage 5.5g) the squares to batch again: only those, not every batch on any change. */
+  const batches = new Map<string, THREE.InstancedMesh[]>();
+  const dirty = new Set<string>();
+  const squareOf = (p: readonly number[]) => `${Math.floor(p[0]! / CHUNK)} ${Math.floor(p[2]! / CHUNK)}`;
   const isStill = (e: Entity) =>
     e.body?.type === 'fixed' && !!e.appearance?.model && !e.character && !e.lamp && !e.breakable && !e.sensor;
-  const unbatch = () => {
-    for (const b of batches) {
+  const batchCount = () => {
+    let n = 0;
+    for (const list of batches.values()) n += list.length;
+    return n;
+  };
+  const unbatch = (square: string) => {
+    for (const b of batches.get(square) ?? []) {
       scene.remove(b);
       b.dispose();
     }
-    batches = [];
+    batches.delete(square);
   };
   const rebatch = (world: World) => {
-    unbatch();
+    for (const square of dirty) unbatch(square);
     const groups = new Map<
       string,
-      { geometry: THREE.BufferGeometry; material: THREE.Material; matrices: THREE.Matrix4[]; cast: boolean; receive: boolean }
+      {
+        square: string;
+        geometry: THREE.BufferGeometry;
+        material: THREE.Material;
+        matrices: THREE.Matrix4[];
+        cast: boolean;
+        receive: boolean;
+      }
     >();
     for (const id of still.keys()) {
       const object = meshes.get(id);
       const t = world.entities.get(id)?.transform;
       if (!object || !t) continue;
+      const square = squareOf(t.position);
+      if (!dirty.has(square)) continue;
       still.set(id, { position: [...t.position], rotation: [...t.rotation] });
       object.position.set(...t.position);
       object.quaternion.set(...t.rotation);
       object.updateMatrixWorld(true);
-      const square = `${Math.floor(t.position[0] / CHUNK)} ${Math.floor(t.position[2] / CHUNK)}`;
       object.traverse((o) => {
         if (!(o instanceof THREE.Mesh) || Array.isArray(o.material)) return;
         const key = `${square} ${o.geometry.uuid} ${(o.material as THREE.Material).uuid}`;
@@ -349,6 +366,7 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
           groups.set(
             key,
             (g = {
+              square,
               geometry: o.geometry,
               material: o.material as THREE.Material,
               matrices: [],
@@ -368,20 +386,25 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
       batch.receiveShadow = g.receive;
       batch.computeBoundingSphere();
       scene.add(batch);
-      batches.push(batch);
+      batches.set(g.square, [...(batches.get(g.square) ?? []), batch]);
     }
-    stillDirty = false;
-    page.container.dataset.batches = String(batches.length);
+    dirty.clear();
+    page.container.dataset.batches = String(batchCount());
   };
-  /** Whether a still piece is no longer where it was batched (moved by the console). */
+  /** The still pieces no longer where they were batched (moved by the console): their squares, old and new, to batch again. */
   const stillMoved = (world: World) => {
     for (const [id, was] of still) {
       const t = world.entities.get(id)?.transform;
-      if (!was || !t) return true;
-      for (let k = 0; k < 3; k++) if (t.position[k] !== was.position[k]) return true;
-      for (let k = 0; k < 4; k++) if (t.rotation[k] !== was.rotation[k]) return true;
+      if (!was || !t) continue;
+      let moved = false;
+      for (let k = 0; k < 3 && !moved; k++) moved = t.position[k] !== was.position[k];
+      for (let k = 0; k < 4 && !moved; k++) moved = t.rotation[k] !== was.rotation[k];
+      if (moved) {
+        dirty.add(squareOf(was.position));
+        dirty.add(squareOf(t.position));
+      }
     }
-    return false;
+    return dirty.size > 0;
   };
 
   const createZone = (e: Entity) => {
@@ -403,16 +426,17 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
     // TWICE, when walking the world and through their `entityCreated` event; the second mesh hid
     // the first one in the map, and the first stayed in the scene, forgotten at the origin.)
     if (!e.appearance || !e.transform || meshes.has(e.id)) return;
-    const { object, model } = meshFor(e.appearance);
+    const { object, model, drawn } = meshFor(e.appearance);
     // Which entity it is, for a click on it and for what the tests count.
     object.userData.entity = e.id;
     scene.add(object);
     meshes.set(e.id, object);
     if (model) instances.set(e.id, model);
+    if (drawn) withModel.add(e.id);
     // (Stage 5m) A still piece of the level: drawn in a batch.
-    if (model && isStill(e)) {
+    if (drawn && isStill(e)) {
       still.set(e.id, null);
-      stillDirty = true;
+      dirty.add(squareOf(e.transform.position));
     }
     if (e.character && !shadows.has(e.id)) {
       const shadow = new THREE.Mesh(shadowShape, shadowMaterial.clone());
@@ -426,7 +450,7 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
     const world = page.session.world;
     for (const [id] of meshes) {
       const e = world.entities.get(id);
-      if (e?.appearance?.model !== name || instances.has(id)) continue;
+      if (e?.appearance?.model !== name || withModel.has(id)) continue;
       remove(id, false);
       create(e);
     }
@@ -450,9 +474,15 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
     model?.mixer.stopAllAction();
     dropTool(id);
     instances.delete(id);
+    withModel.delete(id);
+    skipped.delete(id);
     lastHit.delete(id);
     meshes.delete(id);
-    if (still.delete(id)) stillDirty = true;
+    if (still.has(id)) {
+      const was = still.get(id);
+      if (was) dirty.add(squareOf(was.position));
+      still.delete(id);
+    }
     if (!all) return;
     const shadow = shadows.get(id);
     if (shadow) {
@@ -465,14 +495,19 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
     drawnTurn.delete(id);
     turning.delete(id);
   };
+  // (Only what can move, stage 5.5g: before, every entity's pose was copied at every step, the level's walls too.)
   const savePrevious = (world: World) => {
     for (const e of world.entities.values()) {
-      if (!e.transform) continue;
+      if (!e.transform || !moves(e)) continue;
       previous.set(e.id, { position: [...e.transform.position], rotation: [...e.transform.rotation] });
       if (e.character) previousTurn.set(e.id, [...e.character.carriedTurn]);
     }
   };
 
+  const at = new THREE.Vector3();
+  /** The frames drawn, and each far character's time owed since it was last animated (stage 5.5g: its bands). */
+  let frame = 0;
+  const skipped = new Map<EntityId, number>();
   const qa = new THREE.Quaternion();
   const qb = new THREE.Quaternion();
   const qt = new THREE.Quaternion();
@@ -499,8 +534,7 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
         scene.remove(t.line);
         release(t.line);
       }
-      // (Another world: its own fixed boxes for the falls.)
-      falls?.dispose();
+      // (Another world: the page makes its physics of what is only seen again.)
       falls = null;
       for (const e of session.world.entities.values()) create(e);
       savePrevious(session.world);
@@ -549,7 +583,7 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
       // A shot (stage 4c): its tracer, from the end of what fired it as drawn (or where the world fired
       // it from) to where it struck or ended, fading.
       // (Stage 5o: the flame lance's are its flames, fire.ts.)
-      if (ev.type === 'shot' && ev.kind !== 'flamer') {
+      if (ev.type === 'shot' && !weaponFeel(page.feel, ev.kind).flames) {
         const holding = instances.get(ev.from)?.holding;
         const from = (holding?.inView ? holding.viewMuzzle : holding?.pose?.muzzle)?.clone() ?? new THREE.Vector3(...ev.start);
         const to = new THREE.Vector3(...ev.end);
@@ -569,10 +603,13 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
         tracers.push({ line, left: TRACER });
       }
     },
-    frame({ world, alpha, dt, hero }) {
+    frame({ now, world, alpha, dt, hero }) {
+      frame++;
       // (How much time passed for the world: paused, none; at half speed, half.)
       const time = dt * o.timeScale();
       for (const [id, mesh] of meshes) {
+        // (A still piece drawn in a batch is not drawn itself: its copy stays hidden, and is not moved.)
+        if (still.has(id)) continue;
         const e = world.entities.get(id);
         const t = e?.transform;
         const before = previous.get(id) ?? t;
@@ -586,7 +623,7 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
             broken.visible = e.breakable.broken;
           }
         }
-        mesh.position.set(...before.position).lerp(new THREE.Vector3(...t.position), alpha);
+        mesh.position.set(...before.position).lerp(at.set(...t.position), alpha);
         const target = qt.slerpQuaternions(qa.set(...before.rotation), qb.set(...t.rotation), alpha);
         if (!e.character) {
           mesh.quaternion.copy(target);
@@ -599,21 +636,15 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
         mesh.quaternion.copy(drawn);
       }
       // (Stage 5m) The still pieces' batches: again only when one came, went or moved.
-      if (still.size > 0 && (stillDirty || stillMoved(world))) rebatch(world);
-      else if (still.size === 0 && batches.length > 0) {
-        unbatch();
+      if (dirty.size > 0 || stillMoved(world)) rebatch(world);
+      else if (still.size === 0 && batches.size > 0) {
+        for (const square of [...batches.keys()]) unbatch(square);
         page.container.dataset.batches = '0';
       }
       // A character's animations, from its state and how it really moved in its last step (the view
       // reads the world, never writes it).
       // The falls, on by the world's time (at most five steps a frame), and their bodies into their bones.
-      if (falls && [...instances.values()].some((m) => m.ragdoll)) {
-        fallTime = Math.min(fallTime + time, 5 * STEP);
-        while (fallTime >= STEP) {
-          falls.step();
-          fallTime -= STEP;
-        }
-      }
+      if (falls && [...instances.values()].some((m) => m.ragdoll)) page.cosmetic.advance(now, time);
       for (const [id, model] of instances) {
         const e = world.entities.get(id);
         const t = e?.transform;
@@ -627,10 +658,22 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
           inertialize(model.bones, model.inertia, false, time);
           continue;
         }
+        // Its band of detail (stage 5.5g, the audit's V12: every character at full cost, at any distance):
+        // near (or the page's own), all of it; farther, without its hands' and feet's rays; far, a frame in
+        // `every`, with the time of those it skipped.
+        const d = id === hero?.id ? 0 : camera.position.distanceTo(at.set(...t.position));
+        const band = page.stage.quality.animation;
+        const owed = (skipped.get(id) ?? 0) + time;
+        if (d > band.far && (frame + id) % band.every !== 0) {
+          skipped.set(id, owed);
+          continue;
+        }
+        skipped.delete(id);
         const before = previous.get(id);
         const moved = before ? motion(before.position, t.position, e.character) : ([0, 0, 0] as const);
-        const around = surroundingsOf(world, e, (other) => meshes.get(other), o.tools?.(world, e) ?? null);
-        animate(model, e.character, upAt(world, t.position), [...moved], turning.get(id) ?? 0, time, around);
+        const around =
+          d <= band.near ? surroundingsOf(world, e, (other) => meshes.get(other), o.tools?.(world, e) ?? null) : undefined;
+        animate(model, e.character, upAt(world, t.position), [...moved], turning.get(id) ?? 0, owed, around);
         drawTool(id, model);
       }
       // The tracers fade by the world's time (paused, they stay).
@@ -682,6 +725,21 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
         shadow.scale.setScalar(Math.max(SHADOW.smallest, 1 / (1 + height * 0.25)));
         (shadow.material as THREE.MeshBasicMaterial).opacity = Math.max(SHADOW.faintest, 0.35 / (1 + height * 0.4));
       }
+    },
+    // (Stage 5.5g, the audit's V9: it had none, and its meshes, batches, falls' physics and shared shapes
+    // outlived the page.) Everything it added, taken out and freed.
+    stop() {
+      for (const id of new Set([...meshes.keys(), ...zones.keys(), ...shadows.keys()])) remove(id);
+      for (const square of [...batches.keys()]) unbatch(square);
+      for (const t of tracers.splice(0)) {
+        scene.remove(t.line);
+        release(t.line);
+      }
+      falls = null;
+      for (const g of [geometries.box, geometries.sphere, geometries.small, tracerShape, shadowShape]) g.dispose();
+      shadowMaterial.dispose();
+      for (const m of materials.values()) m.dispose();
+      materials.clear();
     },
   };
 }

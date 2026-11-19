@@ -7,6 +7,7 @@ import { mountWariness, timeIn, type GamePage, type Hud, type Theme, type Words 
 import type { Game } from '@manifold/shell';
 import { run, standing } from './rules';
 import { FORTRESS_CARTRIDGE, FORTRESS_LEVEL_LIST, fortressDone } from './cartridge';
+import { ARMS_FEEL } from '@manifold/arms/models';
 
 /**
  * ITS WORDS (decision 0019). The thread goes on from the tower's last lines (the fortress lights its
@@ -197,6 +198,7 @@ export const FORTRESS: Game = {
   pieces: [wariness],
   // What each one has in its hands (stage 5g: the games' weapons, their models): the stick.
   tools: armsTool,
+  feel: ARMS_FEEL,
   // Its buttons: the stick, X or a click (as the Dojo's); smoke, F; a flare, Z; (5l) a pebble, Q.
   buttons: [
     { action: ATTACK, keys: ['KeyX', 'Mouse0'], pad: 5 },

@@ -163,8 +163,9 @@ export function mountSway(page: GamePage, bodies: Bodies): Piece {
         .copy(up)
         .multiplyScalar(sway.up + dip)
         .addScaledVector(right, sway.side);
-      camera.position.add(moved);
-      camera.rotateZ(THREE.MathUtils.degToRad(-sway.roll - lean));
+      // (Through the camera's effects, stage 5.5g: applied as it is drawn, and gone at the next frame.)
+      page.stage.effects.move(moved);
+      page.stage.effects.turn('z', THREE.MathUtils.degToRad(-sway.roll - lean));
       // (How deep the walk dips at a step, by how much it sways now: not the dip a frame happened to draw.)
       deepestBob = Math.max(deepestBob, amount * SWAY.bob);
       deepestDip = Math.max(deepestDip, -dip);
@@ -186,11 +187,6 @@ export function mountSway(page: GamePage, bodies: Bodies): Piece {
       lastLook.copy(look);
       looked = true;
       holding.viewSway.set(sway.hold.side + trail.x, sway.hold.up + trail.y + 0.3 * dip, 0);
-    },
-    beforeSteps() {
-      // The eyes back where the camera left them (the turn it put on them, the camera sets anew each frame).
-      camera.position.sub(moved);
-      moved.set(0, 0, 0);
     },
   };
 }

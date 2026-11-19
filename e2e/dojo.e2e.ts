@@ -526,3 +526,29 @@ test('its hands on the tower (stage 4a): on its wall while it climbs, on its top
   expect(all, all.join(', ')).toContain('ledge ledge');
   expect(list).toEqual([]);
 });
+
+// ---------------------------------------------------------------- what leaks (stage 5.5g)
+
+test('a world born a hundred times in one page leaves nothing behind: what the GPU keeps, and the scene, as they were', async ({
+  page,
+}) => {
+  test.setTimeout(300_000);
+  const list = errors(page);
+  const game = page.locator('#game');
+  const counts = async () =>
+    Promise.all(['data-geometries', 'data-textures', 'data-scene'].map(async (a) => Number(await game.getAttribute(a))));
+  // The keep: a level with models, lamps, guards with weapons, a lamp that breaks.
+  await page.goto('jugar/dojo/keep/');
+  await expect.poll(async () => (await position(page, 'player')).length, { timeout: 20_000 }).toBe(3);
+  await page.keyboard.press('Backquote');
+  // Born again twice first: what is made once for the page (the models, the shared shapes) is made by then.
+  for (let i = 0; i < 2; i++) await typeInConsole(page, 'restart');
+  await afterSteps(page, 30);
+  const before = await counts();
+  for (let i = 0; i < 100; i++) await typeInConsole(page, 'restart');
+  await afterSteps(page, 30);
+  const after = await counts();
+  // As many geometries, textures and things in the scene as after the first two (a world's own, made again).
+  expect(after, `geometries, textures, scene: ${before} → ${after}`).toEqual(before);
+  expect(list).toEqual([]);
+});

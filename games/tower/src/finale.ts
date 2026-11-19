@@ -18,6 +18,8 @@ export const FINALE = {
   height: 11,
   /** How fast it turns round the climber meanwhile (rad/s). */
   turn: 0.12,
+  /** Over every other effect on the camera (stage 5.5g: the camera's effects take the highest). */
+  priority: 10,
 } as const;
 
 /** Eased in and out: slow to start, slow to end. */
@@ -27,20 +29,10 @@ export function mountFinale(page: GamePage): Piece {
   const camera = page.stage.camera;
   let pulled = -1;
   let from: { offset: [number, number, number]; azimuth: number } | null = null;
-  // The camera's own place and turn, given back before the next frame (the camera's own kinds: a game
-  // draws through the presentation's objects, it does not make its own).
-  const own = { position: camera.position.clone(), quaternion: camera.quaternion.clone(), taken: false };
   return {
     welcome() {
       pulled = -1;
       from = null;
-      own.taken = false;
-    },
-    beforeSteps() {
-      if (!own.taken) return;
-      camera.position.copy(own.position);
-      camera.quaternion.copy(own.quaternion);
-      own.taken = false;
     },
     frame({ dt, hero }) {
       const run = hero && runner(hero);
@@ -64,11 +56,12 @@ export function mountFinale(page: GamePage): Piece {
       const distance = flat + (FINALE.distance - flat) * k;
       const height = from.offset[1] + (FINALE.height - from.offset[1]) * k;
       const azimuth = from.azimuth + FINALE.turn * pulled;
-      own.position.copy(camera.position);
-      own.quaternion.copy(camera.quaternion);
-      own.taken = true;
-      camera.position.set(cx + distance * Math.sin(azimuth), cy + height, cz + distance * Math.cos(azimuth));
-      camera.lookAt(cx, cy + 1.2, cz);
+      // Through the camera's effects (stage 5.5g), which give the camera piece its own pose back at the next frame.
+      page.stage.effects.look(
+        [cx + distance * Math.sin(azimuth), cy + height, cz + distance * Math.cos(azimuth)],
+        [cx, cy + 1.2, cz],
+        FINALE.priority,
+      );
     },
   };
 }

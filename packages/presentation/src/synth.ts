@@ -1,3 +1,4 @@
+import type { FiredSound } from './feel';
 /**
  * THE SOUNDS, MADE (stage 5k, decision 0031: the author asked for far better sounds and explosions). Still
  * without recorded files (decision 0027: a recording only where one cannot be made, and only by the
@@ -279,21 +280,21 @@ export function whiz(kit: Kit, out: AudioNode, at: number, closeness: number) {
  *     roar that runs into the next;
  *   - what is swung or thrown: a whoosh.
  */
-export function fired(kit: Kit, out: AudioNode, at: number, kind: string) {
+export function fired(kit: Kit, out: AudioNode, at: number, kind: FiredSound) {
   switch (kind) {
-    case 'dart':
+    case 'crack':
       noise(kit, out, at, { filter: 'highpass', from: 2000, gain: 0.7, attack: 0.0005, decay: 0.015 });
       noise(kit, out, at, { from: near(kit, 1200, 0.08), q: 1, gain: 0.55, decay: 0.07 });
       tone(kit, out, at, { from: near(kit, 150, 0.06), to: 60, gain: 0.55, decay: 0.09, grit: true });
       noise(kit, out, at, { from: 4200, q: 6, gain: 0.08, attack: 0.001, decay: 0.008, delay: 0.11 + 0.02 * kit.random() });
       break;
-    case 'bolt':
+    case 'twang':
       tone(kit, out, at, { wave: 'triangle', from: near(kit, 330, 0.05), to: 200, gain: 0.25, decay: 0.28 });
       tone(kit, out, at, { wave: 'sawtooth', from: near(kit, 660, 0.05), to: 400, gain: 0.04, decay: 0.12 });
       noise(kit, out, at, { from: 1800, q: 2, gain: 0.3, decay: 0.04 });
       tone(kit, out, at, { from: 130, to: 80, gain: 0.3, decay: 0.05 });
       break;
-    case 'shotgun':
+    case 'boom':
       noise(kit, out, at, { filter: 'highpass', from: 1500, gain: 0.9, attack: 0.0005, decay: 0.025 });
       noise(kit, out, at, {
         noise: 'pink',
@@ -316,7 +317,7 @@ export function fired(kit: Kit, out: AudioNode, at: number, kind: string) {
         noise(kit, out, at, { from: 800, q: 1.5, gain: 0.06, attack: 0.01, decay: 0.05, delay: delay - 0.04 });
       }
       break;
-    case 'launcher':
+    case 'thump':
       tone(kit, out, at, { from: near(kit, 110, 0.05), to: 45, gain: 0.8, decay: 0.26, grit: true });
       noise(kit, out, at, { filter: 'highpass', from: 1800, gain: 0.4, attack: 0.001, decay: 0.03 });
       noise(kit, out, at, {
@@ -331,13 +332,13 @@ export function fired(kit: Kit, out: AudioNode, at: number, kind: string) {
         delay: 0.02,
       });
       break;
-    case 'repeater':
+    case 'tick':
       // (Stage 5n) The dart's, lighter and shorter: it fires ten a second.
       noise(kit, out, at, { filter: 'highpass', from: 2400, gain: 0.45, attack: 0.0005, decay: 0.01 });
       noise(kit, out, at, { from: near(kit, 1500, 0.1), q: 1.2, gain: 0.35, decay: 0.04 });
       tone(kit, out, at, { from: near(kit, 180, 0.08), to: 90, gain: 0.3, decay: 0.05, grit: true });
       break;
-    case 'longshot':
+    case 'ring':
       // (Stage 5o) A crack sharper than the dart's, a heavier body, a thump and a long ring; then its bolt
       // worked, back and forth.
       noise(kit, out, at, { filter: 'highpass', from: 2600, gain: 0.95, attack: 0.0003, decay: 0.012 });
@@ -359,7 +360,7 @@ export function fired(kit: Kit, out: AudioNode, at: number, kind: string) {
       ] as const)
         noise(kit, out, at, { from: f, q: 4, gain: 0.14, attack: 0.001, decay: 0.03, delay });
       break;
-    case 'flamer':
+    case 'roar':
       // (Stage 5o) A breath of roaring flame, fifteen a second (they run together into one roar), and now
       // and then a crackle.
       noise(kit, out, at, {
@@ -385,7 +386,7 @@ export function fired(kit: Kit, out: AudioNode, at: number, kind: string) {
       });
       if (kit.random() < 0.35) crackles(kit, out, at, 1, 0.1, 0.12);
       break;
-    case 'orb':
+    case 'hum':
       // (Stage 5n) An attacker's orb leaving: a hum that rises, and a crackle.
       tone(kit, out, at, { wave: 'sawtooth', from: 140, to: 420, sweep: 0.35, gain: 0.12, attack: 0.03, decay: 0.4 });
       noise(kit, out, at, { noise: 'pink', from: 1800, to: 3200, q: 2, gain: 0.15, attack: 0.02, decay: 0.3 });

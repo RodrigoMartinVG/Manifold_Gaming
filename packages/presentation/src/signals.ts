@@ -3,6 +3,7 @@ import type { CommandInfo, VariableInfo } from '@manifold/commands';
 import type { Signal, World } from '@manifold/core';
 import type { Bodies } from './bodies';
 import type { GamePage, Piece } from './page';
+import { own } from './owned';
 
 /** What looking at the signals lets people do, as data (the site's console reference reads it). */
 export const SIGNALS_VARIABLES = {
@@ -44,6 +45,8 @@ function zonesOf(world: World, name: string, seen = new Set<string>()): string[]
  */
 export function mountSignals(page: GamePage, bodies: Bodies): Piece {
   const { scene } = page.stage;
+  // (Through its scope, stage 5.5g: given back when the page stops.)
+  const scope = page.scope();
   const lines = (color: number) => {
     const l = new THREE.LineSegments(
       new THREE.BufferGeometry(),
@@ -52,8 +55,7 @@ export function mountSignals(page: GamePage, bodies: Bodies): Piece {
     l.visible = false;
     l.renderOrder = 2;
     l.frustumCulled = false;
-    scene.add(l);
-    return l;
+    return scope.add(scene, own(l, { geometry: true, material: true }));
   };
   const on = lines(0x5ad87a);
   const off = lines(0xd85a5a);

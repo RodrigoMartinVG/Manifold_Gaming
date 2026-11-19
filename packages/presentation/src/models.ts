@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { clone as cloneSkeleton } from 'three/addons/utils/SkeletonUtils.js';
 import { vec3, type Vec3 } from '@manifold/common';
 import { STEP, type Character } from '@manifold/core';
@@ -15,6 +14,8 @@ import {
   type Gait,
 } from './locomotion';
 import { footPaths, LEGS, newFeet, plant, type Feet, type FootPaths } from './feet';
+import { createAssets, type Assets } from './assets';
+import { FLOOR, type Tier } from './quality';
 import { ARMS, grip, newHands, type Hands, type Surroundings } from './hands';
 import { holdTool, newHolding, type Holding } from './tools';
 import { limbOf, rotateInWorld, type Limb } from './ik';
@@ -66,10 +67,23 @@ export interface ModelInstance {
 }
 
 export interface Models {
-  /** A new copy of a model, by its name; null until it has loaded (meanwhile, the body draws its shape). */
+  /** Whether a model has animations, so a copy of it is a rig (a character's); null until it has loaded. */
+  rigged(name: string): boolean | null;
+  /** A new copy of a model with animations, by its name, with its own bones; null until it has loaded (meanwhile, the body draws its shape). */
   instance(name: string): ModelInstance | null;
+  /**
+   * A plain copy of a model (stage 5.5g, the audit's V6), sharing its geometry and materials, with no bones,
+   * mixer, gait or hands: a prop's (a kit piece, a door, a tool). Before, each of the citadel's 293 kit pieces
+   * cloned a skeleton and made a mixer, limbs, a gait and hands. Null until it has loaded.
+   */
+  copy(name: string): THREE.Object3D | null;
   /** Told when a model finished loading: whoever drew a shape instead draws it now. */
   onLoad(listener: (name: string) => void): void;
+  /** How far the page's models have loaded, and when all of them have (the assets', assets.ts). */
+  progress(): { loaded: number; total: number };
+  readonly ready: Promise<void>;
+  /** The page lets go of its files (when it stops): one no page uses any longer is freed. */
+  release(): void;
 }
 
 /**
@@ -79,12 +93,14 @@ export interface Models {
  * animations.
  */
 /** How sharp a model's textures stay seen edge on (stage 4.5f): eight samples along the slant. */
-const ANISOTROPY = 8;
 
-export function loadModels(urls: Readonly<Record<string, string>> = {}): Models {
+export function loadModels(
+  urls: Readonly<Record<string, string>> = {},
+  quality: Tier = FLOOR,
+  assets: Assets = createAssets(),
+): Models {
   const loaded = new Map<string, { scene: THREE.Object3D; clips: THREE.AnimationClip[] }>();
   const listeners: ((name: string) => void)[] = [];
-  const loader = new GLTFLoader();
   // Each file once (stage 4.5e: a kit is one file, each piece a node of it, named `file#node`).
   const files = new Map<string, { name: string; node: string | null }[]>();
   for (const [name, url] of Object.entries(urls)) {
@@ -94,14 +110,14 @@ export function loadModels(urls: Readonly<Record<string, string>> = {}): Models 
     files.set(file, [...(files.get(file) ?? []), { name, node }]);
   }
   for (const [file, wanted] of files)
-    loader.load(
+    assets.use(
       file,
       (gltf) => {
         // Its textures (stage 4.5f: the kit's) sharp along a floor seen nearly edge on, as far as the
         // GPU can (three.js takes the lesser of this and what it allows).
         gltf.scene.traverse((o) => {
           const material = (o as THREE.Mesh).material as THREE.MeshStandardMaterial | undefined;
-          if (material?.map) material.map.anisotropy = ANISOTROPY;
+          if (material?.map) material.map.anisotropy = quality.anisotropy;
         });
         // Its geometry and materials are shared by every copy: a copy owns none of them, so removing
         // it does not free them (owned.ts).
@@ -115,15 +131,26 @@ export function loadModels(urls: Readonly<Record<string, string>> = {}): Models 
           for (const listen of listeners) listen(name);
         }
       },
-      undefined,
       (error) => console.warn(`the models of "${file}" did not load: ${(error as Error).message ?? error}`),
     );
   return {
+    rigged(name) {
+      const model = loaded.get(name);
+      return model ? model.clips.length > 0 : null;
+    },
     instance(name) {
       const model = loaded.get(name);
       return model ? modelInstance(model) : null;
     },
+    copy(name) {
+      return loaded.get(name)?.scene.clone() ?? null;
+    },
     onLoad: (listener) => listeners.push(listener),
+    progress: () => assets.progress(),
+    get ready() {
+      return assets.ready;
+    },
+    release: () => assets.release(),
   };
 }
 

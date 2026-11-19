@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { quat, vec3, type Vec3 } from '@manifold/common';
 import type { VariableInfo } from '@manifold/commands';
-import type { EntityId, World } from '@manifold/core';
+import type { EntityId } from '@manifold/core';
 import type { Bodies } from './bodies';
 import { ownedMaterials } from './owned';
 import type { GamePage, Piece } from './page';
@@ -119,8 +119,9 @@ export function mountLights(page: GamePage, bodies: Bodies): Piece {
         const drawn = bodies.meshes.get(id);
         if (drawn) glow(drawn, color);
       };
-      for (const e of world.entities.values()) {
-        if (e.lamp && e.transform) {
+      // (The lamps and the watchers from the page's index, stage 5.5g: not every entity of the world.)
+      for (const e of page.index.with('lamp')) {
+        if (e.transform) {
           glowing(e.id, e.lamp.on ? 0xb08a40 : 0x000000);
           // A light asked for: the pool gives its few to those that matter most to what the camera sees.
           if (e.lamp.on && e.lamp.intensity > 0)
@@ -134,13 +135,13 @@ export function mountLights(page: GamePage, bodies: Bodies): Piece {
               priority: 0,
             });
         }
-        if (e.watcher) glowing(e.id, e.watcher.sees.length ? 0x902020 : 0x000000);
       }
+      for (const e of page.index.with('watcher')) glowing(e.id, e.watcher.sees.length ? 0x902020 : 0x000000);
       if (reachOn.visible) {
         const on: number[] = [];
         const off: number[] = [];
-        for (const e of world.entities.values()) {
-          if (!e.lamp || !e.transform) continue;
+        for (const e of page.index.with('lamp')) {
+          if (!e.transform) continue;
           const out = e.lamp.on ? on : off;
           const c = e.transform.position;
           circle(out, c, [1, 0, 0], [0, 0, 1], e.lamp.radius);
@@ -150,24 +151,24 @@ export function mountLights(page: GamePage, bodies: Bodies): Piece {
         set(reachOn, on);
         set(reachOff, off);
       }
-      if (cones.visible) drawVision(world);
+      if (cones.visible) drawVision();
       // For the browser tests (probe.ts's way): how lit the player is, and how many watchers see it.
       const light = hero?.character ? hero.character.light.toFixed(2) : '';
       if (page.container.dataset.light !== light) page.container.dataset.light = light;
-      const seen = hero ? String([...world.entities.values()].filter((e) => e.watcher?.sees.includes(hero.id)).length) : '';
+      const seen = hero ? String(page.index.with('watcher').filter((e) => e.watcher.sees.includes(hero.id)).length) : '';
       if (page.container.dataset.seen !== seen) page.container.dataset.seen = seen;
     },
     stop() {},
   };
 
   /** The edge of each watcher's field of view, as far as it sees, and a line to every character in it. */
-  function drawVision(world: World) {
+  function drawVision() {
     const edge: number[] = [];
     const seen: number[] = [];
     const unseen: number[] = [];
-    for (const eye of world.entities.values()) {
+    for (const eye of page.index.with('watcher')) {
       const w = eye.watcher;
-      if (!w || !eye.transform) continue;
+      if (!eye.transform) continue;
       const from = eye.transform.position;
       const forward = quat.rotate(eye.transform.rotation, [0, 0, -1]);
       const right = quat.rotate(eye.transform.rotation, [1, 0, 0]);
@@ -183,8 +184,8 @@ export function mountLights(page: GamePage, bodies: Bodies): Piece {
           ...vec3.add(center, vec3.add(vec3.scale(right, Math.cos(t) * radius), vec3.scale(upward, Math.sin(t) * radius))),
         );
       }
-      for (const e of world.entities.values()) {
-        if (!e.character || !e.transform) continue;
+      for (const e of page.index.with('character')) {
+        if (!e.transform) continue;
         const to = vec3.sub(e.transform.position, from);
         const d = vec3.length(to);
         if (d > w.range || d < 1e-9 || vec3.dot(vec3.scale(to, 1 / d), forward) < w.cone) continue;

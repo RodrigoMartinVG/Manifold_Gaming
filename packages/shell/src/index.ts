@@ -16,6 +16,7 @@ import {
   type Mount,
   type Piece,
   type Theme,
+  type Feel,
   type Tools,
   type Words,
 } from '@manifold/presentation';
@@ -60,6 +61,11 @@ export interface Game {
   title: string;
   tagline: string;
   levels: readonly GameLevel[];
+  /**
+   * (Stage 5.5h, the audit's G9) What is seen the same in every level, as recipe lines of the view (`view.camera
+   * steady`): given once by the game, not repeated in each level's recipe. Run after each level's.
+   */
+  view?: string;
   /** Whether the level being played is done, and how it went: read from the world on every frame. */
   done(world: World, hero: Entity | undefined): LevelResult | null;
   thread: { opening: readonly Line[]; ending: readonly Line[] };
@@ -70,9 +76,14 @@ export interface Game {
   hud?: Hud;
   buttons?: readonly GameButton[];
   tools?: Tools;
+  /** (Stage 5.5g) How its weapons and projectiles feel (the arms library's `ARMS_FEEL`, for a game that uses it). */
+  feel?: Feel;
   /** (Stage 5l) Pieces of its own on its page (the fortress's: how exposed, how noticed). */
   pieces?: readonly ((page: GamePage) => Piece)[];
 }
+
+/** A level's recipe, and the view lines its game gives every level (`Game.view`), after it. */
+const withView = (game: Game, recipe: string) => (game.view ? `${recipe}\n${game.view}` : recipe);
 
 /** The game's words with the shell's: the game's first (it may say a shell key its own way). */
 const wordsOf = (game: Game): Words => ({
@@ -144,7 +155,7 @@ function campaign(
       racing = race !== null;
       page.ghosts.race(race);
       page.container.dataset.level = game.levels[index]!.id;
-      const recipe = game.levels[index]!.recipe;
+      const recipe = withView(game, game.levels[index]!.recipe);
       page.load(o.link ? `${recipe}\n${o.link}` : recipe);
       paused(false);
     };
@@ -264,7 +275,7 @@ export async function startGame(container: HTMLElement, game: Game): Promise<Mou
   await initPhysics();
   const progress = progressFrom(storage(`manifold.${game.id}`).read('progress'));
   const next = game.levels[Math.min(progress.reached, game.levels.length - 1)]!;
-  const recipes: InitialRecipe[] = [{ from: 'the level', text: next.recipe }];
+  const recipes: InitialRecipe[] = [{ from: 'the level', text: withView(game, next.recipe) }];
   const fromLink = recipeFromLink(location.hash);
   if (fromLink) recipes.push({ from: "the link's recipe", text: fromLink });
   // A ghost to race (stage 5d), on the level its strip was born in: the one whose own birth (the values
@@ -306,6 +317,7 @@ export async function startGame(container: HTMLElement, game: Game): Promise<Mou
     ...(game.hud ? { hud: game.hud } : {}),
     ...(game.buttons ? { buttons: game.buttons } : {}),
     ...(game.tools ? { tools: game.tools } : {}),
+    ...(game.feel ? { feel: game.feel } : {}),
     pieces: [
       campaign(game, progress, { ...(fromLink ? { link: fromLink } : {}), ...(race ? { race } : {}) }),
       ...(music ? [(page: GamePage) => mountMusic(page, music)] : []),

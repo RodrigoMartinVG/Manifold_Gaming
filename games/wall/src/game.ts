@@ -7,6 +7,7 @@ import { timeIn, type Hud, type Theme, type Words } from '@manifold/presentation
 import type { Game } from '@manifold/shell';
 import { attackers, hold } from './rules';
 import { WALL_CARTRIDGE, WALL_LEVEL_LIST, wallDone } from './cartridge';
+import { ARMS_FEEL } from '@manifold/arms/models';
 
 /**
  * ITS WORDS (decision 0019). The thread goes on from the fortress's last lines: while the flame was being
@@ -184,6 +185,8 @@ export const WALL: Game = {
   // night's last hours to the dawn, the pace rising with them (rules.ts: paceOf). Each with its gold time
   // (s): about 1.3 times its test's run (levels.test.ts).
   levels: WALL_LEVEL_LIST,
+  // In first person, every level (stage 5.5h: given once, not in each level's recipe).
+  view: 'view.camera first',
   done: wallDone,
   thread: {
     opening: [
@@ -199,6 +202,7 @@ export const WALL: Game = {
   music: WALL_THEME,
   hud: wallHud,
   tools: armsTool,
+  feel: ARMS_FEEL,
   // Its buttons: the shot, X or a click; (stage 5n) each weapon of the arsenal by its number, 1 to 9;
   // (5o) a reload, R or the pad's X.
   buttons: [

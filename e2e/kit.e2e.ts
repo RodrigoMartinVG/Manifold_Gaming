@@ -46,8 +46,12 @@ test('the citadel: built with the kit, drawn within its budget everywhere in it,
   // At dusk (stage 5a): its sky's hour, its level's.
   await expect(page.locator('#game')).toHaveAttribute('data-sky', '19.5');
   // The budget (decision 0026, set in stage 4.5f from what it measured): at most 300 draw calls and
-  // 50,000 triangles a frame, wherever you stand. Measured where it draws the most: the courtyard, the
-  // hall from its gate, the library, the roofs, the tower's top.
+  // 50,000 triangles a frame, wherever you stand, as the page's quality tier says it (stage 5.5g). Measured
+  // where it draws the most: the courtyard, the hall from its gate, the library, the roofs, the tower's top.
+  const budget = await Promise.all(
+    ['data-budget-draws', 'data-budget-triangles'].map(async (a) => Number(await page.locator('#game').getAttribute(a))),
+  );
+  expect(budget).toEqual([300, 50_000]);
   await page.keyboard.press('Backquote');
   for (const at of ['-2 1 9', '2 1 -2', '11 4 1.5', '13 7 4', '0 8 -24']) {
     await typeInConsole(page, `dojo.goto ${at}`);
@@ -55,8 +59,8 @@ test('the citadel: built with the kit, drawn within its budget everywhere in it,
     const [draws, triangles] = await Promise.all(
       ['data-draws', 'data-triangles'].map(async (a) => Number(await page.locator('#game').getAttribute(a))),
     );
-    expect(draws, `draws at ${at}`).toBeLessThanOrEqual(300);
-    expect(triangles, `triangles at ${at}`).toBeLessThanOrEqual(50_000);
+    expect(draws, `draws at ${at}`).toBeLessThanOrEqual(budget[0]!);
+    expect(triangles, `triangles at ${at}`).toBeLessThanOrEqual(budget[1]!);
     expect(triangles, `drawn at ${at}`).toBeGreaterThan(2000);
     // (Stage 5m) Its still pieces drawn in batches by squares of 16 m: up to 300 before, 39 to 81 measured.
     expect(draws, `batched at ${at}`).toBeLessThanOrEqual(150);

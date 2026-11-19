@@ -79,6 +79,13 @@ function addStyles() {
  * `data-gem` (the exposure), `data-rings` (rings spread so far), `data-last` (silhouettes shown).
  */
 export function mountWariness(page: GamePage, o: WarinessOptions): Piece {
+  // The page's size, measured when it changes (stage 5.5g), not read on every frame.
+  const size = { w: page.container.clientWidth, h: page.container.clientHeight };
+  const resized = new ResizeObserver(() => {
+    size.w = page.container.clientWidth;
+    size.h = page.container.clientHeight;
+  });
+  resized.observe(page.container);
   addStyles();
   const { scene, camera } = page.stage;
   const signs = new Map<number, HTMLDivElement>();
@@ -131,15 +138,16 @@ export function mountWariness(page: GamePage, o: WarinessOptions): Piece {
       });
       page.container.dataset.rings = String(++ringsMade);
     },
-    frame({ dt, world, hero }) {
-      const w = page.container.clientWidth;
-      const h = page.container.clientHeight;
+    frame({ dt, hero }) {
+      // (Its size as last measured, stage 5.5g: read here, after the signs were written, it made the page lay itself out again.)
+      const { w, h } = size;
       const seen = new Set<number>();
       let shown = 0;
       let most: Noticed['state'] | 'none' = 'none';
       const rank = { none: 0, calm: 1, suspicious: 2, searching: 3, alerted: 4 } as const;
       let ghostsShown = 0;
-      for (const e of world.entities.values()) {
+      // (What notices is a watcher, stage 5.5g: the page's index, not every entity.)
+      for (const e of page.index.with('watcher')) {
         const n = o.noticed(e);
         if (!n || !e.transform) continue;
         seen.add(e.id);

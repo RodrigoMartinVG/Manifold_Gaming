@@ -1,7 +1,7 @@
 import type { VariableInfo } from '@manifold/commands';
 import type { Vec3 } from '@manifold/common';
 import { upAt, type Event } from '@manifold/core';
-import { firedHeard } from './audio';
+import { weaponFeel } from './feel';
 import type { GamePage, Piece } from './page';
 import { addInterfaceStyles } from './ui';
 import type { Say } from './words';
@@ -115,7 +115,7 @@ export function mountSubtitles(page: GamePage): Piece {
     event(ev) {
       if (!enabled || (ev.type !== 'sound' && ev.type !== 'fired')) return;
       // (Stage 5g) A weapon used, heard as far as its sound (audio.ts), in words: "Un escopetazo".
-      const radius = ev.type === 'sound' ? ev.radius : firedHeard(ev.kind);
+      const radius = ev.type === 'sound' ? ev.radius : weaponFeel(page.feel, ev.kind).heard;
       const camera = page.stage.camera;
       const dx = ev.at[0] - camera.position.x;
       const dy = ev.at[1] - camera.position.y;
