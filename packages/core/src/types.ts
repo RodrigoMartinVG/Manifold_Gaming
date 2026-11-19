@@ -316,7 +316,16 @@ export type Shape =
    * size, counted from the lowest corner of all of them, and the physics makes them Rapier's voxels, made
    * for grids: no seam between two cells at all.
    */
-  | { kind: 'compound'; parts: CompoundPart[]; cell?: Vec3 };
+  | { kind: 'compound'; parts: CompoundPart[]; cell?: Vec3 }
+  /**
+   * HEIGHTS OVER A GRID (the forest's F0a, decision 0032's terrain): `cols` × `rows` cells over `size[0]`
+   * along X and `size[2]` along Z, centered on its body; `heights`, (cols + 1) × (rows + 1) of them, the
+   * row at the lowest Z first and in each row the lowest X first, each times `size[1]` (meters, with 1).
+   * For fixed bodies. With `fixEdges`, the physics treats what crosses from one cell to the next as on
+   * one surface (Rapier's `FIX_INTERNAL_EDGES`: F0a measures what it changes). Its heights are in the
+   * entity, as any shape's numbers: where they come from (a file, a generator) is F1's choice.
+   */
+  | { kind: 'heightfield'; cols: number; rows: number; heights: readonly number[]; size: Vec3; fixEdges?: boolean };
 
 /** One part of a compound shape: a box, centered `offset` from the body's center, turned `rotation` there (stage 4.5e: a kit's ramp). */
 export interface CompoundPart {
@@ -713,9 +722,10 @@ export interface Appearance {
   /**
    * A box of `size`, a sphere whose diameter is `size` (all three the same), a capsule `size[1]`
    * tall and `size[0]` wide, or (stage 3b) a grid: lines a meter apart over the top of a box of
-   * `size`, as the Dojo's floor is drawn (its color, the lines').
+   * `size`, as the Dojo's floor is drawn (its color, the lines'), or (the forest's F0a) a field: the
+   * surface of its body's height field.
    */
-  shape: 'box' | 'sphere' | 'capsule' | 'grid' | 'boxes';
+  shape: 'box' | 'sphere' | 'capsule' | 'grid' | 'boxes' | 'field';
   size: Vec3;
   /** For `boxes` (stage 4a: a compound body, as a map's floor): each box's center, from the entity's, and its size. */
   parts?: { offset: Vec3; size: Vec3 }[];

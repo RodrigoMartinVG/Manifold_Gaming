@@ -23,7 +23,7 @@ export interface Bodies extends Piece {
   /** Each character's carried turn at the previous step (stage 2d): the aiming camera turns with it, drawn between steps. */
   readonly previousTurn: ReadonlyMap<EntityId, Quat>;
   /** What is drawn for an appearance (the ghost's, for instance): its model, if it has one and it loaded, or its shape. */
-  meshFor(a: Appearance): { object: THREE.Object3D; model: ModelInstance | null };
+  meshFor(a: Appearance, shape?: Shape): { object: THREE.Object3D; model: ModelInstance | null };
   /** The entity whose mesh is under a point of the screen (x and y from −1 to 1), if any. */
   entityAt(x: number, y: number): EntityId | undefined;
   /** Each character drawn with a model, its copy (its limbs, feet and hands: the `show.ik` view reads them). */
@@ -42,7 +42,35 @@ const below = (s: Shape): number =>
       ? s.radius
       : s.kind === 'compound'
         ? Math.max(...s.parts.map((p) => p.halfExtents[1] - p.offset[1]))
-        : s.halfExtents[1];
+        : s.kind === 'heightfield'
+          ? 0
+          : s.halfExtents[1];
+/**
+ * A height field's surface (the forest's F0a): a vertex at each of its corners, two triangles a cell, facing up.
+ * One mesh for the whole field; its levels of detail and patches are F3's.
+ */
+function fieldGeometry(s: Extract<Shape, { kind: 'heightfield' }>): THREE.BufferGeometry {
+  const across = s.cols + 1;
+  const points = new Float32Array(across * (s.rows + 1) * 3);
+  for (let i = 0; i <= s.rows; i++)
+    for (let j = 0; j <= s.cols; j++) {
+      const k = (i * across + j) * 3;
+      points[k] = -s.size[0] / 2 + (j * s.size[0]) / s.cols;
+      points[k + 1] = s.heights[i * across + j]! * s.size[1];
+      points[k + 2] = -s.size[2] / 2 + (i * s.size[2]) / s.rows;
+    }
+  const index: number[] = [];
+  for (let i = 0; i < s.rows; i++)
+    for (let j = 0; j < s.cols; j++) {
+      const a = i * across + j;
+      index.push(a, a + across, a + 1, a + 1, a + across, a + across + 1);
+    }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.BufferAttribute(points, 3));
+  geometry.setIndex(index);
+  geometry.computeVertexNormals();
+  return geometry;
+}
 /** A shadow's disc lies on +Y; it is turned to the surface it falls on. (Stage 5p) Never smaller nor fainter than this. */
 export const SHADOW = { smallest: 0.5, faintest: 0.15 } as const;
 const FLAT = new THREE.Vector3(0, 1, 0);
@@ -214,12 +242,12 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
    * Its model's copy, if it names one that loaded; if not, its shape. A model's body takes the
    * appearance's color (each player's), in a material of its own; the rest stays shared.
    */
-  const meshFor = (a: Appearance): { object: THREE.Object3D; model: ModelInstance | null; drawn: boolean } => {
+  const meshFor = (a: Appearance, shape?: Shape): { object: THREE.Object3D; model: ModelInstance | null; drawn: boolean } => {
     // (Stage 5.5g) A rig only for a model with animations (a character); a plain shared copy for the rest.
     const rigged = a.model ? models.rigged(a.model) : null;
     const model = rigged ? models.instance(a.model!) : null;
     const object = model ? model.object : rigged === false ? models.copy(a.model!) : null;
-    if (!object) return { object: shapeFor(a), model: null, drawn: false };
+    if (!object) return { object: shapeFor(a, shape), model: null, drawn: false };
     let color: THREE.MeshStandardMaterial | null = null;
     object.traverse((o) => {
       if (!(o instanceof THREE.Mesh) || (o.material as THREE.Material).name !== 'body') return;
@@ -235,11 +263,15 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
   /**
    * A mesh for an appearance's shape. Boxes and spheres are one shared shape, scaled; a capsule is
    * built at its size (scaling would squash its round ends), with a visor that shows where it looks
-   * (−Z); a grid, its lines (stage 3b).
+   * (−Z); a grid, its lines (stage 3b); (the forest's F0a) a field, the surface of its body's height field.
    */
-  const shapeFor = (a: Appearance): THREE.Object3D => {
+  const shapeFor = (a: Appearance, shape?: Shape): THREE.Object3D => {
     if (a.shape === 'grid') return gridFor(a);
     const material = materialFor(a.color, a.opacity);
+    if (a.shape === 'field')
+      return shape?.kind === 'heightfield'
+        ? own(new THREE.Mesh(fieldGeometry(shape), material), { geometry: true })
+        : new THREE.Group();
     // Several boxes (stage 4a: a compound body, as a map's floor), each the shared box, scaled and placed.
     if (a.shape === 'boxes') {
       const group = new THREE.Group();
@@ -426,7 +458,7 @@ export function mountBodies(page: GamePage, models: Models, o: { timeScale(): nu
     // TWICE, when walking the world and through their `entityCreated` event; the second mesh hid
     // the first one in the map, and the first stayed in the scene, forgotten at the origin.)
     if (!e.appearance || !e.transform || meshes.has(e.id)) return;
-    const { object, model, drawn } = meshFor(e.appearance);
+    const { object, model, drawn } = meshFor(e.appearance, e.body?.shape);
     // Which entity it is, for a click on it and for what the tests count.
     object.userData.entity = e.id;
     scene.add(object);

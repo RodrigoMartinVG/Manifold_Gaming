@@ -2,6 +2,8 @@ import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
 import { CHECKED_DUNGEONS, dungeon, textHash } from '@manifold/adventure/dungeon';
+import { initPhysics } from '@manifold/core';
+import { terrainProbe } from '@manifold/dojo/terrain';
 
 /**
  * THE DETERMINISM CHECK (stage 2.5a; every game's since 5.5c): the page "La misma huella" plays the reference
@@ -64,6 +66,24 @@ test('this browser makes the adventure dungeons Node makes, from the same seeds'
   for (const [i, [seed, depth]] of CHECKED_DUNGEONS.entries())
     await expect(rows.nth(i).locator('td').nth(3), `seed ${seed}, depth ${depth}`).toHaveText(
       textHash(dungeon(seed, depth).text),
+    );
+  expect(errors).toEqual([]);
+});
+
+// The forest's F0a: a world on a height field steps to the same hash in Node and in every browser, with its
+// cells' edges as they come and fixed (Rapier's FIX_INTERNAL_EDGES).
+test('this browser steps the terrain probe Node steps, to the same hash, with its edges as they come and fixed', async ({
+  page,
+}) => {
+  await initPhysics();
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('jugar/la-misma-huella/');
+  const box = page.locator('.same-terrain');
+  await expect(box).toHaveAttribute('data-state', 'done', { timeout: 60_000 });
+  for (const fixEdges of [false, true])
+    await expect(box.locator(`tr[data-fix-edges="${fixEdges}"] td`).nth(2), `fixEdges ${fixEdges}`).toHaveText(
+      terrainProbe(fixEdges),
     );
   expect(errors).toEqual([]);
 });

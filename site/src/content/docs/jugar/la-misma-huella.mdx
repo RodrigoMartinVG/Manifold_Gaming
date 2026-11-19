@@ -5,6 +5,7 @@ description: Tu navegador juega las repeticiones de referencia del motor, sin di
 
 import SameDungeon from '../../../components/SameDungeon.astro';
 import SameHash from '../../../components/SameHash.astro';
+import SameTerrain from '../../../components/SameTerrain.astro';
 
 Una regla del motor es que **una partida da exactamente el mismo mundo en cualquier lado**: en tu navegador, en otro, y en Node, sin pantalla. Para comprobarlo no hace falta mirar: alcanza con la **huella** (_hash_), un número que resume el mundo entero en un paso, cada posición y cada velocidad, bit por bit. Si dos simulaciones terminan con la misma huella, simularon lo mismo.
 
@@ -40,3 +41,11 @@ Son la red de seguridad del motor. Un cambio que no tenía por qué cambiar el m
 La aventura de acción hace sus calabozos con una **semilla** (_seed_): la misma semilla, el mismo calabozo, en cualquier lado. Tu navegador acaba de hacer estos, y la huella de cada uno es la de su nivel escrito como texto: las pruebas del sitio la comparan con la que da Node, en Chromium, Firefox y WebKit.
 
 <SameDungeon />
+
+## El mismo terreno
+
+El bosque va a tener un valle con relieve: un **terreno de alturas** (_height field_), una altura por cada esquina de una cuadrícula. Antes de construirlo, el motor mide si da el mismo mundo en todos lados. Tu navegador acaba de armar 64 m de colinas, con cuadrados de 1 m, soltó diez cosas encima y puso a caminar a un personaje durante diez segundos. Las colinas salen de una semilla, solo con sumas, productos y enteros, como todo lo que está en el mundo.
+
+Lo hizo dos veces: con los bordes de las celdas como vienen, y arreglados, para que lo que cruza de una celda a la otra lo sienta como una sola superficie. Las pruebas del sitio comparan las dos huellas con las que da Node, en Chromium, Firefox y WebKit.
+
+<SameTerrain />

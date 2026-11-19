@@ -83,6 +83,22 @@ function voxelsOf(shape: Extract<Shape, { kind: 'compound' }>, cell: Vec3) {
   return RAPIER.ColliderDesc.voxels(new Int32Array(cells), { x: cell[0], y: cell[1], z: cell[2] }).setTranslation(...low);
 }
 
+type Field = Extract<Shape, { kind: 'heightfield' }>;
+/** A vector of ours as Rapier's. */
+const vecOf = (v: Vec3) => ({ x: v[0], y: v[1], z: v[2] });
+/**
+ * A height field's heights as Rapier wants them (the forest's F0a): ours go row by row from the lowest Z, each
+ * row from the lowest X; Rapier's matrix has a row for each Z and a column for each X, stored a column at a time.
+ */
+function heightsOf(s: Field): Float32Array {
+  const across = s.cols + 1;
+  const along = s.rows + 1;
+  const out = new Float32Array(across * along);
+  for (let i = 0; i < along; i++) for (let j = 0; j < across; j++) out[j * along + i] = s.heights[i * across + j]!;
+  return out;
+}
+const fieldFlags = (s: Field) => (s.fixEdges ? RAPIER.HeightFieldFlags.FIX_INTERNAL_EDGES : undefined);
+
 /** A compound's parts as Rapier wants them: boxes cut to meet whole faces, where they are, unturned, with their seams mended. */
 const compoundOf = (shape: Extract<Shape, { kind: 'compound' }>) => {
   // (Parts turned within it, a kit's ramp, stage 4.5e, are not cut to meet face to face: as they are.)
@@ -119,6 +135,10 @@ const SHAPES: {
     shape: (s) => new RAPIER.Compound(...compoundOf(s)),
     collider: (s) => (s.cell ? voxelsOf(s, s.cell) : RAPIER.ColliderDesc.compound(...compoundOf(s))),
   },
+  heightfield: {
+    shape: (s) => new RAPIER.Heightfield(s.rows, s.cols, heightsOf(s), vecOf(s.size), fieldFlags(s)),
+    collider: (s) => RAPIER.ColliderDesc.heightfield(s.rows, s.cols, heightsOf(s), vecOf(s.size), fieldFlags(s)),
+  },
 };
 /** A shape of ours, as one a query casts. */
 const shapeOf = (shape: Shape): RAPIER.Shape => (SHAPES[shape.kind].shape as (s: Shape) => RAPIER.Shape)(shape);
@@ -152,6 +172,11 @@ export function reachOf(shape: Shape): number {
         shape.parts.reduce((most, p) => Math.max(most, length(p.offset) + length(p.halfExtents)), 0) +
         (shape.cell ? length(shape.cell) / 2 : 0)
       );
+    case 'heightfield': {
+      // To its farthest corner: half its extent across, and its highest or lowest height.
+      const most = shape.heights.reduce((m, h) => Math.max(m, Math.abs(h)), 0) * shape.size[1];
+      return length([shape.size[0] / 2, most, shape.size[2] / 2]);
+    }
   }
 }
 
@@ -220,7 +245,10 @@ export function bodyMass(body: Pick<Body, 'shape' | 'density'>): number {
         ? s.parts.reduce((sum, p) => sum + box(p.halfExtents), 0)
         : s.kind === 'ball'
           ? (4 / 3) * Math.PI * s.radius * s.radius * s.radius
-          : Math.PI * s.radius * s.radius * (2 * s.halfHeight) + (4 / 3) * Math.PI * s.radius * s.radius * s.radius;
+          : s.kind === 'capsule'
+            ? Math.PI * s.radius * s.radius * (2 * s.halfHeight) + (4 / 3) * Math.PI * s.radius * s.radius * s.radius
+            : // (A height field is fixed: it has no mass that moves anything.)
+              0;
   return (body.density ?? 1) * volume;
 }
 

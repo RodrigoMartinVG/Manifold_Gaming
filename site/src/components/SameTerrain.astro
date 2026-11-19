@@ -1,0 +1,58 @@
+---
+/**
+ * THE SAME TERRAIN (the forest's F0a, decision 0032): a world on a height field, stepped in the reader's
+ * browser, with and without its cells' edges fixed (Rapier's `FIX_INTERNAL_EDGES`), and the hash each one
+ * ends with. The browser test compares them with Node's, in every browser. (The texts are the site's, in
+ * Spanish.)
+ */
+---
+
+<div class="same-terrain not-content" data-state="waiting">
+  <table>
+    <thead>
+      <tr>
+        <th>Bordes de las celdas</th>
+        <th>Pasos</th>
+        <th>Huella del final</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<script>
+  import { initPhysics } from '@manifold/core';
+  import { TERRAIN_PROBE, terrainProbe } from '@manifold/dojo/terrain';
+  const box = document.querySelector<HTMLElement>('.same-terrain')!;
+  const body = box.querySelector('tbody')!;
+  void initPhysics().then(() => {
+    for (const fixEdges of [false, true]) {
+      const row = document.createElement('tr');
+      row.dataset.fixEdges = String(fixEdges);
+      for (const text of [fixEdges ? 'arreglados' : 'como vienen', String(TERRAIN_PROBE.steps), terrainProbe(fixEdges)]) {
+        const cell = document.createElement('td');
+        cell.textContent = text;
+        row.append(cell);
+      }
+      body.append(row);
+    }
+    box.dataset.state = 'done';
+  });
+</script>
+
+<style>
+  .same-terrain {
+    margin: 1.5rem 0;
+  }
+  .same-terrain table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--sl-text-sm);
+  }
+  .same-terrain th,
+  .same-terrain :global(td) {
+    padding: 0.4rem 0.6rem;
+    border-bottom: 1px solid var(--sl-color-hairline);
+    text-align: left;
+  }
+</style>

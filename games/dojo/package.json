@@ -11,7 +11,8 @@
     "./declarations": "./src/declarations.ts",
     "./replays": "./src/replays.ts",
     "./rooms": "./src/rooms.ts",
-    "./rules": "./src/rules.ts"
+    "./rules": "./src/rules.ts",
+    "./terrain": "./src/terrain.ts"
   },
   "dependencies": {
     "@manifold/arms": "0.0.0",
