@@ -4,7 +4,7 @@ import { noticeOf, pouch, secondsToNotice } from '@manifold/arms';
 import { missingKeys, notesBetween } from '@manifold/presentation';
 import { FORTRESS, FORTRESS_THEME, FORTRESS_WORDS } from './game';
 import { levelOf } from './play';
-import { AWARE, FORTRESS as RULES } from './rules';
+import { AWARE, FORTRESS_TUNING as RULES } from './rules';
 
 beforeAll(initPhysics);
 

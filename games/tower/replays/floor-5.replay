@@ -1,5 +1,5 @@
 # Manifold replay 50
-rules character 1 kit 1 tower 1
+rules character 1 kit 1 shell 1 tower 1
 # The tower's fourth floor, played to its goal: ledges, a running jump, a drop, a stair of ledges.
 # A reference replay (decision 0025): playing it must end with the hash on its last line.
 # Recorded by games/tower/src/references/floor-5.test.ts;

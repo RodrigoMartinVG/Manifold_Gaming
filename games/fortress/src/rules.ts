@@ -29,6 +29,7 @@ import {
   type ZoneKinds,
 } from '@manifold/core';
 import { KIT, KIT_VERSION } from '@manifold/kit';
+import { followPlayers, notice, STEPS_PER_SECOND, SHELL_VERSION } from '@manifold/shell/run';
 
 /**
  * The zones a level of the fortress understands: where one comes back to, where one falls, the way out
@@ -70,7 +71,7 @@ const RUN = 'fortress.run';
 export const run = (e: Entity) => component<Run>(e, RUN);
 
 /** Its numbers: how long a caught intruder is down (s) before it is back at its checkpoint; the flame's light it carries. */
-export const FORTRESS = Object.freeze({
+export const FORTRESS_TUNING = Object.freeze({
   back: 3,
   health: 100,
   /** The flame, carried: a small light round it (it shows where it goes: the way out is harder than the way in). */
@@ -105,9 +106,6 @@ const WARY_GUARD = Object.freeze({ shout: true, relight: true, notice: true, awa
 /** A guard on its feet (its eyes count: a guard down does not see). */
 export const standing = (e: Entity | undefined): e is Entity => !!e?.brain && (e.health?.down ?? -1) < 0;
 
-/** A line for one player's screen (the game's words: game.ts). */
-const notice = (world: World, player: number, say: string) => world.emit({ type: 'notice', say, player });
-
 const COLORS = [0x6a7a8a, 0x4a9fd8, 0xd86a4a, 0x7ac25a];
 
 /** The intruder: the games' character, crouching and rolling, with a stick (for a blow from behind) and a pouch. */
@@ -120,7 +118,7 @@ function intruder(world: World, player: number, at: Vec3, facing: Vec3) {
     // (Stage 5k) Its jump, the grounded one: 1.1 m in 0.36 s, not the world's floaty 2 m.
     character: { ...parts.character, movement: { ...parts.character.movement, arc: { ...GROUNDED.movement.arc } } },
     appearance: parts.appearance,
-    health: { most: FORTRESS.health },
+    health: { most: FORTRESS_TUNING.health },
     game: {
       [RUN]: {
         spawn: [...at],
@@ -134,7 +132,7 @@ function intruder(world: World, player: number, at: Vec3, facing: Vec3) {
         scrollsHere: [...world.entities.values()].filter((z) => z.sensor?.kind === 'scroll').length,
         downs: 0,
       } satisfies Run,
-      [POUCH]: { ...FORTRESS.pouch } satisfies Pouch,
+      [POUCH]: { ...FORTRESS_TUNING.pouch } satisfies Pouch,
       [WEAPON]: { kind: 'stick', ready: 0, strike: 0, struck: [] } satisfies Weapon,
     },
   });
@@ -161,7 +159,7 @@ export function createFortress(levels: Readonly<Record<string, Level>>): Cartrid
   return {
     id: 'fortress',
     title: 'The fortress',
-    versions: { fortress: FORTRESS_VERSION, ...ARMS_VERSION, ...CHARACTER_VERSION, ...KIT_VERSION },
+    versions: { fortress: FORTRESS_VERSION, ...SHELL_VERSION, ...ARMS_VERSION, ...CHARACTER_VERSION, ...KIT_VERSION },
     kit: KIT,
     zones: FORTRESS_ZONES,
     brains: ARMS_BRAINS,
@@ -188,7 +186,7 @@ export function createFortress(levels: Readonly<Record<string, Level>>): Cartrid
         // The flame: a small light that stays where it is until it is taken.
         if (zone.sensor.kind === 'relic') {
           zone.appearance = { shape: 'sphere', size: [0.3, 0.3, 0.3], color: 0xffb04a };
-          zone.lamp = { radius: FORTRESS.flame.radius, intensity: 1, signal: null, on: true };
+          zone.lamp = { radius: FORTRESS_TUNING.flame.radius, intensity: 1, signal: null, on: true };
         }
         // A scroll: a small pale roll, turning slowly.
         if (zone.sensor.kind === 'scroll') {
@@ -209,14 +207,11 @@ export function createFortress(levels: Readonly<Record<string, Level>>): Cartrid
     },
     onStep(world, events: readonly Event[]) {
       // Each player who joined, an intruder beside the first; one who left, none.
-      const intruders = [...world.entities.values()].filter((e) => e.character && run(e));
-      const first = intruders.find((e) => e.character!.player === 1);
-      const spawn = (first && run(first)?.spawn) ?? [0, 1, 0];
-      for (const p of world.players)
-        if (p !== 1 && !intruders.some((e) => e.character!.player === p))
-          intruder(world, p, [spawn[0] + 1.2 * (p - 1), spawn[1], spawn[2]], first?.character?.facing ?? [0, 0, -1]);
-      for (const e of intruders)
-        if (e.character!.player !== 1 && !world.players.has(e.character!.player)) world.removeEntity(e.id);
+      const intruders = followPlayers(world, {
+        ours: (e) => !!run(e),
+        spawn: (first) => (first && run(first)?.spawn) ?? [0, 1, 0],
+        make: (p, at, first) => intruder(world, p, at, first?.character?.facing ?? [0, 0, -1]),
+      });
       arms(world, events);
       fuses(world);
       stealth(world, events);
@@ -261,7 +256,7 @@ export function createFortress(levels: Readonly<Record<string, Level>>): Cartrid
           case 'relic':
             world.removeEntity(zone.id);
             r.relic = true;
-            e.lamp = { radius: FORTRESS.flame.radius, intensity: FORTRESS.flame.intensity, signal: null, on: true };
+            e.lamp = { radius: FORTRESS_TUNING.flame.radius, intensity: FORTRESS_TUNING.flame.intensity, signal: null, on: true };
             notice(world, e.character!.player, 'fortress.flame');
             break;
           case 'goal':
@@ -275,7 +270,7 @@ export function createFortress(levels: Readonly<Record<string, Level>>): Cartrid
       for (const e of intruders) {
         const r = run(e);
         if (!r || !e.health || e.health.down < 0) continue;
-        if (world.tick - e.health.down >= Math.round(FORTRESS.back * 60)) {
+        if (world.tick - e.health.down >= Math.round(FORTRESS_TUNING.back * STEPS_PER_SECOND)) {
           world.revive(e.id, r.checkpoint);
           r.caught++;
           notice(world, e.character!.player, 'fortress.caught');

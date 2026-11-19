@@ -4,7 +4,7 @@ import { arsenal, ATTACK, MAGAZINES, RELOAD, RELOAD_IN, reloadShare, SLOTS, weap
 import { missingKeys, notesBetween } from '@manifold/presentation';
 import { WALL, WALL_THEME, WALL_WORDS } from './game';
 import { levelOf } from './play';
-import { attackers, paceOf, ROLES, WALL as RULES } from './rules';
+import { attackers, paceOf, ROLES, WALL_TUNING as RULES } from './rules';
 
 beforeAll(initPhysics);
 

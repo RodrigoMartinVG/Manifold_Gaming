@@ -1,5 +1,5 @@
 # Manifold replay 50
-rules arms 1 character 1 kit 1 wall 1
+rules arms 1 character 1 kit 1 shell 1 wall 1
 # The wall walk, played to its way out: the balcony, the armory, the bridge, the dais.
 # A reference replay (decision 0025): playing it must end with the hash on its last line.
 # Recorded by games/wall/src/references/level-1.test.ts;

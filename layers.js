@@ -44,8 +44,9 @@ export const WORKSPACES = {
   'packages/shell': {
     name: '@manifold/shell',
     layer: 'library',
-    // (`references.ts`: the reference replays' test kit, stage 5.5c.)
-    files: { 'index.ts': 'view', 'words.ts': 'view', 'references.ts': 'tool' },
+    // (`references.ts`: the reference replays' test kit, stage 5.5c; `drive.ts`, a level played without a
+    // screen, stage 5.5h. `run.ts`, a level's run, is rules: headless, guarded.)
+    files: { 'index.ts': 'view', 'words.ts': 'view', 'references.ts': 'tool', 'drive.ts': 'tool' },
   },
   'games/dojo': {
     name: '@manifold/dojo',

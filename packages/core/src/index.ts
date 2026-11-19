@@ -173,3 +173,4 @@ export {
   type GhostPose,
 } from './ghost';
 export { eyeEmitter, lampEmitter, reaches, type Emitter } from './systems/light';
+export { carryAlong } from './systems/flows';

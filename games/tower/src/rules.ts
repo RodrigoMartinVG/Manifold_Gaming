@@ -12,6 +12,7 @@ import {
   type ZoneKinds,
 } from '@manifold/core';
 import { KIT, KIT_VERSION } from '@manifold/kit';
+import { followPlayers, notice, SHELL_VERSION } from '@manifold/shell/run';
 
 /** The zones a floor of the tower understands: where you come back to, where you fall, a star, the goal. */
 export const TOWER_ZONES: ZoneKinds = { checkpoint: {}, fall: {}, star: {}, goal: {} };
@@ -63,12 +64,10 @@ export const TOWER_VERSION = 1;
  */
 export function createTower(levels: Readonly<Record<string, Level>>): Cartridge {
   const names = Object.keys(levels);
-  const notice = (world: World, player: number, say: string, values?: readonly number[]) =>
-    world.emit({ type: 'notice', say, player, ...(values ? { values } : {}) });
   return {
     id: 'tower',
     title: 'The tower',
-    versions: { tower: TOWER_VERSION, ...CHARACTER_VERSION, ...KIT_VERSION },
+    versions: { tower: TOWER_VERSION, ...SHELL_VERSION, ...CHARACTER_VERSION, ...KIT_VERSION },
     kit: KIT,
     zones: TOWER_ZONES,
     onDeclare(registry) {
@@ -92,14 +91,10 @@ export function createTower(levels: Readonly<Record<string, Level>>): Cartridge 
     },
     onStep(world, events: readonly Event[]) {
       // Each player who joined, a climber beside the first (1.2 m to its right); one who left, none.
-      const climbers = [...world.entities.values()].filter((e) => e.character);
-      const first = climbers.find((e) => e.character!.player === 1);
-      const spawn = (first && runner(first)?.spawn) ?? [0, 1, 0];
-      for (const p of world.players)
-        if (p !== 1 && !climbers.some((e) => e.character!.player === p))
-          climber(world, p, [spawn[0] + 1.2 * (p - 1), spawn[1], spawn[2]], first?.character?.facing ?? [0, 0, -1]);
-      for (const e of climbers)
-        if (e.character!.player !== 1 && !world.players.has(e.character!.player)) world.removeEntity(e.id);
+      followPlayers(world, {
+        spawn: (first) => (first && runner(first)?.spawn) ?? [0, 1, 0],
+        make: (p, at, first) => climber(world, p, at, first?.character?.facing ?? [0, 0, -1]),
+      });
       for (const ev of events) {
         if (ev.type !== 'sensorEntered') continue;
         const zone = world.entities.get(ev.sensor);

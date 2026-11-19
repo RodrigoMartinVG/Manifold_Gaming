@@ -1,6 +1,7 @@
 import type { Vec3 } from '@manifold/common';
 import { ATTACK, PEBBLE_INPUT, SMOKE_INPUT } from '@manifold/arms';
-import { BotHost, NO_INPUT, registryFor, Session, withoutView, type Entity, type PlayerInput } from '@manifold/core';
+import { NO_INPUT } from '@manifold/core';
+import { drive } from '@manifold/shell/drive';
 import { FORTRESS_CARTRIDGE, FORTRESS_LEVEL_LIST, fortressDone } from './cartridge';
 import { run, standing } from './rules';
 
@@ -11,45 +12,18 @@ import { run, standing } from './rules';
  * took, by its run; and the inputs (the guards' too), for its reference replay.
  */
 export function levelOf(index: number) {
-  const registry = registryFor(FORTRESS_CARTRIDGE);
-  const errors = registry.run(withoutView(FORTRESS_LEVEL_LIST[index]!.recipe), 'recipe').filter((m) => m.level === 'error');
-  if (errors.length) throw new Error(errors.map((m) => m.text).join('; '));
-  const session = new Session(FORTRESS_CARTRIDGE, { registry });
-  const bots = new BotHost();
-  const world = () => session.world;
-  const me = (): Entity => [...world().entities.values()].find((e) => e.character?.player === 1 && !e.brain)!;
-  const named = (name: string) => world().named(name)!;
-  const at = () => me().transform!.position;
+  // (The games' driver, stage 5.5h: drive.ts, its guards thinking every step; what is the fortress's alone, below.)
+  const d = drive(FORTRESS_CARTRIDGE, FORTRESS_LEVEL_LIST[index]!.recipe, {
+    done: (s, me) => fortressDone(s.world, me) !== null,
+    think: true,
+  });
+  const { session, bots, world, me, named, at, done, step, go } = d;
   const r = () => run(me())!;
-  const done = () => fortressDone(world(), me()) !== null;
-  const step = (input: PlayerInput = NO_INPUT) => {
-    bots.think(session);
-    session.setInput(1, input);
-    session.step();
-  };
-  /** Steps with `input` until `until` (or `most` steps); whether it came. */
-  const go = (input: PlayerInput, until: () => boolean, most = 600) => {
-    for (let i = 0; i < most; i++) {
-      if (until() || done()) return true;
-      step(input);
-    }
-    return until() || done();
-  };
   /** Waiting, standing (or crouched) where it is, until `until`. */
   const wait = (until: () => boolean, most = 900, crouch = false) => go(crouch ? { crouch: true } : NO_INPUT, until, most);
   /** Walking (crouched, if so) to a place (x, z), aiming at it every step: whether it got within `near`. */
-  const walkTo = (x: number, z: number, o: { crouch?: boolean; near?: number; most?: number } = {}) => {
-    const near = o.near ?? 0.15;
-    for (let i = 0; i < (o.most ?? 900) && !done(); i++) {
-      const dx = x - at()[0]!;
-      const dz = z - at()[2]!;
-      const d = Math.hypot(dx, dz);
-      if (d < near) return true;
-      const k = Math.min(1, d / 0.3);
-      step({ move: [(dx / d) * k, 0, (dz / d) * k], ...(o.crouch ? { crouch: true } : {}) });
-    }
-    return false;
-  };
+  const walkTo = (x: number, z: number, o: { crouch?: boolean; near?: number; most?: number } = {}) =>
+    d.walkTo(x, z, o.near ?? 0.15, o.most ?? 900, o.crouch ?? false);
   /** Turning to face `toward` (a direction on the ground), standing where it is, for a few steps. */
   const face = (toward: Vec3, crouch = false) => {
     for (let i = 0; i < 20; i++) step({ face: toward, ...(crouch ? { crouch: true } : {}) });

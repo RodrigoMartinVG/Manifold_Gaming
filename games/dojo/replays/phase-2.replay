@@ -1,5 +1,5 @@
 # Manifold replay 50
-rules arms 1 character 1 dojo 1 kit 1
+rules arms 1 character 1 dojo 1 kit 1 shell 1
 # Phase 2: the course with every capability: a checkpoint, falls, three stars, the goal, both platforms.
 # A reference replay (decision 0025): playing it must end with the hash on its last line.
 # Recorded by games/dojo/src/references/phases.test.ts;

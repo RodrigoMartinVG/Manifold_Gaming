@@ -1,5 +1,5 @@
 # Manifold replay 50
-rules character 1 kit 1 tower 1
+rules character 1 kit 1 shell 1 tower 1
 # The tower's entrance, played to its goal: a hop, a ledge, a chimney.
 # A reference replay (decision 0025): playing it must end with the hash on its last line.
 # Recorded by games/tower/src/references/floor-1.test.ts;

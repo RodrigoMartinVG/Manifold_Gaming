@@ -1,6 +1,7 @@
 import { vec3, type Vec3 } from '@manifold/common';
 import { ATTACK, EYE } from '@manifold/arms';
-import { BotHost, NO_INPUT, registryFor, Session, withoutView, type Entity, type PlayerInput } from '@manifold/core';
+import type { Entity, PlayerInput } from '@manifold/core';
+import { drive } from '@manifold/shell/drive';
 import { WALL_CARTRIDGE, WALL_LEVEL_LIST, wallDone } from './cartridge';
 import { attackers, hold } from './rules';
 
@@ -13,22 +14,13 @@ const flat = (a: Vec3, b: Vec3) => Math.hypot(a[0] - b[0], a[2] - b[2]);
  * told. What it took, by its hold; and the inputs (the attackers' too), for its reference replay.
  */
 export function levelOf(index: number) {
-  const registry = registryFor(WALL_CARTRIDGE);
-  // (The recipe's view lines are the page's: a headless session has no camera.)
-  const errors = registry.run(withoutView(WALL_LEVEL_LIST[index]!.recipe), 'recipe').filter((m) => m.level === 'error');
-  if (errors.length) throw new Error(errors.map((m) => m.text).join('; '));
-  const session = new Session(WALL_CARTRIDGE, { registry });
-  const bots = new BotHost();
-  const world = () => session.world;
-  const me = (): Entity => [...world().entities.values()].find((e) => e.character?.player === 1 && !e.brain)!;
-  const at = () => me().transform!.position;
+  // (The games' driver, stage 5.5h: drive.ts, its attackers thinking every step; what is the wall's alone, below.)
+  const d = drive(WALL_CARTRIDGE, WALL_LEVEL_LIST[index]!.recipe, {
+    done: (s, me) => wallDone(s.world, me) !== null,
+    think: true,
+  });
+  const { session, bots, world, me, at, done, step } = d;
   const h = () => hold(me())!;
-  const done = () => wallDone(world(), me()) !== null;
-  const step = (input: PlayerInput = NO_INPUT) => {
-    bots.think(session);
-    session.setInput(1, input);
-    session.step();
-  };
   const eye = (): Vec3 => vec3.add(at(), [0, EYE, 0]);
   /** Whether nothing that does not move is between its eyes and a point. */
   const clear = (to: Vec3) => {
@@ -79,17 +71,7 @@ export function levelOf(index: number) {
     return done();
   };
   /** Walking to a place (x, z), aiming at it: whether it got within `near`. */
-  const walkTo = (x: number, z: number, near = 0.2, most = 600) => {
-    for (let i = 0; i < most && !done(); i++) {
-      const dx = x - at()[0]!;
-      const dz = z - at()[2]!;
-      const d = Math.hypot(dx, dz);
-      if (d < near) return true;
-      const k = Math.min(1, d / 0.3);
-      step({ move: [(dx / d) * k, 0, (dz / d) * k] });
-    }
-    return false;
-  };
+  const walkTo = (x: number, z: number, near = 0.2, most = 600) => d.walkTo(x, z, near, most);
   /**
    * (Stage 5n) Fighting where it stands until no attacker has been in sight for `calm` steps (or `most`
    * steps went by): a room cleared.

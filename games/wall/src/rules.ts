@@ -34,6 +34,7 @@ import {
   type ZoneKinds,
 } from '@manifold/core';
 import { KIT, KIT_VERSION } from '@manifold/kit';
+import { notice, STEPS_PER_SECOND, SHELL_VERSION } from '@manifold/shell/run';
 
 /**
  * The zones a level of the wall understands (stage 5n, decision 0031: levels to advance through, as the
@@ -100,7 +101,7 @@ const WAVE = 'wall.wave';
  * wall's defender: farther and wider than a guard on its round, 12 m and 100°); (stage 5o) how far the horn
  * of a group called in is heard (m: across a level).
  */
-export const WALL = Object.freeze({
+export const WALL_TUNING = Object.freeze({
   back: 3,
   health: 100,
   armor: { most: 100, takes: 0.5 },
@@ -155,10 +156,6 @@ export const ROLES = Object.freeze({
   { kind: WeaponKind; health: number; walk: number; run: number; windup: number; flinch: number }
 >);
 
-/** A line for one player's screen (the game's words: game.ts). */
-const notice = (world: World, player: number, say: string, values?: readonly number[]) =>
-  world.emit({ type: 'notice', say, player, ...(values ? { values } : {}) });
-
 const COLORS = [0x93d9c9, 0x4a9fd8, 0xd8c04a, 0x7ac25a];
 
 /**
@@ -174,7 +171,7 @@ function defender(world: World, player: number, at: Vec3, facing: Vec3, place: n
     // (Stage 5k) Its jump, the grounded one: 1.1 m in 0.36 s, not the world's floaty 2 m.
     character: { ...parts.character, movement: { ...parts.character.movement, arc: { ...GROUNDED.movement.arc } } },
     appearance: parts.appearance,
-    health: { most: WALL.health },
+    health: { most: WALL_TUNING.health },
     game: {
       [HOLD]: {
         place,
@@ -224,8 +221,8 @@ function callIn(world: World, wave: number, place: number): number {
       setComponent(g, WAVE, { wave });
       g.health = { ...g.health!, most: role.health, points: role.health };
       g.character!.movement.walk = { ...g.character!.movement.walk, speed: role.walk, run: role.run };
-      g.watcher!.range = WALL.sight.range;
-      g.watcher!.cone = sinCosDegrees(WALL.sight.degrees / 2)[1];
+      g.watcher!.range = WALL_TUNING.sight.range;
+      g.watcher!.cone = sinCosDegrees(WALL_TUNING.sight.degrees / 2)[1];
       count++;
     }
   }
@@ -241,7 +238,7 @@ function wallDamage(world: World, d: Damage): number {
   const target = world.entities.get(d.target);
   const h = target && hold(target);
   if (!h || h.armor <= 0 || amount <= 0) return amount;
-  const taken = Math.min(h.armor, Math.round(amount * WALL.armor.takes));
+  const taken = Math.min(h.armor, Math.round(amount * WALL_TUNING.armor.takes));
   h.armor -= taken;
   return amount - taken;
 }
@@ -267,7 +264,7 @@ export function createWall(levels: Readonly<Record<string, Level>>): Cartridge {
   return {
     id: 'wall',
     title: 'The wall',
-    versions: { wall: WALL_VERSION, ...ARMS_VERSION, ...CHARACTER_VERSION, ...KIT_VERSION },
+    versions: { wall: WALL_VERSION, ...SHELL_VERSION, ...ARMS_VERSION, ...CHARACTER_VERSION, ...KIT_VERSION },
     kit: KIT,
     zones: WALL_ZONES,
     brains: ARMS_BRAINS,
@@ -329,7 +326,7 @@ export function createWall(levels: Readonly<Record<string, Level>>): Cartridge {
       const h = me && hold(me);
       if (!me || !h) return;
       // Down: three seconds, then back at its checkpoint, on its feet.
-      if (me.health && me.health.down >= 0 && world.tick - me.health.down >= Math.round(WALL.back * 60)) {
+      if (me.health && me.health.down >= 0 && world.tick - me.health.down >= Math.round(WALL_TUNING.back * STEPS_PER_SECOND)) {
         world.revive(me.id, h.checkpoint);
         h.downs++;
       }
@@ -356,8 +353,8 @@ export function createWall(levels: Readonly<Record<string, Level>>): Cartridge {
           } else if (kind === 'health' && me.health && me.health.points < me.health.most) {
             me.health.points = Math.min(me.health.most, me.health.points + (zone.sensor!.params.amount?.[0] ?? 25));
             take('wall.health');
-          } else if (kind === 'armor' && h.armor < WALL.armor.most) {
-            h.armor = Math.min(WALL.armor.most, h.armor + (zone.sensor!.params.amount?.[0] ?? 50));
+          } else if (kind === 'armor' && h.armor < WALL_TUNING.armor.most) {
+            h.armor = Math.min(WALL_TUNING.armor.most, h.armor + (zone.sensor!.params.amount?.[0] ?? 50));
             take('wall.armor');
           } else if (kind === 'ammo') {
             const ammo = AMMO_KINDS[(zone.sensor!.params.kind?.[0] ?? 1) - 1] ?? 'darts';
@@ -380,7 +377,7 @@ export function createWall(levels: Readonly<Record<string, Level>>): Cartridge {
                 surface: null,
                 speed: 0,
                 energy: 0,
-                radius: WALL.horn,
+                radius: WALL_TUNING.horn,
               });
             }
             world.removeEntity(zone.id);
@@ -392,7 +389,12 @@ export function createWall(levels: Readonly<Record<string, Level>>): Cartridge {
       }
       // The fallen carried off, a little after they fell.
       for (const e of [...world.entities.values()])
-        if (e.brain && e.health && e.health.down >= 0 && world.tick - e.health.down >= Math.round(WALL.gone * 60))
+        if (
+          e.brain &&
+          e.health &&
+          e.health.down >= 0 &&
+          world.tick - e.health.down >= Math.round(WALL_TUNING.gone * STEPS_PER_SECOND)
+        )
           world.removeEntity(e.id);
     },
   };

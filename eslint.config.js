@@ -53,18 +53,23 @@ const network = {
 const headless = "A game's rules run without a screen (also on a server and in tests): decision 0003.";
 /**
  * The library's view entries (its models, its glb loader, the shell's page): what runs without a screen
- * must not import them. A view file named `index.ts` is the package itself (`@manifold/shell`).
+ * must not import them. A view file named `index.ts` is the package itself (`@manifold/shell`): that one
+ * exactly (`libraryViewPackages`, by name), not what is under it (stage 5.5h: `@manifold/shell/run`, the
+ * level's run, is rules), which a pattern would cover too.
  */
 const libraryViews = {
   group: workspaces
     .filter(([, w]) => w.layer === 'library')
     .flatMap(([, w]) =>
       Object.entries(w.files ?? {})
-        .filter(([, role]) => role === 'view')
-        .map(([file]) => (file === 'index.ts' ? w.name : `${w.name}/${file.replace(/\.ts$/, '')}`)),
+        .filter(([file, role]) => role === 'view' && file !== 'index.ts')
+        .map(([file]) => `${w.name}/${file.replace(/\.ts$/, '')}`),
     ),
   message: headless,
 };
+const libraryViewPackages = workspaces
+  .filter(([, w]) => w.layer === 'library' && w.files?.['index.ts'] === 'view')
+  .map(([, w]) => ({ name: w.name, message: headless }));
 /** The foundation imports nothing of the project. */
 const anyProject = { group: ['@manifold/*'], message: 'The foundation depends on no other package (decision 0003).' };
 
@@ -205,7 +210,14 @@ function blocksFor(
       files,
       ignores,
       rules: {
-        'no-restricted-imports': ['error', { patterns: forbidden(w, role) }],
+        'no-restricted-imports': [
+          'error',
+          {
+            patterns: forbidden(w, role),
+            // (What forbids the library's view entries forbids those whose entry is the package itself, by name.)
+            ...(forbidden(w, role).includes(libraryViews) ? { paths: libraryViewPackages } : {}),
+          },
+        ],
         // (Each rule set or turned off here: what is not in the table keeps the strictest, below.)
         ...(role === 'rules' ? sameEverywhere : { 'no-restricted-properties': 'off', 'no-restricted-syntax': 'off' }),
         ...(headless ? noPage : { 'no-restricted-globals': 'off' }),

@@ -1,6 +1,7 @@
 import { quat, vec3, type Vec3 } from '@manifold/common';
 import { characterParts, PLATFORMER, CHARACTER_VERSION } from '@manifold/character';
 import { KIT, KIT_VERSION } from '@manifold/kit';
+import { followPlayers, notice as tell, SHELL_VERSION } from '@manifold/shell/run';
 import {
   ARMS_INPUTS,
   arms,
@@ -38,6 +39,7 @@ export {
 } from '@manifold/arms';
 import {
   aimOf,
+  carryAlong,
   buildLevel,
   component,
   DEFAULT_MOVEMENT,
@@ -236,36 +238,6 @@ export const DOJO_ZONES: ZoneKinds = {
 };
 
 /**
- * CURRENTS (stage 3b): a character in a `current` zone, standing in it, is carried along its flow, on
- * every step it is there. One more contribution to its movement (stage 2b's `carry`): walking against
- * it, it advances less; across it, it drifts. It takes hold through the feet, as water at the ankles
- * does: in the air, jumping over it, nothing holds on to it (at first it carried a jump too, from a
- * zone 5 m tall, and the author found it strange: over the water, without touching it, it pushed). A
- * wind, which would push in the air, would be another kind of zone. What the physics moves, it pushes
- * by its material's drag (stage 3g).
- */
-function currents(world: World) {
-  for (const zone of world.entities.values()) {
-    if (zone.sensor?.kind !== 'current') continue;
-    const flow = zone.sensor.params.flow as Vec3;
-    for (const id of zone.sensor.inside) {
-      const e = world.entities.get(id);
-      const c = e?.character;
-      if (c?.grounded) c.carry = vec3.add(c.carry, flow);
-      // What the physics moves (stage 3g): pushed towards the flow by its material's drag, the part of
-      // the difference it closes in a step (stone's, without one). Along the ground only: a ball rolls
-      // away with it; a stone cube on the bottom stays, its friction holding it.
-      if (e?.body?.type === 'dynamic') {
-        const drag = world.materials[e.body.material ?? 'stone']?.drag ?? 0.5;
-        const v = e.body.linearVelocity;
-        const along: Vec3 = [flow[0] - v[0], 0, flow[2] - v[2]];
-        world.push(e, vec3.scale(along, Math.min(1, drag * STEP)));
-      }
-    }
-  }
-}
-
-/**
  * A LEVEL'S LOOP (stage 2a), with its zones: the engine says who came into which one, and what it
  * means is the Dojo's.
  * - `checkpoint`: a character comes back here from now on, if it falls;
@@ -279,8 +251,7 @@ function currents(world: World) {
  */
 function levelLoop(world: World, events: readonly Event[]) {
   // What it tells a player, as a key of its words (interface.ts) and its numbers (decision 0019).
-  const notice = (player: number, say: string, values?: readonly number[]) =>
-    world.emit({ type: 'notice', say, player, ...(values ? { values } : {}) });
+  const notice = (player: number, say: string, values?: readonly number[]) => tell(world, player, say, values);
   for (const ev of events) {
     // A watcher (stage 3d): the character it began to see, or lost, is told.
     // (A level's watcher: a guard's eyes, stage 4e, are its own business.)
@@ -360,27 +331,23 @@ const PLAYER_COLORS = [0x4a9fd8, 0xd86a4a, 0x7ac25a, 0xc25ab8, 0xd8c04a];
  * the level: it is there from the start, and it stays.
  */
 function joinedPlayers(world: World) {
-  const characters = [...world.entities.values()].filter((e) => e.character);
-  const first = characters.find((e) => e.character!.player === 1);
-  if (!first) return;
-  // Next to where the first one started, each one 1.2 m further to the right.
-  const spawn = runner(first)?.spawn ?? [0, 1, 6];
-  for (const p of world.players)
-    if (p !== 1 && !characters.some((e) => e.character!.player === p))
+  // Next to where the first one started, each one 1.2 m further to the right (the library's: stage 5.5h).
+  followPlayers(world, {
+    needsFirst: true,
+    spawn: (first) => runner(first!)?.spawn ?? [0, 1, 6],
+    make: (p, at, first) =>
       character(
         world,
         p,
-        [spawn[0] + 1.2 * (p - 1), spawn[1], spawn[2]],
-        first.character!.facing,
+        at,
+        first!.character!.facing,
         PLAYER_COLORS[(p - 2) % PLAYER_COLORS.length]!,
         // It moves like the first one, and can do what it can (whatever `dojo.air`, `dojo.climb`… made of it).
-        first.character!,
-      );
-  // (Player 0 drives nothing: a training dummy, stage 4c, stays; a bot's brain drives it, stage 4e.)
-  for (const e of characters) {
-    const p = e.character!.player;
-    if (p !== 1 && p !== 0 && !e.brain && !world.players.has(p)) world.removeEntity(e.id);
-  }
+        first!.character!,
+      ),
+    // (Player 0 drives nothing: a training dummy, stage 4c, stays; a bot's brain drives it, stage 4e.)
+    stays: (e) => e.character!.player === 0 || !!e.brain,
+  });
 }
 
 /**
@@ -413,7 +380,7 @@ export function createDojo(levels: Readonly<Record<string, Level>>, brains: Read
   return {
     id: 'dojo',
     title: 'Dojo',
-    versions: { dojo: DOJO_VERSION, ...ARMS_VERSION, ...CHARACTER_VERSION, ...KIT_VERSION },
+    versions: { dojo: DOJO_VERSION, ...SHELL_VERSION, ...ARMS_VERSION, ...CHARACTER_VERSION, ...KIT_VERSION },
     // The games' kit of level pieces (stage 4.5e): its levels' `kit` lines build with it.
     kit: KIT,
     // Its guards' brains (stage 4e): given here by whoever hosts its matches (the page, a test); a
@@ -631,7 +598,8 @@ export function createDojo(levels: Readonly<Record<string, Level>>, brains: Read
     },
 
     beforeStep(world) {
-      currents(world);
+      // Its currents (stage 3b; the core's mechanism since 5.5h): a `current` zone carries who stands in it.
+      carryAlong(world, 'current');
     },
 
     filterDamage: armsDamage,

@@ -152,6 +152,10 @@ describe('the layers, in one table (stage 5.5b, decision 0003 as amended)', () =
     expect(
       await broken('games/wall/src/newrules.ts', "import { startGame } from '@manifold/shell';\nexport const s = startGame;\n"),
     ).toEqual(['no-restricted-imports']);
+    // (5.5h) But the shell's headless subpaths, its level's run, by their own names.
+    expect(
+      await broken('games/wall/src/newrules.ts', "import { notice } from '@manifold/shell/run';\nexport const n = notice;\n"),
+    ).toEqual([]);
     expect(await broken('games/tower/src/newharness.ts', "import { TOWER } from './game';\nexport const t = TOWER;\n")).toEqual([
       'no-restricted-imports',
     ]);

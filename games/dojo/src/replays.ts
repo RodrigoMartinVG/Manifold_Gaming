@@ -1,3 +1,5 @@
+import { byName } from '@manifold/shell/run';
+
 /**
  * THE REFERENCE REPLAYS (stage 2.5a): one per phase, in `games/dojo/replays/`, each one a run through
  * what that phase built. Their last line is a hash: playing them must end there. They are the safety
@@ -11,7 +13,5 @@ const files = import.meta.glob<string>('../replays/*.replay', { query: '?raw', i
 
 /** By name (the file's, without `.replay`), in order: `phase-0`, `phase-1`… */
 export const REFERENCE_REPLAYS: Readonly<Record<string, string>> = Object.fromEntries(
-  Object.entries(files)
-    .map(([path, text]) => [path.replace(/^.*\/([^/]+)\.replay$/, '$1'), text] as const)
-    .sort(([a], [b]) => a.localeCompare(b)),
+  Object.entries(byName(files)).sort(([a], [b]) => a.localeCompare(b)),
 );
