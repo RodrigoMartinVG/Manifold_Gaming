@@ -3,8 +3,12 @@
 - **Status:** accepted (2026-11-18), from the author's answers to eight questions, each asked with a recommendation
   and its alternatives (at the end): seven took the recommendation, and the valley is large from the start. Proposed
   the same day: a second world before networking, three games, terrain with relief, and a second version where the
-  hero is a fairy who flies.
-- **Date:** 2026-11-18
+  hero is a fairy who flies. **Revised (2026-11-19)** after a review of the route, the author's "sí, reescribilo": the
+  route stays, and five things change (each game designed as a game from its first day, a playable prologue when F3
+  closes, the audit of what assumes the mannequin moved to F1, the shooter as levels to advance, the look designed for
+  the floor first), with a test for the reconciliation table and a rule for what is tried in the Dojo and what in the
+  games. The review, aspect by aspect, is at the end.
+- **Date:** 2026-11-18 (revised 2026-11-19)
 
 ## Context
 
@@ -62,23 +66,52 @@ done, not beside them: it would touch the same packages (`arms`, `presentation`,
 It is chosen for what it makes the engine do. **The games are the vehicle:** each mechanic is kept for the engine
 capability it forces, and the story bends to them. A capability that is costly is measured first, not cut.
 
+**But a vehicle that does not drive tests nothing.** Phase 5's first pass was built the same way, pieces first, and
+the author's verdict on it was "le falta más flow de ser un juego" (0031): eight stages, 5i to 5p, went into making
+the three play as games. So each forest game is designed as a game from its first day, with 0031's recipe (below), and
+has **one new verb at its heart**; the engine capabilities it forces are built for that verb and its levels, not as a
+list of pieces to show.
+
 ### One valley, one day, three games
 
 As 0029 put one world under one night, the forest is **one valley under one day**: the same terrain file, the same
-trees, the same creatures, crossed three ways. The terrain is tested from three sides: moving through it (the
-platformer), exploring it (the adventure), seeing and shooting far across it (the shooter).
+trees, the same creatures, crossed three ways. The terrain is tested from three sides: moving through it and seeing it
+from above (the platformer), exploring it (the adventure), fighting across it in the dark (the shooter). The far view's
+hardest case is the canopy's, and the fairy's after: at night the dark and the fog hide the far valley, which makes it
+cheaper to draw (the argument that kept the shooter out of the caves), so the shooter's challenges are the swarms, the
+lights and purifying, not the distance.
 
-| Game                                  | Where, in the valley                                                                                 | When             | What it makes the engine build                                                                                                                                                                                                                               |
-| ------------------------------------- | ---------------------------------------------------------------------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **The platformer:** the canopy        | The old forest on the valley's slope, crown to crown; a fall lands on the real ground, not in a void | Morning          | Lianas as a pendulum the simulation computes; climbing by material; branches as paths, their collision from the same script as their mesh; gliding on wind that comes from the relief; the view from above (levels of detail and impostors at their hardest) |
-| **The adventure:** the spring         | The valley's floor: the bridge, the lake, the ruins, the caves below                                 | Dusk (the image) | Creatures of four legs (the guardians, legs that collide, feet set on the slope); light as a system (a cone, reflection, a signal for "lit"); purifying; caves joined to the terrain; a companion that obeys; swimming and diving with buoyancy; a mount     |
-| **The shooter:** the night of the Rot | The whole valley in the dark, the shadow rising from the caves                                       | Night            | Swarms that fly (tens of agents, steering in 3D without a grid, deterministic); packs that circle; cover found in the relief; long shots across the terrain; purifying as damage; many lights at night with six real ones                                    |
+| Game                                  | Where, in the valley                                                                                 | When             | Its heart (one new verb)                                         | What it makes the engine build                                                                                                                                                                                                                               |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------- | ---------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **The platformer:** the canopy        | The old forest on the valley's slope, crown to crown; a fall lands on the real ground, not in a void | Morning          | Swinging: crown to crown on lianas, the release timed            | Lianas as a pendulum the simulation computes; climbing by material; branches as paths, their collision from the same script as their mesh; gliding on wind that comes from the relief; the view from above (levels of detail and impostors at their hardest) |
+| **The adventure:** the spring         | The valley's floor: the bridge, the lake, the ruins, the caves below                                 | Dusk (the image) | The shield's light: a beam that reveals, freezes, lights, cleans | Creatures of four legs (the guardians, legs that collide, feet set on the slope); light as a system (a cone, reflection, a signal for "lit"); purifying; caves joined to the terrain; a companion that obeys; swimming and diving with buoyancy; a mount     |
+| **The shooter:** the night of the Rot | The whole valley in the dark, taken back region by region from the shadow rising out of the caves    | Night            | Light as a weapon against what flies: aiming up, in 3D           | Swarms that fly (tens of agents, steering in 3D without a grid, deterministic); packs that circle; cover found in the relief; purifying as damage; many lights at night with six real ones                                                                   |
 
 The order is the story's and the dependencies': the canopy's trees give the floor its roots; the adventure's
 creatures give the shooter its wolves; the adventure's purifying is the shooter's damage.
 
 **Scope:** each game at 0017's and 0031's scale, three to five levels or regions of 2 to 5 minutes, about 15 to 25
 minutes in all; done as 0017 says (playable to its end without the console, its reference replay plays it to its end).
+
+**Shape, from the first day and not in a reopening** (0031's recipe, which phase 5 learned after its games were
+"done"):
+
+- **Levels with an arc:** a goal in sight, a rule learned, a twist, a finale that lands (introduce, develop, twist,
+  conclude), with breathers between the tense parts.
+- **Checkpoints between encounters, and back in play in under a second.**
+- **Feel and atmosphere in the first grey pass,** not after it: contact, forgiveness, feedback (what 5k and 5p added to
+  the tower), the night that reads, sound.
+- **Each game's design written when its stage starts,** from how games of its kind are made (their designers' talks,
+  postmortems and source, as 0031 read them), and played in grey before its art.
+
+What that already says of each game, before its stage:
+
+- **The canopy:** a fall lands on the real ground, 30 to 40 m below, so its design says how one is back in play: the
+  glide as the save, a checkpoint at each crown, a fall that is a shortcut down and never a long climb back.
+- **The spring:** the light is life, weapon and key, so how much of it there is, and how lit or loud the knight is,
+  is always on screen (the fortress had neither, 0031).
+- **The night:** levels to advance through, as the wall became (0031), never waves in an open field: the valley taken
+  back region by region, a beacon lit at each one as its checkpoint and its key, the Rot's nests as the objectives.
 
 ### The story, in a few lines
 
@@ -123,8 +156,9 @@ written down now so the first version leaves its seams where they are cheap.
 - **A second playable body,** not the mannequin: her own size, small in the knight's valley (the one reason to shrink
   a body is a world shared at another scale), her hit parts by mode, clips for hovering and gliding, wings drawn
   procedurally in the view. A character's size becomes data across the engine: the controller's step and skin, the
-  metrics gym, the camera's distances, the hit parts, the navigation's grid by size (F2's). First an audit, as 4.5's
-  of "up": what assumes the mannequin.
+  metrics gym, the camera's distances, the hit parts, the navigation's grid by size (F2's). The audit of what assumes
+  the mannequin is F1's, not hers (below): by her stage the creatures (F5) and the mount (F6) have made a body's size
+  data in most of those places, and she finishes it for a body the player plays.
 - **The camera in the air:** a chase camera with no ground under it, swept against the canopy (3h), leading her turns.
 - **The view from above, with nothing to hide it:** over the canopy the whole valley is in sight (the terrain's
   levels of detail out to the rim, the far forest as one impostor surface, a horizon), the budget's hardest case on
@@ -185,10 +219,15 @@ loaded by zones, and the weight of a snapshot (pieces 3, 5 and 11).
 ### The base under the three games (view only: no hash, nothing for networking)
 
 - **Quality tiers** (`view.quality`): a **floor**, the author's Iris Plus, which the tests guard, and a **high** tier
-  measured on a reference machine chosen in F0 (a dedicated mid-range GPU at hand then). Each tier declares its draw calls, triangles, lights, shadow size and
-  radius, ground cover density, levels of detail, post-processing, texture size and resolution scale; the six lights
-  stay in both (what is decorative glows by emission and halos, never by a light). This refines 0026: its budget
-  becomes the floor's, with numbers measured in F0.
+  measured on a reference machine chosen in F0 (a dedicated mid-range GPU at hand then). Each tier declares its draw
+  calls, triangles, lights, shadow size and radius, ground cover density, levels of detail, post-processing, texture
+  size and resolution scale; the six lights stay in both (what is decorative glows by emission and halos, never by a
+  light). This refines 0026: its budget becomes the floor's, with numbers measured in F0.
+- **The look is designed for the floor first.** The author plays on the Iris Plus, so the floor is a look of its own,
+  not the high tier with things taken out: fog as an ally that ends the view, light and ambient occlusion baked,
+  emission and halos where a light would be, shapes and a palette that read at its resolution. The high tier adds to it
+  (cascades, screen-space occlusion, scattering, density, distance). The likeness to the concept image stays the high
+  tier's (answer 1); the reference picture is kept in both tiers, and the floor's is judged on its own.
 - **Drawing many things:** `BatchedMesh` for the tree variants and the kit (moved here from phase 8, as the view's),
   `InstancedMesh` for ground cover in cells of 16 m drawn within a radius, levels of detail with hysteresis,
   impostors far away, the camera's far plane where the fog has hidden everything.
@@ -225,6 +264,15 @@ simulation carries one line on how it reconciles, and phase 6 finds no surprises
 | Purifying                          | A component, like health                                    | As health                                                         |
 | Flight (the second version)        | The fairy's mode, velocity and light                        | One's own character: re-simulated with it; the wind is a function |
 
+**The table is tested, not only written.** Nothing in the engine re-simulates one character today (1e's client says
+its own character "will be predicted"; no code does it yet), so the right-hand column is a claim. From F2 a test in
+the Dojo does what 0016's reconciliation will: it restores one's own character k steps back, runs its recorded inputs
+again with the rest of the world where the recording had it, and asks for the same state. Its first case is the
+character on the terrain; each piece of the table adds its case when it is built (the liana in F4, the water and the
+mount in F6, the creatures' legs in F5). It is the first piece of phase 6's reconciliation, built early because the
+forest adds the cases most likely to break it, and it costs work the first version did not count: F2 measures whether
+it can be done without stepping the whole world, and says so in its report.
+
 **The liana is a pendulum the simulation computes,** not a chain of Rapier joints: the hold is a constraint on the
 character, |p − a| ≤ L for its anchor a. Each step the character moves (gravity, and the input as a push along the
 swing); if it ends past L, it is put back on the sphere, p ← a + L·n with n = (p − a)/|p − a|, and its velocity loses
@@ -233,23 +281,63 @@ against a trunk. It needs a square root (exact in IEEE arithmetic, outside 1f's 
 character's own state, so prediction re-simulates it; and it does not ask Rapier's multibody joints to be
 deterministic across browsers, which nobody has measured. What hangs and is drawn (the liana's curve) is the view's.
 
+### The Dojo and the games: where each thing is tried
+
+The Dojo is the first game, the one where every piece of the engine is tried (0010), and the phases before 5 built
+their pieces there (0012, amended). What the last two phases did with it, read from the history:
+
+- **Phase 4 built its pieces in the Dojo,** the weapons, the guards and the arena as rooms, but inside the Dojo's own
+  rules (`games/dojo/src/rules.ts`). When the adventure and the shooter both needed them, 5e had to take them out into
+  `@manifold/arms` (0003: a game imports the engine, never another game): a simulation version, and every reference
+  recorded again.
+- **Phase 5 built straight in the games.** The Dojo gained one room, the metrics gym (5a), and otherwise only had its
+  reference replays recorded again. The gym paid for itself: the platformer's controller was measured in it (5c), the
+  jump calibrated against it (5k, 5p), and this decision's slopes come from its numbers. And nothing 0031 found (levels
+  of seconds, the tower's camera, guards with no suspicion, a hall of waves, no atmosphere) would a room have shown:
+  those are found by playing the game.
+
+So the forest's rule:
+
+- **Every piece lives in a package from its first line,** never in the Dojo's rules: the valley and what the forest's
+  games share in a package of their own (as the kit is), the engine's mechanisms in the packages where their kind
+  already lives (the terrain at the physics boundary, the creatures beside the character, the steering beside the
+  bots). The Dojo imports them like any game (0010: no back doors), so nothing has to be moved out later.
+- **A room in the Dojo for each mechanism,** before a game leans on it, when it is any of: measured (F0's, a slope, a
+  surface, a budget, a swarm's step); something the four browsers must agree on; shared by more than one game (the
+  valley, the creatures, purifying, the steering in 3D); or a failure best seen alone (a quadruped's legs trapping the
+  character, a swimmer bouncing at the surface, a liana through a trunk). The room is a recipe the tests run without a
+  screen, with its overlay (`show.*`) and its values in the console to try it live, and its measure opens it. The gym
+  is the model.
+- **A valley room:** the whole valley in the Dojo with the console's full reach (the navigation's regions and portals,
+  the terrain's cells, the wind, the zones loaded, the budget against the frame), where a mechanism is tried on the
+  real ground and not on a flat floor. The drive from the south entrance to the spring, the reference picture and the
+  re-simulation test are its recipes.
+- **Straight in the game,** what is judged by playing: its levels and their rhythm, the tuning of a mechanic's numbers
+  for that game (a mechanism's parameters are data: the game sets them, it never forks the mechanism), its camera, its
+  story, its sound, its atmosphere and its art.
+- **So each game's stage has three parts, in order:** its design (what the game asks, by 0031's recipe); the
+  mechanisms that design asks for, each in its room; the game, built in grey straight in its own package as soon as a
+  mechanism's contract is fixed, and tuned there. The rooms close when their tests, recipes and the four browsers
+  agree; the game closes when it is played to its end (0017).
+
 ### Measure before deciding, and the order
 
 | Stage     | What                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Touches the simulation     |
 | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
 | **F0**    | **Measures, no game code.** A budget sweep on the Iris Plus (draw calls and instanced triangles against the frame's time, with six lights; the budget where the curve crosses about 12 ms); the height field in Chromium, Firefox, WebKit and Node (the same hash, its step's cost, contacts with and without `FIX_INTERNAL_EDGES`); 5a's three measures on slopes; the navigation's build over 500 × 500 m, by regions; Rapier's snapshot with the valley's static collision; the pendulum beside a joint chain; a swarm of 50 flyers' step | No (rooms in the Dojo)     |
-| **F1**    | The decisions F0's numbers fill: the terrain (format, generator, navigation, caves), the quality tiers (refines 0026)                                                                                                                                                                                                                                                                                                                                                                                                                        | No                         |
-| **F2**    | The valley in grey: the height field, the generator, the `terrain` line, water as zones, the last safe place, navigation over terrain by regions and portals and by size of body, the view loaded by zones, the camera on slopes; driven from the south entrance to the spring without teleporting                                                                                                                                                                                                                                           | Yes (a version)            |
-| **F3**    | Drawing at scale: the tiers, instancing, ground cover, terrain levels of detail, trees by Geometry Nodes with their collision, KTX2 and meshopt, the atmosphere; the reference picture's series begins                                                                                                                                                                                                                                                                                                                                       | No (trees' collision: yes) |
-| **F4**    | The platformer: the canopy                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Yes                        |
-| **F5**    | The adventure, I: the guardians and the creatures, light as a system, purifying, the caves, the companion                                                                                                                                                                                                                                                                                                                                                                                                                                    | Yes                        |
-| **F6**    | The adventure, II: the water (swimming, diving, buoyancy) and the mount                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Yes                        |
-| **F7**    | The shooter: swarms, packs, cover in the relief, the light's weapons, the night                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Yes                        |
+| **F1**    | The decisions F0's numbers fill: the terrain (format, generator, navigation, caves), the quality tiers (refines 0026). **And the audit of what assumes the mannequin** (as 4.5's of "up", in `docs/audits/`), so that F2's grids by body size, F5's creatures and F6's mount follow it                                                                                                                                                                                                                                                       | No                         |
+| **F2**    | The valley in grey: the height field, the generator, the `terrain` line, water as zones, the last safe place, navigation over terrain by regions and portals and by size of body, the view loaded by zones, the camera on slopes; driven from the south entrance to the spring without teleporting. The valley room in the Dojo; the re-simulation test, its first case the character on the terrain                                                                                                                                         | Yes (a version)            |
+| **F3**    | Drawing at scale: the tiers, the floor's look first, instancing, ground cover, terrain levels of detail, trees by Geometry Nodes with their collision, KTX2 and meshopt, the atmosphere; the reference picture's series begins. **It closes with the prologue:** 3 to 5 minutes at the bridge, the knight following a light across it to the spring and the stags (the concept image, walked into), designed and played to its end as a game: the first thing the author plays in the forest, and afterwards the door to the three games     | No (trees' collision: yes) |
+| **F4**    | The platformer, the canopy: its design; its rooms (the liana as a pendulum, climbing by material, the branches' collision from their script, the wind from the relief, each opened by its measure); the game; the liana's re-simulation case                                                                                                                                                                                                                                                                                                 | Yes                        |
+| **F5**    | The adventure, I, the spring: its design; its rooms (a creature of four legs, its legs against the character measured first; the light's cone, reflection and "lit", the rays a step measured first; purifying; a companion's orders); the caves; the game's first half; the creatures' re-simulation case                                                                                                                                                                                                                                   | Yes                        |
+| **F6**    | The adventure, II: its rooms (swimming, diving and buoyancy, the swimmer at the surface measured first; the mount, the first body the player drives that is not the mannequin, on F1's audit); the game's second half; the water's and the mount's re-simulation cases                                                                                                                                                                                                                                                                       | Yes                        |
+| **F7**    | The shooter, the night of the Rot: its design (levels to advance: the valley taken back region by region, beacons as checkpoints and keys, the nests as objectives); its rooms (swarms in 3D, packs, cover found in the relief, purifying as damage); the night's lights; the game                                                                                                                                                                                                                                                           | Yes                        |
 | **F8**    | The close: frame times on both tiers in five places, bytes and GPU memory, the reference picture's series, the roadmap's table, the book's chapters that now have something to point at                                                                                                                                                                                                                                                                                                                                                      | No                         |
-| **F9 on** | The second version, the fairy: its decision first (flight, a second playable body and a character's size as data, the view from the air), then her game on the same valley                                                                                                                                                                                                                                                                                                                                                                   | Yes                        |
+| **F9 on** | The second version, the fairy: its decision first (flight, the view from the air, a character's size as data finished on F1's audit), then her game, in the same three parts                                                                                                                                                                                                                                                                                                                                                                 | Yes                        |
 
-Each stage keeps the project's rules: a decision before code where the tail is long, grey before beautiful, shown in
-the Dojo, checked by tests, the same hash in the four, its report in the Bitácora.
+Each stage keeps the project's rules: a decision before code where the tail is long, grey before beautiful, its
+mechanisms shown in the Dojo's rooms and its game played to its end, checked by tests, the same hash in the four, its
+report in the Bitácora.
 
 **Targets** (hypotheses F0 confirms or corrects):
 
@@ -274,8 +362,8 @@ the Dojo, checked by tests, the same hash in the four, its report in the Bitáco
   into F2.
 - **Networking first.** The forest's largest additions are the view's, which networking does not see; its simulation
   pieces each say how they reconcile. Networking first would test it only on levels of boxes.
-- **A smaller knight.** A capsule under 1.6 m asks for an audit of what assumes the mannequin (hit parts, clip
-  strides, the gym's numbers) and gives nothing the world's scale does not. The fairy is small for another reason:
+- **A smaller knight.** A capsule under 1.6 m would change, before anything else, every place F1's audit finds (hit
+  parts, clip strides, the gym's numbers), and gives nothing the world's scale does not. The fairy is small for another reason:
   she shares the knight's valley, so the valley cannot grow for her.
 - **The fairy first.** Flight would make the canopy, the gaps and the fog's cover mean nothing before the engine has
   the terrain, the far drawing and the steering in 3D that flight needs; the knight's three games build them.
@@ -286,6 +374,18 @@ the Dojo, checked by tests, the same hash in the four, its report in the Bitáco
   their determinism across browsers is unmeasured. F0 measures a chain beside the pendulum, for the record.
 - **Sculpting by hand.** 0015 stays: scripts only, a hand-made source is not taken.
 - **Renumbering the phases.** Networking is "phase 6" in decisions that stay as written.
+- **Every piece built in the Dojo first, as phase 4 did.** It gives a bench for each piece, but a room tells nothing
+  of what 0031 found, and pieces written inside the Dojo's rules had to be moved out when two games needed them (5e).
+  The rooms are kept, the pieces live in packages.
+- **Everything built straight in the games, as phase 5 did.** It is faster to a game, but a piece shared by three
+  games and the four browsers is then tested inside one game's level, its failures mixed with the level's, and its
+  measures (the gym's kind) are not taken before the design leans on them.
+- **The audit of what assumes the mannequin with the fairy** (the first version's place for it). The creatures and the
+  mount come first and are bodies of other sizes, the mount one the player drives: they would make the assumptions
+  deeper before the audit read them.
+- **No playable forest until F4.** F2 ends with a test that drives the valley and F3 with a picture; the first thing
+  the author could play would be a whole game built on a valley nobody had played. The prologue costs a short level
+  and gives the first judgment of scale, feel and atmosphere where it is cheap to act on.
 
 ## Consequences
 
@@ -296,12 +396,15 @@ the Dojo, checked by tests, the same hash in the four, its report in the Bitáco
   +Y, which phase 7 needs); light as a system (puzzles in any game); purifying as a kind of damage; ropes as
   constraints (chains, a grappling hook from the idea bank); swimming and buoyancy (the idea bank's water, built);
   and, with the fairy, flight with weight and wind, a second playable body and a character's size as data (phase 7's
-  characters, the editor's).
+  characters, the editor's). And for phase 6: the first test of re-simulating one's own character, with the cases
+  most likely to break it already in it.
 - **What changes elsewhere:** 0026's budget becomes the floor tier's; instancing moves from phase 8 here, as the
-  view's; 0024 gains terrain cells and grids by body size; the idea bank loses water, buoyancy and ropes. Touch
-  controls stay off (0028) and networking waits; the shooter online stays the wall's (phase 6).
-- **The risk:** a phase that does not end. Each challenge is measured before it is built, each game closes with its
-  demonstration, and each stage is played in grey before it gets art.
+  view's; 0024 gains terrain cells and grids by body size; the idea bank loses water, buoyancy and ropes; the Dojo gets
+  a rule for what is tried in it and what in the games, and a valley room. Touch controls stay off (0028) and
+  networking waits; the shooter online stays the wall's (phase 6).
+- **The risk:** a phase that does not end, and games that are tours of the engine's new pieces. Each challenge is
+  measured before it is built, each game is designed before its rooms and closes with its demonstration, each stage
+  is played in grey before it gets art, and the prologue is played before any game is built on the valley.
 
 ## The author's answers
 
@@ -325,6 +428,30 @@ Asked one by one on 2026-11-18, each with a recommendation and its alternatives:
    player, the fairy small in the knight's valley, light as her fuel (recommended). Not taken: the fairy replacing the
    knight in the three games; a second player beside the knight (after phase 6); a companion first, playable later.
    The knight and the fairy together stays noted for after phase 6.
+
+## The revision of 2026-11-19
+
+A review of the route the day after, read against what phase 5 learned (0031) and against the history of how the Dojo
+was used. The author's words, accepting it: "sí, reescribilo, pero también consideremos de usar el Dojo para hacer
+pruebas que en la fase 5 parece que no lo usamos... quizás para algunas cosas sí, y para otras se puede trabajar
+directamente sobre los nuevos juegos". Each aspect, and whether it stays:
+
+| Aspect                                            | Stays or changes                                                                    | Why                                                                                                                                                 |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The forest before networking                      | Stays                                                                               | Its largest additions are the view's; the reconciliation table, now tested, keeps phase 6 from surprises                                            |
+| The order: measure, decide, grey, draw, the games | Stays                                                                               | The GPU is the forest's largest risk (2.4 times 0026's draw calls, 13 to 22 times its triangles): nothing is decided before the sweep               |
+| The games' order: canopy, spring, night, fairy    | Stays                                                                               | Each one's pieces are the next one's (the trees, the creatures, purifying, the steering in 3D)                                                      |
+| The height field, the liana as a pendulum         | Stay                                                                                | A grid the navigation and the wind read; the hold as one's own character's state, re-simulated with it                                              |
+| What the simulation keeps, what loads by zones    | Stays                                                                               | The world cannot depend on where anyone stands                                                                                                      |
+| How a game is designed                            | Changes: designed as a game from its first day, one new verb at its heart           | Phase 5 was built pieces first and needed eight stages to play as games (0031)                                                                      |
+| A playable forest                                 | Changes: the prologue closes F3                                                     | Until F4 nothing could be played; the first judgment of scale, feel and atmosphere comes where it is cheap                                          |
+| The audit of what assumes the mannequin           | Changes: from F9 to F1                                                              | The creatures (F5) and the mount (F6), a body the player drives, come before the fairy; 27 files name the mannequin or its shape today              |
+| The shooter                                       | Changes: levels to advance; its far-view test given to the canopy                   | The author's own words on the wall (0031); the night hides the far valley, which makes it cheaper to draw                                           |
+| The look                                          | Changes: designed for the floor first                                               | The author plays on the Iris Plus; the likeness stays the high tier's (answer 1), the floor is a look of its own                                    |
+| The reconciliation table                          | Changes: a test from F2, a case per piece                                           | No code re-simulates one character yet; the forest adds the liana, the water and the mount, the cases most likely to break it                       |
+| The Dojo                                          | Changes: a rule (rooms for mechanisms, the games for what is played), a valley room | Phase 4's pieces inside the Dojo had to be moved out (5e); phase 5 used it for the gym only, which paid for itself; 0031's findings were the games' |
+| The adventure's riskiest measures                 | Changes: each opens its room (rays a step, legs, the swimmer's surface)             | The drafts rated them high; F0 measures what F1 decides, each room measures before its game leans on it                                             |
+| The valley's size, the hero, the mount, the fairy | Stay                                                                                | The author's answers of 2026-11-18                                                                                                                  |
 
 ## Sources
 
