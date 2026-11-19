@@ -1,7 +1,7 @@
 import { quat, sinCosDegrees, vec3, type Quat, type Vec3 } from '@manifold/common';
 import { gravityAt } from './gravity';
 import { tractionOf } from './materials';
-import { CHARACTER_GAP, STANDS_ON, STEP_UP } from './physics';
+import { CHARACTER_GAP, CHARACTER_SETTINGS, STANDS_ON } from './physics';
 import { STRIDE, stepRadius } from './sound';
 import { axisOf, isDown, NO_INPUT, pressed, vectorOf } from './input';
 import type {
@@ -94,6 +94,9 @@ export function newCharacter(spec: CharacterSpec): Character {
     carriedTurn: quat.identity(),
     ...(spec.poses ? { poses: structuredPoses(spec.poses) } : {}),
     ...(spec.hits ? { hits: structuredHits(spec.hits) } : {}),
+    // (Stage 5.5e) Only when its game says: absent, the mannequin's, and every hash as it was.
+    ...(spec.controller ? { controller: { ...CHARACTER_SETTINGS, ...spec.controller } } : {}),
+    ...(spec.mass !== undefined ? { mass: spec.mass } : {}),
     history: [],
   };
 }
@@ -309,8 +312,31 @@ export function arcOf(arc: NonNullable<Movement['arc']>, dt: number): { gravity:
 /** How long climbing onto a ledge takes (stage 5c), up and then on, each (s). */
 const CLIMB_UP = 0.15;
 
-/** Where a character's hands are, above its center (stage 5c): 30 cm under the top of its head. */
-export const handsOf = (shape: Shape): number => (shape.kind === 'capsule' ? shape.halfHeight + shape.radius : 0.8) - 0.3;
+/**
+ * A BODY'S FRAME (stage 5.5e): what the engine reads of a character's size, from its body's shape and not
+ * from the mannequin's numbers: from its center down to where its round bottom begins (`waist`: a capsule's
+ * half height), down to its lowest point (`bottom`), and across (`radius`). For the mannequin's capsule,
+ * exactly the numbers that were written (0.5, 0.8, 0.3); a compound, those, until a body needs its own.
+ */
+export function frameOf(shape: Shape): { waist: number; bottom: number; radius: number } {
+  switch (shape.kind) {
+    case 'capsule':
+      return { waist: shape.halfHeight, bottom: shape.halfHeight + shape.radius, radius: shape.radius };
+    case 'ball':
+      return { waist: 0, bottom: shape.radius, radius: shape.radius };
+    case 'box':
+      return {
+        waist: shape.halfExtents[1],
+        bottom: shape.halfExtents[1],
+        radius: Math.max(shape.halfExtents[0], shape.halfExtents[2]),
+      };
+    default:
+      return { waist: 0.5, bottom: 0.8, radius: 0.3 };
+  }
+}
+
+/** Where a character's hands are, above its center (stage 5c): 30 cm under the top of its head (its frame's, stage 5.5e). */
+export const handsOf = (shape: Shape): number => frameOf(shape).bottom - 0.3;
 
 /**
  * A LEDGE IT CAN GRAB (stage 5c), falling past it: a wall's face in front of it, a little under its
@@ -564,12 +590,38 @@ function topAhead(world: World, e: Entity, feet: Vec3, wall: Vec3, up: Vec3): bo
 }
 
 /**
- * WHAT A CHARACTER STANDS ON (stage 2.5b): its own capsule, a little thinner (90% of its radius,
- * with its bottom where it is, so a wall brushing its sides does not count), moved down from where
- * it is, as far as the controller keeps it on the ground: the first thing it would touch whose
- * surface faces up. The entity, the surface's normal there (stage 3b), how far below its bottom it is
- * (stage 3c), and, if the program moves it (a platform), how it moves. Bodies the
- * physics moves (a cube) are not platforms: standing on one, it stands on nothing that carries it.
+ * A CHARACTER'S MIDDLE, to find what it stands on (stage 5.5e: any body, not only a capsule): its shape a
+ * tenth thinner across, its bottom where its own is (`lower`: how far down its center goes for that). A
+ * capsule gets longer by what its round bottom lost, as before; a ball goes down; a box keeps its height. A
+ * compound has no one middle: null, and it stands on what the controller finds.
+ */
+function thinnerOf(shape: Shape): { shape: Shape; lower: number } | null {
+  switch (shape.kind) {
+    case 'capsule': {
+      const radius = shape.radius * 0.9;
+      return { shape: { kind: 'capsule', halfHeight: shape.halfHeight + (shape.radius - radius), radius }, lower: 0 };
+    }
+    case 'ball': {
+      const radius = shape.radius * 0.9;
+      return { shape: { kind: 'ball', radius }, lower: shape.radius - radius };
+    }
+    case 'box': {
+      const [x, y, z] = shape.halfExtents;
+      return { shape: { kind: 'box', halfExtents: [x * 0.9, y, z * 0.9] }, lower: 0 };
+    }
+    default:
+      return null;
+  }
+}
+
+/**
+ * WHAT A CHARACTER STANDS ON (stage 2.5b): its own body, a little thinner (90% across, `thinnerOf`;
+ * any body since stage 5.5e, a capsule before), with its bottom where it is, so a wall brushing its
+ * sides does not count, moved down from where it is, as far as the controller keeps it on the ground:
+ * the first thing it would touch whose surface faces up. The entity, the surface's normal there (stage
+ * 3b), how far below its bottom it is (stage 3c), and, if the program moves it (a platform), how it
+ * moves. Bodies the physics moves (a cube) are not platforms: standing on one, it stands on nothing
+ * that carries it.
  *
  * Before, a ray from its center: on a platform's edge, with its center already beyond it and the round
  * bottom of its capsule still on it, the ray found nothing (stage 2d left the platform's last velocity
@@ -581,19 +633,25 @@ function standingOn(
   up: Vec3,
 ): { entity: number; normal: Vec3; distance: number; moves: { linear: Vec3; angular: Vec3; center: Vec3 } | null } | null {
   const shape = e.body!.shape;
-  if (shape.kind !== 'capsule') return null;
-  const radius = shape.radius * 0.9;
-  const thinner = { kind: 'capsule' as const, halfHeight: shape.halfHeight + (shape.radius - radius), radius };
+  const middle = thinnerOf(shape);
+  if (!middle) return null;
   const down = vec3.scale(up, -1);
-  const cast = (capsule: typeof shape) =>
-    world.castShape(capsule, e.transform!.position, e.transform!.rotation, down, GROUND_REACH, { skip: e.id, dynamic: false });
+  const cast = (s: Shape, lower = 0) =>
+    world.castShape(
+      s,
+      lower === 0 ? e.transform!.position : vec3.sub(e.transform!.position, vec3.scale(up, lower)),
+      e.transform!.rotation,
+      down,
+      GROUND_REACH,
+      { skip: e.id, dynamic: false },
+    );
   const found = (hit: ReturnType<typeof cast>) => {
     if (!hit || vec3.dot(hit.normal, up) < 0.5) return null;
     const body = world.entities.get(hit.entity)?.body;
     const motion = body ? world.physics.motionOf(body.handle) : null;
     return { entity: hit.entity, normal: hit.normal, distance: hit.distance, moves: motion?.kinematic ? motion : null };
   };
-  const thin = found(cast(thinner));
+  const thin = found(cast(middle.shape, middle.lower));
   if (thin?.moves) return thin;
   // What the program moves, also by an edge under its round bottom (stage 3a): with its center past a
   // moving platform's edge, the thinner capsule misses it, and the controller, not given it as fixed,
@@ -837,7 +895,8 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
   // A wall, if it can climb: from its feet, towards the wall it climbs, or towards where it is asked
   // to go (a little beyond its radius). From its feet, so it keeps climbing until they pass the top.
   const climbed = c.wall;
-  const feet = vec3.add(e.transform!.position, vec3.scale(up, -0.5));
+  const frame = frameOf(body.shape);
+  const feet = vec3.add(e.transform!.position, vec3.scale(up, -frame.waist));
   let wallDistance = 0;
   if (c.can.climb) {
     const towards = isZero(c.wall) ? (vec3.length(move) > 0.1 ? vec3.normalize(move) : null) : c.wall;
@@ -871,7 +930,7 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
   const room = !low(before) || fits(world, e, body.shape, up);
   // 2b (stage 5c): in the air, a wall beside it, to slide down and jump off: from its chest, towards
   // where it is asked to go (or where it looks); and a ledge to grab, falling past one.
-  const radius = body.shape.kind === 'capsule' ? body.shape.radius : 0.3;
+  const radius = frame.radius;
   const hands = handsOf(body.shape);
   const lookingWay = vec3.normalize(vec3.onPlane(c.facing, up));
   const pushingWay = vec3.length(move) > 0.1 ? vec3.normalize(move) : null;
@@ -1155,7 +1214,13 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
     ? hangMove
     : vec3.add(vec3.scale(vec3.add(vec3.add(vH, vec3.scale(up, vUp)), carried), dt), vec3.scale(up, rise));
   const platform = under?.moves ? world.entities.get(under.entity)?.body?.handle : undefined;
-  const { movement, grounded, ceiling, touched, walls } = world.physics.moveCharacter(body.handle, desired, up, platform);
+  const { movement, grounded, ceiling, touched, walls } = world.physics.moveCharacter(
+    body.handle,
+    desired,
+    up,
+    platform,
+    c.controller,
+  );
   // What it ran into that the physics moves, it pushes (stage 3g), towards where it was asked to go.
   push(world, e, touched, vec3.onPlane(wanted, up), up, dt);
 
@@ -1187,10 +1252,7 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
   // touches its face but takes it over, and it keeps its speed.
   // And only a wall: what reaches above a step's height (a ray towards it there); a step it goes up.
   const refused = vec3.sub(vec3.onPlane(desired, up), vec3.onPlane(movement, up));
-  const feetNow = vec3.sub(
-    world.physics.position(body.handle),
-    vec3.scale(up, (body.shape.kind === 'capsule' ? body.shape.halfHeight : 0.5) + radius),
-  );
+  const feetNow = vec3.sub(world.physics.position(body.handle), vec3.scale(up, frame.waist + radius));
   for (const n of walls) {
     const into = vec3.onPlane(n, up);
     const length = vec3.length(into);
@@ -1199,7 +1261,7 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
     const pressing = vec3.dot(vH, m);
     const stopped = vec3.dot(refused, m) / dt;
     if (pressing <= 0 || stopped <= 0) continue;
-    const above = vec3.add(feetNow, vec3.scale(up, STEP_UP + 0.05));
+    const above = vec3.add(feetNow, vec3.scale(up, (c.controller ?? CHARACTER_SETTINGS).stepHeight + 0.05));
     if (!world.castRay(above, m, radius + 0.1, { skip: e.id, dynamic: false, characters: false })) continue;
     vH = vec3.sub(vH, vec3.scale(m, Math.min(pressing, stopped)));
   }
@@ -1269,7 +1331,7 @@ export function moveCharacter(world: World, e: Entity, dt: number) {
   // material), louder running; and a landing, by how fast it came down.
   const floor_ = under ? world.entities.get(under.entity) : undefined;
   const surface = floor_?.body?.material ?? null;
-  const feet_ = vec3.add(position, vec3.scale(up, -0.8));
+  const feet_ = vec3.add(position, vec3.scale(up, -frame.bottom));
   if (grounded && !wasGrounded && fell > 3)
     world.emit({
       type: 'sound',

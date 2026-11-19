@@ -531,10 +531,11 @@ export class World {
    * A BLAST (stage 4f, the explosion's push of the plan): from `at`, what the physics moves and the
    * characters within `radius` are pushed away from it, by `strength` (an impulse, N·s) at its center,
    * less with the distance (all of it at 0, none at the radius), unless something that does not move
-   * stands between. A body takes it as an impulse; a character, as a change of its velocity, as if it
-   * weighed `CHARACTER_MASS` (a push up lifts it off the ground). It is heard (a `blast` sound, as far as
-   * a hit of its strength) and said (`blast`). Returns what it pushed, and how much of the blast each
-   * one took (0 to 1): what that does to them (their health) is each game's.
+   * stands between. A body takes it as an impulse; a character, as a change of its velocity, by its own
+   * weight (its `mass` since stage 5.5e, `CHARACTER_MASS` if not said; a push up lifts it off the
+   * ground). It is heard (a `blast` sound, as far as a hit of its strength) and said (`blast`). Returns
+   * what it pushed, and how much of the blast each one took (0 to 1): what that does to them (their
+   * health) is each game's.
    */
   explode(at: Vec3, radius: number, strength: number, by: EntityId | null = null): { entity: EntityId; share: number }[] {
     const pushed: { entity: EntityId; share: number }[] = [];
@@ -553,7 +554,10 @@ export class World {
       const share = 1 - d / radius;
       if (e.character) {
         // Off the ground from this step on, and thrown until it lands.
-        e.character.velocity = vec3.add(e.character.velocity, vec3.scale(away, (strength * share) / CHARACTER_MASS));
+        e.character.velocity = vec3.add(
+          e.character.velocity,
+          vec3.scale(away, (strength * share) / (e.character.mass ?? CHARACTER_MASS)),
+        );
         e.character.grounded = false;
         e.character.thrown = true;
       } else this.physics.push(b.handle, vec3.scale(away, strength * share));

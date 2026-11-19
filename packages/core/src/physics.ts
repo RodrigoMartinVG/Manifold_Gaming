@@ -1,7 +1,7 @@
 import RAPIER from '@dimforge/rapier3d-deterministic-compat';
 import { quat, sinCosDegrees, vec3, type Quat, type Vec3 } from '@manifold/common';
 import type { Profile } from './profile';
-import type { Body, BodySpec, CollisionGroups, CompoundPart, Shape, Transform } from './types';
+import type { Body, BodySpec, CharacterSettings, CollisionGroups, CompoundPart, Shape, Transform } from './types';
 
 /**
  * THE BOUNDARY WITH THE PHYSICS ENGINE (decision 0000: "Rapier behind a small boundary"). This is
@@ -97,15 +97,37 @@ const compoundOf = (shape: Extract<Shape, { kind: 'compound' }>) => {
   ] as const;
 };
 
-/** A shape of ours, as Rapier's. */
-const shapeOf = (shape: Shape) =>
-  shape.kind === 'ball'
-    ? new RAPIER.Ball(shape.radius)
-    : shape.kind === 'capsule'
-      ? new RAPIER.Capsule(shape.halfHeight, shape.radius)
-      : shape.kind === 'compound'
-        ? new RAPIER.Compound(...compoundOf(shape))
-        : new RAPIER.Cuboid(...shape.halfExtents);
+/**
+ * OUR SHAPES, AS RAPIER'S, IN ONE PLACE (stage 5.5e; they were written twice, for queries and for colliders):
+ * each kind, as a shape a query casts and as a collider a body has. A new kind (the forest's height field)
+ * is one entry here.
+ */
+const SHAPES: {
+  [K in Shape['kind']]: {
+    shape(s: Extract<Shape, { kind: K }>): RAPIER.Shape;
+    collider(s: Extract<Shape, { kind: K }>): RAPIER.ColliderDesc;
+  };
+} = {
+  ball: { shape: (s) => new RAPIER.Ball(s.radius), collider: (s) => RAPIER.ColliderDesc.ball(s.radius) },
+  capsule: {
+    shape: (s) => new RAPIER.Capsule(s.halfHeight, s.radius),
+    collider: (s) => RAPIER.ColliderDesc.capsule(s.halfHeight, s.radius),
+  },
+  box: { shape: (s) => new RAPIER.Cuboid(...s.halfExtents), collider: (s) => RAPIER.ColliderDesc.cuboid(...s.halfExtents) },
+  // (A compound with a cell is a grid of voxels as a collider: stage 4a's floors as one body.)
+  compound: {
+    shape: (s) => new RAPIER.Compound(...compoundOf(s)),
+    collider: (s) => (s.cell ? voxelsOf(s, s.cell) : RAPIER.ColliderDesc.compound(...compoundOf(s))),
+  },
+};
+/** A shape of ours, as one a query casts. */
+const shapeOf = (shape: Shape): RAPIER.Shape => (SHAPES[shape.kind].shape as (s: Shape) => RAPIER.Shape)(shape);
+/** A shape of ours, as a collider a body has. */
+const colliderOf = (shape: Shape): RAPIER.ColliderDesc =>
+  (SHAPES[shape.kind].collider as (s: Shape) => RAPIER.ColliderDesc)(shape);
+/** Every collider of a body (stage 5.5e: until then, the engine took the first, and every body had one). */
+const collidersOf = (rigid: RAPIER.RigidBody | null | undefined): RAPIER.Collider[] =>
+  rigid ? Array.from({ length: rigid.numColliders() }, (_, i) => rigid.collider(i)) : [];
 
 const ZERO = { x: 0, y: 0, z: 0 };
 
@@ -158,7 +180,7 @@ export const CLIMBS_DEGREES = 50;
 
 /**
  * The steepest ground a character stands on without sliding, as the cosine of its slope: 30°
- * (`CHARACTER.minSlide`), as √3 / 2 (a square root gives the same bits everywhere; a cosine might not).
+ * (`CHARACTER_SETTINGS.minSlide`), as √3 / 2 (a square root gives the same bits everywhere; a cosine might not).
  */
 export const STANDS_ON = Math.sqrt(3) / 2;
 
@@ -189,23 +211,20 @@ export function bodyMass(body: Pick<Body, 'shape' | 'density'>): number {
 export const LIGHT = 5;
 const light = (body: RAPIER.RigidBody | null | undefined) => !!body && body.isDynamic() && body.mass() < LIGHT;
 
-/** The steepest ground a character walks up, as the cosine of its slope: 50° (`CHARACTER.maxClimb`), with our own cosine. */
+/** The steepest ground a character walks up, as the cosine of its slope: 50° (`CHARACTER_SETTINGS.maxClimb`), with our own cosine. */
 const CLIMBS = sinCosDegrees(CLIMBS_DEGREES)[1];
 
 /** The steps a character climbs without jumping (m): up to 35 cm, if there is at least 15 cm to stand on. */
 export const STEP_UP = 0.35;
 
-/** How characters move (stage 1b): what they climb, what they snap to, what they push. */
-const CHARACTER = {
-  offset: CHARACTER_GAP,
+/** The mannequin's controller settings (stage 1b), every character's unless it says (`CharacterSettings`, types.ts). */
+export const CHARACTER_SETTINGS: Readonly<CharacterSettings> = Object.freeze({
   stepHeight: STEP_UP,
   stepWidth: 0.15,
-  /** Going down a step or a slope, it stays on the ground if it is closer than this. */
   snapToGround: 0.3,
-  /** Slopes it walks up; steeper ones, it slides down. (Radians: π/180 per degree.) */
   maxClimb: (CLIMBS_DEGREES * Math.PI) / 180,
   minSlide: (STANDS_DEGREES * Math.PI) / 180, // its cosine is STANDS_ON
-};
+});
 
 /**
  * WHAT THE ENGINE ASKS OF A PHYSICS (stage 2.5b): the world, the characters and the presentation
@@ -222,6 +241,7 @@ export interface PhysicsBackend {
     desired: Vec3,
     up: Vec3,
     standingOn?: number,
+    settings?: Readonly<CharacterSettings>,
   ): { movement: Vec3; grounded: boolean; ceiling: boolean; touched: number[]; walls: Vec3[] };
   /** Changes the shape a character's controller moves (stage 4b: crouching), and where it is from the body's center (in its frame). */
   setCharacterPose(handle: number, shape: Shape, offset: Vec3): void;
@@ -263,8 +283,9 @@ export const PHYSICS: Record<Profile['physics'], (gravity: Vec3, timestep: numbe
 /** Rapier's deterministic build, behind `PhysicsBackend`. */
 export class RapierPhysics implements PhysicsBackend {
   private readonly world: RAPIER.World;
-  /** One controller moves every character (its settings are the same for all, for now). */
+  /** One controller moves every character, given each one's settings (`settings`: the last it was given). */
   private controller: RAPIER.KinematicCharacterController | null = null;
+  private settings: Readonly<CharacterSettings> | null = null;
   /** The bodies that were asleep when they were last read: what they are, their components already say. */
   private readonly asleep = new Set<number>();
   /**
@@ -356,17 +377,7 @@ export class RapierPhysics implements PhysicsBackend {
     desc.setLinvel(...body.linearVelocity).setAngvel(v(body.angularVelocity));
     desc.setLinearDamping(body.linearDamping).setAngularDamping(body.angularDamping);
     const rigid = this.world.createRigidBody(desc);
-    const shape = body.shape;
-    const collider =
-      shape.kind === 'ball'
-        ? RAPIER.ColliderDesc.ball(shape.radius)
-        : shape.kind === 'capsule'
-          ? RAPIER.ColliderDesc.capsule(shape.halfHeight, shape.radius)
-          : shape.kind === 'compound'
-            ? shape.cell
-              ? voxelsOf(shape, shape.cell)
-              : RAPIER.ColliderDesc.compound(...compoundOf(shape))
-            : RAPIER.ColliderDesc.cuboid(...shape.halfExtents);
+    const collider = colliderOf(body.shape);
     collider.setRestitution(body.restitution).setFriction(body.friction);
     if (body.density !== undefined) collider.setDensity(body.density);
     if (body.groups) collider.setCollisionGroups(groupsOf(body.groups)).setSolverGroups(groupsOf(body.groups));
@@ -427,11 +438,14 @@ export class RapierPhysics implements PhysicsBackend {
     desired: Vec3,
     up: Vec3,
     standingOn?: number,
+    settings: Readonly<CharacterSettings> = CHARACTER_SETTINGS,
   ): { movement: Vec3; grounded: boolean; ceiling: boolean; touched: number[]; walls: Vec3[] } {
     const rigid = this.world.getRigidBody(handle);
+    // (A character is one collider: its capsule, or the shape of its pose.)
     const collider = rigid?.collider(0);
     if (!rigid || !collider) return { movement: [0, 0, 0], grounded: false, ceiling: false, touched: [], walls: [] };
     const c = (this.controller ??= this.createController());
+    this.settle(c, settings);
     c.setUp(v(up));
     const ground = standingOn === undefined ? null : this.world.getRigidBody(standingOn);
     const kind = ground?.bodyType();
@@ -519,10 +533,19 @@ export class RapierPhysics implements PhysicsBackend {
       if (other === handle) continue;
       const body = this.world.getRigidBody(other);
       if (light(body)) continue;
-      const hit = body
-        ?.collider(0)
-        ?.castShape(ZERO, collider.shape, collider.translation(), collider.rotation(), direction, 0, free + CHARACTER_GAP, false);
-      if (hit) free = Math.min(free, Math.max(0, hit.time_of_impact - CHARACTER_GAP));
+      for (const part of collidersOf(body)) {
+        const hit = part.castShape(
+          ZERO,
+          collider.shape,
+          collider.translation(),
+          collider.rotation(),
+          direction,
+          0,
+          free + CHARACTER_GAP,
+          false,
+        );
+        if (hit) free = Math.min(free, Math.max(0, hit.time_of_impact - CHARACTER_GAP));
+      }
     }
     return free === length ? movement : [direction.x * free, direction.y * free, direction.z * free];
   }
@@ -572,11 +595,11 @@ export class RapierPhysics implements PhysicsBackend {
     for (const handle of this.unseen) {
       if (left.has(handle)) continue;
       const body = this.world.getRigidBody(handle);
-      const collider = body?.collider(0);
-      if (!body || !collider || (o.dynamic === false && body.isDynamic()) || (o.kinematic === false && body.isKinematic()))
-        continue;
-      if (groups !== undefined && !meets(groups, collider.collisionGroups())) continue;
-      out.push(collider);
+      if (!body || (o.dynamic === false && body.isDynamic()) || (o.kinematic === false && body.isKinematic())) continue;
+      for (const collider of collidersOf(body)) {
+        if (groups !== undefined && !meets(groups, collider.collisionGroups())) continue;
+        out.push(collider);
+      }
     }
     return out;
   }
@@ -691,16 +714,24 @@ export class RapierPhysics implements PhysicsBackend {
   }
 
   private createController() {
-    const c = this.world.createCharacterController(CHARACTER.offset);
-    c.enableAutostep(CHARACTER.stepHeight, CHARACTER.stepWidth, false);
-    c.enableSnapToGround(CHARACTER.snapToGround);
-    c.setMaxSlopeClimbAngle(CHARACTER.maxClimb);
-    c.setMinSlopeSlideAngle(CHARACTER.minSlide);
+    const c = this.world.createCharacterController(CHARACTER_GAP);
     // It does not push what the physics moves by Rapier's rule (each step, an impulse by the character's
     // mass: it adds up, and a block of a tonne went along as easily as a crate of 45 kg). The character
     // pushes by its own (character.ts: `push`), with a force its friction has to beat.
     c.setApplyImpulsesToDynamicBodies(false);
     return c;
+  }
+
+  /** The controller given a character's settings, if they are not the ones it has. */
+  private settle(c: RAPIER.KinematicCharacterController, s: Readonly<CharacterSettings>) {
+    const was = this.settings;
+    if (was === s) return;
+    if (!was || was.stepHeight !== s.stepHeight || was.stepWidth !== s.stepWidth)
+      c.enableAutostep(s.stepHeight, s.stepWidth, false);
+    if (!was || was.snapToGround !== s.snapToGround) c.enableSnapToGround(s.snapToGround);
+    if (!was || was.maxClimb !== s.maxClimb) c.setMaxSlopeClimbAngle(s.maxClimb);
+    if (!was || was.minSlide !== s.minSlide) c.setMinSlopeSlideAngle(s.minSlide);
+    this.settings = s;
   }
 
   step() {
@@ -773,32 +804,36 @@ export class RapierPhysics implements PhysicsBackend {
    * below, Rapier decides.
    */
   private restsWhereItIs(rigid: RAPIER.RigidBody, velocity: Vec3): boolean {
-    const collider = rigid.collider(0);
+    const colliders = collidersOf(rigid);
     const g = this.world.gravity;
     const weight = Math.sqrt(g.x * g.x + g.y * g.y + g.z * g.z);
-    if (!collider || weight < 1e-9) return true;
+    if (colliders.length === 0 || weight < 1e-9) return true;
     const up = { x: -g.x / weight, y: -g.y / weight, z: -g.z / weight };
     let facing = 0;
     let friction = 0;
     let out = { x: 0, y: 0, z: 0 };
-    this.world.contactPairsWith(collider, (other) => {
-      this.world.contactPair(collider, other, (manifold, flipped) => {
-        if (manifold.numSolverContacts() === 0) return;
-        // The normal points from the first collider to the second (flipped: the other way): out of the
-        // surface below, it points the other way.
-        const n = manifold.normal();
-        const sign = flipped ? 1 : -1;
-        const along = sign * (n.x * up.x + n.y * up.y + n.z * up.z);
-        if (along > facing) {
-          facing = along;
-          friction = (collider.friction() + other.friction()) / 2;
-          out = { x: sign * n.x, y: sign * n.y, z: sign * n.z };
-        }
+    // (Each of its colliders: what holds it up most, from any of them.)
+    let resting = colliders[0]!;
+    for (const collider of colliders)
+      this.world.contactPairsWith(collider, (other) => {
+        this.world.contactPair(collider, other, (manifold, flipped) => {
+          if (manifold.numSolverContacts() === 0) return;
+          // The normal points from the first collider to the second (flipped: the other way): out of the
+          // surface below, it points the other way.
+          const n = manifold.normal();
+          const sign = flipped ? 1 : -1;
+          const along = sign * (n.x * up.x + n.y * up.y + n.z * up.z);
+          if (along > facing) {
+            facing = along;
+            friction = (collider.friction() + other.friction()) / 2;
+            out = { x: sign * n.x, y: sign * n.y, z: sign * n.z };
+            resting = collider;
+          }
+        });
       });
-    });
     if (facing <= 0) return true;
     const sine = Math.sqrt(Math.max(0, 1 - facing * facing));
-    const holds = collider.shapeType() === RAPIER.ShapeType.Ball ? 0.001 : friction;
+    const holds = resting.shapeType() === RAPIER.ShapeType.Ball ? 0.001 : friction;
     if (sine <= holds * facing) return true;
     // Down the slope: gravity along the surface (its length, the weight times the slope's sine).
     const pressing = g.x * out.x + g.y * out.y + g.z * out.z;
@@ -845,18 +880,16 @@ export class RapierPhysics implements PhysicsBackend {
   }
 
   touching(handle: number): number[] {
-    const rigid = this.world.getRigidBody(handle);
-    const collider = rigid?.collider(0);
-    if (!collider) return [];
     const out: number[] = [];
-    this.world.contactPairsWith(collider, (other) => {
-      let solid = false;
-      this.world.contactPair(collider, other, (manifold) => {
-        if (manifold.numSolverContacts() > 0) solid = true;
+    for (const collider of collidersOf(this.world.getRigidBody(handle)))
+      this.world.contactPairsWith(collider, (other) => {
+        let solid = false;
+        this.world.contactPair(collider, other, (manifold) => {
+          if (manifold.numSolverContacts() > 0) solid = true;
+        });
+        const body = other.parent();
+        if (solid && body && body.handle !== handle && !out.includes(body.handle)) out.push(body.handle);
       });
-      const body = other.parent();
-      if (solid && body && !out.includes(body.handle)) out.push(body.handle);
-    });
     return out.sort((a, b) => a - b);
   }
 
@@ -871,6 +904,8 @@ export class RapierPhysics implements PhysicsBackend {
   /** Frees the physics' memory (WebAssembly's, which the garbage collector does not see). */
   dispose() {
     if (this.controller) this.world.removeCharacterController(this.controller);
+    this.controller = null;
+    this.settings = null;
     this.events.free();
     this.world.free();
   }

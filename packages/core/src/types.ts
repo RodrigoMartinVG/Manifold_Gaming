@@ -577,6 +577,10 @@ export interface Character {
    * its pose (`hitPartsOf`).
    */
   hits?: Partial<Record<ModeName, HitPart[]>>;
+  /** Its controller's settings (stage 5.5e), if its body is not the mannequin's; absent, the mannequin's. */
+  controller?: CharacterSettings;
+  /** How much it weighs (kg) when a blast pushes it (stage 5.5e); absent, `CHARACTER_MASS`. */
+  mass?: number;
   /**
    * Its last poses (stage 4c, decision 0022): one for the end of each of its last `HISTORY` steps,
    * the oldest first. What a shot looks back at, as far as its shooter saw.
@@ -638,7 +642,27 @@ export type CharacterSpec = Pick<Character, 'player'> & {
   can?: Partial<Capabilities>;
   poses?: Partial<Record<ModeName, CollisionPose>>;
   hits?: Partial<Record<ModeName, HitPart[]>>;
+  /** (Stage 5.5e) Its controller's settings where they are not the mannequin's: a fox steps lower than a stag. */
+  controller?: Partial<CharacterSettings>;
+  /** (Stage 5.5e) How much it weighs (kg) when a blast pushes it: 80 if not said. */
+  mass?: number;
 };
+
+/**
+ * HOW A CHARACTER'S CONTROLLER MOVES IT (stage 1b): what it climbs, what it snaps to. Per character since stage
+ * 5.5e (`CharacterSpec.controller`), the mannequin's by default (`CHARACTER_SETTINGS`, physics.ts); the
+ * controller is given them on each move, and Rapier told only when they differ from the last ones it had.
+ */
+export interface CharacterSettings {
+  /** The steps it climbs without jumping (m), if there is at least `stepWidth` to stand on. */
+  stepHeight: number;
+  stepWidth: number;
+  /** Going down a step or a slope, it stays on the ground if it is closer than this. */
+  snapToGround: number;
+  /** Slopes it walks up; steeper ones, it slides down. (Radians: π/180 per degree.) */
+  maxClimb: number;
+  minSlide: number;
+}
 
 /**
  * WHAT A PLAYER ASKS FOR at a step: values with a name. It enters the world through the session, at a
