@@ -6,6 +6,16 @@ import type { SignalOp } from './types';
  */
 export const WORD = /^[a-z][a-z0-9_]*$/;
 
+/**
+ * THE OTHER WORDS' PATTERNS (stage 5.5e, S9), each once: a key of a game's words or a model's name, words
+ * with dots (`dojo.story.hello`, `kit.wall_2`), also a zone's kind; a dotted name (a game's rules in a
+ * replay, an action there: `wall`, `arms.fire`); and a word with its owner, `<owner>.<word>` (a game's
+ * component, sound, affordance, action: `dojo.runner`).
+ */
+export const KEY = /^[a-z][a-z0-9_.-]*$/;
+export const DOTTED = /^[a-z][a-z0-9.]*$/;
+export const OWNED = /^[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)+$/;
+
 /** How many signals or zones each kind of signal reads (−1: one or more): the world's and the level's, once. */
 export const SIGNAL_READS: Readonly<Record<SignalOp, number>> = {
   input: 0,

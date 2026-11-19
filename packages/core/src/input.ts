@@ -1,6 +1,7 @@
 import { sinCosDegrees, type Vec3 } from '@manifold/common';
 import type { InputValue, PlayerInput } from './types';
 import type { World } from './world';
+import { OWNED } from './words';
 
 /**
  * WHAT A PLAYER CAN ASK FOR (stage 1d): actions with a name and a kind, declared by the core (what
@@ -67,8 +68,7 @@ export const CHARACTER_ACTIONS: readonly InputAction[] = [
 export function actionsFor(own: readonly InputAction[] = []): readonly InputAction[] {
   const names = new Set(CHARACTER_ACTIONS.map((a) => a.name));
   for (const a of own) {
-    if (!/^[a-z][a-z0-9]*\.[a-z][a-z0-9.]*$/.test(a.name))
-      throw new Error(`The action "${a.name}" needs its game's namespace, like "dojo.throw".`);
+    if (!OWNED.test(a.name)) throw new Error(`The action "${a.name}" needs its game's namespace, like "dojo.throw".`);
     if (names.has(a.name)) throw new Error(`The action "${a.name}" is declared twice.`);
     names.add(a.name);
   }

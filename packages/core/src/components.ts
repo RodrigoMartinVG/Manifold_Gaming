@@ -1,9 +1,10 @@
 import { newCharacter } from './character';
 import type { ComponentSpecs, Entity, GameComponents } from './types';
 import type { World } from './world';
+import { OWNED } from './words';
 
 /** A game component's name: `<game>.<component>`, lowercase words joined by dots (`dojo.runner`). */
-export const COMPONENT_NAME = /^[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)+$/;
+export const COMPONENT_NAME = OWNED;
 
 /**
  * A GAME'S COMPONENT on an entity (stage 2.5b), by its name, as the game says it is:

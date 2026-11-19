@@ -6,6 +6,7 @@ import { profileFromText, profileText, VERIFIED, type Profile } from './profile'
 import { registryFor, Session, type InputChange, type WorldChange } from './session';
 import type { InputValue } from './types';
 import { SIMULATION_VERSION } from './version';
+import { DOTTED } from './words';
 
 /**
  * A REPLAY (stage 1c): everything needed to play a session again, step by step, and to check that it
@@ -185,7 +186,7 @@ export function replayFromText(text: string): Replay {
         const versions: Record<string, number> = {};
         if (rest.length % 2 !== 0) fail(n, 'each of its rules is a name and its version');
         for (let at = 0; at < rest.length; at += 2) {
-          if (!/^[a-z][a-z0-9.]*$/.test(rest[at]!)) fail(n, `"${rest[at]}" is not the name of a game's rules`);
+          if (!DOTTED.test(rest[at]!)) fail(n, `"${rest[at]}" is not the name of a game's rules`);
           if (!/^\d+$/.test(rest[at + 1]!)) fail(n, `"${rest[at + 1]}" is not a version`);
           versions[rest[at]!] = Number(rest[at + 1]);
         }
@@ -210,7 +211,7 @@ export function replayFromText(text: string): Replay {
         let at = 2;
         while (at < rest.length) {
           const name = rest[at++]!;
-          if (!/^[a-z][a-z0-9.]*$/.test(name)) fail(n, `"${name}" is not the name of an action`);
+          if (!DOTTED.test(name)) fail(n, `"${name}" is not the name of an action`);
           const towards = /^@(\d{1,3}(?:\.\d{1,2})?)(?::(0?\.\d{1,2}|1))?$/.exec(rest[at] ?? '');
           if (towards) {
             const degrees = Number(towards[1]);

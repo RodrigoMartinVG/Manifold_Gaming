@@ -4,15 +4,13 @@ import { MATERIAL_NAME } from '../materials';
 import type { LevelMap } from '../map';
 import { AFFORDANCES, type Affordance } from '../types';
 import { ENTITY_NAME } from '../world';
-import { WORD } from '../words';
+import { KEY, WORD } from '../words';
 import type { Level, LevelOptions, Turn } from './format';
 
 /** A number in decimal (an exponent too: a level written by a program may have one). Not hexadecimal, not Infinity. */
 const NUMBER = /^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/;
 /** A word a zone's parameter is named by. */
 export const PARAMETER = WORD;
-/** A key of the game's words (decision 0019): its name first, then words, dots between. */
-export const KEY = /^[a-z][a-z0-9_.-]*$/;
 
 /**
  * A LEVEL BEING READ (stage 5.5e): the level so far, its format, the game's options, where each name and
@@ -130,7 +128,7 @@ export class LineReader {
   /** A model's name, as the game gives it (`dojo.door`). */
   model(): string {
     const model = this.word();
-    if (!/^[a-z][a-z0-9_.-]*$/.test(model)) this.fail(`"${model}" is not a model's name (like dojo.door)`);
+    if (!KEY.test(model)) this.fail(`"${model}" is not a model's name (like dojo.door)`);
     return model;
   }
   /** The energy of a hit that breaks something, in joules: 0 or more. */

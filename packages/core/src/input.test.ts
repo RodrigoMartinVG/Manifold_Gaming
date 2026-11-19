@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { CHARACTER_ACTIONS, degreesOf, direction, normalizeInput } from './input';
+import { actionsFor, CHARACTER_ACTIONS, degreesOf, direction, normalizeInput } from './input';
 
 describe('directions on the ground, in whole degrees (stage 2.5c)', () => {
   test('a direction is one of 360: forward is 0°, the right 90°; its vector, with our own sine and cosine', () => {
@@ -129,5 +129,20 @@ describe('a character looks where it is asked, to a tenth of a degree (stage 4.5
     expect(Math.max(...steps)).toBeLessThanOrEqual(0.2);
     expect(new Set(angles).size).toBeGreaterThan(10);
     world.dispose();
+  });
+});
+
+/**
+ * A GAME'S ACTIONS BY THEIR OWNER'S NAME (stage 5.5e: the pattern of a word with its owner, one for the
+ * components, the sounds, the affordances and the actions; the actions had one of their own, which took
+ * a name ending in a dot or with two dots together).
+ */
+describe("a game's actions, by their owner's name (stage 5.5e)", () => {
+  test('`<game>.<action>`, its words lowercase, no dot at its end nor two together', () => {
+    const action = (name: string) => [{ name, kind: 'button' as const, description: '' }];
+    expect(() => actionsFor(action('dojo.throw'))).not.toThrow();
+    expect(() => actionsFor(action('arms.fire.alt'))).not.toThrow();
+    for (const name of ['throw', 'dojo.', 'dojo..throw', 'Dojo.throw'])
+      expect(() => actionsFor(action(name)), name).toThrow("needs its game's namespace");
   });
 });

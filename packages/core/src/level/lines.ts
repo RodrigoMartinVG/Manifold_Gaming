@@ -3,7 +3,7 @@ import { MATERIAL_NAME, MATERIALS, materialProblem, type Material } from '../mat
 import { FLOOR_THICKNESS, mapParts, type LevelMap } from '../map';
 import type { Affordance, Components, Entity, SignalOp } from '../types';
 import { copyData, ENTITY_NAME, type World } from '../world';
-import { SIGNAL_READS, signalReadsProblem } from '../words';
+import { KEY, SIGNAL_READS, signalReadsProblem, WORD } from '../words';
 import {
   ALL_GROUPS,
   AXES,
@@ -21,7 +21,7 @@ import {
   type LevelWatcher,
   type Turn,
 } from './format';
-import { AFFORDS, KEY, NAME, PARAMETER, ROTATE, type Extras, type LineReader } from './reader';
+import { AFFORDS, NAME, PARAMETER, ROTATE, type Extras, type LineReader } from './reader';
 
 /** A box as it is read: its groups as the line says them, `group` and `meets` apart. */
 type BoxRead = Omit<LevelBox, 'groups'> & { member: number | null; filter: number | null };
@@ -390,7 +390,7 @@ export const LINES: Lines = {
     since: 9,
     read(r, level) {
       const piece = r.word();
-      if (!/^[a-z][a-z0-9_]*$/.test(piece)) r.fail(`"${piece}" is not a kit piece's name (like wall_2)`);
+      if (!WORD.test(piece)) r.fail(`"${piece}" is not a kit piece's name (like wall_2)`);
       const kit = r.reading.o.kit;
       if (kit && !kit[piece]) r.fail(`"${piece}" is not a piece of this game's kit (${Object.keys(kit).join(', ')})`);
       const k: LevelKit = { name: null, piece, center: r.vector(), turn: null, material: null };
@@ -451,7 +451,7 @@ export const LINES: Lines = {
         const char = r.word();
         const zone = r.words[r.at++];
         if (char.length !== 1 || '#. '.includes(char)) r.fail(`"${char}" cannot stand for a zone: one character, not # or .`);
-        if (!zone || !/^[a-z][a-z0-9.-]*$/.test(zone)) r.fail(`"${char}" needs the kind of zone it stands for`);
+        if (!zone || !KEY.test(zone)) r.fail(`"${char}" needs the kind of zone it stands for`);
         const takes = zones?.[zone!];
         if (zones && !takes) r.fail(`"${zone}" is not a zone of this game (${Object.keys(zones).join(', ')})`);
         if (takes && Object.keys(takes).length) r.fail(`a ${zone} carries numbers: in a map, only zones that carry nothing`);
@@ -502,7 +502,7 @@ export const LINES: Lines = {
   sensor: {
     read(r, level) {
       const kind = r.words[r.at++];
-      if (!kind || !/^[a-z][a-z0-9.-]*$/.test(kind)) r.fail('a zone needs what it is for, in one word (checkpoint, goal…)');
+      if (!kind || !KEY.test(kind)) r.fail('a zone needs what it is for, in one word (checkpoint, goal…)');
       const s: LevelSensor = { name: null, kind: kind!, center: r.vector(), half: r.halves(), turn: null, params: {} };
       // Anything else is what the zone carries: a word and its numbers (format 2).
       r.extras(s, SENSOR_EXTRAS, (word) => {
