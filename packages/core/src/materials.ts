@@ -1,3 +1,4 @@
+import { WORD } from './words';
 /**
  * WHAT THINGS ARE MADE OF (stage 3b). A material is a name and four numbers, as data:
  * - `friction`: how much its surface holds what slides on it (Rapier's coefficient: 0, none; 1, a lot).
@@ -30,7 +31,7 @@ export const MATERIALS: Readonly<Record<string, Readonly<Material>>> = Object.fr
 });
 
 /** A material's name: a word in lowercase (`ice`, `wet_stone`). */
-export const MATERIAL_NAME = /^[a-z][a-z0-9_]*$/;
+export const MATERIAL_NAME = WORD;
 
 /**
  * The friction at which a character's feet hold fully: stone's. On less, it slides: its walk reaches

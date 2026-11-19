@@ -1,4 +1,4 @@
-import type { World } from './world';
+import { FARTHEST, type World } from './world';
 
 // One number is written as 8 bytes (little-endian, explicitly: the same bytes on every machine) and
 // read back as bytes, in one go.
@@ -69,6 +69,8 @@ export function stateHash(world: World): number {
   value(world.gravity);
   // Its ambient light (stage 3d), and the level it was built from (stage 3j).
   number(world.ambient);
+  // Its edge (stage 5.5e), only when it is not the one every world had before: their hashes stay.
+  if (world.edge !== FARTHEST) number(world.edge);
   value(world.origin);
   // Its materials (stage 3b): a level's ice is part of what the world is.
   value(world.materials);

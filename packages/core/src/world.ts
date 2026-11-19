@@ -26,6 +26,7 @@ import type {
   SignalOp,
 } from './types';
 import { SIMULATION_VERSION } from './version';
+import { signalReadsProblem, WORD } from './words';
 
 /** A body's mass, from its density (the physics' own, 1, without one) and its shape's volume: what Rapier gives it. */
 export const massOf = bodyMass;
@@ -57,19 +58,6 @@ export interface Query {
   /** Whether characters count: yes, unless false (stage 3h: the camera goes through people, not walls). */
   characters?: boolean;
 }
-
-/** How many signals each kind of signal reads (−1: one or more). */
-const SIGNAL_READS: Record<SignalOp, number> = {
-  input: 0,
-  zone: 1,
-  used: 1,
-  seen: 1,
-  any: -1,
-  all: -1,
-  not: 1,
-  toggle: 1,
-  latch: 2,
-};
 
 /**
  * How long the segment from `a` to `b` is inside a box (its center, its turn, half its size): both
@@ -119,7 +107,7 @@ export function mechanismAt(m: Mechanism, progress: number): { position: Vec3; r
 }
 
 /** An entity's name (stage 3b): one word, lowercase, digits and _ (`door_north`, `cube`). */
-export const ENTITY_NAME = /^[a-z][a-z0-9_]*$/;
+export const ENTITY_NAME = WORD;
 
 /** What a character weighs for a blast's push (stage 4f, kg): it has no mass of its own (its body moves only as its controller says). */
 export const CHARACTER_MASS = 80;
@@ -145,6 +133,11 @@ export interface WorldOptions {
   profile?: Profile;
   /** Its materials (stage 3b): without them, the engine's (`MATERIALS`). */
   materials?: Record<string, Material>;
+  /**
+   * How far from the origin what the physics moves may go before it is gone (m; stage 5.5e: the world's
+   * own, `FARTHEST` if not said). A valley of 500 × 500 m with its origin at a corner reaches 707 m.
+   */
+  edge?: number;
 }
 
 /**
@@ -166,6 +159,8 @@ export interface WorldSnapshot {
   readonly random: readonly [number, number, number, number];
   /** The seed it was born with (stage 4c: a shot's own dice start from it). */
   readonly seed?: number;
+  /** Its edge (stage 5.5e), if it is not `FARTHEST`. */
+  readonly edge?: number;
   readonly gravity: GravityField;
   readonly ambient: number;
   /** The level it was built from (stage 3j). */
@@ -352,9 +347,13 @@ export class World {
 
   /** The seed it was born with (stage 4c, decision 0022): a shot's dice are made from it, the step, the player and the shot. */
   readonly seed: number;
+  /** How far from the origin what the physics moves may go before it is gone (stage 5.5e; `FARTHEST` unless said). */
+  readonly edge: number;
 
   constructor(o: WorldOptions) {
     this.seed = o.seed;
+    this.edge = o.edge ?? FARTHEST;
+    if (!(this.edge > 0)) throw new Error(`a world's edge is a distance above 0 (m), not ${o.edge}`);
     this.random = new Random(o.seed);
     this.field = o.gravity ?? EARTH;
     this.table = copyData(o.materials ?? (MATERIALS as Record<string, Material>));
@@ -386,6 +385,7 @@ export class World {
       lastId: this.lastId,
       random: [...this.random.state],
       seed: this.seed,
+      ...(this.edge !== FARTHEST ? { edge: this.edge } : {}),
       gravity: copyData(this.field),
       ambient: this.ambient,
       origin: copyData(this.origin),
@@ -408,6 +408,7 @@ export class World {
       throw new Error(`A snapshot of version ${s.version}, and this engine is version ${SIMULATION_VERSION}.`);
     const world = new World({
       seed: s.seed ?? 0,
+      ...(s.edge !== undefined ? { edge: s.edge } : {}),
       gravity: copyData(s.gravity),
       materials: copyData(s.materials) as Record<string, Material>,
       physics: s.physics,
@@ -473,10 +474,8 @@ export class World {
     };
     if (!ENTITY_NAME.test(name)) fail('its name is one word, lowercase, digits and _');
     if (this.wires.some((w) => w.name === name)) fail('there is one already');
-    const count = SIGNAL_READS[op];
-    if (count === undefined) fail(`"${op}" is not what a signal can be (${Object.keys(SIGNAL_READS).join(', ')})`);
-    if (count >= 0 ? reads.length !== count : reads.length < 1)
-      fail(`a ${op} reads ${count < 0 ? 'one signal or more' : count === 0 ? 'nothing' : count === 1 ? 'one' : `${count}`}`);
+    const problem = signalReadsProblem(op, reads.length);
+    if (problem) fail(problem);
     for (const r of reads) {
       if (op === 'zone' || op === 'used') {
         if (!this.named(r)?.sensor) fail(`no zone named "${r}"`);
@@ -957,7 +956,7 @@ export class World {
       // Out of the world (stage 4.5b): what the physics moves, past `FARTHEST` from the origin, is gone
       // (a ball out of a level without a void fell for ever, and the physics went on with it). Never a
       // character: what becomes of one is its game's.
-      if (!e.character && vec3.length(e.transform.position) > FARTHEST) {
+      if (!e.character && vec3.length(e.transform.position) > this.edge) {
         gone.push(e.id);
         continue;
       }

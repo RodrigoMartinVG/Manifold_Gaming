@@ -3,6 +3,7 @@ import { MATERIAL_NAME, MATERIALS, materialProblem, type Material } from './mate
 import { FLOOR_THICKNESS, mapParts, type LevelMap } from './map';
 import { AFFORDANCES, type Affordance, type CollisionGroups, type Components, type SignalOp } from './types';
 import { copyData, ENTITY_NAME, type World } from './world';
+import { SIGNAL_READS, signalReadsProblem, WORD } from './words';
 
 /**
  * LEVELS AS DATA (stage 2a; decision 0000, rule 4). A level is text, one thing per line, that can be
@@ -295,7 +296,7 @@ export const turnOf = (turn: Turn | null): Quat => (turn ? quat.fromDegrees(AXES
 /** A number in decimal (an exponent too: a level written by a program may have one). Not hexadecimal, not Infinity. */
 const NUMBER = /^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/;
 /** A word a zone's parameter is named by. */
-const PARAMETER = /^[a-z][a-z0-9_]*$/;
+const PARAMETER = WORD;
 /** The words each format brought: a level that says an older one may not use them. */
 const SINCE: Record<string, number> = {
   material: 2,
@@ -321,8 +322,6 @@ const SINCE: Record<string, number> = {
   kit: 9,
   sky: 10,
 };
-/** How many signals or zones each kind of signal reads (−1: one or more), as the world says. */
-const READS: Record<SignalOp, number> = { input: 0, zone: 1, used: 1, seen: 1, any: -1, all: -1, not: 1, toggle: 1, latch: 2 };
 
 /** A level from its text. A line that is not understood is an error, with its number. */
 export function levelFromText(text: string, o: LevelOptions = {}): Level {
@@ -731,19 +730,15 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
         const first = signalLines.get(name);
         if (first !== undefined) fail(n, `the signal "${name}" twice (the first, on line ${first + 1})`);
         const op = (words[at++] ?? 'input') as SignalOp;
-        const count = READS[op];
-        if (count === undefined) fail(n, `"${op}" is not what a signal can be (${Object.keys(READS).join(', ')})`);
+        if (SIGNAL_READS[op] === undefined) fail(n, signalReadsProblem(op, 0)!);
         const reads: string[] = [];
         while (at < words.length) {
           const read = words[at++]!;
           if (!ENTITY_NAME.test(read)) fail(n, `"${read}" is not a name`);
           reads.push(read);
         }
-        if (count >= 0 ? reads.length !== count : reads.length < 1)
-          fail(
-            n,
-            `a ${op} reads ${count < 0 ? 'one signal or more' : count === 0 ? 'nothing' : count === 1 ? 'one' : `${count}`}`,
-          );
+        const wrong = signalReadsProblem(op, reads.length);
+        if (wrong) fail(n, wrong);
         for (const read of reads) {
           if (op === 'zone' || op === 'used') zonesRead.push({ zone: read, line: n });
           else if (op === 'seen') watchersRead.push({ watcher: read, line: n });

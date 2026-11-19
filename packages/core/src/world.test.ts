@@ -308,3 +308,27 @@ describe("a game's components (stage 2.5b): by name, as deep as they need", () =
     world.dispose();
   });
 });
+
+describe('the world’s edge, as data (stage 5.5e)', () => {
+  test('a ball past the edge is gone, the edge the world’s own (500 m if not said); in its snapshot and its hash only when it is not', () => {
+    const drop = (edge?: number) => {
+      const world = new World({ seed: 1, ...(edge !== undefined ? { edge } : {}) });
+      const ball = world.createEntity({
+        transform: { position: [600, 0, 0], rotation: quat.identity() },
+        body: { type: 'dynamic', shape: { kind: 'ball', radius: 0.2 } },
+      });
+      world.step();
+      return { world, gone: !world.entities.has(ball.id) };
+    };
+    const usual = drop();
+    const wide = drop(800);
+    expect([usual.gone, wide.gone]).toEqual([true, false]);
+    expect(usual.world.snapshot().edge).toBeUndefined();
+    expect(wide.world.snapshot().edge).toBe(800);
+    expect(World.restore(wide.world.snapshot()).edge).toBe(800);
+    expect(stateHash(new World({ seed: 3 }))).toBe(stateHash(new World({ seed: 3, edge: 500 })));
+    expect(stateHash(new World({ seed: 3 }))).not.toBe(stateHash(new World({ seed: 3, edge: 800 })));
+    expect(() => new World({ seed: 1, edge: 0 })).toThrow(/above 0/);
+    for (const w of [usual.world, wide.world]) w.dispose();
+  });
+});
