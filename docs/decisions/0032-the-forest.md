@@ -151,8 +151,9 @@ written down now so the first version leaves its seams where they are cheap.
   high, and drains in the dark: at night and in the caves she flies from light to light, and the moths that hunt light
   are a reason to fly dark. Flight spends what the first version made a system.
 - **The input gains height:** her game declares an axis to rise and sink (1d: a game declares its actions, with no new
-  replay version), and the `face` input is already a direction in 3D, which a walking character flattens onto its
-  ground to turn its body; a flyer reads it whole.
+  replay version). Where she looks in 3D is `face` and `pitch` together: every `direction` input is normalized onto
+  the ground (`core/input.ts`), as the audit of 2026-11-19 found against what the first version of this decision said
+  (that `face` was already a direction in 3D); a flyer reads the two as one direction.
 - **A second playable body,** not the mannequin: her own size, small in the knight's valley (the one reason to shrink
   a body is a world shared at another scale), her hit parts by mode, clips for hovering and gliding, wings drawn
   procedurally in the view. A character's size becomes data across the engine: the controller's step and skin, the
@@ -319,6 +320,34 @@ So the forest's rule:
   mechanisms that design asks for, each in its room; the game, built in grey straight in its own package as soon as a
   mechanism's contract is fixed, and tuned there. The rooms close when their tests, recipes and the four browsers
   agree; the game closes when it is played to its end (0017).
+
+### Engine, library, cartridge: where each piece goes
+
+Decision 0003's four questions (amended 2026-11-19): would a game of another world use it as it is (the engine); is it
+in the hash or only drawn (the simulation or the view); is it shared by the forest's games and meaningless outside
+them (**the forest's library**, a package of its own, as the kit is); is it one game's level, number, word or rhythm
+(its cartridge). Inside each piece, the engine gives the measure and the game its meaning.
+
+| Piece       | The engine (mechanism)                                                                                       | The forest's library                                                | A cartridge (policy)            |
+| ----------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------- | ------------------------------- |
+| Terrain     | The height field at the physics boundary, the `terrain` line, h and ∇h; a generator from a seed and a layout | The valley's file, its layout, the creek's curve                    | Which region it uses, its zones |
+| Wind        | w(p) from ∇h, as a contribution                                                                              | The valley's prevailing wind                                        | Where one glides, how strongly  |
+| A liana     | A hold any game may use, \|p − a\| ≤ L (chains, a grappling hook); its curve, the view's                     | The liana as a kind of thing hanging from the trees                 | Where, how long, its timing     |
+| Climbing    | A material's "climbable"                                                                                     | Which barks are                                                     | —                               |
+| Trees       | Batches, levels of detail, impostors (the view)                                                              | The variants and their collision, from Blender's script             | —                               |
+| Creatures   | A body of its own size, its legs kinematic from its state                                                    | The fox, the wolves, the stags: sizes, brains                       | Which, where                    |
+| Navigation  | Terrain cells, regions and portals, a grid per body size, steering in 3D (`bots`)                            | —                                                                   | —                               |
+| Light       | A cone, reflection, the signal "lit", the light a body receives                                              | The shield; purifying as a component (the spring's and the night's) | Its numbers, its puzzles        |
+| A companion | A bot that takes a player's orders                                                                           | The fox's brain                                                     | What it is asked in each level  |
+| Water       | Zones of a medium, swimming and diving, air, buoyancy                                                        | —                                                                   | The lake, its numbers           |
+| A mount     | A character that rides another: the inputs routed, the prediction moved to the mount (a horse, a car)        | The young stag                                                      | Where one rides                 |
+| Swarms      | A body's flight, flocking brains (`bots`)                                                                    | The Rot's moths                                                     | The nests, the levels           |
+| Drawing     | Quality tiers, loading by zones, KTX2 and meshopt, the atmosphere                                            | The valley's palette, fog and colour table                          | The hour                        |
+| The fairy   | The `fly` mode, its drag against w                                                                           | —                                                                   | Light as her fuel               |
+
+The same light, three meanings: the simulation computes the light L a body receives; the spring cleans with it
+(c ← c − k·L·Δt), the fairy flies on it (e ← e + (αL − β)·Δt), and the fortress's guards see by it (L·t·p ≥ 0.3). Each
+stage's report says where each of its pieces landed.
 
 ### Measure before deciding, and the order
 

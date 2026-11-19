@@ -159,11 +159,14 @@ export default defineConfig(
       'packages/net/src/**',
       'packages/character/src/index.ts',
       'packages/kit/src/index.ts',
+      // What fights (stage 5e): its weapons, their hits and the stealth run in the step. Not its
+      // brain (decision 0023: run once, where the match is hosted, its inputs recorded) nor its models.
+      'packages/arms/src/**',
       'games/*/src/cartridge.ts',
       'games/*/src/rules.ts',
       'games/*/src/levels.ts',
     ],
-    ignores: ['**/*.test.ts', 'packages/common/src/approx.ts'],
+    ignores: ['**/*.test.ts', 'packages/common/src/approx.ts', 'packages/arms/src/brain.ts', 'packages/arms/src/models.ts'],
     rules: sameEverywhere,
   },
   {
@@ -195,6 +198,17 @@ export default defineConfig(
   {
     files: ['packages/kit/src/**'],
     ignores: ['packages/kit/src/index.ts'],
+    rules: { 'no-restricted-imports': ['error', { patterns: [games] }] },
+  },
+  {
+    // What fights (stage 5e): its rules part runs without a screen, like a game's rules; its models
+    // (models.ts) are the presentation's. It was the games' library's one package without this guard.
+    files: ['packages/arms/src/**'],
+    ignores: ['packages/arms/src/models.ts', 'packages/arms/src/**/*.test.ts'],
+    rules: { 'no-restricted-imports': ['error', { patterns: [drawing, models, presentation, games, network] }] },
+  },
+  {
+    files: ['packages/arms/src/models.ts', 'packages/arms/src/**/*.test.ts', 'packages/shell/src/**'],
     rules: { 'no-restricted-imports': ['error', { patterns: [games] }] },
   },
   {
@@ -240,7 +254,7 @@ export default defineConfig(
             { ...drawing, message: headless },
             { ...models, message: headless },
             { ...presentation, message: headless },
-            { group: ['@manifold/character/models'], message: headless },
+            { group: ['@manifold/character/models', '@manifold/kit/models', '@manifold/arms/models'], message: headless },
           ],
         },
       ],
