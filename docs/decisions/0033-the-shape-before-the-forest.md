@@ -1,6 +1,6 @@
 # 0033. The shape before the forest: stage 5.5
 
-- **Status:** accepted (2026-11-19: "Sí, empezá la 5.5a"); proposed the same day, from the author's request after the forest's revision: "hagamos los arreglos,
+- **Status:** accepted (2026-11-19: "Sí, empezá la 5.5a"); its time targets corrected at its close, the same day (below, after the targets); proposed the same day, from the author's request after the forest's revision: "hagamos los arreglos,
   pero incluso te diría de hacer un análisis más profundo sobre refactors y deuda técnica, y tener una hoja de ruta para
   mejorar varios aspectos [...] para así tener incluso un mucho mejor código, un mucho mejor ambiente en general, y
   pensar la solución más óptima de todas, en la que todas las piezas encajan a la perfección".
@@ -99,6 +99,23 @@ view beside them, and the games last, on the library the rest left.
 | Replays re-written by one game's change | 21                                   | that game's                                                                       |
 | Every game's references, checked in     | Node (the Dojo's: the four browsers) | the four browsers                                                                 |
 | A new file, guarded                     | if someone lists it                  | always                                                                            |
+
+**Corrected at the close (2026-11-19, at the author's word: "Sí, corregilos").** The four targets of shape were met;
+the three of time were guesses of what E1 to E4's fixes would give, set without weighing the whole work against the
+cores (the author's machine, an i5-1038NG7: 4 cores, 8 threads), without knowing that the site's check is not
+incremental, and supposing the browser tests sharded (5.5d split them by browser only). Measured at the close:
+
+|                                  | Measured at the close                                              | Why                                                                                                                                         | Corrected target                                                                                                                             |
+| -------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| The type check                   | 42 s from nothing; 27 s unchanged, 33 s after a change in the core | the site's check (`astro check` and the tutorial's) is about 23 s every time, not incremental; each package checks the core's sources again | at most 30 s from nothing (project references, the assets' JSON exported another way); about 25 s after a change; 10 s only without the site |
+| `npm test`                       | 50 to 57 s, about 300 s of CPU                                     | the work itself: with every core busy it cannot be under about 50 s                                                                         | 35 to 40 s, the games' heaviest scenario tests moved to the playthroughs                                                                     |
+| All the headless tests           | 97 to 115 s, about 700 s of CPU                                    | the work itself, every core busy; each level played twice (its recorder, then its replay played back); splitting a file gains little        | about 75 s, each level played once                                                                                                           |
+| Continuous integration, one push | not measured (no push)                                             | the Chromium job alone is about 16 min of tests                                                                                             | at most 12 min, Chromium sharded in two or three jobs                                                                                        |
+
+While working, the wait that matters is shorter: only the tests of what changed (`npx vitest related <file> --run`),
+10 to 12 s for a change in a game or in the view (measured: the stage, 7 files; the fortress's rules, 6), though a
+change in the core reaches most of them (64 files, 77 s); `npm test` before a commit, `test:all` in continuous
+integration.
 
 ### What it changes in decision 0032 (applied on its acceptance, 2026-11-19)
 

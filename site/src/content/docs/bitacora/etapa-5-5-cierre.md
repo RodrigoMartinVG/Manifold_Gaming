@@ -1,6 +1,6 @@
 ---
 title: 'Cierre de la etapa 5.5: la forma antes del bosque'
-description: 'Las metas de la decisión 0033, medidas: cuáles se cumplen, cuáles no y por qué. Lo que dejó cada una de sus nueve etapas, y lo que queda para el bosque, cada cosa anotada en la etapa que primero la necesita.'
+description: 'Las metas de la decisión 0033, medidas: se cumplen las de forma; las de tiempo no se podían cumplir como estaban escritas, y quedan corregidas. Lo que dejó cada una de sus nueve etapas, y lo que queda para el bosque, cada cosa anotada en la etapa que primero la necesita.'
 sidebar:
   order: 77
 ---
@@ -24,7 +24,7 @@ Cada etapa, en una línea:
 
 ## Las metas, medidas
 
-La decisión las escribió como hipótesis que el cierre confirma o corrige. Medidas en esta máquina (la del autor), con nada más corriendo:
+La decisión las escribió como hipótesis que el cierre confirma o corrige (las de tiempo, corregidas más abajo). Medidas en esta máquina (la del autor), con nada más corriendo:
 
 |                                                      | Antes de la 5.5                                | Meta                   | Ahora                                              |
 | ---------------------------------------------------- | ---------------------------------------------- | ---------------------- | -------------------------------------------------- |
@@ -40,12 +40,18 @@ La decisión las escribió como hipótesis que el cierre confirma o corrige. Med
 
 **Se cumplen las cuatro metas de forma**: un juego nuevo no copia ningún archivo (el juego de prueba de la 5.5h es solo sus reglas, su nivel, sus palabras y su música); el cambio de un juego reescribe solo sus repeticiones (las versiones por partes de la 5.5c); las referencias de los cuatro juegos se comprueban en los cuatro navegadores; y un archivo nuevo está vigilado desde su primera línea (la 5.5b).
 
-**No se cumplen las tres de tiempo**, y la medida dice por qué. Corrige las hipótesis:
+**No se cumplen las tres de tiempo, y como estaban escritas no se podían cumplir.** Eran estimaciones de lo que darían los arreglos de la auditoría (E1 a E4), y les faltaron tres cuentas: el trabajo total contra los núcleos de esta máquina (un i5-1038NG7: 4 núcleos, 8 hilos); que el chequeo del sitio no es incremental; y que las pruebas de navegador solo se repartieron por navegador. Con la palabra del autor («Sí, corregilos»), quedaron corregidas en la decisión:
 
-- **Los tipos** bajaron de 77 s a 42 s desde cero, pero el piso tiene dos partes. Una es el chequeo del sitio (`astro check` más el del tutorial), que tarda 23 s solo. La otra es que cada paquete vuelve a verificar el código del núcleo que importa: el shell, 23 s. Para bajar a 30 s y a 10 s hacen falta las _project references_ de TypeScript, que cada paquete se verifique una vez. Chocan con los JSON de recursos que se comparten los paquetes (como encontró la 5.5d), y eso es un trabajo propio.
-- **Las pruebas rápidas** ya no esperan a un archivo lento: sus 104 archivos suman 230 s de trabajo, que en los 8 núcleos de esta máquina son unos 29 s aun repartidos a la perfección, más lo que tarda en cargarse cada uno. Los 20 s piden menos trabajo, no otro orden.
-- **Todas las pruebas** tienen un piso de un solo archivo: la reproducción de las cuatro referencias de la muralla, unos 20 s cada una, en serie, 85 s. Separarlas, como la 5.5c separó las grabadoras, bajaría el total hacia los 70 s: el trabajo entero suma 554 s. Los 45 s piden jugar cada nivel una vez y no dos (hoy lo juega su grabadora y después se reproduce su repetición), y eso es una decisión sobre qué prueba cada una, no un arreglo.
-- **La integración continua** no la pude medir: en esta etapa no hubo un push. Los trabajos en paralelo y la imagen de Playwright existen desde la 5.5d, y el primer push del autor va a dar el número.
+|                          | Medido al cierre                                                    | Por qué                                                                                                                                                                         | La meta corregida                                                                                                                                                    |
+| ------------------------ | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| La verificación de tipos | 42 s desde cero; 27 s sin cambios, 33 s después de uno en el núcleo | el chequeo del sitio (`astro check` más el del tutorial) tarda unos 23 s cada vez, porque no es incremental; y cada paquete vuelve a verificar el código del núcleo que importa | 30 s desde cero, con las _project references_ de TypeScript (los JSON de recursos exportados de otra forma); unos 25 s después de un cambio; 10 s, solo sin el sitio |
+| `npm test`               | 50 a 57 s, unos 300 s de CPU                                        | es el trabajo mismo: con todos los núcleos ocupados, no baja de unos 50 s                                                                                                       | 35 a 40 s, pasando las pruebas de escenarios más pesadas de los juegos a los recorridos                                                                              |
+| Todas las pruebas        | 97 a 115 s, unos 700 s de CPU                                       | es el trabajo mismo; además, cada nivel se juega dos veces (lo juega su grabadora y después se reproduce su repetición)                                                         | unos 75 s, jugando cada nivel una vez                                                                                                                                |
+| La integración continua  | sin medir: en esta etapa no hubo un push                            | solo Chromium son unos 16 min de pruebas, en un trabajo                                                                                                                         | 12 min, con Chromium repartido en dos o tres trabajos                                                                                                                |
+
+**Una corrección.** La primera versión de este informe decía que separar las cuatro reproducciones de la muralla (un archivo de 85 s) bajaría el total hacia los 70 s. Es falso: el trabajo total ya ocupa todos los núcleos, y separarlo ganaría pocos segundos. Lo que baja el total es hacer menos trabajo.
+
+**Mientras se trabaja, la espera que importa es otra:** correr solo las pruebas de lo que cambió (`npx vitest related <archivo> --run`). Para un cambio en un juego o en la vista tarda de 10 a 12 s (medido: el escenario, 7 archivos; las reglas de la fortaleza, 6). Uno en el núcleo alcanza a casi todas: 64 archivos, 77 s. `npm test` queda para antes de un commit, y `test:all` para la integración continua.
 
 ## Lo que queda
 
@@ -57,7 +63,7 @@ Lo que la 5.5 encontró y no hizo, cada cosa anotada en el roadmap donde primero
 - **Las opciones del montaje, agrupadas** (de la 5.5g).
 - **Los triángulos de la muralla**, de 63.000 a 81.000 contra los 50.000 del piso (medido en la 5.5g): con el dibujo a escala, la F3.
 - Y de la 5.5e: los `Vec3` de los comandos (la base no importa nada, decisión 0003), y los ejes de la corrección de esquinas y las costuras de los compuestos (fase 7).
-- Y del entorno, lo que piden las metas de tiempo: las _project references_ de TypeScript, con los JSON de recursos exportados de otra forma; la reproducción de cada referencia en su propio archivo; y decidir si cada nivel tiene que jugarse dos veces.
+- Y del entorno, lo que piden las metas corregidas: las _project references_ de TypeScript, con los JSON de recursos exportados de otra forma; las pruebas de escenarios más pesadas de los juegos, en los recorridos; cada nivel jugado una vez; y Chromium repartido en la integración continua.
 
 ## El roadmap, el plan
 
@@ -65,6 +71,6 @@ El roadmap pasó de 208 KB a 66 KB. Cada etapa terminada es su título y el enla
 
 ## Pruebas
 
-- Este cierre no cambia código: mide. Los tiempos son de esta máquina, con nada más corriendo; los de cada archivo, de la corrida de todas a la vez.
+- Este cierre no cambia código: mide. Los tiempos son de esta máquina, con nada más corriendo; el trabajo de CPU, con `/usr/bin/time`; los de cada archivo, de la corrida de todas a la vez.
 - La prueba de estado (`status.test.ts`) pasa con el roadmap nuevo.
 - Al cerrar pasan las 940 pruebas sin pantalla, la verificación de tipos, el lint y el formato, las 152 pruebas de navegador en Chromium y las 22 de Firefox y WebKit.
