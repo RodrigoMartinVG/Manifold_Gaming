@@ -104,8 +104,8 @@ describe('the fortress, on the games’ shell (stage 5f)', () => {
     expect(n().state).toBe('alerted');
     // (Its shout is its brain's, the step after.)
     steps(3);
-    expect(said.indexOf('huh')).toBeGreaterThanOrEqual(0);
-    expect(said.indexOf('huh')).toBeLessThan(said.indexOf('shout'));
+    expect(said.indexOf('arms.huh')).toBeGreaterThanOrEqual(0);
+    expect(said.indexOf('arms.huh')).toBeLessThan(said.indexOf('arms.shout'));
     expect(f.r().seen).toBe(1);
     // Again, the guard down first: the same place, unseen.
     const g = levelOf(3);
@@ -161,7 +161,7 @@ describe('the fortress, on the games’ shell (stage 5f)', () => {
     put([...f.r().spawn]);
     steps(600, () => n().state === 'calm');
     expect(n().state).toBe('calm');
-    expect(said).toContain('calm');
+    expect(said).toContain('arms.calm');
     expect(Math.hypot(g0().transform!.position[0] - post[0]!, g0().transform!.position[2] - post[2]!)).toBeGreaterThan(0.5);
     expect(f.r().seen).toBe(0);
     // Alerted, then lost: three seconds on it searches, ten more and it is back, warier for half a minute.
@@ -186,7 +186,8 @@ describe('the fortress, on the games’ shell (stage 5f)', () => {
     let heard: { radius: number } | undefined;
     for (let i = 0; i < 180 && !heard; i++) {
       f.step();
-      heard = f.world().stepEvents.find((ev) => ev.type === 'sound' && ev.sound === 'pebble') as { radius: number } | undefined;
+      heard = f.world().stepEvents.find((ev) => ev.type === 'sound' && ev.sound === 'arms.pebble') as
+        { radius: number } | undefined;
     }
     expect(heard?.radius).toBe(10);
     f.session.world.dispose();

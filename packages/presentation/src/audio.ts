@@ -215,25 +215,25 @@ export function mountAudio(page: GamePage): Piece {
       case 'blast':
         synth.blast(k, p.out, p.when);
         break;
-      case 'shout':
+      case 'arms.shout':
         synth.shout(k, p.out, p.when);
         break;
-      case 'ready':
+      case 'arms.ready':
         synth.ready(k, p.out, p.when);
         break;
-      case 'huh':
+      case 'arms.huh':
         synth.huh(k, p.out, p.when);
         break;
-      case 'calm':
+      case 'arms.calm':
         synth.calm(k, p.out, p.when);
         break;
-      case 'pebble':
+      case 'arms.pebble':
         synth.pebble(k, p.out, p.when);
         break;
-      case 'reload':
+      case 'arms.reload':
         synth.reload(k, p.out, p.when, s.energy > 0);
         break;
-      case 'horn':
+      case 'wall.horn':
         synth.horn(k, p.out, p.when);
         break;
     }

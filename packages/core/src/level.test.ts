@@ -594,9 +594,15 @@ route there  0 0 0  0 0 -3
     expect(bad('route a  0 0 0  1 1')).toThrow(/line 3: a route's points are three numbers each/);
     expect(bad('route a loop')).toThrow(/line 3: a route needs two points/);
     expect(bad('route A  0 0 0  1 0 0')).toThrow(/line 3: "A" is not a name/);
-    expect(bad('box 0 0 0  1 1 1  affords')).toThrow(/line 3: "affords" needs what it is for \(cover, throw, kick, weak\)/);
+    expect(bad('box 0 0 0  1 1 1  affords')).toThrow(
+      /line 3: "affords" needs what it is for \(cover, throw, kick, weak, or a game's own/,
+    );
     expect(bad('box 0 0 0  1 1 1  affords cover cover')).toThrow(/line 3: "cover" twice/);
     expect(bad('box 0 0 0  1 1 1  affords fly')).toThrow(/"affords" needs what it is for/);
+    // (Stage 5.5e) A game's own, with its owner, is understood; read back as it was written.
+    const own = levelFromText('# Manifold level 8\nbox 0 0 0  1 1 1  affords cover forest.perch\n');
+    expect(own.boxes[0]!.affords).toEqual(['cover', 'forest.perch']);
+    expect(levelFromText(levelToText(own))).toEqual(own);
     const v7 = (line: string) => () => levelFromText(`# Manifold level 7\n${line}\n`);
     expect(v7('route a  0 0 0  1 0 0')).toThrow(/line 2: "route" is format 8/);
     expect(v7('box 0 0 0  1 1 1  affords cover')).toThrow(/line 2: "affords" is format 8/);

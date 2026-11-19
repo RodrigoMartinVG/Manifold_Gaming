@@ -213,9 +213,18 @@ export interface BrainOf {
   route: string | null;
 }
 
-/** What a level says a thing is for (stage 4d, decision 0024): to hide behind, to throw, to kick, a weak point. */
+/** A word that belongs to a game or a package of the library, with its owner: `arms.ready`, `forest.perch` (stage 5.5e). */
+export type NamespacedWord = `${string}.${string}`;
+
+/** The sounds the engine itself makes (stage 3f; the rest are a game's, namespaced: stage 5.5e). */
+export type EngineSound = 'step' | 'land' | 'hit' | 'door' | 'lift' | 'break' | 'blast';
+
+/**
+ * What a level says a thing is for (stage 4d, decision 0024): to hide behind, to throw, to kick, a weak point;
+ * or a game's own, with its owner (stage 5.5e: `forest.perch`, `forest.swing`).
+ */
 export const AFFORDANCES = ['cover', 'throw', 'kick', 'weak'] as const;
-export type Affordance = (typeof AFFORDANCES)[number];
+export type Affordance = (typeof AFFORDANCES)[number] | NamespacedWord;
 
 /**
  * A BODY THAT GOES BACK AND FORTH (stage 2d): a moving platform. Its place is a function of the time
@@ -713,6 +722,12 @@ export type Event =
    * says it in the player's language). For one player, or (without `player`) for everybody.
    */
   | { type: 'notice'; say: string; values?: readonly number[]; player?: number }
+  /**
+   * A game's own happening (stage 5.5e), by a name with its owner (`forest.owl`), about an entity if it is one,
+   * with numbers if it carries any: what a game tells its view, or another rule of its own, without an edit
+   * to the core. (Events are not in the hash: what they say is read, not kept.)
+   */
+  | { type: 'game'; name: NamespacedWord; entity?: EntityId; values?: readonly number[] }
   /** A signal changed its value (stage 3c), at the end of the step: what it is now, and what it was. */
   | { type: 'signalChanged'; signal: string; value: number; was: number }
   /** A watcher began to see a character (stage 3d), or lost it. */
@@ -737,23 +752,9 @@ export type Event =
    */
   | {
       type: 'sound';
-      // (Stage 5l: a guard's "huh?" and its "nothing", and a pebble's clatter; 5o: a reload's clicks, and a
-      // horn, the wall's alarm.)
-      sound:
-        | 'step'
-        | 'land'
-        | 'hit'
-        | 'door'
-        | 'lift'
-        | 'break'
-        | 'blast'
-        | 'shout'
-        | 'ready'
-        | 'huh'
-        | 'calm'
-        | 'pebble'
-        | 'reload'
-        | 'horn';
+      // The engine's own sounds, or a game's (stage 5.5e: by a name with its owner, `arms.ready`, `wall.horn`;
+      // before, every game's sound was a word of this list, and a new one an edit to the core).
+      sound: EngineSound | NamespacedWord;
       source: EntityId;
       at: Vec3;
       surface: string | null;

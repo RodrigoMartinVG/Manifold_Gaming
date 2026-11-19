@@ -334,7 +334,7 @@ export function arms(world: World, events: readonly Event[]) {
       (e.game ??= {})[RAISED] = { since: world.tick } satisfies Raised;
       world.emit({
         type: 'sound',
-        sound: 'ready',
+        sound: 'arms.ready',
         source: e.id,
         at: [...eye],
         surface: null,
@@ -362,7 +362,7 @@ export function arms(world: World, events: readonly Event[]) {
     const reloadSound = (energy: number) =>
       world.emit({
         type: 'sound',
-        sound: 'reload',
+        sound: 'arms.reload',
         source: e.id,
         at: [...eye],
         surface: null,

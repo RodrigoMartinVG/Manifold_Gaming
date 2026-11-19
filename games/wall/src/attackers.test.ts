@@ -17,7 +17,7 @@ describe('the wall’s attackers, fair (stage 5i)', () => {
     for (let k = 0; k < 900 && (f.me().health?.down ?? -1) < 0; k++) {
       f.step();
       const world = f.session.world;
-      readies += world.stepEvents.filter((e) => e.type === 'sound' && e.sound === 'ready').length;
+      readies += world.stepEvents.filter((e) => e.type === 'sound' && e.sound === 'arms.ready').length;
       most = Math.max(most, [...world.entities.values()].filter((e) => e.brain && raised(e)).length);
       if (firstHurt < 0 && f.me().health!.points < full) firstHurt = readies;
     }

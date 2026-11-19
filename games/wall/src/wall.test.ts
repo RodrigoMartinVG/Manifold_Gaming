@@ -114,7 +114,8 @@ describe('the wall, on the games’ shell (stage 5h)', () => {
     const f = levelOf(0);
     f.step();
     const a = arsenal(f.me())!;
-    const reloads = () => f.world().stepEvents.flatMap((e) => (e.type === 'sound' && e.sound === 'reload' ? [e.energy] : []));
+    const reloads = () =>
+      f.world().stepEvents.flatMap((e) => (e.type === 'sound' && e.sound === 'arms.reload' ? [e.energy] : []));
     const fired = () => f.world().stepEvents.filter((e) => e.type === 'fired' && e.from === f.me().id).length;
     expect([a.loaded.dart, a.ammo.darts]).toEqual([12, 28]);
     for (let k = 0; k < 3; k++) {
@@ -188,7 +189,7 @@ describe('the wall, on the games’ shell (stage 5h)', () => {
     // (The gate's turret, 3 m up: its red key calls those who come along the north rampart.)
     f.world().place(f.me(), [19, 3.82, -56]);
     f.step();
-    const horns = f.world().stepEvents.filter((e) => e.type === 'sound' && e.sound === 'horn');
+    const horns = f.world().stepEvents.filter((e) => e.type === 'sound' && e.sound === 'wall.horn');
     f.step();
     const come = attackers(f.world()).length - before;
     expect(come).toBe(3);

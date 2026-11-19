@@ -231,7 +231,7 @@ export function mountFire(page: GamePage, bodies: Bodies, o: { timeScale(): numb
           const reach = 1.5 * ev.radius;
           if (d < reach) trauma = Math.min(1, trauma + 0.6 * (1 - d / reach));
         }
-      } else if (ev.type === 'sound' && ev.sound === 'ready') {
+      } else if (ev.type === 'sound' && ev.sound === 'arms.ready') {
         // A weapon raised: a cold glint at its end, growing a little and fading.
         adds.spawn({
           kind: 'flash',

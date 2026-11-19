@@ -349,7 +349,7 @@ const guardBrain4e = (world: World, self: Entity, memory: Memory, after?: readon
   for (const ev of world.stepEvents) {
     if (ev.type !== 'sound' || ev.source === self.id) continue;
     // (Another guard's sounds it does not mind; a wary one, its shout: stage 5e.)
-    if (world.entities.get(ev.source)?.brain && !(ev.sound === 'shout' && wary(self))) continue;
+    if (world.entities.get(ev.source)?.brain && !(ev.sound === 'arms.shout' && wary(self))) continue;
     const mechanism = ev.sound === 'door' || ev.sound === 'lift';
     if (mechanism && (working || vec3.length(vec3.sub(ev.at, center)) < 3)) continue;
     if (vec3.length(vec3.sub(ev.at, center)) <= ev.radius) m.heard = { at: [...ev.at], tick: world.tick };

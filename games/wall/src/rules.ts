@@ -372,7 +372,7 @@ export function createWall(levels: Readonly<Record<string, Level>>): Cartridge {
               // it and come to look (the attackers are guards: they go only to what they see or hear).
               world.emit({
                 type: 'sound',
-                sound: 'horn',
+                sound: 'wall.horn',
                 source: me.id,
                 at: [...me.transform!.position],
                 surface: null,

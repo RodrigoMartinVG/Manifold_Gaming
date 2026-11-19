@@ -1,4 +1,5 @@
 import { quat, sinCosDegrees, vec3, type Quat, type Vec3 } from '@manifold/common';
+import { COMPONENT_NAME } from './components';
 import { MATERIAL_NAME, MATERIALS, materialProblem, type Material } from './materials';
 import { FLOOR_THICKNESS, mapParts, type LevelMap } from './map';
 import { AFFORDANCES, type Affordance, type CollisionGroups, type Components, type SignalOp } from './types';
@@ -460,12 +461,13 @@ export function levelFromText(text: string, o: LevelOptions = {}): Level {
     /** What a thing is for (format 8): the words that come next, as many as are what things are for (one at least). */
     const affordances = (): Affordance[] => {
       const out: Affordance[] = [];
-      while (at < words.length && (AFFORDANCES as readonly string[]).includes(words[at]!)) {
+      // The engine's words, or a game's own with its owner (stage 5.5e: `forest.perch`).
+      while (at < words.length && ((AFFORDANCES as readonly string[]).includes(words[at]!) || COMPONENT_NAME.test(words[at]!))) {
         const a = words[at++] as Affordance;
         if (out.includes(a)) fail(n, `"${a}" twice in what it affords`);
         out.push(a);
       }
-      if (out.length === 0) fail(n, `"affords" needs what it is for (${AFFORDANCES.join(', ')})`);
+      if (out.length === 0) fail(n, `"affords" needs what it is for (${AFFORDANCES.join(', ')}, or a game's own: forest.perch)`);
       return out;
     };
     /** Collision groups, as their numbers (1 to 16), as bits. */

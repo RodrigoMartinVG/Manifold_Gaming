@@ -250,7 +250,7 @@ export function stealth(world: World, events: readonly Event[]) {
     if (pressed(world, c.player, SHOUT_INPUT))
       world.emit({
         type: 'sound',
-        sound: 'shout',
+        sound: 'arms.shout',
         source: e.id,
         at: [...e.transform.position],
         surface: null,
@@ -269,7 +269,7 @@ export function stealth(world: World, events: readonly Event[]) {
       pb.heard = true;
       world.emit({
         type: 'sound',
-        sound: 'pebble',
+        sound: 'arms.pebble',
         source: e.id,
         at: [...e.transform.position],
         surface: null,
@@ -316,7 +316,7 @@ export function secondsToNotice(aware: Aware, d: number, range: number, bright: 
 }
 
 /** A guard's bark: what it says, heard `STEALTH.bark` round. */
-const bark = (world: World, guard: Entity, sound: 'huh' | 'calm') =>
+const bark = (world: World, guard: Entity, sound: 'arms.huh' | 'arms.calm') =>
   world.emit({
     type: 'sound',
     sound,
@@ -393,14 +393,14 @@ export function noticing(world: World, events: readonly Event[]) {
         if (n.level >= 1) set('alerted');
         else if (n.level >= aware.suspicious) {
           set('suspicious');
-          bark(world, g, 'huh');
+          bark(world, g, 'arms.huh');
         }
         break;
       case 'suspicious':
         if (n.level >= 1) set('alerted');
         else if (n.level < aware.suspicious / 2) {
           set('calm');
-          bark(world, g, 'calm');
+          bark(world, g, 'arms.calm');
         }
         break;
       case 'alerted':
@@ -412,7 +412,7 @@ export function noticing(world: World, events: readonly Event[]) {
           set('calm');
           n.level = 0;
           n.until = world.tick + 60 * aware.waryFor;
-          bark(world, g, 'calm');
+          bark(world, g, 'arms.calm');
         }
         break;
     }
